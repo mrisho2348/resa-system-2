@@ -1,0 +1,190 @@
+{% extends 'kahama_template/base_template.html' %}
+
+{% block title %}
+Patient Vital Information
+{% endblock title %}
+
+{% block page_title %}
+Patient Vital Information
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+<a class="btn btn-primary float-right" href="{% url 'kahamahmis:save_remotepatient_vitals' patient.id visit.id %}">
+    <i class="fas fa-plus"></i> New vitals for this visit
+</a>
+
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">            
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">                           
+                                <div class="card-body">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <label for="chief_complaints">Patient Information</label>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <b>PATIENT:</b> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>DOB:</b> {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                                    <script>
+                                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                        var now = new Date();
+                                                        var ageMilliseconds = now - dob;
+                                                        var ageSeconds = ageMilliseconds / 1000;
+                                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                        document.write(ageYears + ' years');
+                                                    </script>
+                                                    {% else %}
+                                                    {{ patient.age }}
+                                                    {% endif %}]
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>SEX:</b> {{ patient.gender }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>FILE NO:</b> {{ patient.mrn }}
+                                                </div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <b>Company:</b> {{ patient.company }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>Visit Number:</b> {{ visit.vst }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br />                   
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase">list of vital for visit number </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-condensed text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Vital Number</th>
+                                    <th>Visit Number</th>
+                                    <th>Recorded date</th>
+                                    <th>RR (bpm)</th>
+                                    <th>PR (bpm)</th>
+                                    <th>BR</th>
+                                    <th>SPO2 (%)</th>
+                                    <th>Temperature (°C)</th>
+                                    <th>GCS</th>
+                                    <th>AVPU</th> 
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>                     
+                                    <th>Action</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vital in patient_vitals %}
+                                    <tr>
+                                        <td>{{ vital.unique_identifier }}</td>
+                                        <td>{{ vital.visit.vst }}</td>
+                                        <td>{{ vital.recorded_at}}</td>
+                                        <td>{{ vital.respiratory_rate }}</td>
+                                        <td>{{ vital.pulse_rate }}</td>
+                                        <td>{{ vital.blood_pressure }}</td>
+                                        <td>{{ vital.spo2 }}%</td>
+                                        <td>{{ vital.temperature }}</td>
+                                        <td>{{ vital.gcs }}</td>
+                                        <td>{{ vital.avpu }}</td>
+                                        <td>{{ vital.recorded_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                        <td>{{ vital.recorded_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ vital.recorded_at|time:"H:i:s" }}</td> <!-- Display time -->
+                                        <td>
+                                            <a href="{% url 'kahamahmis:save_remotepatient_vitals' vital.patient.id vital.visit.id %}" data-toggle="tooltip" title="Add vital for that visit">
+                                                <button type="button" class="btn btn-dark btn-sm"><i class="fa fa-edit text-white"></i></button>
+                                            </a> 
+                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePatientVitalModal{{ vital.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>                              
+                                        </td>
+                                     <!-- Delete Modal -->
+                        <div class="modal fade" id="deletePatientVitalModal{{ vital.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePatientVitalModalLabel{{ vital.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deletePatientVitalModalLabel{{ vital.id }}">Delete Category</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete this vital: <strong>{{ vital }}</strong>?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                        <button type="button" class="btn btn-danger" onclick="deletePatientVital({{ vital.id }})">Delete</button>
+                                    </div>
+                                </div>
+                    
+                                <script>
+                                    function deletePatientVital(vitalId) {
+                                        $.ajax({
+                                            type: 'POST',
+                                            url: '/delete_patient_vital/' + vitalId + '/',  // Replace with your URL
+                                            data: {},
+                                            success: function (data) {
+                                                if (data.status === 'success') {
+                                                    $('#deletePatientVitalModal' + vitalId).modal('hide');
+                                                    location.reload(true);
+                                                    // Refresh the category list or perform any other actions
+                                                } else {
+                                                    // Handle other status cases if needed
+                                                    alert(data.message);
+                                                }
+                                            },
+                                            error: function (error) {
+                                                alert(error);
+                                                // Handle errors if necessary
+                                            }
+                                        });
+                                    }
+                                </script>
+                            </div>
+                        </div>                  
+                                                
+                                    </tr>
+                                  {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'kahama_template/datatable.html' %}
+{% endblock main_content %}

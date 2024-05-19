@@ -1,0 +1,519 @@
+{% extends 'pharmacist_template/base_template.html' %}
+
+{% block title %}
+Patient Visit History
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+Patient Visit History
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">               
+                <div class="card-body">
+                    <div class="row" style="font-size:13px;">
+                        <div class="col-md-3"><b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3"><b>SEX: {{ patient.gender }}</b></div>
+                        <div class="col-md-3"><b>FILE NO : {{ patient.mrn }}</b> </div>
+                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3"><b>PAYMENT MODE: {{ patient.payment_form }}</b></div>
+                        </div>
+                </div>           
+            
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-row">
+                <div>
+                    {% if messages %}
+                    <div class="col-12">
+                        {% for message in messages %}
+                        {% if message.tags == 'error' %}
+                        <div class="alert alert-danger">{{ message }}</div>
+                        {% elif message.tags == 'success' %}
+                        <div class="alert alert-primary">{{ message }}</div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+           <div class="card">
+                <div class="card-header">
+                    <h3  class="header-title text-center mt-0 mb-1  text-uppercase"> {{ patient.first_name }} Visit history</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Visit number</th>
+                                    <th>Visit Type</th>                           
+                                    <th>Service</th>              
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>                         
+                                    <th>Action</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in visit_history %}
+                                    <tr>
+                                        <td>{{ visit.vst }}</td>
+                                        <td>{{ visit.get_visit_type_display }}</td>                             
+                                        <td>{{ visit.primary_service }}</td>                  
+                                        <td>{{ visit.created_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                        <td>{{ visit.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
+                                        <td>                                    
+                                        <button class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#addPrescriptionModal{{ visit.id }}"  data-toggle="tooltip" title="Add Prescription">
+                                            <i class="fas fa-plus-circle"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#consultationModal{{ visit.id }}"   data-toggle="tooltip" title="Appointment">
+                                            <i class="fas fa-calendar text-dark" ></i>
+                                        </button>              <!-- Add more action links as needed -->
+                                        <a href="{% url 'pharmacist_patient_health_record' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
+                                            <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a>   
+                                                      <!-- Add more action links as needed -->
+                                        <a href="{% url 'pharmacist_patient_vital_visit_list' visit.patient.id visit.id %}" data-toggle="tooltip" title="open vital">
+                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a>   
+                                            
+                                        </td>
+                                 
+                                    </tr>
+                    
+                    
+        
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                            <!-- left column -->
+                                            <div class="col-md-12">
+                                                <!-- Bootstrap Modal for consultation form -->
+                                                <div class="modal fade" id="consultationModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="consultationModalLabel{{ visit.id }}" aria-hidden="true">
+                                                    <div class="modal-dialog" role="document">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="consultationModalLabel{{ visit.id }}">Add Appoinment</h5>
+                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                    <span aria-hidden="true">&times;</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <form id="consultationForm{{ visit.id }}">
+                                                                    {% csrf_token %}
+                                                                    <!-- Doctor selection dropdown -->
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <div class="form-group">
+                                                                                <label for="doctor{{ visit.id }}">Doctor:</label>
+                                                                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
+                                                                                    <option value="">Select Doctor</option>
+                                                                                    {% for doctor in doctors %}
+                                                                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                                                                    {% endfor %}
+                                                                                </select>
+                                                                            </div>
+                                                                         </div>                                                    
+                                                                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                                                                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
+                                                                        <div class="col-md-6">
+                                                                            <!-- Date of consultation input -->
+                                                                            <div class="form-group">
+                                                                                <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
+                                                                                <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control">
+                    
+                                                                        </div>
+                                                                    </div> 
+                                                                    </div>                                                  
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <div class="form-group">
+                                                                                <label for="start_time{{ visit.id }}">Start Time:</label>
+                                                                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}">
+                                                                            </div>
+                                                                         </div>                                                    
+                                                                        <div class="col-md-6">
+                                                                                <!-- Description input -->
+                                                                            <div class="form-group">
+                                                                                <label for="end_time{{ visit.id }}">End Time:</label>
+                                                                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}">
+                                                                            </div>
+                                                                        </div>                                                        
+                                                                    </div>   
+                                                                    <div class="row">                                                        
+                                                                        <div class="col-md-12 mb-5 ">
+                                                                            <!-- Description input -->
+                                                                            <label for="description">Description:</label>
+                                                                            <textarea id="description" name="description" rows="2" class="form-control"></textarea>
+                                                                        </div>
+                                                                    </div>                                               
+                                                                    <div class="row">                                                        
+                                                                        <div class="col-md-12">
+                                                                            <div id="successMessageContainer">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>                                               
+                                                                
+                                                                    <button type="button" class="btn btn-success btn-block" onclick="addConsultation({{ visit.id }})">Create an Appointment</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <script>
+                                        function addConsultation(visitId) {
+                                            var doctor = $('#doctor' + visitId).val();
+                                            var patient_id = $('#patient_id' + visitId).val();
+                                            var visit_id = $('#visit_id' + visitId).val();
+                                            var end_time = $('#end_time' + visitId).val();
+                                            var start_time = $('#start_time' + visitId).val();
+                                            var date_of_consultation = $('#date_of_consultation' + visitId).val();
+                                            var description = $('#description' + visitId).val();
+                                    
+                                            $.ajax({
+                                                type: 'POST',
+                                                url: '{% url "pharmacist_appointment_view" %}', 
+                                                data: {
+                                                    doctor: doctor,
+                                                    patient_id: patient_id,
+                                                    visit_id: visit_id,
+                                                    end_time: end_time,
+                                                    start_time: start_time,
+                                                    date_of_consultation: date_of_consultation,
+                                                    description: description
+                                                },
+                                                success: function(response) {
+                                                    if (response.status === 'success') {  
+                                                        $('#successMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');   
+                                                        location.reload(true)                                            
+                                                
+                                                    } else {
+                                                        // Handle other status cases if needed
+                                                        $('#successMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                                                    }
+                                                },
+                                                error: function(error) {
+                                                    alert(error);
+                                                    // Display error message
+                                                    $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to create an appointment</div>');
+                                                }
+                                            });
+                                        }
+                                    </script>
+                    
+                                {% endfor %}
+                            </tbody>
+                        </table>
+        
+                         
+                    </div>
+                </div>
+           </div>
+        </div>
+    </div>
+</div>
+
+
+{% for visit in visit_history %}
+
+<div class="modal fade" id="addPrescriptionModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="addPrescriptionModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPrescriptionModalLabel{{ visit.id }}">Add Prescription for visit {{ visits.vst }} and patient {{ patient }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addPrescriptionModalForm{{ visit.id }}" method="post">
+                    {% csrf_token %}
+                   <div class="row">
+                    <div class="col-md-12">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="prescriptionTable{{ visit.id }}">
+                            <thead>
+                                <tr>
+                                    <th>Drug</th>
+                                    <th>Dose</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Price</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td> 
+                                        <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
+                                        <option value="">Select Medicine</option>
+                                        {% for medicine in medicines %}
+                                          <option value="{{ medicine.id }}" {% if medicine.id == prescription.medicine.id  %} selected {% endif %}>{{ medicine.name }}</option>
+                                        {% endfor %}
+                                      </select>
+                                    </td>
+                                    <td><input type="text" class="form-control dose-input" name="dose[]" value="0"></td>
+                                    <td><select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">                                
+                                            <option value="PRN">PRN</option>
+                                            <option value="QID">QID</option>
+                                            <option value="TID">TID</option>
+                                            <option value="BID">BID</option>
+                                            <option value="STAT">STAT</option>
+                                            <option value="OD">OD</option>                                    
+                                    </select></td></td>
+                                    <td> <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
+                                        {% for rate in range_31 %}
+                                            <option value="{{ rate }}">{{ rate }}</option>
+                                        {% endfor %}
+                                    </select></td>
+                                    <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
+                                    <td><input type="text" class="form-control unit-price-input"  value=""></td>
+                                    <td><input type="text" class="form-control total-price-input"  value=""></td>
+                                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                   </div>
+                   <div class="row">
+                    <div class="col-md-12">
+                        <hr>
+                    </div>
+                   </div>
+                   <div class="row">
+                        <div class="col-md-9"></div>
+                        <div class="col-md-3">
+                            <div class="row">
+                                <div class="col-md-6">Total Price</div>
+                                <input type="hidden" id="sumt{{ visit.id }}" name="Amount" value="0">
+                                <div class="col-md-6">
+                                    Sh <span id="sum{{ visit.id }}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                   </div>
+                   <div class="row">
+                    <div class="col-md-12">
+                        <div id="PrescriptionResponse{{ visit.id }}">
+
+                        </div>
+                    </div>
+                   </div>
+                    <input type="hidden" class="form-control" id="visit_ids" name="visit_id" value="{{ visit.id }}">
+                    <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Prescription</button>
+                            </div>    
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">                                
+                                <button type="button" class="btn btn-primary btn-block" onclick="addPrescription{{ visit.id }}()">Save Prescriptions</button>
+                            </div>    
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        // Add row button functionality
+        $('#addRow{{ visit.id }}').click(function() {
+            var newRow = `
+                <tr>
+                    <td>
+                        <select class="form-control select2bs4 medicine-select" style="width: 100%;"  id="medicine" name="medicine[]"  required>
+                            <option value="">Select Medicine</option>
+                            {% for medicine in medicines %}
+                                <option value="{{ medicine.id }}">{{ medicine.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control dose-input"  name="dose[]"  value="0"></td>
+                    <td>
+                        <select class="form-control select2bs4 frequency-select" style="width: 100%;"  id="frequency" name="frequency[]" required>
+                            <option value="PRN">PRN</option>
+                            <option value="QID">QID</option>
+                            <option value="TID">TID</option>
+                            <option value="BID">BID</option>
+                            <option value="STAT">STAT</option>
+                            <option value="OD">OD</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-control select2bs4 duration-select" id="duration" name="duration[]" style="width: 100%;">
+                            {% for rate in range_31 %}
+                                <option value="{{ rate }}">{{ rate }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control quantity-input"  name="quantity[]"  value="1"></td>
+                    <td><input type="text" class="form-control unit-price-input" value=""></td>
+                    <td><input type="text" class="form-control total-price-input" value=""></td>
+                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                </tr>`;
+            $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
+        });
+    
+        // Delete row button functionality
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+            updateTotalPrice{{ visit.id }}(); // Call the corresponding updateTotalPrice function
+        });
+    
+        // Fetch unit price and calculate total price when medicine is selected
+        $(document).on('change', '.medicine-select', function() {
+            var selectedMedicineId = $(this).val();
+            var row = $(this).closest('tr');
+            $.ajax({
+                url: '{% url "pharmacist_get_unit_price" %}', // Replace with the URL to fetch unit price
+                method: 'GET',
+                data: { medicine_id: selectedMedicineId },
+                success: function(response) {
+                    row.find('.unit-price-input').val(response.unit_price);
+                    updateTotalPrice{{ visit.id }}(); // Call the corresponding updateTotalPrice function
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                }
+            });
+        });
+    
+        // Calculate total price when quantity is changed
+        $(document).on('input', '.quantity-input', function() {
+            updateTotalPrice{{ visit.id }}(); // Call the corresponding updateTotalPrice function
+        });
+
+        // Function to update total price
+        function updateTotalPrice{{ visit.id }}() {
+            var totalPrice = 0;
+            $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
+                var quantity = parseInt($(this).find('.quantity-input').val());
+                var unitPrice = parseFloat($(this).find('.unit-price-input').val());
+                var rowTotalPrice = quantity * unitPrice;
+                $(this).find('.total-price-input').val(rowTotalPrice.toFixed(2));
+                totalPrice += rowTotalPrice;
+            });
+            $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
+        }
+    
+        // Trigger modal only when button is clicked
+        $('.add-prescription').click(function() {
+            var visitId = $(this).data('visit-id');
+            $('#addPrescriptionModal' + visitId).modal('show');
+        });
+    });
+
+
+     // Handle form submission using AJAX
+     function addPrescription{{ visit.id }}() {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "pharmacist_add_remoteprescription" %}',
+            data: $('#addPrescriptionModalForm{{ visit.id }}').serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                    window.location.href = '{% url "pharmacist_prescription_list" %}';
+                  
+                } else {
+                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+            }
+        });
+    }
+</script>
+
+
+
+{% endfor %}
+
+<style>
+    /* styles.css */
+
+/* Add custom styles for the container */
+.container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+}
+
+/* Add styles for the card */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add styles for the table */
+.table {
+    width: 100%;
+}
+
+/* Add styles for table headers */
+.table th {
+    background-color: #007bff;
+    color: #fff;
+}
+
+/* Add styles for table rows */
+.table tbody tr {
+    background-color: #f9f9f9;
+}
+
+/* Add styles for buttons */
+.btn {
+    border-radius: 5px;
+    margin-right: 5px;
+}
+
+/* Add more styles as needed */
+
+</style>
+
+
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

@@ -1,0 +1,68 @@
+<div class="table-responsive">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+              <th>Date</th>
+              <th>Patient mrn</th>
+              <th>First Name</th>
+              <th>Family Name</th>
+              <th>Age</th>
+              <th>Sex</th>
+              <th>Nationality</th>
+              <th>Company</th>
+              <th>Patient Category</th>
+              <th>Med Evac</th>
+              <th>Referral Reason</th>
+              <th>Transport Mode</th>
+              <th>Patient Destination</th>
+              <th>Diagnosis</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for referral in referrals %}
+            <tr>
+              <td>{{ referral.created_at.date|date:"d/m/Y" }}</td>
+              <td>{{ referral.patient.mrn }}</td>
+              <td>{{ referral.patient.first_name }}</td>
+              <td>{{ referral.patient.last_name }}</td>
+              <td>
+                 {% if referral.patient.dob %}
+                    <script>
+                        var dob = new Date("{{ referral.patient.dob|date:'Y-m-d' }}");
+                        var now = new Date();
+                        var ageMilliseconds = now - dob;
+                        var ageSeconds = ageMilliseconds / 1000;
+                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                        document.write(ageYears + ' years');
+                    </script>
+                {% else %}
+                {{ referral.patient.age }}
+                {% endif %}
+            
+              </td>
+              <td>{{ referral.patient.gender }}</td>
+              <td>{{ referral.patient.nationality }}</td>
+              <td>{{ referral.patient.company }}</td>
+              <td>{{ referral.patient.patient_type }}</td>
+              <td>{{ referral.nature_of_referral }}</td>
+              <td>{{ referral.notes|safe }}</td>
+              <td>{{ referral.transport_model }}</td>
+              <td>{{ referral.destination_location }}</td>
+              <td>
+                {% for diagnosis_record in referral.patient.remotepatientdiagnosisrecord_set.all %}
+                    <ul>
+                        {% for diagnosis in diagnosis_record.final_diagnosis.all %}
+                        <li class="list-group-item">{{ diagnosis }}{% if not forloop.last %}, {% endif %}</li>
+                    {% endfor %}
+                       
+                    </ul>                                  
+                {% endfor %}                               
+            </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+    </table>
+</div>
+
+{% include 'kahama_template/datatable.html' %}
+

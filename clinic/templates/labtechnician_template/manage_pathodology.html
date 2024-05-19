@@ -1,0 +1,127 @@
+{% extends 'labtechnician_template/base_template.html' %}
+
+{% block title %}
+Radiology
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+Radiology
+{% load static %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Radiology</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-bordered table-striped" id="example4">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Image Name</th>
+                                    <th>Description</th>                           
+                                    <th>Cost</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in pathodology_records %}
+                                <tr>
+                                    <td>{{ record.patient.first_name }} {{ record.patient.middle_name }} {{ record.patient.last_name }}</td> 
+                                    <td>{{ record.imaging.name }}</td>
+                                    <td>{{ record.description }}</td>                            
+                                    <td>{{ record.cost }}</td>
+                                    <td>{{ record.created_at|date:"F d, Y" }}</td>
+                                    <td>
+                                        <a href="#" data-toggle="modal" data-target="#EditRadiologyModal{{ record.id }}" data-toggle="tooltip" title="Open Radiology Modal">
+                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-edit text-dark"></i></button>
+                                        </a>
+                                                          <!-- Add more action links as needed -->
+                                        <a href="{% url 'generate_invoice_bill' record.id %}" data-toggle="tooltip" title="open vital">
+                                        <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                    </a>  
+                                    </td>
+                                </tr>
+                              <!-- Modal form for editing radiology -->
+                                    <div class="modal fade" id="EditRadiologyModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="EditRadiologyModalLabel{{ record.id }}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase" id="EditRadiologyModalLabel{{ record.id }}">Add Result for {{ record.imaging.name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form id="EditRadiologyForm{{ record.id }}" method="post">
+                                                        {% csrf_token %}
+                                                        <div class="row">
+                                                            <div class="col-md-12">
+                                                                <div class="form-group">
+                                                                    <label for="radiologyResult{{ record.id }}">Result:</label>
+                                                                    <textarea class="form-control" id="radiologyResult{{ record.id }}" name="result" placeholder="Enter radiology Result">{{ record.result|default:"" }}</textarea>
+                                                                    <input type="hidden" class="form-control" id="radiology_id" name="radiology_id" value="{{ record.id }}">
+                                                                </div>
+                                                            </div>                                                
+                                                        </div>                                         
+                                                        <div class="form-row">
+                                                            <div class="col-md-12">
+                                                                <div id="RadiologyResponse{{ record.id }}"></div>  
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <div class="col-md-12">
+                                                                <button type="button" class="btn btn-primary btn-block" onclick="submitRadiology({{ record.id }})">Edit Radiology</button> 
+                                                            </div>
+                                                        </div>                                           
+                                                    </form>
+                                                </div>                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- JavaScript to handle AJAX request and form validation -->
+                                    <script>
+                                        function submitRadiology(recordId) {                                  
+                                            var formData = new FormData(document.getElementById('EditRadiologyForm' + recordId));
+                                            console.log(formData);
+                                            $.ajax({
+                                                url: '{% url "save_radiology" %}',
+                                                type: 'POST',
+                                                data: formData,
+                                                contentType: false,
+                                                processData: false,
+                                                success: function(response) {
+                                                    if (response.success) {  
+                                                        $('#RadiologyResponse{{ record.id }}').html('<div class="alert alert-success">' + response.message + '</div>'); 
+                                                        location.reload(true)                                                                                             
+                                                    } else {
+                                                        $('#RadiologyResponse{{ record.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                                                    }
+                                                },
+                                                error: function(xhr, status, error) {
+                                                    $('#RadiologyResponse{{ record.id }}').html('<div class="alert alert-danger">An error occurred while processing your request. Please try again later.</div>');                                               
+                                                }
+                                            });
+                                        }
+                                    </script>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'labtechnician_template/datatable.html' %}
+
+{% endblock main_content %}

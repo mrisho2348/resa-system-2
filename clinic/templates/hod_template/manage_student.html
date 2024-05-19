@@ -1,0 +1,98 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+   All Registered Students
+{% endblock title %}
+
+{% block page_title %}
+   All Registered Students
+{% endblock page_title %}
+
+{% block breadcrumb %}
+    <a class="btn btn-primary" href="{% url 'add_student' %}">
+        <i class="fas fa-plus"></i> New student
+    </a>
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+
+
+<div class="">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+                <th>S/N</th>
+                <th>Full Name</th>
+                <th>Education Level</th>
+                <th>CURRENT CLASS</th>
+                <th>Email</th>
+                <th>Last Logged In</th>
+                <th>Gender</th>
+                <th>Picture</th>
+                <th>Registration Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="student-table-body">
+            {% for student in students %}
+            <tr>
+                <td>{{ student.id }}</td>
+                <td>{{ student.admin.first_name }} {{ student.admin.last_name }}</td>
+                <td>{{ student.education_level.name }}</td>
+                <td>{{ student.selected_class.name }}</td>
+                <td>{{ student.admin.email }}</td>
+                <td>{{ student.admin.last_login }}</td>
+                <td>{{ student.gender }}</td>
+                <td>
+                    {% if student.profile_pic %}
+                        <img src="{{ student.profile_pic }}" style="width:100px;" alt="Profile Picture" />
+                    {% else %}
+                        <p>No profile picture</p>
+                    {% endif %}
+                </td>
+                <td>{{ student.admin.date_joined }}</td>
+                <td>
+                    <form method="POST" action="{% url 'update_student_status' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_id" value="{{ student.admin.id }}">
+                        <input type="hidden" name="is_active" value="{% if student.admin.is_active %}1{% else %}0{% endif %}">
+                        <input
+                            type="checkbox"
+                            data-toggle="switchbutton"
+                            data-size="xs"
+                            data-onlabel="Active"
+                            data-offlabel="Inactive"
+                            data-offstyle="danger"
+                            data-onstyle="success"
+                            {% if student.admin.is_active %}checked{% endif %}
+                            onchange="submitForm(this)"
+                        >
+                    </form>
+                </td>
+                <td class="text-center">
+                    <a href="{% url 'single_student_detail' student_id=student.id %}">
+                        <button type="button" class="btn btn-light border btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                    </a>
+                    <a href="{% url 'edit_student' student_id=student.admin.id %}">
+                        <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-edit text-white"></i></button>
+                    </a>
+                    <a href="{% url 'delete_student' student_id=student.id %}" class="btn btn-danger" data-toggle="tooltip" title="Delete student">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}

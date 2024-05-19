@@ -1,0 +1,509 @@
+{% extends 'kahama_template/base_template.html' %}
+
+{% block title %}
+Edit Patient
+{% endblock title %}
+
+
+{% block breadcrumb %}
+Edit Patient
+{% endblock breadcrumb %}
+
+{% block main_content %}
+    {% load static %}             
+
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card mt-5">
+                    <div class="card-header">
+                        Patient Information
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{% url 'kahamahmis:patient_info_form_edit' patient.id %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <!-- First Name -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="first_name">First Name:</label> <span class="error">* </span>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ patient.first_name }}" required>
+                                    </div>
+                                </div>
+                                <!-- Middle Name -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="middle_name">Middle Name:</label> <span class="error">* </span>
+                                        <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ patient.middle_name }}" required>
+                                    </div>
+                                </div>
+                                <!-- Last Name -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="last_name">Last Name:</label> <span class="error">* </span>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ patient.last_name }}" required>
+                                    </div>
+                                </div>
+                            </div> <!-- End of Name Section -->
+
+                            <div class="row">
+                                <!-- Gender -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="gender">Gender:</label><span class="error">* </span>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="gender" name="gender" required>
+                                            <option value="Male" {% if patient.gender == 'Male' %} selected {% endif %}>Male</option>
+                                            <option value="Female" {% if patient.gender == 'Female' %} selected {% endif %}>Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Age -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="age">Age:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="age" name="age" required>
+                                            {% for age in range_121 %}
+                                                <option value="{{ age }}" {% if patient.age == age %} selected {% endif %}>{{ age }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Date of Birth -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="dob">Date of Birth:</label>
+                                        <input type="date" class="form-control" id="dob" name="dob" value="{{ patient.dob }}">
+                                    </div>
+                                </div>
+                            </div> <!-- End of Gender, Age, Date of Birth Section -->
+
+                            <div class="row">
+                                <!-- Nationality -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="nationality">Nationality:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" name="nationality" id="nationality" required>
+                                            {% for country in all_country %}
+                                                <option value="{{ country.id }}" {% if patient.nationality == country.id %} selected {% endif %}>{{ country.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Patient's Phone -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="phone">Patient's Phone:</label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
+                                            pattern="(0|\+255)\d{9,12}" title="Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits" 
+                                            onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits')" 
+                                            oninput="setCustomValidity('')" min="">
+                                        <div id="phone-error" style="color: red; display: none;">Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits</div>
+                                    </div>
+                                </div>
+                                <!-- OSHA Certification -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="osha_certificate">OSHA Certification:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="osha_certificate" name="osha_certificate" onchange="toggleOshaFields()">
+                                            <option value="0" {% if patient.osha_certificate  %} selected {% endif %}>No</option>
+                                            <option value="1" {% if patient.osha_certificate %} selected {% endif %}>Yes</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" id="oshaDateField" {% if patient.osha_certificate %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <label for="date_of_osha_certification">Date of OSHA Certification:</label>
+                                        <input type="date" class="form-control" id="date_of_osha_certification" name="date_of_osha_certification" value="{{ patient.date_of_osha_certification|date:'Y-m-d' }}">
+                                    </div>
+                                </div>
+                            </div> <!-- End of Nationality, Phone, OSHA Certification Section -->
+
+                            <div class="row">
+                                <!-- Patient Insurance Status -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="insurance">Patient Insurance Status:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="insurance" name="insurance" onchange="toggleInsuranceFields()">
+                                            <option value="Uninsured" {% if patient.insurance == 'Uninsured' %} selected {% endif %}>Uninsured</option>
+                                            <option value="Insured" {% if patient.insurance == 'Insured' %} selected {% endif %}>Insured</option>                                            
+                                            <option value="Unknown" {% if patient.insurance == 'Unknown' %} selected {% endif %}>Unknown</option>                                            
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Insurance Company -->
+                                <div class="col-md-4">
+                                    <div class="form-group" id="insuranceCompanyField" {% if patient.insurance == 'Insured' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <label for="insurance_company">Insurance Company:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" name="insurance_company" id="insurance_company"  onchange="toggleInsuranceFields()">
+                                            <option value="">Select Insurance Company</option>
+                                            <option value="NHIF" {% if patient.insurance_company == 'NHIF' %} selected {% endif %}>NHIF</option>
+                                            <option value="Jubilee" {% if patient.insurance_company == 'Jubilee' %} selected {% endif %}>Jubilee</option>
+                                            <option value="Strategis" {% if patient.insurance_company == 'Strategis' %} selected {% endif %}>Strategis</option>
+                                            <option value="Assemble" {% if patient.insurance_company == 'Assemble' %} selected {% endif %}>Assemble</option>
+                                            <option value="Britam" {% if patient.insurance_company == 'Britam' %} selected {% endif %}>Britam</option>
+                                            <option value="International Insurance" {% if patient.insurance_company == 'International Insurance' %} selected {% endif %}>International Insurance</option>
+                                            <option value="ISOS" {% if patient.insurance_company == 'ISOS' %} selected {% endif %}>ISOS</option>
+                                            <option value="Other" {% if patient.insurance_company == 'Other' %} selected {% endif %}>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                    <!-- Additional input field for other insurance company -->
+                                    <div class="col-md-4" id="otherInsuranceField" {% if patient.insurance_company == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <div class="form-group">
+                                            <label for="other_insurance">Fill Insurance Company:</label>
+                                            <input type="text" class="form-control" id="other_insurance" name="other_insurance" value="{{ patient.other_insurance_company }}">
+                                        </div>
+                                    </div>
+                                <!-- Insurance Number -->
+                                <div class="col-md-4">
+                                    <div class="form-group" id="insuranceNumberField" {% if patient.insurance == 'Insured' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <label for="insurance_number">Insurance Number:</label>
+                                        <input type="text" class="form-control" id="insurance_number" name="insurance_number" value="{{ patient.insurance_number }}">
+                                    </div>
+                                </div>
+                            </div> <!-- End of Insurance Status, Insurance Company, Insurance Number Section -->
+                            <div class="row">
+                                <!-- Emergency Contact Name -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_name">Emergency Contact Name:</label> <span class="error">* </span>
+                                        <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" value="{{ patient.emergency_contact_name }}" required>
+                                    </div>
+                                </div>
+                                <!-- Emergency Contact Relation -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_relation">Emergency Contact Relation:</label> <span class="error">* </span>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="emergency_contact_relation" name="emergency_contact_relation" onchange="toggleOtherRelationField(this)" required>
+                                            <option value="Spouse" {% if patient.emergency_contact_relation == 'Spouse' %} selected {% endif %}>Spouse</option>
+                                            <option value="Friend" {% if patient.emergency_contact_relation == 'Friend' %} selected {% endif %}>Friend</option>
+                                            <option value="Coworker" {% if patient.emergency_contact_relation == 'Coworker' %} selected {% endif %}>Coworker</option>
+                                            <option value="Child" {% if patient.emergency_contact_relation == 'Child' %} selected {% endif %}>Child</option>
+                                            <option value="Father" {% if patient.emergency_contact_relation == 'Father' %} selected {% endif %}>Father</option>
+                                            <option value="Mother" {% if patient.emergency_contact_relation == 'Mother' %} selected {% endif %}>Mother</option>
+                                            <option value="Brother" {% if patient.emergency_contact_relation == 'Brother' %} selected {% endif %}>Brother</option>
+                                            <option value="Sister" {% if patient.emergency_contact_relation == 'Sister' %} selected {% endif %}>Sister</option>
+                                            <option value="Relative" {% if patient.emergency_contact_relation == 'Relative' %} selected {% endif %}>Relative</option>
+                                            <option value="Other" {% if patient.emergency_contact_relation == 'Other' %} selected {% endif %}>Other</option>
+                                            <!-- Add options for other relations similarly -->
+                                        </select>
+                                    </div>
+                                </div>
+                                  <!-- Additional input field for other relation -->
+                            <div class="col-md-4 other_relation_field" {% if patient.emergency_contact_relation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                <div class="form-group">
+                                    <label for="other_relation">Fill Relation:</label>
+                                    <input type="text" class="form-control" id="other_relation" name="other_relation" value="{{ patient.other_emergency_contact_relation }}">
+                                </div>
+                            </div>
+                                <!-- Emergency Contact Phone -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_phone">Emergency Contact Phone:</label> <span class="error">*</span>
+                                        <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ patient.emergency_contact_phone }}" required 
+                                            pattern="(0|\+255)\d{9,12}" title="Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits" 
+                                            onchange="validateEmergencyContactPhone(this)" oninvalid="setCustomValidity('Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits')" 
+                                            oninput="setCustomValidity('')">
+                                        <div id="emergency-contact-phone-error" style="color: red; display: none;">Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits</div>
+                                    </div>
+                                </div>
+                            </div> <!-- End of Emergency Contact Section -->
+
+                            <div class="row">
+                                <!-- Marital Status -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="marital_status">Marital Status:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" name="marital_status" id="marital_status">
+                                            <option value="single" {% if patient.marital_status == 'single' %} selected {% endif %}>Single</option>
+                                            <option value="married" {% if patient.marital_status == 'married' %} selected {% endif %}>Married</option>
+                                            <option value="Divorced" {% if patient.marital_status == 'Divorced' %} selected {% endif %}>Divorced</option>
+                                            <option value="Widowed" {% if patient.marital_status == 'Widowed' %} selected {% endif %}>Widowed</option>
+                                            <!-- Add options for other marital statuses similarly -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Occupation -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="occupation">Occupation:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" name="occupation" id="occupation"  onchange="toggleOtherOccupationField(this)">
+                                            <option value="Driver" {% if patient.occupation == 'Driver' %} selected {% endif %}>Driver</option>
+                                            <option value="Technician" {% if patient.occupation == 'Technician' %} selected {% endif %}>Technician</option>
+                                            <option value="Engineer" {% if patient.occupation == 'Engineer' %} selected {% endif %}>Engineer</option>
+                                            <option value="Human resources Officer" {% if patient.occupation == 'Human resources Officer' %} selected {% endif %}>Human resources Officer</option>
+                                            <option value="Procurement Officer" {% if patient.occupation == 'Procurement Officer' %} selected {% endif %}>Procurement Officer</option>
+                                            <option value="HSE" {% if patient.occupation == 'HSE' %} selected {% endif %}>HSE</option>
+                                            <option value="Administrator" {% if patient.occupation == 'Administrator' %} selected {% endif %}>Administrator</option>
+                                            <option value="Farmer" {% if patient.occupation == 'Farmer' %} selected {% endif %}>Farmer</option>
+                                            <option value="Health Expert" {% if patient.occupation == 'Health Expert' %} selected {% endif %}>Health Expert</option>
+                                            <option value="Manager" {% if patient.occupation == 'Manager' %} selected {% endif %}>Manager</option>
+                                            <option value="Accountant" {% if patient.occupation == 'Accountant' %} selected {% endif %}>Accountant</option>
+                                            <option value="Manager" {% if patient.occupation == 'Manager' %} selected {% endif %}>Manager</option>
+                                            <option value="ICT Expert" {% if patient.occupation == 'ICT Expert' %} selected {% endif %}>ICT Expert</option>
+                                            <option value="Other" {% if patient.occupation == 'Other' %} selected {% endif %}>Other</option>
+                                            <!-- Add options for other occupations similarly -->
+                                        </select>
+                                    </div>
+                                </div>
+                                  <!-- Additional input field for other occupation -->
+                                  <div class="col-md-4 other_occupation_field" {% if patient.occupation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                    <div class="form-group">
+                                        <label for="other_occupation">Fill Occupation:</label>
+                                        <input type="text" class="form-control" id="other_occupation" name="other_occupation" value="{{ patient.other_occupation }}">
+                                    </div>
+                                </div>
+                                <!-- Patient Type -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="patient_type">Patient Type:</label>  <span class="error">* </span>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="patient_type" name="patient_type" onchange="toggleOtherPatientTypeField(this)" required>
+                                            <option value="National Staff" {% if patient.patient_type == 'National Staff' %} selected {% endif %}>National Staff</option>
+                                            <option value="International Staff" {% if patient.patient_type == 'International Staff' %} selected {% endif %}>International Staff</option>
+                                            <option value="National Visitor" {% if patient.patient_type == 'National Visitor' %} selected {% endif %}>National Visitor</option>
+                                            <option value="International Visitor" {% if patient.patient_type == 'International Visitor' %} selected {% endif %}>International Visitor</option>
+                                            <option value="Unknown Status" {% if patient.patient_type == 'Unknown Status' %} selected {% endif %}>Unknown Status</option>
+                                            <option value="Others" {% if patient.patient_type == 'Others' %} selected {% endif %}>Others</option>
+                                            <!-- Add options for other patient types similarly -->
+                                        </select>
+                                    </div>
+                                </div>
+                                  <!-- Additional input field for other patient type -->
+                                  <div class="col-md-4 other_patient_type_field" {% if patient.patient_type == 'Others' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                    <div class="form-group">
+                                        <label for="other_patient_type">Fill Patient Type:</label>
+                                        <input type="text" class="form-control" id="other_patient_type" name="other_patient_type" value="{{ patient.other_patient_type }}">
+                                    </div>
+                                </div>
+                            </div> <!-- End of Marital Status, Occupation, Patient Type Section -->
+
+                            <div class="row">
+                                <!-- Patient's Company -->
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="company">Patient's Company:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" name="company" id="company" required>
+                                            {% for company in all_company %}
+                                                <option value="{{ company.id }}" {% if patient.company == company.id %} selected {% endif %}>{{ company.name }}</option>
+                                            {% endfor %}
+                                            <!-- Add options for companies here -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div> <!-- End of Patient's Company Section -->
+
+                            <!-- End of Form -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-primary" name="save_back">Save Changes & Return to Patients List</button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-info"  name="save_continue_health">Save Changes & Continue</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer">
+                        {% if messages %}
+                            <div class="row">
+                                <div class="col-12">
+                                    {% for message in messages %}
+                                        {% if message.tags == 'error' %}
+                                            <div class="alert alert-danger">{{ message }}</div>
+                                        {% elif message.tags == 'success' %}
+                                            <div class="alert alert-primary">{{ message }}</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of Container -->
+
+    <style>
+        .error {
+            color: #FF0000;
+            font-size: 18px;
+            font-weight: 500;
+        }
+    </style>
+
+    <script>
+        function toggleInsuranceFields() {
+            var insurance = document.getElementById('insurance').value;
+            var insuranceCompanyField = document.getElementById('insuranceCompanyField');
+            var otherInsuranceField = document.getElementById('otherInsuranceField');
+            var insuranceNumberField = document.getElementById('insuranceNumberField');
+        
+            if (insurance === 'Insured') {
+                insuranceCompanyField.style.display = 'block';
+                insuranceNumberField.style.display = 'block';
+        
+                // Check if the selected insurance company is "Other"
+                var selectedInsuranceCompany = document.getElementById('insurance_company').value;
+                if (selectedInsuranceCompany === 'Other') {
+                    otherInsuranceField.style.display = 'block';
+                } else {
+                    otherInsuranceField.style.display = 'none';
+                }
+            } else {
+                insuranceCompanyField.style.display = 'none';
+                otherInsuranceField.style.display = 'none';
+                insuranceNumberField.style.display = 'none';
+            }
+        }
+        
+        // Add an event listener to the insurance company dropdown to call toggleInsuranceFields() whenever the selection changes
+        document.getElementById('insurance_company').addEventListener('change', toggleInsuranceFields);
+        
+                        
+    </script>
+<script>
+   
+    function toggleOshaFields() {
+        var oshaCertificate = document.getElementById('osha_certificate').value;
+        var oshaDateField = document.getElementById('oshaDateField');
+        if (oshaCertificate === '1') {
+            oshaDateField.style.display = 'block';
+        } else {
+            oshaDateField.style.display = 'none';
+        }
+    }
+</script>
+
+<script>
+    function validateEmergencyContactPhone(input) {
+        var phoneRegex = /^(0|\+255)\d{9,12}$/;
+        var isValid = phoneRegex.test(input.value);
+        var errorDiv = document.getElementById('emergency-contact-phone-error');
+        if (!isValid) {
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    function validatePhone(input) {
+        var phoneRegex = /^(0|\+255)\d{9,12}$/;
+        var isValid = phoneRegex.test(input.value);
+        var errorDiv = document.getElementById('phone-error');
+        if (!isValid) {
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    // Function to validate the form before submission
+    function validateForm(event) {
+        // Prevent form submission
+        event.preventDefault();
+
+        // Get all input fields and select elements with the required attribute
+        var requiredFields = document.querySelectorAll('input[required], select[required]');
+
+        // Variable to track if all required fields are filled
+        var allFieldsFilled = true;
+
+        // Loop through each required field
+        requiredFields.forEach(function(field) {
+            // Check if the field is empty
+            if (field.value.trim() === '') {
+                // Set allFieldsFilled to false
+                allFieldsFilled = false;
+
+                // Get the parent div of the field
+                var parentDiv = field.closest('.form-group');
+
+                // Check if there's already an error message span
+                var errorMessageSpan = parentDiv.querySelector('.error-message');
+                if (!errorMessageSpan) {
+                    // Create a new span element for the error message
+                    errorMessageSpan = document.createElement('span');
+                    errorMessageSpan.className = 'error-message';
+                    errorMessageSpan.textContent = 'This field is required';
+                    errorMessageSpan.style.color = 'red';
+
+                    // Append the error message span after the input field
+                    parentDiv.appendChild(errorMessageSpan);
+                }
+            } else {
+                // If the field is not empty and there's an error message span, remove it
+                var parentDiv = field.closest('.form-group');
+                var errorMessageSpan = parentDiv.querySelector('.error-message');
+                if (errorMessageSpan) {
+                    errorMessageSpan.remove();
+                }
+            }
+        });
+
+        // Get the phone number fields
+        var phoneField = document.getElementById("phone");
+        var emergencyContactPhoneField = document.getElementById("emergency_contact_phone");
+
+        // Check phone number validity
+        var phoneValid = phoneField.checkValidity();
+        var emergencyContactPhoneValid = emergencyContactPhoneField.checkValidity();
+
+        // Get error message divs
+        var phoneErrorDiv = document.getElementById('phone-error');
+        var emergencyContactPhoneErrorDiv = document.getElementById('emergency-contact-phone-error');
+
+        // If phone numbers are invalid, display error messages
+        if (!phoneValid) {
+            phoneErrorDiv.style.display = 'block';
+        } else {
+            phoneErrorDiv.style.display = 'none';
+        }
+
+        if (!emergencyContactPhoneValid) {
+            emergencyContactPhoneErrorDiv.style.display = 'block';
+        } else {
+            emergencyContactPhoneErrorDiv.style.display = 'none';
+        }
+
+        // If either phone number is invalid or required fields are empty, prevent form submission
+        if (!phoneValid || !emergencyContactPhoneValid || !allFieldsFilled) {
+            return;
+        }
+
+        // If all required fields are filled and phone numbers are valid, submit the form
+        var form = event.target.closest('form');
+        if (form) {
+            form.submit();
+        }
+    }
+</script>
+<script>
+    function toggleOtherRelationField(select) {
+        var otherRelationField = document.querySelector('.other_relation_field');
+        if (select.value === 'Other') {
+            otherRelationField.style.display = 'block';
+        } else {
+            otherRelationField.style.display = 'none';
+        }
+    }
+</script>
+<script>
+    function toggleOtherPatientTypeField(select) {
+        var otherPatientTypeField = document.querySelector('.other_patient_type_field');
+        if (select.value === 'Others') {
+            otherPatientTypeField.style.display = 'block';
+        } else {
+            otherPatientTypeField.style.display = 'none';
+        }
+    }
+</script>
+<script>
+    function toggleOtherOccupationField(select) {
+        var otherOccupationField = document.querySelector('.other_occupation_field');
+        if (select.value === 'Other') {
+            otherOccupationField.style.display = 'block';
+        } else {
+            otherOccupationField.style.display = 'none';
+        }
+    }
+</script>
+    {% include 'kahama_template/datatable.html' %}     
+      {% endblock main_content %}

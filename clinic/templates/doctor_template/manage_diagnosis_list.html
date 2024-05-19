@@ -1,0 +1,222 @@
+{% extends 'doctor_template/base_template.html' %}
+
+{% block title %}
+Diagnosis diagnosis
+{% endblock title %}
+
+{% block page_title %}
+Diagnosis diagnosis
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "doctor_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addDiagnosisModal">
+    <i class="fas fa-plus"></i> New Diagnosis 
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'import_diagnosis_records' %}">
+  <i class="fas fa-file-import"></i> Import Diagnosis 
+</a>
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+<div class="">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example" style="width:100%">
+        <thead>
+            <tr>
+                <th>Diagnosis Name</th>
+                <th>Created At</th>
+                <th>Updated At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for diagnosis in diagnoses %}
+            <tr>
+                <td>{{ diagnosis.diagnosis_name }}</td>
+                <td>{{ diagnosis.created_at }}</td>
+                <td>{{ diagnosis.updated_at }}</td>
+                <td>
+                    <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editDiagnosisModal{{ diagnosis.id }}" data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletediagnosisModal{{ diagnosis.id }}" data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+
+            <!-- Edit Modal -->
+            <div class="modal fade" id="editDiagnosisModal{{ diagnosis.id }}" tabindex="-1" aria-labelledby="editDiagnosisModalLabel{{ diagnosis.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-teal-800">
+                            <h3 class="modal-title text-center text-uppercase">Edit Diagnosis</h3>
+                            <button type="button" class="close" data-dismiss="modal">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editDiagnosisForm{{ diagnosis.id }}" method="post">
+                                {% csrf_token %}
+                                <div class="container-fluid">
+                                    <!-- Diagnosis name -->
+                                    <div class="form-group">
+                                        <label for="edit_diagnosis_name">Diagnosis Name:</label>
+                                        <input type="text" class="form-control" id="edit_diagnosis_name{{ diagnosis.id }}" name="diagnosis_name" value="{{ diagnosis.diagnosis_name }}" required>
+                                    </div>
+                                    <input type="hidden" class="form-control" id="edit_diagnosis_id{{ diagnosis.id }}" name="diagnosis_id" value="{{ diagnosis.id }}">
+                                </div>
+                                <!-- Submit button -->
+                                <div class="form-row">
+                                    <div class="col-md-12">
+                                        <button type="submit" class="btn btn-primary float-lg-right" id="updateBtn{{ diagnosis.id }}">Update Diagnosis</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Modal -->
+            <div class="modal fade" id="deletediagnosisModal{{ diagnosis.id }}" tabindex="-1" role="dialog" aria-labelledby="deletediagnosisModalLabel{{ diagnosis.id }}" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteDiagnosisModalLabel{{ diagnosis.id }}">Delete Diagnosis</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete this Diagnosis: <strong>{{ diagnosis.diagnosis_name }}</strong>?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-danger" onclick="deleteDiagnosis({{ diagnosis.id }})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                // Handle form submission using AJAX
+                $(document).ready(function () {
+                    $('#editDiagnosisForm{{ diagnosis.id }}').submit(function (e) {
+                        e.preventDefault();
+                        var diagnosisId = $(this).find('#edit_diagnosis_id{{ diagnosis.id }}').val(); // Get the diagnosis ID
+                        $.ajax({
+                            type: 'POST',
+                            url: '{% url "save_diagnosis" %}',
+                            data: $(this).serialize(),
+                            success: function (data) {
+                                if (data.status === 'success') {
+                                    $('#editDiagnosisModal{{ diagnosis.id }}').modal('hide');
+                                    location.reload(true);
+                                } else {
+                                    alert(data.message);
+                                }
+                            },
+                            error: function (error) {
+                                alert(error);
+                            }
+                        });
+                    });
+                });
+
+                // Function to delete a diagnosis
+                function deleteDiagnosis(diagnosisId) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/delete_diagnosis/' + diagnosisId + '/',
+                        data: {},
+                        success: function (data) {
+                            if (data.status === 'success') {
+                                $('#deletediagnosisModal' + diagnosisId).modal('hide');
+                                location.reload(true);
+                            } else {
+                                alert(data.message);
+                            }
+                        },
+                        error: function (error) {
+                            alert(error);
+                        }
+                    });
+                }
+            </script>
+
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+<!-- Updated modal with Bootstrap grid -->
+<!-- Modal -->
+<div class="modal fade" id="addDiagnosisModal" tabindex="-1" aria-labelledby="addDiagnosisModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-teal-800">
+                <h3 class="modal-title text-center text-uppercase">Add Diagnosis</h3>
+                <button type="button" class="close" data-dismiss="modal">×</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="addDiagnosisForm" method="post">
+                    <div class="container-fluid">
+                        <!-- Diagnosis name -->
+                        <div class="form-group">
+                            <label for="diagnosis_name">Diagnosis Name:</label>
+                            <input type="text" class="form-control" id="diagnosis_name" name="diagnosis_name" required>
+                            <input type="hidden" class="form-control" id="diagnosis_id" name="diagnosis_id" >
+                        </div>
+                    </div>
+                              <!-- Submit button -->
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <button type="button" class="btn btn-primary float-lg-right" onclick="addDiagnosis()">Add Diagnosis</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+  
+<script>
+    // Handle form submission using AJAX
+    function addDiagnosis() {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "save_diagnosis" %}',  // Replace with your URL
+            data: $('#addDiagnosisForm').serialize(),
+            success: function (data) {
+                if (data.status === 'success') {
+                    $('#addDiagnosisModal').modal('hide');
+                    location.reload(true);
+                    // Refresh the inventory item list or perform any other actions
+                } else {
+                    // Handle other status cases if needed
+                    alert(data.message);
+                }
+            },
+            error: function (error) {
+                alert(error);
+                // Handle errors if necessary
+            }
+        });
+    }
+</script>
+  
+
+
+{% include 'doctor_template/datatable.html' %}
+{% endblock main_content %}

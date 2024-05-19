@@ -1,0 +1,274 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+Prescription Frequency List
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addFrequencyModal">
+    <i class="fas fa-plus"></i> New  Frequency
+</a>
+<a class="btn btn-success float-right mr-2" href="{% url 'clinic:import_prescription_frequency' %}">
+    <i class="fas fa-file-import"></i> Import Frequency
+  </a>
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header card-primary">
+                    <h3 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription Frequency List</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">    
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Interval</th>
+                                    <th>Description</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for frequency in frequencies %}
+                                <tr>
+                                    <td>{{ frequency.name }}</td>
+                                    <td>{{ frequency.interval }}</td>
+                                    <td>{{ frequency.description }}</td>
+                                    <td>{{ frequency.created_at }}</td>
+                                    <td>{{ frequency.updated_at }}</td>
+                                    <td>  
+                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            
+                                                                    <!-- Delete Frequency Modal -->
+                                <div class="modal fade" id="deleteFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteFrequencyModalLabel{{ frequency.id }}">Delete Frequency</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to delete the frequency <strong>{{ frequency.name }}</strong>?</p>
+                                            </div>
+                                            <!-- Message Container -->
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div id="deleteMessageContainer{{ frequency.id }}"></div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-danger" onclick="deleteFrequency({{ frequency.id }})">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Edit Frequency Modal -->
+                                <div class="modal fade" id="editFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="editFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editFrequencyModalLabel{{ frequency.id }}">Edit Frequency</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="container">
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <label for="frequencyName{{ frequency.id }}">Name:</label>
+                                                            <input type="text" class="form-control" id="frequencyName{{ frequency.id }}" value="{{ frequency.name }}">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label for="frequencyInterval{{ frequency.id }}">Interval:</label>
+                                                            <input type="text" class="form-control" id="frequencyInterval{{ frequency.id }}" value="{{ frequency.interval }}">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label for="frequencyDescription{{ frequency.id }}">Description:</label>
+                                                            <input type="text" class="form-control" id="frequencyDescription{{ frequency.id }}" value="{{ frequency.description }}">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Message Container -->
+                                            <div class="modal-footer">
+                                                <div class="row">
+                                                    <div class="col-md-12">
+                                                        <div id="messageContainer{{ frequency.id }}"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" onclick="updateFrequency({{ frequency.id }})">Save changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                            </tbody> 
+                            
+                            <script>
+                                function deleteFrequency(frequencyId) {
+                                    // Send the delete request to the server via AJAX
+                                    $.ajax({
+                                        url: '{% url 'clinic:delete_frequency' %}',
+                                        type: 'POST',
+                                        data: {
+                                            'frequency_id': frequencyId,
+                                            'csrfmiddlewaretoken': '{{ csrf_token }}'
+                                        },
+                                        success: function(response) {
+                                            // Handle success response
+                                            if (response.status === 'success') {
+                                                $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-success">' + response.message + '</div>');
+                                                location.reload(true); // Reload the page after successful deletion
+                                            } else {
+                                                $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-danger">' + response.message + '</div>');
+                                            }
+                                        },
+                                        error: function(xhr, status, error) {
+                                            // Handle error response
+                                            $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-danger">' + xhr.responseJSON.message + '</div>');
+                                        }
+                                    });
+                                }
+                            
+                                function updateFrequency(frequencyId) {
+                                    // Retrieve the edited data from the modal fields
+                                    var name = $('#frequencyName' + frequencyId).val();
+                                    var interval = $('#frequencyInterval' + frequencyId).val();
+                                    var description = $('#frequencyDescription' + frequencyId).val();
+                            
+                                    // Send the edited data to the server via AJAX
+                                    $.ajax({
+                                        url: '{% url 'clinic:add_frequency' %}',
+                                        type: 'POST',
+                                        data: {
+                                            'frequency_id': frequencyId,
+                                            'name': name,
+                                            'interval': interval,
+                                            'description': description,
+                                            'csrfmiddlewaretoken': '{{ csrf_token }}'
+                                        },
+                                        success: function(response) {
+                                            // Handle success response
+                                            if (response.status === 'success') {
+                                                $('#messageContainer' + frequencyId).html('<div class="alert alert-success">' + response.message + '</div>');
+                                                location.reload(true);
+                                            } else {
+                                                $('#messageContainer' + frequencyId).html('<div class="alert alert-danger">' + response.message + '</div>');
+                                            }
+                                        },
+                                        error: function(xhr, status, error) {
+                                            // Handle error response
+                                            $('#messageContainer' + frequencyId).html('<div class="alert alert-danger">' + xhr.responseJSON.message + '</div>');
+                                        }
+                                    });
+                                }
+                            </script>                                               
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="addFrequencyModal" tabindex="-1" role="dialog" aria-labelledby="addFrequencyModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addFrequencyModalLabel">Add Prescription Frequency</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="container">
+            <div class="row">
+              <div class="col-md-4">
+                <label for="frequencyName">Name:</label>
+                <input type="text" class="form-control" id="frequencyName">
+              </div>
+              <div class="col-md-4">
+                <label for="frequencyInterval">Interval:</label>
+                <input type="text" class="form-control" id="frequencyInterval">
+              </div>
+              <div class="col-md-4">
+                <label for="frequencyDescription">Description:</label>
+                <input type="text" class="form-control" id="frequencyDescription">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div id="messageContainer"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="addFrequency()">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <script>
+    function addFrequency() {
+        var name = $('#frequencyName').val();
+        var interval = $('#frequencyInterval').val();
+        var description = $('#frequencyDescription').val();
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "clinic:add_frequency" %}',
+            data: {
+                'name': name,
+                'interval': interval,
+                'description': description,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#messageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                    location.reload(true);
+                } else {
+                    $('#messageContainer').html('<div class="alert alert-danger" role="alert">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, errmsg, err) {
+                $('#messageContainer').html('<div class="alert alert-danger" role="alert">Error: ' + xhr.status + ' ' + errmsg + '</div>');
+            }
+        });
+    }
+</script>
+
+  
+  <!-- Container for displaying messages -->
+ 
+  
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}

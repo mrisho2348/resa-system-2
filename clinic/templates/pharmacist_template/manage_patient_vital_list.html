@@ -1,0 +1,449 @@
+{% extends 'pharmacist_template/base_template.html' %}
+
+{% block title %}
+Patient Vital Information
+{% endblock title %}
+
+{% block page_title %}
+Patient Vital Information
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addPatientVitalModal">
+    <i class="fas fa-plus"></i> New Vital
+</a>
+
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+               
+                <div class="card-body">
+                    <div class="row" style="font-size:13px;">
+                        <div class="col-md-3"><b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3"><b>SEX: {{ patient.gender }}</b></div>
+                        <div class="col-md-3"><b>FILE NO : {{ patient.mrn }}</b> </div>
+                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3"><b>PAYMENT MODE: {{ patient.payment_form }}</b></div>
+                        </div>
+                </div>           
+            
+            </div>
+        </div>
+    </div>
+   <div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-condensed text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Recorded Date</th>
+                                <th>Recorded Time</th>
+                                <th>RR (bpm)</th>
+                                <th>PR (bpm)</th>
+                                <th>BR</th>
+                                <th>SPO2 (%)</th>
+                                <th>Temperature (°C)</th>
+                                <th>weight (Kg)</th>
+                                <th>GCS</th>
+                                <th>AVPU</th>                      
+                                <th>Action</th>              
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vital in patient_vitals %}
+                                <tr>
+                                    <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
+                                    <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
+                                    <td>{{ vital.respiratory_rate }}</td>
+                                    <td>{{ vital.pulse_rate }}</td>
+                                    <td>{{ vital.blood_pressure }}</td>
+                                    <td>{{ vital.spo2 }}%</td>
+                                    <td>{{ vital.temperature }}</td>
+                                    <td>{{ vital.weight }}</td>
+                                    <td>{{ vital.gcs }}</td>
+                                    <td>{{ vital.avpu }}</td>
+                                    <td>
+                                      <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editPatientVitalModal{{ vital.id }}"  data-toggle="tooltip" title="Edit">
+                                        <i class="fa fa-edit text-white"></i>
+                                    </button>
+                                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePatientVitalModal{{ vital.id }}"  data-toggle="tooltip" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                              
+                                    </td>
+                
+                
+                
+                
+                
+                 
+                
+                                      <!-- Delete Modal -->
+                    <div class="modal fade" id="deletePatientVitalModal{{ vital.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePatientVitalModalLabel{{ vital.id }}" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deletePatientVitalModalLabel{{ vital.id }}">Delete Category</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete this vital: <strong>{{ vital }}</strong>?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-danger" onclick="deletePatientVital({{ vital.id }})">Delete</button>
+                                </div>
+                            </div>
+                
+                            <script>
+                                function deletePatientVital(vitalId) {
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: '/delete_patient_vital/' + vitalId + '/',  // Replace with your URL
+                                        data: {},
+                                        success: function (data) {
+                                            if (data.status === 'success') {
+                                                $('#deletePatientVitalModal' + vitalId).modal('hide');
+                                                location.reload(true);
+                                                // Refresh the category list or perform any other actions
+                                            } else {
+                                                // Handle other status cases if needed
+                                                alert(data.message);
+                                            }
+                                        },
+                                        error: function (error) {
+                                            alert(error);
+                                            // Handle errors if necessary
+                                        }
+                                    });
+                                }
+                            </script>
+                        </div>
+                    </div>
+                
+                                 <!-- Updated modal with Bootstrap grid -->
+                
+                                 <div class="modal fade" id="editPatientVitalModal{{ vital.id }}" tabindex="-1" aria-labelledby="patientVitalModalLabel{{ vital.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                      <div class="modal-content">
+                                        <div class="modal-header">
+                                          <h5 class="modal-title" id="editPatientVitalModalLabel{{ vital.id }}">Edit Patient Vital</h5>
+                                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                          </button>
+                                        </div>
+                                        <div class="modal-body">
+                                          <form id="editPatientVitalForm{{ vital.id }}">
+                                            <!-- Patient ID (hidden input) -->
+                                            <input type="hidden" name="patient_id" id="edit_patient_id" value="{{ patient.id }}">
+                                            <input type="hidden" name="vital_id" id="edit_vital_id" value="{{ vital.id }}">   
+                                            <input type="hidden" name="visit_id" value="{{ visit.id }}">         
+                                        
+                                            <div class="row">
+                                              <!-- Column 1 -->
+                                              <div class="col-md-4">
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_respiratoryRate" class="form-label">Respiratory Rate (bpm)</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_respiratoryRate" name="respiratory_rate">
+                                                        {% for rate in range_51 %}
+                                                            <option value="{{ rate }}" {% if rate == vital.respiratory_rate  %} selected{% endif %}>{{ rate }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                 <!-- Pulse Rate -->
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_pulseRate" class="form-label">Pulse Rate (bpm)</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_pulseRate" name="pulse_rate">
+                                                        <!-- Populate options for pulse rate -->
+                                                        {% for rate in range_301 %}
+                                                            <option value="{{ rate }}" {% if rate == vital.pulse_rate  %} selected{% endif %}>{{ rate }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3 form-group">
+                                                    <label for="Weight" class="form-label">Weight</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="Weight" name="Weight">
+                                                        <!-- Populate options for weight -->
+                                                        {% for weight in range_301 %}
+                                                            <option value="{{ weight }}" {% if weight == vital.weight  %} selected {% endif %}>{{ weight }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                              </div>
+                                              <!-- Column 2 -->
+                                              <div class="col-md-4">
+                                                <div class="mb-3 form-group">
+                                                  <label for="edit_bloodPressure" class="form-label">Blood Pressure</label>
+                                                  <input type="text" class="form-control" id="edit_bloodPressure" name="blood_pressure" value="{{ vital.blood_pressure }}">
+                                                </div>
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_spo2" class="form-label">SPO2 (%)</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_spo2" name="spo2">
+                                                        {% for percentage in range_101 %}
+                                                            <option value="{{ percentage }}" {% if percentage == vital.spo2  %} selected{% endif %}>{{ percentage }}%</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                              </div>
+                                              <!-- Column 3 -->
+                                              <div class="col-md-4">
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_temperature" class="form-label">Temperature (°C)</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_temperature" name="temperature">
+                                                        {% for temp in range_15 %}
+                                                            <option value="{{ temp }}" {% if temp == vital.temperature  %} selected{% endif %}>{{ temp }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_gcs" class="form-label">Glasgow Coma Scale</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_gcs" name="gcs">
+                                                        {% for score in range_15  %}
+                                                            <option value="{{ score }}" {% if score == vital.gcs  %} selected{% endif %}>{{ score }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3 form-group">
+                                                    <label for="edit_avpu" class="form-label">AVPU Scale</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="edit_avpu" name="avpu">
+                                                        <option value="Alert" {% if vital.avpu == 'Alert' %}selected{% endif %}>Alert</option>
+                                                        <option value="Verbal" {% if vital.avpu == 'Verbal' %}selected{% endif %}>Verbal</option>
+                                                        <option value="Pain" {% if vital.avpu == 'Pain' %}selected{% endif %}>Pain</option>
+                                                        <option value="Unresponsive" {% if vital.avpu == 'Unresponsive' %}selected{% endif %}>Unresponsive</option>
+                                                    </select>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div id="EditVitalResponse">
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="col-md-12">
+                                                    <button  type="submit" class="btn btn-primary float-lg-right"  id="submitBtn">Update Patient Vital</button>  
+                                                </div>
+                                            </div>
+                                          </form>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                
+                                    
+                  <script>
+                                        // Handle form submission using AJAX
+                                        $(document).ready(function () {
+                                            // Assuming you have a loop or iteration for categories, replace "forEach" with your actual loop
+                                            {% for vital in patient_vitals %}
+                                                $('#editPatientVitalForm{{ vital.id }}').submit(function (e) {
+                                                    e.preventDefault();
+                                                    $.ajax({
+                                                        type: 'POST',
+                                                        url: '{% url "save_patient_vital" %}',  // Replace with your URL
+                                                        data: $('#editPatientVitalForm{{ vital.id }}').serialize(),
+                                                        success: function(response) {
+                                                            if (response.status === 'success') {  
+                                                                $('#EditVitalResponse').html('<div class="alert alert-success">' + response.message + '</div>');   
+                                                                location.reload(true)                                            
+                                                        
+                                                            } else {
+                                                                // Handle other status cases if needed
+                                                                $('#EditVitalResponse').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                                                            }
+                                                        },
+                                                        error: function(xhr, status, error) {
+                                                            // Handle error response
+                                                            $('#EditVitalResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');                                               
+                                                           
+                                                        }
+                                                    });
+                                                });
+                                            {% endfor %}
+                                        });
+                                    </script>
+                                    
+                                </tr>
+                
+                
+                
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+   </div>
+</div>
+
+
+
+<!-- Updated modal with Bootstrap grid -->
+
+<!-- Modal -->
+<div class="modal fade" id="addPatientVitalModal" tabindex="-1" aria-labelledby="patientVitalModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addPatientVitalModalLabel">Add Patient Vital for {{ patient.fullname }}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="addPatientVitalForm">
+            <!-- Patient ID (hidden input) -->
+            <input type="hidden" name="patient_id" value="{{ patient.id }}">           
+            <input type="hidden" name="visit_id" value="{{ visit.id }}">           
+            <input type="hidden" name="vital_id" >           
+        
+            <div class="row">
+              <!-- Column 1 -->
+              <div class="col-md-4">
+                <div class="mb-3 form-group">
+                    <label for="respiratoryRate" class="form-label">Respiratory Rate (bpm)</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="respiratoryRate" name="respiratory_rate">
+                        {% for rate in range_15 %}
+                            <option value="{{ rate }}">{{ rate }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3 form-group">
+                    <label for="pulseRate" class="form-label">Pulse Rate (bpm)</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="pulseRate" name="pulse_rate">
+                        {% for rate in range_301 %}
+                            <option value="{{ rate }}">{{ rate }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3 form-group">
+                    <label for="pulseRate" class="form-label">Weight</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="Weight" name="Weight">
+                        {% for rate in range_301 %}
+                            <option value="{{ rate }}">{{ rate }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+              </div>
+              <!-- Column 2 -->
+              <div class="col-md-4">
+                <div class="mb-3 form-group">
+                  <label for="bloodPressure" class="form-label">Blood Pressure</label>
+                  <input type="text" class="form-control" id="bloodPressure" name="blood_pressure">
+                </div>
+                <div class="mb-3 form-group">
+                    <label for="spo2" class="form-label">SPO2 (%)</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="spo2" name="spo2">
+                        {% for percentage in range_101 %}
+                            <option value="{{ percentage }}">{{ percentage }}%</option>
+                        {% endfor %}
+                    </select>
+                </div>
+              </div>
+              <!-- Column 3 -->
+              <div class="col-md-4">
+                <div class="mb-3 form-group">
+                    <label for="temperature" class="form-label">Temperature (°C)</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="temperature" name="temperature">
+                        {% for temp in range_51 %}
+                            <option value="{{ temp }}">{{ temp }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3 form-group">
+                    <label for="gcs" class="form-label">Glasgow Coma Scale</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="gcs" name="gcs">
+                        {% for score in range_15  %}
+                            <option value="{{ score }}">{{ score }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3 form-group">
+                    <label for="avpu" class="form-label">AVPU Scale</label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="avpu" name="avpu">
+                        <option value="Alert">Alert</option>
+                        <option value="Verbal">Verbal</option>
+                        <option value="Pain">Pain</option>
+                        <option value="Unresponsive">Unresponsive</option>
+                    </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div id="VitalResponse">
+
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="col-md-12">
+                    <button  type="button" class="btn btn-primary float-lg-right"  onclick="addPatientVital()">Add Patient Vital</button>  
+                </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+<script>
+    // Handle form submission using AJAX
+    function addPatientVital() {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "pharmacist_save_patient_vital" %}',  // Replace with your URL
+            data: $('#addPatientVitalForm').serialize(),
+            success: function(response) {
+                if (response.status === 'success') {  
+                    $('#VitalResponse').html('<div class="alert alert-success">' + response.message + '</div>');   
+                    location.reload(true)                                            
+            
+                } else {
+                    // Handle other status cases if needed
+                    $('#VitalResponse').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                }
+            },
+            error: function(xhr, status, error) {
+                // Handle error response
+                $('#VitalResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');                                               
+               
+            }
+        });
+    }
+</script>
+  
+
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

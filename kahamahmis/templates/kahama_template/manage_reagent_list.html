@@ -1,0 +1,465 @@
+{% extends 'kahama_template/base_template.html' %}
+
+{% block title %}
+Reagent List
+{% endblock title %}
+
+{% block page_title %}
+Reagent List
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addReagentModal">
+    <i class="fas fa-plus"></i> New Reagent
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'import_reagent' %}">
+  <i class="fas fa-file-import"></i> Import Reagent
+</a>
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+
+<div class="">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Expiration Date</th>
+                <th>Manufacturer</th>
+                <th>Lot Number</th>
+                <th>Storage Conditions</th>
+                <th>Quantity in Stock</th>
+                <th>Price per Unit</th>
+                <th>Remaining Quantity</th>                     
+                <th>Action</th>              
+            </tr>
+        </thead>
+        <tbody>
+            {% for reagent in reagent_list %}
+                <tr>
+                    <td>{{ reagent.name }}</td>
+                    <td>{{ reagent.expiration_date }}</td>
+                    <td>{{ reagent.manufacturer }}</td>
+                    <td>{{ reagent.lot_number }}</td>
+                    <td>{{ reagent.storage_conditions }}</td>
+                    <td>{{ reagent.quantity_in_stock }}</td>
+                    <td>{{ reagent.price_per_unit }}</td>
+                    <td>{{ reagent.remaining_quantity }}</td>
+                    <td>
+                      <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editReagentModal{{ reagent.id }}"  data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteReagentModal{{ reagent.id }}"  data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#increaseReagentModal{{ reagent.id }}"  data-toggle="tooltip" title="Increase Stock Level">
+                      <i class="fas fa-plus"></i>
+                  </button>   
+                  <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#useReagentModal{{ reagent.id }}"  data-toggle="tooltip" title="Use">
+                      <i class="fas fa-check"></i>
+                  </button> 
+                  
+                        
+                    </td>
+                    <style>
+                        .below-min-stock {
+                            background-color: red; /* Change the color to red */
+                            font-weight: bold; /* Optionally, make the text bold */
+                        }
+                    </style>
+
+
+
+
+<!-- Bootstrap modal for using the item -->
+<div class="modal fade" id="useInventoryItemModal{{ item.id }}" tabindex="-1" role="dialog" aria-labelledby="useInventoryItemModalLabel{{ item.id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="useInventoryItemModalLabel{{ item.id }}">Use {{ item.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <form id="useInventoryItemForm{{ item.id }}">
+                  {% csrf_token %}
+                  <input type="hidden" id="itemId{{ item.id }}" name="itemId" value="{{ item.id }}">
+
+                  <div class="form-group">
+                      <label for="quantityUsed{{ item.id }}">Quantity To Use</label>
+                      <input type="number" class="form-control" id="quantityUsed{{ item.id }}" name="quantityUsed" required>
+                  </div>
+                  <div class="form-group">
+                      <label for="usageDate{{ item.id }}">Usage Date</label>
+                      <input type="date" class="form-control" id="usageDate{{ item.id }}" name="usageDate" required>
+                  </div>
+                  <div class="form-group">
+                      <label for="notes{{ item.id }}">notes</label>
+                      <textarea name="notes" id="notes{{ item.id }}" cols="2"   class="form-control" ></textarea>
+                  </div>
+                  <!-- Add more fields as needed -->
+                  <div id="MessageContainer"></div>
+                  <button type="button" class="btn btn-primary" onclick="useInventoryItem({{ item.id }})">Use Item</button>
+                 
+              </form>
+          </div>
+      </div>
+  </div>
+</div>
+
+<script>
+  function useInventoryItem(itemId) {
+      var quantityUsed = $('#quantityUsed' + itemId).val();
+      var usageDate = $('#usageDate' + itemId).val();
+      var notes = $('#notes' + itemId).val();
+ 
+      $.ajax({
+          type: 'POST',
+          url: '/use_inventory_item/',
+          data: {                
+              notes: notes,
+              itemId: itemId,
+              quantityUsed: quantityUsed,
+              usageDate: usageDate
+          },
+          success: function(data) {
+              if (data.status === 'success') {
+                  // Display success message                    
+                  $('#useInventoryItemModal' + itemId).modal('hide');
+                  location.reload(true);
+              } 
+              else {
+                  // Display error message if any
+                  alert(data.message);
+              }
+              // Hide the modal after displaying the message
+            
+          },
+          error: function(error) {
+              console.log(error);
+              // Display error message
+              $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to use item</div>');
+              // Hide the modal after displaying the message
+           
+          }
+      });
+  }
+</script>
+
+
+<!-- Increase Inventory Stock Level Modal -->
+<div class="modal fade" id="increaseReagentModal{{ reagent.id }}" tabindex="-1" role="dialog" aria-labelledby="increaseReagentModalLabel{{ reagent.id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="increaseReagentModalLabel{{ reagent.id }}">Increase Inventory Stock Level - {{ reagent.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <form id="increaseReagentForm{{ reagent.id }}" method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="item_id" value="{{ reagent.id }}">
+                  <div class="form-group">
+                      <label for="quantityToAdd">Quantity to Add</label>
+                      <input type="number" class="form-control" id="quantityToAdd{{ reagent.id }}" name="quantityToAdd" required>
+                  </div>
+                  <!-- Add more fields as needed -->
+                  <button type="button" class="btn btn-primary" onclick="increaseReagentStock({{ reagent.id }})">Increase Stock</button>
+                  <div id="successMessageContainer"></div>
+              </form>
+
+
+              <script>
+                  function increaseReagentStock(reagentId) {
+                      var quantityToAdd = $('#quantityToAdd' + reagentId).val();
+              
+                      $.ajax({
+                          type: 'POST',
+                          url: '/increase_reagent_stock/',
+                          data: {                                
+                            reagent_id: reagentId,
+                              quantityToAdd: quantityToAdd
+                          },
+                          success: function(data) {
+                              if (data.status === 'success') {
+                           
+                                          $('#increaseReagentModal' + reagentId).modal('hide');
+                                          location.reload(true);
+                              } else {
+                                  // Display error message if any
+                                  alert(data.message)
+                              }
+                           
+                          },
+                          error: function(error) {
+                              alert(error);
+                           
+                          }
+                      });
+                  }
+              </script>
+          </div>
+      </div>
+  </div>
+</div>                    
+
+
+
+
+                      <!-- Delete Modal -->
+    <div class="modal fade" id="deleteReagentModal{{ reagent.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteReagentModalLabel{{ reagent.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteReagentModalLabel{{ reagent.id }}">Delete Category</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this reagent: <strong>{{ reagent.name }}</strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteReagent({{ reagent.id }})">Delete</button>
+                </div>
+            </div>
+
+            <script>
+                function deleteReagent(reagentId) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/delete_reagent/' + reagentId + '/',  // Replace with your URL
+                        data: {},
+                        success: function (data) {
+                            if (data.status === 'success') {
+                                $('#deleteReagentModal' + reagentId).modal('hide');
+                                location.reload(true);
+                                // Refresh the category list or perform any other actions
+                            } else {
+                                // Handle other status cases if needed
+                                console.log(data.message);
+                            }
+                        },
+                        error: function (error) {
+                            console.log(error);
+                            // Handle errors if necessary
+                        }
+                    });
+                }
+            </script>
+        </div>
+    </div>
+
+                 <!-- Updated modal with Bootstrap grid -->
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="editReagentModal{{ reagent.id }}" tabindex="-1" role="dialog" aria-labelledby="editReagentModalLabel{{ reagent.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editReagentModalLabel{{ reagent.id }}">Add Reagent</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Bootstrap Form -->
+          <form id="editReagentForm{{ reagent.id }}" method="post">
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Name" value="{{ reagent.name }}" required>
+                <input type="hidden" class="form-control" id="reagent_id" name="reagent_id" value="{{ reagent.id }}"/>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="expiration_date">Expiration Date</label>
+                <input type="date" class="form-control" id="expiration_date" name="expiration_date" value="{{ reagent.expiration_date|date:'Y-m-d' }}">
+              </div>
+              <div class="form-group col-md-4">
+                <label for="manufacturer">Manufacturer</label>
+                <input type="text" class="form-control" id="manufacturer" name="manufacturer" placeholder="Manufacturer" value="{{ reagent.manufacturer }}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="lot_number">Lot Number</label>
+                <input type="text" class="form-control" id="lot_number" name="lot_number" placeholder="Lot Number" value="{{ reagent.lot_number }}">
+              </div>
+              <div class="form-group col-md-4">
+                <label for="storage_conditions">Storage Conditions</label>
+                <textarea class="form-control" id="storage_conditions" name="storage_conditions" rows="3">{{ reagent.storage_conditions }}</textarea>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="quantity_in_stock">Quantity in Stock</label>
+                <input type="number" class="form-control" id="quantity_in_stock" name="quantity_in_stock" placeholder="Quantity in Stock" value="{{ reagent.quantity_in_stock }}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="price_per_unit">Price per Unit</label>
+                <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" placeholder="Price per Unit" value="{{ reagent.price_per_unit }}">
+              </div>             
+            </div>
+               
+            <div class="form-row">
+                <div class="col-md-12">
+                    <button  type="submit" class="btn btn-primary float-lg-right" id="submitBtn">Edit Reagent </button>  
+                </div>
+            </div>
+          </form>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+                    
+                    <script>
+                        // Handle form submission using AJAX
+                        $(document).ready(function () {
+                            // Assuming you have a loop or iteration for equipment, replace "forEach" with your actual loop
+                            {% for reagent in reagent_list %}
+                                $('#editReagentForm{{ reagent.id }}').submit(function (e) {
+                                    e.preventDefault();
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: '{% url "add_reagent" %}',  // Replace with your URL
+                                        data: $('#editReagentForm{{ reagent.id }}').serialize(),
+                                        success: function (data) {
+                                            if (data.status === 'success') {
+                                                $('#editReagentModal{{ reagent.id }}').modal('hide');
+                                                location.reload(true);
+                                                // Refresh the category list or perform any other actions
+                                            } else {
+                                                // Handle other status cases if needed
+                                                alert(data.message);
+                                            }
+                                        },
+                                        error: function (error) {
+                                            alert(error);
+                                            // Handle errors if necessary
+                                        }
+                                    });
+                                });
+                            {% endfor %}
+                        });
+                    </script>
+                    
+                </tr>
+
+
+
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="addReagentModal" tabindex="-1" role="dialog" aria-labelledby="addReagentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addReagentModalLabel">Add Reagent</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Bootstrap Form -->
+          <form id="addReagentForm" method="post">
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="name">Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Name">
+                <input type="hidden" class="form-control" id="reagent_id" name="reagent_id">
+              </div>
+              <div class="form-group col-md-4">
+                <label for="expiration_date">Expiration Date</label>
+                <input type="date" class="form-control" id="expiration_date" name="expiration_date">
+              </div>
+              <div class="form-group col-md-4">
+                <label for="manufacturer">Manufacturer</label>
+                <input type="text" class="form-control" id="manufacturer" name="manufacturer" placeholder="Manufacturer">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="lot_number">Lot Number</label>
+                <input type="text" class="form-control" id="lot_number" name="lot_number" placeholder="Lot Number">
+              </div>
+              <div class="form-group col-md-4">
+                <label for="storage_conditions">Storage Conditions</label>
+                <textarea class="form-control" id="storage_conditions" name="storage_conditions" cols="2"></textarea>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="quantity_in_stock">Quantity in Stock</label>
+                <input type="number" class="form-control" id="quantity_in_stock" name="quantity_in_stock" placeholder="Quantity in Stock">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="price_per_unit">Price per Unit</label>
+                <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" placeholder="Price per Unit">
+              </div>             
+            </div>
+               
+            <div class="form-row">
+                <div class="col-md-12">
+                    <button  type="button" class="btn btn-primary float-lg-right"  onclick="addReagent()">Add Maintenance </button>  
+                </div>
+            </div>
+          </form>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+  
+  
+
+  
+<script>
+    // Handle form submission using AJAX
+    function addReagent() {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "add_reagent" %}',  // Replace with your URL
+            data: $('#addReagentForm').serialize(),
+            success: function (data) {
+                if (data.status === 'success') {
+                    $('#addReagentModal').modal('hide');
+                    location.reload(true);
+                    // Refresh the inventory item list or perform any other actions
+                } else {
+                    // Handle other status cases if needed
+                    alert(data.message);
+                }
+            },
+            error: function (error) {
+                console.log(error);
+                // Handle errors if necessary
+            }
+        });
+    }
+</script>
+  
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'kahama_template/datatable.html' %}
+{% endblock main_content %}

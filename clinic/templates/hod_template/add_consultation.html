@@ -1,0 +1,163 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+Add Consultation
+{% endblock title %}
+{% block breadcrumb %}
+{% endblock breadcrumb %}
+{% block main_content %}
+    {% load static %}             
+             
+        
+                <!-- Main content -->
+              
+                    <div class="container-fluid">
+                        <div class="row">
+                            <!-- left column -->
+                            <div class="col-md-12">
+                                <!-- general form elements -->
+                                <div class="card card-primary">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Add Consultation</h3>
+                                    </div>
+                                  <di class="card-body">
+                                      <div class="row mb-3">
+                                        <div class="col-md-4">
+                                          <!-- Display patient information -->
+                                          <strong>PATIENT NAME:</strong> {{ patient.fullname }}<br>
+                                          <strong>AGE:</strong>   <script>
+                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                            var now = new Date();
+                                            var ageMilliseconds = now - dob;
+                                            var ageSeconds = ageMilliseconds / 1000;
+                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                            document.write(ageYears + ' years');
+                                        </script><br>
+                                          <strong>SEX:</strong> {{ patient.gender }}
+                                        </div>
+                          
+                                        <div class="col-md-4 offset-md-4 text-right">
+                                          <!-- Display additional patient information -->
+                                          <strong>FILE NO:</strong> {{ patient.mrn }}<br>
+                                          <strong>DATE:</strong> {{ patient.created_at|date:"m/d/Y" }}
+                                        </div>
+                                      </div>
+                          
+                                      <!-- Consultation form -->
+                                      <form id="consultationForm" method="post"  action="{% url 'appointment_view' patient.id %}">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                          <div class="col-md-6">
+                                            <!-- Doctor selection dropdown -->
+                                            <label for="doctor">Doctor:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="doctor" required>
+                                              <option value="">Select Doctor</option>
+                                              {% for doctor in doctors %}
+                                                <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }} </option>
+                                              {% endfor %}
+                                            </select>
+                                          </div>
+                          
+                                          <div class="col-md-6">
+                                            <!-- Description input -->
+                                            <label for="description">Description:</label>
+                                            <textarea id="description" name="description" rows="2" class="form-control"></textarea>
+                                          </div>
+                          
+                                          <div class="col-md-6">
+                                            <!-- Date of consultation input -->
+                                            <label for="date_of_consultation">Date of Consultation:</label>
+                                            <input type="date" id="date_of_consultation" name="date_of_consultation" class="form-control">
+                                          </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                          <!-- Description input -->
+                                      <div class="form-group">
+                                          <label for="description{{ patient.id }}">Description:</label>
+                                          <textarea id="description{{ patient.id }}" name="description" rows="2" class="form-control"></textarea>
+                                      </div>
+                                  </div>
+                                        <!-- Time inputs for start and end times -->
+                                        <div class="row">
+                                          <div class="col-md-6">
+                                            <label for="start_time">Start Time:</label>
+                                            <input type="time" class="form-control" name="start_time" id="start_time">
+                                          </div>
+                                          <div class="col-md-6">
+                                            <label for="end_time">End Time:</label>
+                                            <input type="time" class="form-control" name="end_time" id="end_time">
+                                          </div>
+                                        </div>
+                          
+                                </div>
+
+                                <div class="card-footer">
+                                  <div class="form-row">
+                                      <div>
+                                          {% if messages %}
+                                              <div class="col-12">
+                                                  {% for message in messages %}
+                                                      {% if message.tags == 'error' %}
+                                                          <div class="alert alert-danger">{{ message }}</div>
+                                                      {% elif message.tags == 'success' %}
+                                                          <div class="alert alert-primary">{{ message }}</div>
+                                                      {% endif %}
+                                                  {% endfor %}
+                                              </div>
+                                          {% endif %}
+                                      </div>
+                                  </div>
+                                  <div class="form-row">
+                                      <div class="col-md-12">
+                                          <button type="submit" class="btn btn-success btn-block">Create an Appointment</button>
+                                      </div>
+                                  </div>
+                              </div>
+                                <!--/.col (right) -->
+                            </div>
+                        </div>
+                    </div>
+            
+                <!-- /.content -->
+     
+    
+ 
+
+                              
+                  <script>
+                    // Function to validate that the appointment date is greater than or equal to the current date
+                    function validateDate() {
+                        var currentDate = new Date();
+                        var appointmentDate = new Date(document.getElementById('date_of_consultation').value);
+
+                        if (appointmentDate < currentDate) {
+                            alert('Appointment date must be greater than or equal to the current date.');
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    // Function to validate that end time is greater than start time
+                    function validateTime() {
+                        var startTime = document.getElementById('start_time').value;
+                        var endTime = document.getElementById('end_time').value;
+
+                        if (startTime >= endTime) {
+                            alert('End time must be greater than start time.');
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    // Attach the validation functions to the form submission
+                    document.querySelector('form').addEventListener('submit', function (event) {
+                        if (!validateDate() || !validateTime()) {
+                            event.preventDefault();
+                        }
+                    });
+                  </script>
+
+  
+
+                
+{% endblock main_content %}

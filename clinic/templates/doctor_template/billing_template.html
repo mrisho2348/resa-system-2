@@ -1,0 +1,194 @@
+{% extends 'doctor_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+Procedure Bill
+{% endblock title %}
+
+    
+    {% block main_content %}
+       <!-- Add custom CSS for styling -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #343a40;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .card {
+            margin: 20px auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 2px solid #007bff;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #0056b3;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 2.5rem;
+            margin-bottom: 0;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+        }
+
+        .mb-3 {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Custom styles for additional creativity */
+        .card:hover {
+            transform: scale(1.02);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .card-title::after {
+            content: "";
+            display: block;
+            width: 50px;
+            height: 3px;
+            background-color: #fff;
+            margin-top: 10px;
+            margin: auto;
+        }
+
+        .card-body p {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Gradient background for emphasis */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(to bottom right, #007bff, #0056b3);
+        }
+
+        /* Watermark style */
+        body::before {
+            content:"";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.2;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* Company details */
+        .company-logo {
+            max-width: 100px;
+            margin-bottom: 20px;
+            display: block;
+            margin: auto;
+        }
+
+        .company-address {
+            margin-top: 20px;
+            color: #6c757d;
+            text-align: center;
+        }
+
+        /* Add more creative styles as needed */
+    </style>
+    
+   
+
+
+    <div class="container" id="pdfContainer">
+        <!-- Use Bootstrap card for styling -->
+        <div class="card">
+            <div class="card-header">
+                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                <h2 class="card-title">Procedure Bill</h2>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p class="fw-bold">Patient: {{ procedure.patient.fullname }}</p>
+                    <p class="fw-bold">Patient MRN: {{ procedure.patient.mrn }}</p>
+                    <p class="fw-bold">Procedure: {{ procedure.name }}</p>
+                    <p class="fw-bold">Cost: {{ procedure.cost }}/Tsh</p>
+                    <!-- Add more details as needed -->
+                    <p>Date: {{ procedure.created_at|date:"F j, Y" }}</p>
+                    <!-- Add more details here, e.g., additional charges, description, etc. -->
+                </div>
+
+                <!-- Your billing content goes here -->
+
+            </div>
+        </div>
+
+        <!-- Company Address Details -->
+        <div class="company-address">
+            <p>Resa Medical Group</p>
+            <p>123 Main Street, Kunduchi</p>
+            <p>Dar es salam, Tanzania</p>
+            <p>Contact: +1 (123) 456-7890</p>
+        </div>
+    </div>
+     <!-- Bootstrap JS and Popper.js (required for some Bootstrap components) -->
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
+    <div class="container">
+        <a href="javascript:generatePDF()" id="downloadButton"  class="btn btn-primary mt-3">Download PDF</a>
+    
+    </div>
+ 
+     <script>
+        async function generatePDF() {
+            document.getElementById("downloadButton").innerHTML = "Currently downloading, please wait";
+
+            // Downloading
+            var downloading = document.getElementById("pdfContainer");
+            var doc = new jsPDF('p', 'pt', 'A4');
+
+            // Increase canvas resolution
+            const canvas = await html2canvas(downloading, {
+                scale: 3, // Adjust the scale to increase resolution
+            });
+
+            // Canvas (convert to PNG)
+            const imgData = canvas.toDataURL("image/png", 1.0);
+
+            // Adjust the image size and position in the PDF
+            doc.addImage(imgData, 'PNG', 0.1, 1, 600, 650);
+
+            // Save PDF
+            doc.save("Procedure_Bill.pdf");
+
+            // End of downloading
+            document.getElementById("downloadButton").innerHTML = "Download PDF";
+        }
+        
+        // Attach the function to the button click event
+        document.getElementById('downloadButton').addEventListener('click', generatePDF);
+    </script>
+   
+ 
+    {% endblock main_content %}

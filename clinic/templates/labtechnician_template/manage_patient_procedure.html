@@ -1,0 +1,322 @@
+{% extends 'labtechnician_template/base_template.html' %}
+{% block title %}
+Patient procedure   
+{% endblock title %}
+
+{% block page_title %}
+Patient procedure for <p style="color: green;">{{ patient.fullname }}-{{ patient.mrn }}</p>  
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addProcedureModal">
+        <i class="fas fa-plus"></i> New procedure
+    </a>
+    <a class="btn btn-success float-right mr-2" href="{% url 'import_patient_records' %}">
+        <i class="fas fa-file-import"></i> Import procedure
+      </a>
+{% endblock breadcrumb %}
+{% block main_content %}
+
+<div class="form-row">
+    <div>
+        {% if messages %}
+            <div class="col-12">
+                {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        <div class="alert alert-danger">{{ message }}</div>
+                    {% elif message.tags == 'success' %}
+                        <div class="alert alert-primary">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div> 
+    <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Duration Time</th>
+                <th>Equipments Used</th>
+                <th>Cost</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for procedure in procedures %}
+                <tr>
+                    <td>{{ procedure.name }}</td>
+                    <td>{{ procedure.description }}</td>
+                    <td>{{ procedure.duration_time }}</td>
+                    <td>{{ procedure.equipments_used }}</td>
+                    <td>{{ procedure.cost }}</td>
+                    <td>        
+                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editProcedure{{ procedure.id }}"  data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteProcedure{{ procedure.id }}"  data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                      <!-- Add billing action link -->
+                    <a href="{% url 'generate_billing' procedure.id %}" class="btn btn-success btn-sm" data-toggle="tooltip" title="Generate Billing">
+                        <i class="fas fa-file-invoice"></i>
+                    </a>
+                </td>
+                </tr>
+
+                                                <!-- Modal for Editing Procedure -->
+                                <div class="modal fade" id="editProcedure{{ procedure.id }}" tabindex="-1" role="dialog" aria-labelledby="editProcedureModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                        <h5 class="modal-title" id="editProcedureModalLabel">Edit Procedure</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                        </div>
+                                        <div class="modal-body">
+                                        <form id="editProcedureForm{{ procedure.id }}" method="post">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="procedure_id" value="{{ procedure.id }}">
+                                            <div class="form-group">
+                                            <label for="procedureName">Name:</label>
+                                            <input type="text" class="form-control" id="procedureName" name="name" value="{{ procedure.name }}">
+                                            </div>
+                                            <div class="form-group">
+                                            <label for="startTime">Start Time:</label>
+                                            <input type="time" class="form-control" id="startTime" name="start_time" value="{{ procedure.start_time }}">
+                                            </div>
+                                            <div class="form-group">
+                                            <label for="endTime">End Time:</label>
+                                            <input type="time" class="form-control" id="endTime" name="end_time" value="{{ procedure.end_time }}">
+                                            </div>
+                                            <div class="form-group">
+                                            <label for="procedureDescription">Description:</label>
+                                            <textarea class="form-control" id="procedureDescription" name="description">{{ procedure.description }}</textarea>
+                                            </div>
+                                            <div class="form-group">
+                                            <label for="procedureEquipments">Equipments used:</label>
+                                            <input type="text" class="form-control" id="procedureEquipments" name="equipments_used" value="{{ procedure.equipments_used }}">
+                                            </div>
+                                            <div class="form-group">
+                                            <label for="procedureCost">Cost:</label>
+                                            <input type="text" class="form-control" id="procedureCost" name="cost" value="{{ procedure.cost }}">
+                                            </div>
+                                            <button type="button" class="btn btn-primary" onclick="submitEditProcedure({{ procedure.id }})">Save Changes</button>
+                                        </form>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- JavaScript to handle AJAX request for editing procedure -->
+                                <script>
+                                function submitEditProcedure(procedureId) {
+                                    var startTimeStr = document.getElementById('startTime').value;
+                                    var endTimeStr = document.getElementById('endTime').value;
+
+                                        // Convert time strings to Date objects
+                                        var startTime = new Date('2000-01-01T' + startTimeStr);
+                                        var endTime = new Date('2000-01-01T' + endTimeStr);
+                                
+                                    // Validate start and end times
+                                    if (startTime >= endTime) {
+                                        alert('Start time must be greater than end time.');
+                                        return;
+                                    }
+                                
+                                    // Get form data
+                                    var formData = new FormData(document.getElementById('editProcedureForm' + procedureId));
+                                
+                                    // Make AJAX request
+                                    $.ajax({
+                                        url: '/edit_procedure/',  // Replace with your server edit endpoint
+                                        type: 'POST',
+                                        data: formData,
+                                        contentType: false,
+                                        processData: false,
+                                        success: function(response) {
+                                            alert(response.message);  // Display success or error message to the user
+                                            // Close the modal after editing
+                                            if (response.success) {
+                                                $('#editProcedure' + procedureId).modal('hide'); 
+                                                location.reload();  // Reload the page
+                                            }
+                                        },
+                                        error: function(error) {
+                                            alert('An error occurred. Please try again.');  // Display a generic error message
+                                        }
+                                    });
+                                }
+                                </script>
+
+
+                                <!-- Modal for Confirming Deletion -->
+                    <div class="modal fade" id="deleteProcedure{{ procedure.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteProcedureModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h5 class="modal-title" id="deleteProcedureModalLabel">Confirm Deletion</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            </div>
+                            <div class="modal-body">
+                            <p>Are you sure you want to delete the procedure "{{ procedure.name }}"?</p>
+                            </div>
+                            <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-danger" onclick="deleteProcedure({{ procedure.id }})">Delete</button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+  
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+
+  <!-- JavaScript to handle AJAX request for deleting procedure -->
+  <script>
+  function deleteProcedure(procedureId) {
+      // Make AJAX request for deleting procedure
+      $.ajax({
+          url: '/delete_procedure/',  // Replace with your server delete endpoint
+          type: 'POST',
+          data: { procedure_id: procedureId },
+          success: function(response) {
+              alert(response.message);  // Display success or error message to the user           
+              // Optionally, you may want to refresh the page or update the procedure list after deletion
+              if (response.success) {
+                $('#deleteProcedure' + procedureId).modal('hide');  // Close the modal after deletion
+                location.reload();  // Reload the page
+            }
+          },
+          error: function(error) {
+              alert('An error occurred. Please try again.');  // Display a generic error message
+          }
+      });
+  }
+  </script>
+  
+ <!-- HTML structure for the Bootstrap modal form -->
+<div class="modal fade" id="addProcedureModal" tabindex="-1" role="dialog" aria-labelledby="addProcedureModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addProcedureModalLabel">Add Procedure</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <form id="addProcedureForm" method="post">
+                {% csrf_token %}
+                <!-- Bootstrap grid system for form layout -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <input type="hidden" id="patientId" name="mrn" value="{{ patient.mrn }}">    
+                        </div>
+                        <div class="form-group">
+                            <label for="procedureCost">Cost:</label>
+                            <input type="text" class="form-control" id="procedureCost" name="cost" placeholder="Enter procedure cost">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="procedureName">Name:</label>
+                            <input type="text" class="form-control" id="procedureName" name="name" placeholder="Enter procedure name">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="startTime">Start Time:</label>
+                            <input type="time" class="form-control" id="startTime" name="start_time">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="endTime">End Time:</label>
+                            <input type="time" class="form-control" id="endTime" name="end_time">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="procedureDescription">Description:</label>
+                    <textarea class="form-control" id="procedureDescription" name="description" placeholder="Enter procedure description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="procedureEquipments">Equipments used:</label>
+                    <input type="text" class="form-control" id="procedureEquipments" name="equipments_used" placeholder="Enter equipments used">
+                </div>
+             
+                <button type="button" class="btn btn-primary" onclick="submitProcedure()">Add Procedure</button>
+            </form>
+    </div>
+     
+      </div>
+    </div>
+  </div>
+  
+  
+  
+ <!-- JavaScript to handle AJAX request and form validation -->
+ <script>
+    function submitProcedure() {
+        var startTimeStr = document.getElementById('startTime').value;
+        var endTimeStr = document.getElementById('endTime').value;
+    
+        // Convert time strings to Date objects
+        var startTime = new Date('2000-01-01T' + startTimeStr);
+        var endTime = new Date('2000-01-01T' + endTimeStr);
+    
+        // Validate start and end times
+        if (startTime >= endTime) {
+            alert('Start time must be greater than end time.');
+            return;
+        }
+    
+        // Get form data
+        var formData = new FormData(document.getElementById('addProcedureForm'));
+    
+        // Make AJAX request
+        $.ajax({
+            url: '/save_procedure/',  // Replace with your server endpoint
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                alert(response.message);  // Display success or error message to the user
+                if (response.success) {
+                    $('#addProcedureModal').modal('hide');
+                    location.reload();  // Reload the page
+                }
+            },
+            error: function(error) {
+                alert('An error occurred. Please try again.');  // Display a generic error message
+            }
+        });
+    }
+    
+    </script>
+
+    <script>
+        function submitForm(checkbox) {
+            checkbox.form.submit();
+        }
+    </script>
+
+{% include 'labtechnician_template/datatable.html' %}
+    
+
+{% endblock main_content %}

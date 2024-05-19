@@ -1,0 +1,297 @@
+{% extends 'pharmacist_template/base_template.html' %}
+
+{% block title %}
+Medication Payments
+{% endblock title %}
+
+{% block page_title %}
+Medication Payments
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addMedicationPaymentModal">
+    <i class="fas fa-plus"></i> Medication Payments
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'import_medicine_records' %}">
+  <i class="fas fa-file-import"></i> Medication Payments
+</a>
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+
+<div class="">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+                <th>Payment Date</th>
+                <th>Patient</th>              
+                <th>Quantity</th>
+                <th>Amount</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in data %}
+                <tr>
+                    <td>{{ payment.payment_date }}</td>
+                    <td>{{ payment.mrn }}</td>              
+                    <td>{{ payment.quantity }}</td>
+                    <td>{{ payment.amount }}/Tsh</td>
+                    <td>
+                           <!-- Add more action links as needed -->
+                        <a href="{% url 'patient_medicationpayment_history_view_mrn' payment.mrn %}" data-toggle="tooltip" title="View medication History">
+                        <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                    </a>
+                   
+                    </td>
+                </tr>              
+  {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<style>
+ /* Style for the modal header */
+.modal-header {
+    background-color: #007bff;
+    color: #fff;
+    border-bottom: 1px solid #0066cc;
+}
+
+/* Style for the form labels */
+.form-group label {
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Style for the form input fields */
+.form-control {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Style for the form input fields on focus */
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Style for the submit button */
+.btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease-in-out;
+}
+
+/* Style for the submit button on hover */
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Style for the close button */
+.close {
+    color: #007bff;
+    font-size: 1.5rem;
+}
+
+/* Style for the non-registered patient fields (when displayed) */
+#nonRegisteredPatientFields {
+    display: none;
+}
+
+/* Style for the patient status dropdown */
+#patientStatus {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Style for the patient status dropdown on hover */
+#patientStatus:hover {
+    border-color: #007bff;
+}
+/* Style for the registered patient fields (when displayed) */
+#registeredPatientFields {
+    display: block;
+}
+
+#registeredPatientFields .form-group {
+    margin-bottom: 15px;
+}
+
+#registeredPatientFields label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#registeredPatientFields .form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+#registeredPatientFields .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Additional styles for a polished look */
+#registeredPatientFields .form-control {
+    transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+#registeredPatientFields .form-control:hover {
+    background-color: #f8f9fa; /* Light background on hover */
+}
+
+#registeredPatientFields .form-group:hover {
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.1); /* Subtle box shadow on hover */
+}
+
+/* Add any other styles as needed */
+
+
+
+</style>
+
+<!-- Add MedicationPayment Modal -->
+<div class="modal fade" id="addMedicationPaymentModal" tabindex="-1" role="dialog" aria-labelledby="addMedicationPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMedicationPaymentModalLabel">Add Medication Payment</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- MedicationPayment Form -->
+                <form id="medicationPaymentForm" method="post">
+                    <div class="form-group">
+                        <label for="patientStatus">Patient Status:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="patientStatus" required>
+                            <option value="registered">Registered Patient</option>
+                            <option value="non_registered">Non-Registered Patient</option>
+                        </select>
+                    </div>
+
+                    <!-- Registered Patient Fields -->
+                    <div id="registeredPatientFields">
+                        <div class="form-group">
+                            <label for="patient">Patient:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="patient" name="mrn">
+                                {% for patient in patients %}
+                                    <option value="{{ patient.mrn }}">
+                                        {{ patient.fullname }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Non-Registered Patient Fields (Initially Hidden) -->
+                    <div id="nonRegisteredPatientFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="non_registered_patient_name">Non-Registered Patient Name:</label>
+                            <input type="text" class="form-control" id="non_registered_patient_name" name="non_registered_patient_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="non_registered_patient_email">Non-Registered Patient Email:</label>
+                            <input type="email" class="form-control" id="non_registered_patient_email" name="non_registered_patient_email">
+                        </div>
+                        <div class="form-group">
+                            <label for="non_registered_patient_phone">Non-Registered Patient Phone:</label>
+                            <input type="text" class="form-control" id="non_registered_patient_phone" name="non_registered_patient_phone">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="medicine">Medicine:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="medicine" name="medicine" >
+                            {% for medicine in medicines %}
+                                <option value="{{ medicine.id }}">
+                                    {{ medicine.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity:</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity">
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount:</label>
+                        <input type="number" class="form-control" id="amount" step="0.01" name="amount">
+                    </div>
+                    <div class="form-group">
+                        <label for="payment_date">Payment Date:</label>
+                        <input type="date" class="form-control" id="payment_date"name="payment_date" required>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="submitMedicationPayment()">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Handle Patient Status Change
+        $('#patientStatus').change(function () {
+            var selectedStatus = $(this).val();
+
+            // Toggle the visibility of Registered and Non-Registered Patient Fields
+            if (selectedStatus === 'registered') {
+                $('#registeredPatientFields').show();
+                $('#nonRegisteredPatientFields').hide();
+            } else {
+                $('#registeredPatientFields').hide();
+                $('#nonRegisteredPatientFields').show();
+            }
+        });
+   
+    });
+</script>
+
+<script>
+    function submitMedicationPayment() {
+       
+        // Get form data
+        var formData = new FormData(document.getElementById('medicationPaymentForm'));
+    
+        // Make AJAX request
+        $.ajax({
+            url: '/add_medication_payment/',  // Replace with your server endpoint
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                alert(response.message);  // Display success or error message to the user
+                if (response.success) {
+                    $('#addMedicationPaymentModal').modal('hide');
+                    location.reload();  // Reload the page
+                }
+            },
+            error: function(error) {
+                alert('An error occurred. Please try again.');  // Display a generic error message
+            }
+        });
+    }
+    
+    </script>
+
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

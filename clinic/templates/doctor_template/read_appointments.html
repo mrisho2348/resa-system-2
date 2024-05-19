@@ -1,0 +1,178 @@
+{% extends 'doctor_template/base_template.html' %}
+
+{% block title %}
+Old appointment    
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "doctor_template/modal_form.html" %}
+Old appointment    
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title text-center mt-0 mb-1">Appointment Details</h4>
+                    <p class="text-muted font-13 text-center mb-4"></p>
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Added By</th>
+                                    <th>Patient</th>
+                                    <th>Appointment Date</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>  <!-- Add Actions column for interactivity -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in appointments %}
+                                    <tr>
+                                        <td>{{ appointment.created_by.admin.first_name }} {{ appointment.created_by.middle_name }} {{ appointment.created_by.admin.last_name }}</td>
+                                        <td>{{ appointment.patient.first_name }} {{ appointment.patient.middle_name }} {{ appointment.patient.last_name }}</td>
+                                        <td>{{ appointment.appointment_date }}</td>
+                                        <td>{{ appointment.start_time }}</td>
+                                        <td>{{ appointment.end_time }}</td>
+                                        <td>{{ appointment.description }}</td>
+                                        <td style="{% if appointment.status == 0 %} color: orange; {% endif %}{% if appointment.status == 1 %} color: green; {% endif %}{% if appointment.status == 2 %} color: red; {% endif %}{% if appointment.status == 3 %} color: blue; {% endif %}{% if appointment.status == 4 %} color: gray; {% endif %}{% if appointment.status == 5 %} color: purple; {% endif %}{% if appointment.status == 6 %} color: darkblue; {% endif %}{% if appointment.status == 7 %} color: darkgreen; {% endif %}">
+                                            {% if appointment.status == 0 %}
+                                                Pending
+                                            {% elif appointment.status == 1 %}
+                                                Completed
+                                            {% elif appointment.status == 2 %}
+                                                Canceled
+                                            {% elif appointment.status == 3 %}
+                                                Rescheduled
+                                            {% elif appointment.status == 4 %}
+                                                No-show
+                                            {% elif appointment.status == 5 %}
+                                                In Progress
+                                            {% elif appointment.status == 6 %}
+                                                Confirmed
+                                            {% elif appointment.status == 7 %}
+                                                Arrived
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if not appointment.status %}
+                                                <button class="btn btn-primary" data-toggle="modal" data-target="#confirmMeetingModal{{ appointment.id }}">Confirm appointment</button>
+                                              {% else %}
+                                              <button class="btn btn-success">Confirmed</button>
+                                              <button class="btn btn-warning" data-toggle="modal" data-target="#editMeetingModal{{ appointment.id }}">Edit time</button>
+                                              <button class="btn btn-primary" data-toggle="modal" data-target="#confirmMeetingModal{{ appointment.id }}">edit status</button>
+                                            {% endif %}
+                        
+                                        </td>
+                                    </tr>
+                        
+                                   <!-- Confirmation Modal for each appointment -->
+                                                        <div class="modal fade" id="confirmMeetingModal{{ appointment.id }}" tabindex="-1" role="dialog" aria-labelledby="confirmMeetingModalLabel{{ appointment.id }}" aria-hidden="true">
+                                                            <div class="modal-dialog" role="document">
+                                                                <div class="modal-content">
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title" id="confirmMeetingModalLabel{{ appointment.id }}">Confirm Meeting</h5>
+                                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                            <span aria-hidden="true">&times;</span>
+                                                                        </button>
+                                                                    </div>
+                                                                    <div class="modal-body">
+                                                                        <p>Have you already met with {{ appointment.patient.fullname }}?</p>
+                                                                        <!-- Add a form with a dropdown for selecting the status -->
+                                                                        <form method="post" action="{% url 'confirm_meeting' appointment.id %}">
+                                                                            {% csrf_token %}
+                                                                            <div class="form-group">
+                                                                                <label for="status">Appointment Status:</label>
+                                                                                <select class="form-control select2bs4" style="width: 100%;" name="status" required>
+                                                                                    <option value="0">Pending</option>
+                                                                                    <option value="1">Completed</option>
+                                                                                    <option value="2">Canceled</option>
+                                                                                    <option value="3">Rescheduled</option>
+                                                                                    <option value="4">No-show</option>
+                                                                                    <option value="5">In Progress</option>
+                                                                                    <option value="6">Confirmed</option>
+                                                                                    <option value="7">Arrived</option>
+                                                                                </select>
+                                                                            </div>
+                                                                            <button type="submit" class="btn btn-primary">Confirm</button>
+                                                                        </form>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>   
+                        
+                                                            <!-- Edit Meeting Modal -->
+                                                <div class="modal fade" id="editMeetingModal{{ appointment.id }}" tabindex="-1" role="dialog" aria-labelledby="editMeetingModalLabel{{ appointment.id }}" aria-hidden="true">
+                                                    <div class="modal-dialog" role="document">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="editMeetingModalLabel{{ appointment.id }}">Edit Meeting Time</h5>
+                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                    <span aria-hidden="true">&times;</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <p>Confirm that you have a meeting with {{ appointment.patient.fullname }} before editing.</p>
+                                                                <!-- Add a form with fields for start time and end time -->
+                                                                <form method="post" action="{% url 'edit_meeting' appointment.id %}">
+                                                                    {% csrf_token %}
+                                                                    <div class="form-group">
+                                                                        <label for="start_time">Start Time:</label>
+                                                                        <input type="time" class="form-control" name="start_time" id="start_time" value="{{ appointment.start_time|time:'H:i' }}" required>
+                                                                    </div>
+                                                                    <div class="form-group">
+                                                                        <label for="end_time">End Time:</label>
+                                                                        <input type="time" class="form-control" name="end_time" id="end_time" value="{{ appointment.end_time|time:'H:i' }}" required>
+                                                                    </div>
+                                                                    <button type="submit" class="btn btn-primary">Edit Meeting</button>
+                                                                </form>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                        
+                                                <!-- JavaScript for time validation -->
+                                                <script>
+                                                    // Function to validate that end time is greater than start time
+                                                    function validateTime() {
+                                                        var startTime = document.getElementById('start_time').value;
+                                                        var endTime = document.getElementById('end_time').value;
+                        
+                                                        if (startTime >= endTime) {
+                                                            alert('End time must be greater than start time.');
+                                                            return false;
+                                                        }
+                                                        return true;
+                                                    }
+                        
+                                                    // Attach the validation function to the form submission
+                                                    document.querySelector('form').addEventListener('submit', function (event) {
+                                                        if (!validateTime()) {
+                                                            event.preventDefault();
+                                                        }
+                                                    });
+                                                </script>   
+                        
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'doctor_template/datatable.html' %}
+{% endblock main_content %}
+

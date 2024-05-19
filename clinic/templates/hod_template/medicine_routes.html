@@ -1,0 +1,241 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+drug route
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addMedicineRouteModal">
+    <i class="fas fa-plus"></i> New  drug route
+</a>
+<!-- Add Import Staff link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url "clinic:import_medicine_routes_records" %}">
+    <i class="fas fa-file-import"></i> Import drug route
+  </a>
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header card-primary">
+                    <h3 class="header-title text-center mt-0 mb-1 text-uppercase">Drug Routes List</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">    
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Explanation</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for route in routes %}
+                                <tr>
+                                    <td>{{ route.name }}</td>
+                                    <td>{{ route.explanation }}</td>
+                                    <td>{{ route.created_at }}</td>
+                                    <td>{{ route.updated_at }}</td>
+                                    <td>  
+                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editMedicineRouteModal{{ route.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteMedicineRouteModal{{ route.id }}" data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>                                 
+                                <!-- Modal -->
+                                <div class="modal fade" id="editMedicineRouteModal{{ route.id }}" tabindex="-1" role="dialog" aria-labelledby="editMedicineRouteModalLabel{{ route.id }}" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editMedicineRouteModalLabel{{ route.id }}">Edit Medicine Route</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div id="editMessageContainer{{ route.id }}"></div> <!-- Container for displaying success/error messages -->
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="name">Name:</label>
+                                                            <input type="text" class="form-control" id="name{{ route.id }}" name="name" value="{{ route.name }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-group">
+                                                            <label for="explanation">Explanation:</label>
+                                                            <textarea class="form-control" id="explanation{{ route.id }}" name="explanation" required>{{ route.explanation }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" onclick="editMedicineRoute({{ route.id }})">Save Changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                                        <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteMedicineRouteModal{{ route.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteMedicineRouteModalLabel{{ route.id }}" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteMedicineRouteModalLabel{{ route.id }}">Delete Medicine Route</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete the Medicine Route <strong>{{ route.name }}</strong>?</p>
+                                            <div id="deleteMessageContainer{{ route.id }}"></div> <!-- Container for displaying success/error messages -->
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            <button type="button" class="btn btn-danger" onclick="deleteMedicineRoute({{ route.id }})">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                            </tbody>     
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+  
+  <!-- Modal -->
+  <div class="modal fade" id="addMedicineRouteModal" tabindex="-1" role="dialog" aria-labelledby="addMedicineRouteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addMedicineRouteModalLabel">Add Drug Route</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="addMessageContainer"></div> <!-- Container for displaying success/error messages -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" class="form-control" id="names" name="name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="explanation">Explanation:</label>
+                <textarea class="form-control" id="explanation" name="explanation" required></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="addMedicineRoute()">Add Route</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function addMedicineRoute() {
+      // Get form data
+      var names = document.getElementById('names').value;
+      var explanation = document.getElementById('explanation').value;
+  
+      // Send data to server using AJAX
+      $.ajax({
+        url: '{% url "clinic:add_medicine_route" %}', // Update with your actual URL
+        type: 'POST',
+        data: {
+          'names': names,
+          'explanation': explanation,
+          csrfmiddlewaretoken: '{{ csrf_token }}' // Include CSRF token
+        },
+        success: function(response) {
+          if (response.success) {
+            $('#addMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                location.reload();
+          } else {
+            $('#addMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('Error:', error);
+        }
+      });
+    }
+
+
+    function editMedicineRoute(routeId) {
+        var name = $('#name' + routeId).val();
+        var explanation = $('#explanation' + routeId).val();
+    
+        $.ajax({
+            url: '{% url "clinic:add_medicine_route" %}',
+            type: 'POST',
+            data: {
+                'route_id': routeId,
+                'name': name,
+                'explanation': explanation,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#editMessageContainer' + routeId).html('<div class="alert alert-success">' + response.message + '</div>');
+                    location.reload();
+                    // Optionally, update the table row with the new data
+                } else {
+                    $('#editMessageContainer' + routeId).html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+
+    function deleteMedicineRoute(routeId) {
+        $.ajax({
+            url: '{% url "clinic:delete_medicine_route" %}',
+            type: 'POST',
+            data: {
+                'route_id': routeId,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#deleteMessageContainer' + routeId).html('<div class="alert alert-success">' + response.message + '</div>');
+                    location.reload();
+                    // Optionally, remove the table row from the DOM
+                } else {
+                    $('#deleteMessageContainer' + routeId).html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+    
+  </script>
+  
+  
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}

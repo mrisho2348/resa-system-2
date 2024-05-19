@@ -1,0 +1,541 @@
+{% extends 'receptionist_template/base_template.html' %}
+
+{% block title %}
+Patient Visit History
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "receptionist_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addVisitModal">
+    <i class="fas fa-plus"></i> New Visit
+</a>
+<!-- Add Import insurance link and modal trigger -->
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+               
+                <div class="card-body">
+                    <div class="row" style="font-size:13px;">
+                        <div class="col-md-3"><b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3"><b>SEX: {{ patient.gender }}</b></div>
+                        <div class="col-md-3"><b>FILE NO : {{ patient.mrn }}</b> </div>
+                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3"><b>PAYMENT MODE: {{ patient.payment_form }}</b></div>
+                        </div>
+                </div>           
+            
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-row">
+                <div>
+                    {% if messages %}
+                    <div class="col-12">
+                        {% for message in messages %}
+                        {% if message.tags == 'error' %}
+                        <div class="alert alert-danger">{{ message }}</div>
+                        {% elif message.tags == 'success' %}
+                        <div class="alert alert-primary">{{ message }}</div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+           <div class="card">
+                <div class="card-header">
+                    <h3  class="header-title text-center mt-0 mb-1  text-uppercase"> {{ patient.first_name }} Visit history</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Visit number</th>
+                                    <th>Visit Type</th>                           
+                                    <th>Service</th>              
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>                         
+                                    <th>Action</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in visit_history %}
+                                    <tr>
+                                        <td>{{ visit.vst }}</td>
+                                        <td>{{ visit.get_visit_type_display }}</td>                             
+                                        <td>{{ visit.primary_service }}</td>                  
+                                        <td>{{ visit.created_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                        <td>{{ visit.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
+                                        <td>
+                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editVisitModal{{ visit.id }}"  data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletetVisitModal{{ visit.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>                                     
+                                        <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#consultationModal{{ visit.id }}"   data-toggle="tooltip" title="Appointment">
+                                            <i class="fas fa-calendar text-dark" ></i>
+                                        </button>              <!-- Add more action links as needed -->
+                                        <a href="{% url 'receptionist_patient_health_record' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
+                                            <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a>   
+                                                      <!-- Add more action links as needed -->
+                                        <a href="{% url 'receptionist_patient_vital_visit_list' visit.patient.id visit.id %}" data-toggle="tooltip" title="open vital for this visit">
+                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a>   
+                                            
+                                        </td>
+                                 
+                                        <div class="modal fade" id="deletetVisitModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="deletetVisitModalLabel{{ item.id }}" aria-hidden="true">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deletetVisitModalLabel{{ visit.id }}">Delete Category</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to delete this patient visit: <strong>{{ visit }}</strong>?</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                        <button type="button" class="btn btn-danger" onclick="deletetVisit({{ visit.id }})">Delete</button>
+                                                    </div>
+                                                </div>
+                                    
+                                                <script>
+                                                    function deletetVisit(patient_visit_id) {
+                                                        $.ajax({
+                                                            type: 'POST',
+                                                            url: '/delete_patient_visit/' + patient_visit_id + '/',  // Replace with your URL
+                                                            data: {},
+                                                            success: function (data) {
+                                                                if (data.status === 'success') {
+                                                                    $('#deletetVisitModal' + patient_visit_id).modal('hide');
+                                                                    location.reload(true);
+                                                                    // Refresh the category list or perform any other actions
+                                                                } else {
+                                                                    // Handle other status cases if needed
+                                                                    alert(data.message);
+                                                                }
+                                                            },
+                                                            error: function (error) {
+                                                                alert(error);
+                                                                // Handle errors if necessary
+                                                            }
+                                                        });
+                                                    }
+                                                </script>
+                                            </div>
+                                        </div>
+                                  
+                    
+                    
+                                        <div class="modal fade" id="editVisitModal{{ visit.id }}" tabindex="-1" aria-labelledby="editVisitModalLabel{{ visit.id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editVisitModalLabel{{ visit.id }}">Edit Visit</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <form id="editVisitModalForm{{ visit.id }}" method="post"  action="{% url 'receptionist_add_patient_visit' %}">
+                                                            {% csrf_token %}
+                                                            <div class="form-group">
+                                                                <label for="editVisitTypes">Visit Type</label>
+                                                                <select class="form-control" id="editVisitTypes{{ visit.id }}" name="visitType">
+                                                                    <option value="Normal" {% if visit.visitType == "Normal" %} selected {% endif %}>Normal</option>
+                                                                    <option value="Emergency" {% if visit.visitType == "Emergency" %} selected {% endif %}>Emergency</option>
+                                                                    <option value="Referral" {% if visit.visitType == "Referral" %} selected {% endif %}>Referral</option>
+                                                                    <option value="Follow up" {% if visit.visitType == "Follow up" %} selected {% endif %}>Follow up</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-group" id="editVisitReasons{{ visit.id }}" {% if visit.visitType != "Emergency" %} style="display: none;" {% endif %}>
+                                                                <label for="editVisitReasonText">Visit Reason</label>
+                                                                <textarea class="form-control" id="editVisitReasonText" name="visitReason" cols="2">{% if visit.visitReason %}{{ visit.visitReason }}{% endif %}</textarea>
+                                                            </div>
+                                                            <div class="form-group" id="editReferralNumbers{{ visit.id }}" {% if visit.visitType != "Referral" %} style="display: none;" {% endif %}>
+                                                                <label for="EditReferralNumberText">Referral Number</label>
+                                                                <input type="text" class="form-control" id="EditReferralNumberText" name="referralNumber" value="{% if visit.referralNumber %}{{ visit.referralNumber }}{% endif %}">
+                                                                <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                                                                <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label class="control-label" id="editprimary_service">Primary Service:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="editprimary_service" name="primary_service">
+                                                                    <option value="Consultation" {% if visit.primary_service == "Consultation" %} selected {% endif %}>Consultation</option>
+                                                                    <option value="Imaging" {% if visit.primary_service == "Imaging" %} selected {% endif %}>Imaging</option>
+                                                                    <option value="Investigation" {% if visit.primary_service == "Investigation" %} selected {% endif %}>Investigation</option>
+                                                                    <option value="Procedure" {% if visit.primary_service == "Procedure" %} selected {% endif %}>Procedure</option>
+                                                                    <option value="Physiotherapy" {% if visit.primary_service == "Physiotherapy" %} selected {% endif %}>Physiotherapy</option>
+                                                                    <option value="Ambulance" {% if visit.primary_service == "Ambulance" %} selected {% endif %}>Ambulance</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-group" id="editInsuranceFields" {% if patient.payment_form == 'insurance' %} {% endif %}>
+                                                                <label class="control-label">Insurance Name:</label>
+                                                                <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
+                                                                <label class="control-label">Insurance Number:</label>
+                                                                <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
+                                                                <label class="control-label">Verification Code:</label>
+                                                                <input type="text" class="form-control" id="verificationCode" name="verificationCode" value="{{ visit.authorization_code }}" >
+                                                            </div>
+                                                            <div class="row">                                                        
+                                                                <div class="col-md-12">
+                                                                    <div id="MessageContainer">
+                                                                    </div>
+                                                                </div>
+                                                            </div>  
+                                                            <div class="form-group pt-2 float-end">
+                                                                <div class="row">
+                                                                    <div class="col-md-8"></div>
+                                                                    <div class="col-md-4">
+                                                                        <button type="submit" class="btn btn-md btn-primary" id="submitBtn">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                           
+                                                        </form>
+                                                    </div>
+                                              
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <script>
+                                            $(document).ready(function () {
+                                                // Show/hide additional fields based on visit type
+                                                $('#editVisitTypes{{ visit.id }}').change(function () {
+                                                    var visitType = $(this).val();
+                                                    if (visitType == 'Emergency') {
+                                                        $('#editVisitReasons{{ visit.id }}').show();
+                                                        $('#editReferralNumbers{{ visit.id }}').hide();
+                                                    } else if (visitType == 'Referral') {
+                                                        $('#editVisitReasons{{ visit.id }}').hide();
+                                                        $('#editReferralNumbers{{ visit.id }}').show();
+                                                    } else {
+                                                        $('#editVisitReasons{{ visit.id }}').hide();
+                                                        $('#editReferralNumbers{{ visit.id }}').hide();
+                                                    }
+                                                });
+                                        
+                                            
+                                            });
+                                        </script>                                      
+                                        
+                                        
+                                    </tr>
+                    
+                    
+        
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                            <!-- left column -->
+                                            <div class="col-md-12">
+                                                <!-- Bootstrap Modal for consultation form -->
+                                                <div class="modal fade" id="consultationModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="consultationModalLabel{{ visit.id }}" aria-hidden="true">
+                                                    <div class="modal-dialog" role="document">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="consultationModalLabel{{ visit.id }}">Add Appoinment</h5>
+                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                    <span aria-hidden="true">&times;</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <form id="consultationForm{{ visit.id }}">
+                                                                    {% csrf_token %}
+                                                                    <!-- Doctor selection dropdown -->
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <div class="form-group">
+                                                                                <label for="doctor{{ visit.id }}">Doctor:</label>
+                                                                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
+                                                                                    <option value="">Select Doctor</option>
+                                                                                    {% for doctor in doctors %}
+                                                                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                                                                    {% endfor %}
+                                                                                </select>
+                                                                            </div>
+                                                                         </div>                                                    
+                                                                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                                                                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
+                                                                        <div class="col-md-6">
+                                                                            <!-- Date of consultation input -->
+                                                                            <div class="form-group">
+                                                                                <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
+                                                                                <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control">
+                    
+                                                                        </div>
+                                                                    </div> 
+                                                                    </div>                                                  
+                                                                    <div class="row">
+                                                                        <div class="col-md-6">
+                                                                            <div class="form-group">
+                                                                                <label for="start_time{{ visit.id }}">Start Time:</label>
+                                                                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}">
+                                                                            </div>
+                                                                         </div>                                                    
+                                                                        <div class="col-md-6">
+                                                                                <!-- Description input -->
+                                                                            <div class="form-group">
+                                                                                <label for="end_time{{ visit.id }}">End Time:</label>
+                                                                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}">
+                                                                            </div>
+                                                                        </div>                                                        
+                                                                    </div>   
+                                                                    <div class="row">                                                        
+                                                                        <div class="col-md-12 mb-5 ">
+                                                                            <!-- Description input -->
+                                                                            <label for="description">Description:</label>
+                                                                            <textarea id="description" name="description" rows="2" class="form-control"></textarea>
+                                                                        </div>
+                                                                    </div>                                               
+                                                                    <div class="row">                                                        
+                                                                        <div class="col-md-12">
+                                                                            <div id="successMessageContainer">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>                                               
+                                                                
+                                                                    <button type="button" class="btn btn-success btn-block" onclick="addConsultation({{ visit.id }})">Create an Appointment</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <script>
+                                        function addConsultation(visitId) {
+                                            var doctor = $('#doctor' + visitId).val();
+                                            var patient_id = $('#patient_id' + visitId).val();
+                                            var visit_id = $('#visit_id' + visitId).val();
+                                            var end_time = $('#end_time' + visitId).val();
+                                            var start_time = $('#start_time' + visitId).val();
+                                            var date_of_consultation = $('#date_of_consultation' + visitId).val();
+                                            var description = $('#description' + visitId).val();
+                                    
+                                            $.ajax({
+                                                type: 'POST',
+                                                url: '{% url "receptionist_appointment_view" %}', 
+                                                data: {
+                                                    doctor: doctor,
+                                                    patient_id: patient_id,
+                                                    visit_id: visit_id,
+                                                    end_time: end_time,
+                                                    start_time: start_time,
+                                                    date_of_consultation: date_of_consultation,
+                                                    description: description
+                                                },
+                                                success: function(response) {
+                                                    if (response.status === 'success') {  
+                                                        $('#successMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');   
+                                                        location.reload(true)                                            
+                                                
+                                                    } else {
+                                                        // Handle other status cases if needed
+                                                        $('#successMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                                                    }
+                                                },
+                                                error: function(error) {
+                                                    alert(error);
+                                                    // Display error message
+                                                    $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to create an appointment</div>');
+                                                }
+                                            });
+                                        }
+                                    </script>
+                    
+                                {% endfor %}
+                            </tbody>
+                        </table>
+        
+                                                <!-- Updated modal with Bootstrap grid -->
+                            <div class="modal fade" id="addVisitModal" tabindex="-1" aria-labelledby="addVisitModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="addVisitModalLabel">Add Visit</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form id="addVisitModalForm" method="post" action="{% url 'receptionist_add_patient_visit' %}">
+                                                    {% csrf_token %}
+                                                    <div class="form-group">
+                                                        <label for="visitType">Visit Type</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="visitTypes" name="visitType">
+                                                            <option value="Normal">Normal</option>
+                                                            <option value="Emergency">Emergency</option>
+                                                            <option value="Referral">Referral</option>
+                                                            <option value="Follow up">Follow up</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group" id="visitReasons" style="display: none;">
+                                                        <label for="visitReasonText">Visit Reason</label>
+                                                        <textarea class="form-control" id="visitReasonText" name="visitReason" cols="2"></textarea>
+                                                    </div>
+                                                    <div class="form-group" id="referralNumbers" style="display: none;">
+                                                        <label for="referralNumberText">Referral Number</label>
+                                                        <input type="text" class="form-control" id="referralNumberText" name="referralNumber">
+                                                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                                                        <input type="hidden" class="form-control" id="visit_id" name="visit_id">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label class="control-label">Primary Service:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="primary_service" name="primary_service">
+                                                            <option value="Consultation">Consultation</option>
+                                                            <option value="Imaging">Imaging</option>
+                                                            <option value="Investigation">Investigation</option>
+                                                            <option value="Procedure">Procedure</option>
+                                                            <option value="Physiotherapy">Physiotherapy</option>
+                                                            <option value="Ambulance">Ambulance</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group" id="insuranceFields" style="display: none;">
+                                                        <label class="control-label">Insurance Name:</label>
+                                                        <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
+                                                        <label class="control-label">Insurance Number:</label>
+                                                        <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
+                                                        <label class="control-label">Verification Code:</label>
+                                                        <input type="text" class="form-control" id="verificationCode" name="verificationCode">
+                                                    </div>
+                                        
+                                                    <div class="form-row">
+                                                        <div class="col-md-12">
+                                                            <div id="ProcedureResponse"></div>  
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group pt-2 float-end">
+                                                        <div class="row">
+                                                            <div class="col-md-8"></div>
+                                                            <div class="col-md-4">
+                                                                <button type="submit" class="btn btn-md btn-primary">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>                                         
+                                        </div>
+                                    </div>
+                                </div>
+        
+                               
+        
+                            <script>
+                                $(document).ready(function () {
+                                    $('#visitTypes').change(function () {
+                                        var visitType = $(this).val();          
+                                        if (visitType === 'Emergency') {
+                                            $('#visitReasons').show();
+                                            $('#referralNumbers').hide();
+                                        } else if (visitType === 'Referral') {
+                                            $('#visitReasons').hide();
+                                            $('#referralNumbers').show();
+                                        } else {
+                                            $('#visitReasons').hide();
+                                            $('#referralNumbers').hide();
+                                        }
+                                    });
+        
+                                    var paymentForm = "{{ patient.payment_form }}";
+                                    if (paymentForm === 'insurance') {
+                                        $('#insuranceFields').show();
+                                    }
+                                });
+                            </script>
+                    </div>
+                </div>
+           </div>
+        </div>
+    </div>
+</div>
+
+
+
+<style>
+    /* styles.css */
+
+/* Add custom styles for the container */
+.container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+}
+
+/* Add styles for the card */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add styles for the table */
+.table {
+    width: 100%;
+}
+
+/* Add styles for table headers */
+.table th {
+    background-color: #007bff;
+    color: #fff;
+}
+
+/* Add styles for table rows */
+.table tbody tr {
+    background-color: #f9f9f9;
+}
+
+/* Add styles for buttons */
+.btn {
+    border-radius: 5px;
+    margin-right: 5px;
+}
+
+/* Add more styles as needed */
+
+</style>
+
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'receptionist_template/datatable.html' %}
+{% endblock main_content %}

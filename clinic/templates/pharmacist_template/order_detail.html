@@ -1,0 +1,134 @@
+{% extends 'pharmacist_template/base_template.html' %}
+
+{% block title %}
+Order Details
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+Order Details
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-header card-primary">
+                    <h3 class="header-title text-center mt-0 mb-1 text-uppercase">List of all Orders</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">    
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Order Type</th>
+                                    <th>Order To</th>
+                                    <th>Patient</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                    <th>Actions</th> <!-- Add a column for actions -->
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>{{ order.doctor }}
+                                        <p><strong>{{ order.doctor.role }}</strong></p>
+                                    </td>
+                                    <td>{{ order.patient }}
+                                        <p>{{ order.patient.payment_form }}</p>
+                                    </td>
+                                    <td>{{ order.cost }}</td>
+                                    <td>
+                                        {% if order.status == 'Paid' %}
+                                        <span class="badge badge-success">{{ order.status }}</span>
+                                        {% else %}
+                                        <span class="badge badge-warning">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.order_date }}</td>
+                                    <td>
+                                        <!-- Button to trigger modal -->
+                                        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#editStatusModal{{ order.id }}">
+                                            Edit Status
+                                        </button>
+                                        <!-- Add more action links as needed -->
+                                        <a href="{% url 'pharmacist_generate_invoice_bill' order.id %}" data-toggle="tooltip" title="View order">
+                                        <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>  
+                                                                                <!-- Modal -->
+                                        </a>                                        
+                                        <div class="modal fade" id="editStatusModal{{ order.id }}" tabindex="-1" role="dialog" aria-labelledby="editStatusModalLabel{{ order.id }}" aria-hidden="true">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editStatusModalLabel{{ order.id }}"> Payment Status for {{ order.order_type }} order</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <!-- Form to update payment status -->
+                                                        <div id="statusUpdateResponse{{ order.id }}"></div> <!-- Unique container for displaying response -->
+                                                        <div class="form-group">
+                                                            <label for="paymentStatus{{ order.id }}">Payment Status</label>
+                                                            <select class="form-control" id="paymentStatus{{ order.id }}" name="payment_status">
+                                                                <option value="Paid">Paid</option>
+                                                                <option value="Unpaid">Unpaid</option>
+                                                            </select>
+                                                        </div>
+                                                        <input type="hidden" id="orderId{{ order.id }}" value="{{ order.id }}">
+                                                        <button type="button" class="btn btn-primary" onclick="updatePaymentStatus('{{ order.id }}')">Pay</button> <!-- Pass order ID as argument -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                </tr>
+                                <script>
+                                    function updatePaymentStatus(orderId) {
+                                        var paymentStatus = document.getElementById('paymentStatus' + orderId).value; // Get payment status based on order ID
+                                    
+                                        // Send Ajax request
+                                        $.ajax({
+                                            type: 'POST',
+                                            url: '{% url 'update_orderpayment_status' %}', // URL for updating payment status
+                                            data: {
+                                                'order_id': orderId,
+                                                'payment_status': paymentStatus,
+                                                'csrfmiddlewaretoken': '{{ csrf_token }}'
+                                            },
+                                            success: function(response) {
+                                                // Display response in the container
+                                                $('#statusUpdateResponse' + orderId).html('<div class="alert alert-success">' + response.message + '</div>');
+                                                location.reload(true)
+                                            },
+                                            error: function(response) {
+                                                // Display error message if request fails
+                                                $('#statusUpdateResponse' + orderId).html('<div class="alert alert-danger">Failed to update status.</div>');
+                                            }
+                                        });
+                                    }
+                                </script>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

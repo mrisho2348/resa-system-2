@@ -1,0 +1,201 @@
+{% extends 'kahama_template/base_template.html' %}
+{% block title %}
+patient Disease    
+{% endblock title %}
+
+{% block page_title %}
+patient Disease 
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#patientDiseaseModal">
+        <i class="fas fa-plus"></i> New patient Disease 
+    </a>
+
+{% endblock breadcrumb %}
+{% block main_content %}
+
+ <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Disease Record</th>
+                <th>Diagnosis Date</th>
+                <th>Severity</th>
+                <th>Treatment Plan</th>
+                <th>Action</th>
+                <!-- Add more columns as needed -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient_disease in patient_diseases %}
+                <tr>
+                    <td>{{ patient_disease.patient.fullname }}</td>
+                    <td>{{ patient_disease.disease_record.disease_name }}</td>
+                    <td>{{ patient_disease.diagnosis_date }}</td>
+                    <td>{{ patient_disease.severity }}</td>
+                    <td>{{ patient_disease.treatment_plan }}</td>
+                    <td>        
+                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editPatientDiseaseModal{{ patient_disease.id }}"  data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePatientDisease{{ patient_disease.id }}"  data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    
+                </td>
+
+
+                <!-- Bootstrap Modal for Deleting Medicine Inventory -->
+<div class="modal fade" id="deletePatientDisease{{ patient_disease.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePatientDisease{{ patient_disease.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePatientDisease{{ patient_disease.id }}">Confirm Deletion</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this Patient disease record for {{ patient_disease.patient.fullname }}?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+
+                <!-- Form for deletion -->
+                <form method="post" action="{% url 'delete_patient_disease' patient_disease.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+                <div class="modal fade" id="editPatientDiseaseModal{{ patient_disease.id }}" tabindex="-1" role="dialog" aria-labelledby="editPatientDiseaseModal{{ patient_disease.id }}" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editPatientDiseaseModal{{ patient_disease.id }}">Edit Patient Disease</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Form for adding/editing PatientDisease -->
+                                <form id="editPatientDiseaseForm" method="POST" action="{% url 'edit_patient_disease_save' patient_disease.id %}">
+                                    {% csrf_token %}
+                                    <!-- Patient -->
+                                    <div class="form-group">
+                                        <label for="patientSelect">Select Patient:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="patientSelect" name="patient_id">
+                                            {% for patient in patients %}
+                                                <option value="{{ patient.id }}" {% if patient.id == patient_disease.patient.id %} selected {% endif %}>{{ patient.fullname }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <!-- Disease Record -->
+                                    <div class="form-group">
+                                        <label for="diseaseRecord">Disease Record:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="diseaseRecord" name="diseaseRecord">
+                                            <!-- Populate disease records dynamically using Django template tags -->
+                                            {% for disease_record in disease_records %}
+                                                <option value="{{ disease_record.id }}" {% if disease_record.id == patient_disease.disease_record.id %} selected {% endif %}>{{ disease_record.disease_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <!-- Diagnosis Date -->
+                                    <div class="form-group">
+                                        <label for="diagnosisDate">Diagnosis Date:</label>
+                                        <input type="date" class="form-control" id="diagnosisDate" name="diagnosisDate" value="{{ patient_disease.diagnosis_date|date:'Y-m-d' }}">
+                                    </div>
+                                    <!-- Severity -->
+                                    <div class="form-group">
+                                        <label for="severity">Severity:</label>
+                                        <input type="text" class="form-control" id="severity" name="severity" value="{{ patient_disease.severity }}">
+                                    </div>
+                                    <!-- Treatment Plan -->
+                                    <div class="form-group">
+                                        <label for="treatmentPlan">Treatment Plan:</label>
+                                        <textarea class="form-control" id="treatmentPlan" name="treatmentPlan" rows="3">{{ patient_disease.treatment_plan }}</textarea>
+                                    </div>
+                                    <!-- Save Button -->
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                </tr>
+
+                           
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+  
+  <div class="modal fade" id="patientDiseaseModal" tabindex="-1" role="dialog" aria-labelledby="patientDiseaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="patientDiseaseModalLabel">Add Patient Disease</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Form for adding/editing PatientDisease -->
+                <form id="patientDiseaseForm" method="POST" action="{% url "save_patient_disease" %}">
+                    {% csrf_token %}
+                    <!-- Patient -->
+                    <div class="form-group">
+                        <label for="patientSelect">Select Patient:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="patientSelect" name="patient_id">
+                            {% for patient in patients %}
+                                <option value="{{ patient.id }}">{{ patient.fullname }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Disease Record -->
+                    <div class="form-group">
+                        <label for="diseaseRecord">Disease Record:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="diseaseRecord" name="diseaseRecord">
+                            <!-- Populate disease records dynamically using Django template tags -->
+                            {% for disease_record in disease_records %}
+                                <option value="{{ disease_record.id }}">{{ disease_record.disease_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Diagnosis Date -->
+                    <div class="form-group">
+                        <label for="diagnosisDate">Diagnosis Date:</label>
+                        <input type="date" class="form-control" id="diagnosisDate" name="diagnosisDate">
+                    </div>
+                    <!-- Severity -->
+                    <div class="form-group">
+                        <label for="severity">Severity:</label>
+                        <input type="text" class="form-control" id="severity" name="severity">
+                    </div>
+                    <!-- Treatment Plan -->
+                    <div class="form-group">
+                        <label for="treatmentPlan">Treatment Plan:</label>
+                        <textarea class="form-control" id="treatmentPlan" name="treatmentPlan" rows="3"></textarea>
+                    </div>
+                    <!-- Save Button -->
+                    <button type="submit" class="btn btn-primary" >Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'kahama_template/datatable.html' %}
+    
+
+{% endblock main_content %}

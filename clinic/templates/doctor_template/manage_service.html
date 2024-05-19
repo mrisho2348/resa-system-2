@@ -1,0 +1,246 @@
+{% extends 'doctor_template/base_template.html' %}
+{% block title %}
+   List of all service    
+{% endblock title %}
+
+{% block page_title %}
+   List of all Service    
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "doctor_template/modal_form.html" %}
+ 
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#serviceModal1">
+  <i class="fas fa-plus"></i>New service
+</a>
+    <a class="btn btn-success float-right mr-2" href="{% url 'import_service_records' %}">
+      <i class="fas fa-file-import"></i> Import service
+    </a>
+   
+{% endblock breadcrumb %}
+{% block main_content %}
+
+<div class="form-row">
+    <div>
+        {% if messages %}
+            <div class="col-12">
+                {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        <div class="alert alert-danger">{{ message }}</div>
+                    {% elif message.tags == 'success' %}
+                        <div class="alert alert-primary">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div> 
+    <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+        <thead>
+            <tr>  
+            <th scope="col">Service Name</th>   
+            <th scope="col">covarage</th>  
+            <th scope="col">Cost</th>       
+            <th scope="col">Type of Service</th>
+             <th scope="col">Description</th>
+             <th scope="col">department</th>
+             <th scope="col">Created At</th>
+              <th>Actions</th>
+              </tr>
+        </thead>
+        <tbody>
+          {% for service in services %}
+          <tr>
+            <td>{{ service.name }}</td>
+            <td>{{ service.covarage }}</td>
+            <td>{{ service.cost }}</td>            
+            <td>{{ service.type_service }}</td>            
+            <td class="wrap-text">{{ service.description }}</td>
+            <td>{{ service.department }}</td>
+            <td>{{ service.created_at }}</td>
+            <td>  
+               <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editServiceModal{{ service.id }}"  data-toggle="tooltip" title="Edit">
+              <i class="fa fa-edit text-white"></i>
+          </button>
+            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteServiceModal{{ service.id }}"  data-toggle="tooltip" title="Delete">
+              <i class="fas fa-trash"></i>
+          </button>   
+        </td>
+        <style>
+          /* CSS to make text wrap */
+          .wrap-text {
+            white-space: normal;
+          }
+        </style>
+<!-- Bootstrap Modal for Deleting Service -->
+<div class="modal fade" id="deleteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteServiceModal{{ service.id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="deleteServiceModal{{ service.id }}">Delete Service</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <p>Are you sure you want to delete the service "<span id="deleteServiceName">{{service.name}}</span>"?</p>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <form id="deleteServiceForm" method="post" action="{% url 'delete_service' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="service_id" id="deleteServiceId" value="{{service.id}}">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+              </form>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+
+        <!-- Bootstrap Modal for Editing Service -->
+<div class="modal fade" id="editServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="editServiceModal{{ service.id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="editServiceModal{{ service.id }}">Edit Service Details</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <!-- Form for editing Service -->
+              <form id="editServiceForm" method="post" action="{% url 'save_service_data' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="service_id" id="editServiceId" value=" {{ service.id }}">
+
+                  <!-- Department -->
+                  <div class="form-group">
+                      <label for="editDepartment">Department:</label>
+                      <input type="text" class="form-control" id="editDepartment" name="department" required value="{{ service.department }}">
+                  </div>
+
+                  <!-- Type of Service -->
+                  <div class="form-group">
+                      <label for="editTypeService">Type of Service:</label>
+                      <input type="text" class="form-control" id="editTypeService" name="typeService" required value="{{ service.type_service }}">
+                  </div>
+
+                  <!-- Name -->
+                  <div class="form-group">
+                      <label for="editServiceName">Service Name:</label>
+                      <input type="text" class="form-control" id="editServiceName" name="serviceName" required value="{{ service.name }}">
+                  </div>
+
+                  <!-- Description -->
+                  <div class="form-group">
+                      <label for="editDescription">Description:</label>
+                      <textarea class="form-control" id="editDescription" name="description" rows="3">{{ service.description }}</textarea>
+                  </div>
+                  <!-- Description -->
+                  <div class="form-group">
+                      <label for="editcovarage">covarage:</label>                  
+                    
+                        <select class="form-control" name="covarage" id="editcovarage">
+                          <option value="insurance" {% if service.service == 'insurance' %}selected{% endif %}>Insurance</option>
+                          <option value="cash" {% if service.service == 'cash' %}selected{% endif %}>Cash</option>
+                       
+                        </select>
+                    
+                  </div>
+
+                  <!-- Cost -->
+                  <div class="form-group">
+                      <label for="editCost">Cost:</label>
+                      <input type="text" class="form-control" id="editCost" name="cost" required value="{{ service.cost }}">
+                  </div>
+
+                  <!-- Save Button -->
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+              </form>
+          </div>
+      </div>
+  </div>
+</div>
+          </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+   
+
+
+<!-- Bootstrap Modal for Adding/Editing Service -->
+<div class="modal fade" id="serviceModal1" tabindex="-1" role="dialog" aria-labelledby="serviceModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="serviceModalLabel">Service Details</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <!-- Form for adding/editing Service -->
+              <form id="serviceForm" method="post" action="{% url 'save_service_data' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="service_id" id="serviceId">
+
+                  <!-- Department -->
+                  <div class="form-group">
+                      <label for="department">Department:</label>
+                      <input type="text" class="form-control" id="department" name="department" required>
+                  </div>
+
+                  <!-- Type of Service -->
+                  <div class="form-group">
+                      <label for="typeService">Type of Service:</label>
+                      <input type="text" class="form-control" id="typeService" name="typeService" required>
+                  </div>
+
+                  <!-- Name -->
+                  <div class="form-group">
+                      <label for="serviceName">Service Name:</label>
+                      <input type="text" class="form-control" id="serviceName" name="serviceName" required>
+                  </div>
+
+                  <!-- Description -->
+                  <div class="form-group">
+                      <label for="description">Description:</label>
+                      <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                  </div>
+
+                  <!-- Cost -->
+                  <div class="form-group">
+                      <label for="cost">Cost:</label>
+                      <input type="text" class="form-control" id="cost" name="cost" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="editcovarage">covarage:</label>                
+                     <select class="form-control" name="covarage" id="editcovarage">
+                        <option value="insurance">Insurance</option>
+                        <option value="cash">Cash</option>                     
+                      </select>
+                  
+                </div>
+                  <!-- Save Button -->
+                  <button type="submit" class="btn btn-primary">Save</button>
+              </form>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+    <script>
+        function submitForm(checkbox) {
+            checkbox.form.submit();
+        }
+    </script>
+
+{% include 'doctor_template/datatable.html' %}
+    
+
+{% endblock main_content %}

@@ -1,0 +1,199 @@
+{% extends 'hod_template/base_template.html' %}
+{% block title %}
+all Procedure    
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addProcedureModal">
+        <i class="fas fa-plus"></i> New Procedure
+    </a>
+    <a class="btn btn-success float-right mr-2" href="{% url 'import_procedure_records' %}">
+        <i class="fas fa-file-import"></i> Import Procedure
+      </a>
+{% endblock breadcrumb %}
+{% block main_content %}
+
+<div class="form-row">
+    <div>
+        {% if messages %}
+            <div class="col-12">
+                {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        <div class="alert alert-danger">{{ message }}</div>
+                    {% elif message.tags == 'success' %}
+                        <div class="alert alert-primary">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div> 
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-header bg-primary text-white text-center mt-0 mb-1">all Procedure  </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Patient MRN</th>
+                                    <th>Procedure Name</th>
+                                    <th>Description</th>
+                                    <th>Duration</th>
+                                    <th>Equipments</th>
+                                    <th>PCost</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <!-- Update the patient name field in your table -->
+                                <tbody>
+                                    {% for record in data %}
+                                        <tr>
+                                            <td>{{ record.id }}</td>
+                                            <td>{{ record.mrn }}</td>  <!-- Use 'fullname' instead of 'name' -->
+                                            <td>{{ record.procedure_name }}</td>
+                                            <td>{{ record.procedure_description }}</td>
+                                            <td>{{ record.procedure_duration }}</td>
+                                            <td>{{ record.procedure_equipments }}</td>
+                                            <td>{{ record.procedure_cost }}</td>
+                                            <td>
+                                                <!-- Add more action links as needed -->
+                                                <a href="{% url 'patient_procedure_history_view_mrn' record.mrn %}" data-toggle="tooltip" title="View Procedure History">
+                                                    <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>                    
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+   
+</div>
+
+
+<!-- HTML structure for the Bootstrap modal form -->
+<div class="modal fade" id="addProcedureModal" tabindex="-1" role="dialog" aria-labelledby="addProcedureModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addProcedureModalLabel">Add Procedure</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <form id="addProcedureForm" method="post">
+                {% csrf_token %}
+                <!-- Bootstrap grid system for form layout -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="patientSelect">Select Patient:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="patientSelect" name="patient_id">
+                                {% for patient in patients %}
+                                    <option value="{{ patient.mrn }}">{{ patient.fullname }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="procedureName">Name:</label>
+                            <input type="text" class="form-control" id="procedureName" name="name" placeholder="Enter procedure name">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="startTime">Start Time:</label>
+                            <input type="time" class="form-control" id="startTime" name="start_time">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="endTime">End Time:</label>
+                            <input type="time" class="form-control" id="endTime" name="end_time">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="procedureDescription">Description:</label>
+                    <textarea class="form-control" id="procedureDescription" name="description" placeholder="Enter procedure description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="procedureEquipments">Equipments used:</label>
+                    <input type="text" class="form-control" id="procedureEquipments" name="equipments_used" placeholder="Enter equipments used">
+                </div>
+                <div class="form-group">
+                    <label for="procedureCost">Cost:</label>
+                    <input type="text" class="form-control" id="procedureCost" name="cost" placeholder="Enter procedure cost">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="submitProcedure()">Add Procedure</button>
+            </form>
+    </div>
+     
+      </div>
+    </div>
+  </div>
+  
+
+  
+ <!-- JavaScript to handle AJAX request and form validation -->
+<script>
+    function submitProcedure() {
+        var startTimeStr = document.getElementById('startTime').value;
+        var endTimeStr = document.getElementById('endTime').value;
+    
+        // Convert time strings to Date objects
+        var startTime = new Date('2000-01-01T' + startTimeStr);
+        var endTime = new Date('2000-01-01T' + endTimeStr);
+    
+        // Validate start and end times
+        if (startTime >= endTime) {
+            alert('Start time must be greater than end time.');
+            return;
+        }
+    
+        // Get form data
+        var formData = new FormData(document.getElementById('addProcedureForm'));
+    
+        // Make AJAX request
+        $.ajax({
+            url: '/save_procedure/',  // Replace with your server endpoint
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                alert(response.message);  // Display success or error message to the user
+                if (response.success) {
+                    $('#addProcedureModal').modal('hide');
+                    location.reload();  // Reload the page
+                }
+            },
+            error: function(error) {
+                alert('An error occurred. Please try again.');  // Display a generic error message
+            }
+        });
+    }
+    
+    </script>
+   
+
+
+{% include 'hod_template/datatable.html' %}
+    
+
+{% endblock main_content %}

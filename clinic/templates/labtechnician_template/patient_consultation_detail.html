@@ -1,0 +1,321 @@
+{% extends 'labtechnician_template/base_template.html' %}
+{% block title %}
+Consultation - Request 
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %} 
+Consultation - Request   
+{% endblock breadcrumb %}
+{% block main_content %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary-600">
+                    <h5 class="card-title text-center text-uppercase">{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} [ AGE: {{ patient.age }} ] - Consultation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
+                        </div>
+                        <div class="col-md-3">
+                            <b>DOB: 12/07/1975 [ Age: {{ patient.age }} ]</b>
+                        </div>
+                        <div class="col-md-3">
+                            <b>SEX: {{ patient.gender }}</b>
+                        </div>
+                        <div class="col-md-3">
+                            <b>FILE NO: {{ patient.mrn }}</b>
+                        </div>
+                    </div>
+                    <br />
+                    <div class="row">
+                        <div class="col-md-3">
+                            <b>Payment Mode: {{ patient.payment_form }}</b>
+                        </div>
+                        <div class="col-md-3">
+                            <b>Visit number: {{ visit_history.vst }}</b>
+                        </div>
+                    </div>
+                    <br />                   
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Consultation - Request  </h4>
+                </div>
+                <div class="card-body">
+                    <form id="addConsultationForm" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="table-responsive">
+                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="consultationTable{{ visit.id }}">
+                                <thead>
+                                    <tr>
+                                        <th>Consultation Name</th>
+                                        <th>Description</th>                                   
+                                        <th>Cost</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <select class="form-control select2bs4 consultation-name" style="width: 100%;" name="consultation_name[]" required>
+                                                <option value="">Select Consultation - Request </option>
+                                                {% for consultation in remote_service %}
+                                                    <option value="{{ consultation.id }}">{{ consultation.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter consultation description"></td>                                       
+                                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
+                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Total Cost -->
+                        <div class="row">
+                            <div class="col-md-9">
+                             
+                            </div>
+                            <div class="col-md-3">
+                                <div class="row">
+                                    <div class="col-md-6">Total Cost</div>
+                                    <div class="col-md-6">
+                                        Sh <span id="totalCost{{ visit.id }}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="consultationResponse"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
+                        <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                        <!-- Save Procedure button -->
+                        <div class="form-group mt-3">
+                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add  Consultation - Request</button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Order Date</label>
+                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
+                                </div>
+                                <script>
+                                    // Get the current date in the format yyyy-mm-dd
+                                    const currentDate = new Date().toISOString().split('T')[0];
+                                    
+                                    // Set the value of the input field to the current date
+                                    document.getElementById('orderDate').value = currentDate;
+                                </script>
+                            </div>                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="doctor">Doctor:</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>                                   
+                                        {% for doctor in doctors %}
+                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                             </div>                      
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-primary btn-block" onclick="addImaging()">Request Order & Pay</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Add row button functionality
+            $('#addRow{{ visit.id }}').click(function() {
+                var newRow = `
+                    <tr>
+                        <td>
+                            <select class="form-control select2bs4 consultation-name" style="width: 100%;" name="consultation_name[]" required>
+                                <option value="">Select Consultation - Request </option>
+                                {% for consultation in remote_service %}
+                                    <option value="{{ consultation.id }}">{{ consultation.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter consultation description"></td>                       
+                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
+                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                    </tr>`;
+                $('#consultationTable{{ visit.id }} tbody').append(newRow);
+            });
+    
+            // Delete row button functionality
+            $(document).on('click', '.delete-row', function() {
+                $(this).closest('tr').remove();
+                updateTotalCost{{ visit.id }}();
+            });
+    
+                        // Fetch cost when procedure name is selected
+                $(document).on('change', '.consultation-name', function() {
+                    var selectedProcedureId = $(this).val();
+                    var row = $(this).closest('tr');
+                    $.ajax({
+                        url: '{% url "lab_get_procedure_cost" %}',
+                        method: 'GET',
+                        data: { procedure_id: selectedProcedureId },
+                        success: function(response) {
+                            row.find('.cost').val(response.cost);
+                            updateTotalCost{{ visit.id }}();
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(xhr.responseText);
+                        }
+                    });
+                });
+            // Function to update total cost
+            function updateTotalCost{{ visit.id }}() {
+                var totalCost = 0;
+                $('#consultationTable{{ visit.id }} tbody tr').each(function() {
+                    var cost = parseFloat($(this).find('.cost').val());
+                    if (!isNaN(cost)) {
+                        totalCost += cost;
+                    }
+                });
+                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
+            }
+        });
+    
+        // Handle form submission using AJAX
+        function addImaging() {
+            $.ajax({
+                type: 'POST',
+                url: '{% url "lab_add_consultation" %}',
+                data: $('#addConsultationForm').serialize(),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#consultationResponse').html('<div class="alert alert-success">' + response.message + '</div>');
+                        window.location.href = '{% url "lab_new_consultation_order" %}';
+                        
+                    } else {
+                        $('#consultationResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#consultationResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+                }
+            });
+        }
+    </script>
+    
+</div>
+
+
+
+
+<style>
+    /* Reset default margin and padding */
+.navigation {
+    padding-left: 0;
+    list-style: none;
+}
+
+/* Style for the header */
+.navigation-header {
+    background-color: #f0f0f0; /* Header background color */
+    color: #333; /* Header text color */
+    font-weight: bold;
+    padding: 10px; /* Add padding to the header */
+    border-radius: 5px; /* Add border radius */
+    margin-bottom: 10px; /* Add space between header and links */
+}
+
+/* Style for each list item */
+.navigation li {
+    margin-bottom: 5px;
+}
+
+/* Style for each link */
+.navigation li a {
+    color: #333; /* Default text color */
+    text-decoration: none;
+    display: block;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease; /* Smooth transition for background color */
+}
+
+/* Style for the active link */
+.navigation li.active a {
+    background-color: #007bff; /* Active background color */
+    color: #fff; /* Active text color */
+}
+
+/* Style for link hover */
+.navigation li a:hover {
+    background-color: #e0e0e0; /* Hover background color */
+    color: #000; /* Change text color on hover */
+}
+
+    
+</style>
+<style>
+    /* styles.css */
+
+/* Add custom styles for the container */
+.container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+}
+
+/* Add styles for the card */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add styles for the table */
+.table {
+    width: 100%;
+}
+
+/* Add styles for table headers */
+.table th {
+    background-color: #007bff;
+    color: #fff;
+}
+
+/* Add styles for table rows */
+.table tbody tr {
+    background-color: #f9f9f9;
+}
+
+/* Add styles for buttons */
+.btn {
+    border-radius: 5px;
+    margin-right: 5px;
+}
+
+/* Add more styles as needed */
+
+</style>
+
+
+{% include 'labtechnician_template/datatable.html' %}
+    
+
+{% endblock main_content %}

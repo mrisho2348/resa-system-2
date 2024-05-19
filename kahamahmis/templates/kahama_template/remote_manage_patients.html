@@ -1,0 +1,355 @@
+{% extends 'kahama_template/base_template.html' %}
+{% block title %}
+   List of all patients    
+{% endblock title %}
+
+{% block page_title %}
+   List of all patients    
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#registerModal">
+        <i class="fas fa-plus"></i> New patients
+    </a>
+    <a class="btn btn-success float-right mr-2" href="{% url 'import_patient_records' %}">
+        <i class="fas fa-file-import"></i> Import patients
+      </a>
+{% endblock breadcrumb %}
+{% block main_content %}
+
+
+    <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+        <thead>
+            <tr>
+                <th>Patient number</th>
+                <th>Patient name</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Company</th>
+                <th>Mobile</th>
+                <th>Date</th>
+                <th>Patient Type</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patient_records %}
+                <tr>
+                    <td>{{ patient.mrn }}</td>
+                    <td>{{ patient.fullname }}</td>
+                    <td>{{ patient.gender }}</td>
+                    <td>      <script>
+                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                        var now = new Date();
+                        var ageMilliseconds = now - dob;
+                        var ageSeconds = ageMilliseconds / 1000;
+                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                        document.write(ageYears + ' years');
+                    </script>
+                </td>
+                    <td>{{ patient.payment_form }}</td>
+                    <!-- Add more cells for other fields -->
+                    <td>{{ patient.phone }}</td>
+                    <td>{{ patient.created_at }}</td>
+                    <td>{{ patient.patient_type }}</td>                   
+                    <td>
+                        <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#addVisitModal{{ patient.id }}" title="Add Visit">
+                            <i class="fas fa-eye text-dark"></i>
+                          </button> 
+                        <a href="{% url 'edit_patient' patient.id %}"  data-toggle="tooltip" title="edit" > 
+                            <button type="button" class="btn btn-dark btn-sm"><i class="fa fa-edit text-white"></i></button>
+                        </a>
+                  
+                        <!-- Add more action links as needed -->
+                        <a href="{% url 'view_patient' patient.id %}"  data-toggle="tooltip" title="View detail">
+                             <button type="button" class="btn btn-primary border btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                        </a>
+                        <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#addConsultationFormModal{{ patient.id }}" title="Appointment">
+                            <i class="fas fa-calendar text-dark"></i>
+                          </button> 
+                    <!-- Appointment Action -->
+                        {% comment %} <a href="{% url 'appointment_view' patient.id %}" >
+                            <button type="button" class="btn btn-light border btn-sm">
+                                <i class="fas fa-calendar text-dark" title="Appointment"></i>
+                            </button>
+                        </a> {% endcomment %}
+
+                        <!-- Visit Action -->
+                  
+                                 <!-- Add more action links as needed -->
+                        <a href="{% url 'patient_visit_history_view' patient.id %}" data-toggle="tooltip" title="open visit History">
+                        <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                    </a>   
+                        
+                    </td>
+
+
+                    <!-- Bootstrap Modal for Adding Visit -->
+     <div class="modal fade" id="addVisitModal{{ patient.id }}" tabindex="-1" aria-labelledby="addVisitModalLabel{{ patient.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-teal-800">
+                                    <h3 class="modal-title text-center text-uppercase">Add Visit for {{ patient.fullname }}</h3>
+                                    <button type="button" class="close" data-dismiss="modal">×</button>
+                                </div>
+                    
+                                <div class="modal-body">
+                                    <!-- Form for adding a visit -->
+                                    <form id="addVisitForm{{ patient.id }}" method="post">
+                                        {% csrf_token %}
+                                        <!-- Visit type dropdown -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="visitType">Visit Type:</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="visitType{{ patient.id }}" name="visitType">
+                                                        <option value="Normal">Normal</option>
+                                                        <option value="Emergency">Emergency</option>
+                                                        <option value="Referral">Referral</option>
+                                                        <option value="Follow-up">Follow-up</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label class="control-label">Primary Service:</label>
+                                                    <select class="form-control select2bs4" style="width: 100%;" id="primary_service{{ patient.id }}" name="primary_service">
+                                                        <option value="Consultation">Consultation</option>
+                                                        <option value="Imaging">Imaging</option>
+                                                        <option value="Investigation">Investigation</option>
+                                                        <option value="Procedure">Procedure</option>
+                                                        <option value="Physiotherapy">Physiotherapy</option>
+                                                        <option value="Ambulance">Ambulance</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                      
+                                      
+                                        <!-- Additional fields for insurance payment -->
+                              
+                                 
+                                
+                    
+                                        <div class="form-group pt-2 float-end">
+                                            <div class="row">
+                                                <div class="col-md-8"></div>
+                                                <div class="col-md-4">
+                                                    <button type="button" class="btn btn-md btn-primary"  onclick="AddVisit({{ patient.id }})">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                       
+                    <script>
+                        function AddVisit(patientId) {
+                            var visitType = $('#visitType' + patientId).val();
+                            var primary_service = $('#primary_service' + patientId).val();                      
+                            var patient_id = $('#patient_id' + patientId).val();
+                            var visit_id = $('#visit_id' + patientId).val();
+                         
+                       
+                            $.ajax({
+                                type: 'POST',
+                                url: '/add_remotepatient_visit/',
+                                data: {                
+                                    visitType: visitType,                           
+                                 
+                                    patient_id: patient_id,
+                                    visit_id: visit_id,
+                                    primary_service: primary_service
+                                },
+                                success: function(data) {
+                                    if (data.status === 'success') {
+                                        // Display success message                    
+                                        $('#addVisitModal' + patientId).modal('hide');
+                                        location.reload(true);
+                                    } 
+                                    else {
+                                        // Display error message if any
+                                        alert(data.message);
+                                    }
+                                    // Hide the modal after displaying the message
+                                  
+                                },
+                                error: function(error) {
+                                    alert(error);
+                                    // Display error message
+                                    $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to use item</div>');
+                                    // Hide the modal after displaying the message
+                                 
+                                }
+                            });
+                        }
+                    </script>
+                    
+                    
+                    <div class="modal fade" id="addConsultationFormModal{{ patient.id }}" tabindex="-1" aria-labelledby="addConsultationFormLabel{{ patient.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-teal-800">
+                                    <h3 class="modal-title text-center text-uppercase">Add Consultation for {{ patient.fullname }}</h3>
+                                    <button type="button" class="close" data-dismiss="modal">×</button>
+                                </div>
+                    
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="card card-primary">
+                                                    <div class="card-header">
+                                                        <h3 class="card-title">Add Consultation</h3>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-4">
+                                                                <strong>PATIENT NAME:</strong> {{ patient.fullname }}<br>
+                                                                <strong>AGE:</strong>  <script>
+                                                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                                    var now = new Date();
+                                                                    var ageMilliseconds = now - dob;
+                                                                    var ageSeconds = ageMilliseconds / 1000;
+                                                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                                    document.write(ageYears + ' years');
+                                                                </script><br>
+                                                                <strong>SEX:</strong> {{ patient.gender }}
+                                                            </div>
+                                                            <div class="col-md-4 offset-md-4 text-right">
+                                                                <strong>FILE NO:</strong> {{ patient.mrn }}<br>
+                                                                <strong>DATE:</strong> {{ patient.created_at|date:"m/d/Y" }}
+                                                            </div>
+                                                        </div>
+                    
+                                                        <form id="addConsultationForm" method="post">
+                                                            {% csrf_token %}
+                                                            <div class="row">
+                                                                <div class="col-md-4 form-group">
+                                                                    <label for="doctor">Doctor:</label>
+                                                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ patient.id }}" required>
+                                                                        <option value="">Select Doctor</option>
+                                                                        {% for doctor in doctors %}
+                                                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col-md-4 form-group">
+                                                                    <label for="description">Description:</label>
+                                                                    <textarea id="description{{ patient.id }}" name="description" cols="2" class="form-control"></textarea>
+                                                                </div>
+                                                                <div class="col-md-4 form-group">
+                                                                    <label for="date_of_consultation">Date of Consultation:</label>
+                                                                    <input type="date" id="date_of_consultation{{ patient.id }}" name="date_of_consultation" class="form-control">
+                                                                </div>
+                                                            </div>
+                                                            <div class="row">
+                                                                <div class="col-md-6 form-group">
+                                                                    <label for="start_time">Start Time:</label>
+                                                                    <input type="time" class="form-control" name="start_time" id="start_time{{ patient.id }}">
+                                                                </div>
+                                                                <div class="col-md-6 form-group">
+                                                                    <label for="end_time">End Time:</label>
+                                                                    <input type="time" class="form-control" name="end_time" id="end_time{{ patient.id }}">
+                                                                </div>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                    <div class="card-footer">
+                                                        <div class="form-row">
+                                                            <div>
+                                                                {% if messages %}
+                                                                    <div class="col-12">
+                                                                        {% for message in messages %}
+                                                                            {% if message.tags == 'error' %}
+                                                                                <div class="alert alert-danger">{{ message }}</div>
+                                                                            {% elif message.tags == 'success' %}
+                                                                                <div class="alert alert-primary">{{ message }}</div>
+                                                                            {% endif %}
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <div class="col-md-12">
+                                                                <button type="button" class="btn btn-success btn-block"   onclick="AddConsultation({{ patient.id }})">Create an Appointment</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                       
+                    <script>
+                        function AddConsultation(patientId) {
+                            var visitType = $('#visitType' + patientId).val();
+                            var primary_service = $('#primary_service' + patientId).val();                      
+                            var patient_id = $('#patient_id' + patientId).val();
+                            var visit_id = $('#visit_id' + patientId).val();
+                         
+                       
+                            $.ajax({
+                                type: 'POST',
+                                url: '/add_remotepatient_visit/',
+                                data: {                
+                                    visitType: visitType,                           
+                                 
+                                    patient_id: patient_id,
+                                    visit_id: visit_id,
+                                    primary_service: primary_service
+                                },
+                                success: function(data) {
+                                    if (data.status === 'success') {
+                                        // Display success message                    
+                                        $('#addVisitModal' + patientId).modal('hide');
+                                        location.reload(true);
+                                    } 
+                                    else {
+                                        // Display error message if any
+                                        alert(data.message);
+                                    }
+                                    // Hide the modal after displaying the message
+                                  
+                                },
+                                error: function(error) {
+                                    alert(error);
+                                    // Display error message
+                                    $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to use item</div>');
+                                    // Hide the modal after displaying the message
+                                 
+                                }
+                            });
+                        }
+                    </script>
+                    
+                   
+  
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+   
+
+
+    <script>
+        function submitForm(checkbox) {
+            checkbox.form.submit();
+        }
+    </script>
+
+{% include 'kahama_template/datatable.html' %}
+    
+
+{% endblock main_content %}

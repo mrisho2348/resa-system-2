@@ -1,0 +1,329 @@
+{% extends 'labtechnician_template/base_template.html' %}
+
+{% block title %}
+Consultation Fees
+{% endblock title %}
+
+{% block page_title %}
+<h6>Consultation Fees</h6> 
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addConsultationFeeModal">
+    <i class="fas fa-plus"></i>New Consultation Fees
+</a>
+
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+
+<div class="">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+                <th>Doctor</th>
+                <th>Patient</th>
+                <th>Consultation</th>
+                <th>Fee Amount</th>
+                <th>Consultation Date</th>
+                <th>Actions</th>
+              </tr>
+        </thead>
+        <tbody>
+            {% for fee in consultation_fees %}
+                <tr>
+                    <td>{{ fee.doctor.admin.first_name }}  {{ fee.doctor.middle_name }}  {{ fee.doctor.admin.last_name }}</td>
+                    <td>{{ fee.patient.fullname }}</td>
+                    <td>{{ fee.consultation }}</td>
+                    <td>{{ fee.fee_amount }}</td>
+                    <td>{{ fee.consultation.appointment_date }}</td>
+                    <td>                      
+                    <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editConsultationFeeModal{{ fee.id }}"  data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteConsultationFeeModal{{ fee.id }}"  data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>                        
+                    </td>
+
+  <!-- Delete Consultation Fee Modal -->
+<div class="modal fade" id="deleteConsultationFeeModal{{ fee.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteConsultationFeeModal{{ fee.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConsultationFeeModal{{ fee.id }}">Delete Consultation Fee</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this consultation fee?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteConsultationFeeModal" method="POST" action="{% url 'delete_consultation_fee' fee.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="modal fade" id="editConsultationFeeModal{{ fee.id }}" tabindex="-1" role="dialog" aria-labelledby="editConsultationFeeModal{{ fee.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editConsultationFeeModal{{ fee.id }}">Edit Consultation Fee</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Form for editing Consultation Fee -->
+                <form id="editConsultationFeeForm" method="post" action="{% url 'update_consultation_fee' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="consultation_fee_id" value="{{ fee.id }}">
+
+                    <div class="row">
+                        <!-- Doctor -->
+                        <div class="form-group col-md-4">
+                            <label for="editDoctorSelect">Select Doctor:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="editDoctorSelect" name="doctor" required>
+                                {% for doctor in doctors %}
+                                    <option value="{{ doctor.id }}" {% if doctor.id == fee.doctor.id %}selected{% endif %}>
+                                        {{ doctor.admin.first_name }}  {{ doctor.middle_name }}  {{ doctor.admin.last_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Patient -->
+                        <div class="form-group col-md-4">
+                            <label for="editPatientSelect">Select Patient:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="editPatientSelect" name="patient" required>
+                                {% for patient in patients %}
+                                    <option value="{{ patient.id }}" {% if patient.id == fee.patient.id %}selected{% endif %}>
+                                        {{ patient.fullname }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Fee Amount -->
+                        <div class="form-group col-md-4">
+                            <label for="editFeeAmount">Fee Amount:</label>
+                            <input type="text" class="form-control" id="editFeeAmount" name="feeAmount" value="{{ fee.fee_amount }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Consultation -->
+                    <div class="form-group col-md-4">
+                        <label for="editConsultationSelect">Select Consultation:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="editConsultationSelect" name="consultation">
+                            {% for consultation in consultations %}
+                                <option value="{{ consultation.id }}" {% if consultation.id == fee.consultation.id %}selected{% endif %}>
+                                    {{ consultation }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Save Button -->
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+                </tr>
+                
+
+   {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<style>
+ /* Style for the modal header */
+.modal-header {
+    background-color: #007bff;
+    color: #fff;
+    border-bottom: 1px solid #0066cc;
+}
+
+/* Style for the form labels */
+.form-group label {
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Style for the form input fields */
+.form-control {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Style for the form input fields on focus */
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Style for the submit button */
+.btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease-in-out;
+}
+
+/* Style for the submit button on hover */
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Style for the close button */
+.close {
+    color: #007bff;
+    font-size: 1.5rem;
+}
+
+/* Style for the non-registered patient fields (when displayed) */
+#nonRegisteredPatientFields {
+    display: none;
+}
+
+/* Style for the patient status dropdown */
+#patientStatus {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Style for the patient status dropdown on hover */
+#patientStatus:hover {
+    border-color: #007bff;
+}
+/* Style for the registered patient fields (when displayed) */
+#registeredPatientFields {
+    display: block;
+}
+
+#registeredPatientFields .form-group {
+    margin-bottom: 15px;
+}
+
+#registeredPatientFields label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#registeredPatientFields .form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    transition: border-color 0.3s ease-in-out;
+}
+
+#registeredPatientFields .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Additional styles for a polished look */
+#registeredPatientFields .form-control {
+    transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+#registeredPatientFields .form-control:hover {
+    background-color: #f8f9fa; /* Light background on hover */
+}
+
+#registeredPatientFields .form-group:hover {
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.1); /* Subtle box shadow on hover */
+}
+
+/* Add any other styles as needed */
+
+
+
+</style>
+
+<div class="modal fade" id="addConsultationFeeModal" tabindex="-1" role="dialog" aria-labelledby="addConsultationFeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addConsultationFeeModalLabel">Add Consultation Fee</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Form for adding Consultation Fee -->
+                <form id="addConsultationFeeForm" method="post" action="{% url "save_consultation_fee" %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <!-- Doctor -->
+                        <div class="form-group col-md-4">
+                            <label for="doctorSelect">Select Doctor:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="doctorSelect" name="doctor" required>
+                                {% for doctor in doctors %}
+                                    <option value="{{ doctor.id }}">{{ doctor.admin.first_name }}  {{ doctor.middle_name }}  {{ doctor.admin.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Patient -->
+                        <div class="form-group col-md-4">
+                            <label for="patientSelect">Select Patient:</label>
+                            <select class="form-control select2bs4" style="width: 100%;" id="patientSelect" name="patient" required>
+                                {% for patient in patients %}
+                                    <option value="{{ patient.id }}">{{ patient.fullname }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Fee Amount -->
+                        <div class="form-group col-md-4">
+                            <label for="feeAmount">Fee Amount:</label>
+                            <input type="text" class="form-control" id="feeAmount" name="feeAmount" required>
+                        </div>
+                    </div>
+
+                  <!-- Consultation -->
+                    <div class="form-group col-md-4">
+                        <label for="consultationSelect">Select Consultation:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="consultationSelect" name="consultation">
+                            {% for consultation in consultations %}
+                                <option value="{{ consultation.id }}">{{ consultation }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+
+                    <!-- Save Button -->
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'labtechnician_template/datatable.html' %}
+{% endblock main_content %}

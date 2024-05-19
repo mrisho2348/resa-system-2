@@ -1,0 +1,128 @@
+{% extends 'labtechnician_template/base_template.html' %}
+{% block title %}
+all Procedure    
+{% endblock title %}
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+    <a class="btn btn-success float-right mr-2" href="{% url 'import_procedure_records' %}">
+        <i class="fas fa-file-import"></i> Import Procedure
+      </a>
+{% endblock breadcrumb %}
+{% block main_content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase">All Procedures</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">                    
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Patient MRN</th>
+                                    <th>Procedure Name</th>
+                                    <th>Description</th>                             
+                                    <th>Equipments</th>
+                                    <th>Cost</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in procedures %}
+                                    <tr>
+                                        <td>{{ record.id }}</td>
+                                        <td>{{ record.patient.first_name }} {{ record.patient.middle_name }} {{ record.patient.last_name }}</td>
+                                        <td>{{ record.name }}</td>
+                                        <td>{{ record.description }}</td>                                      
+                                        <td>{{ record.equipments_used }}</td>
+                                        <td>{{ record.cost }}</td>
+                                        <td>                                          
+                                            <a href="#" data-toggle="modal" data-target="#EditProcedureModal{{ record.id }}" data-toggle="tooltip" title="Open Procedure Modal">
+                                                <button type="button" class="btn btn-success btn-sm"><i class="fa fa-edit text-dark"></i></button>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <!-- Modal form for editing procedure -->
+                                    <div class="modal fade" id="EditProcedureModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="EditProcedureModalLabel{{ record.id }}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase" id="EditProcedureModalLabel{{ record.id }}">Add Result for {{ record.name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form id="EditProcedureForm" method="post">
+                                                        {% csrf_token %}
+                                                        <div class="row">
+                                                            <div class="col-md-12">
+                                                                <div class="form-group">
+                                                                    <label for="procedureResult">Result:</label>
+                                                                    <textarea class="form-control" id="procedureResult" name="result" placeholder="Enter procedure Result">{{ record.result }}</textarea>
+                                                                    <input type="hidden" class="form-control" id="procedure_id" name="procedure_id" value="{{ record.id }}">
+                                                                </div>
+                                                            </div>                                                
+                                                        </div>                                         
+                                                        <div class="form-row">
+                                                            <div class="col-md-12">
+                                                                <div id="ProcedureResponse"></div>  
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-row">
+                                                            <div class="col-md-12">
+                                                                <button type="button" class="btn btn-primary btn-block" onclick="submitProcedure()">Edit Procedure</button> 
+                                                            </div>
+                                                        </div>                                           
+                                                    </form>
+                                                </div>                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- JavaScript to handle AJAX request and form validation -->
+                                    <script>
+                                        function submitProcedure() {                                  
+                                            var formData = new FormData(document.getElementById('EditProcedureForm'));
+                                            $.ajax({
+                                                url: '{% url "save_procedure" %}',
+                                                type: 'POST',
+                                                data: formData,
+                                                contentType: false,
+                                                processData: false,
+                                                success: function(response) {
+                                                    if (response.success) {  
+                                                        $('#ProcedureResponse').html('<div class="alert alert-success">' + response.message + '</div>'); 
+                                                        location.reload(true);                                              
+                                                    } else {
+                                                        $('#ProcedureResponse').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                                                    }
+                                                },
+                                                error: function(xhr, status, error) {
+                                                    $('#ProcedureResponse').html('<div class="alert alert-danger">An error occurred while processing your request. Please try again later.</div>');                                               
+                                                }
+                                            });
+                                        }
+                                    </script>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+{% include 'labtechnician_template/datatable.html' %}
+    
+
+{% endblock main_content %}

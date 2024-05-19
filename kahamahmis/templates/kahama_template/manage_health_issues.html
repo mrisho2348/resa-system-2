@@ -1,0 +1,316 @@
+{% extends 'kahama_template/base_template.html' %}
+
+{% block title %}
+Health Issues
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addHealthIssueModal">
+    <i class="fas fa-plus"></i> New Health Issues
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'import_health_issue' %}">
+  <i class="fas fa-file-import"></i> Import Health Issues
+</a>
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase">Health Issues</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Is Disease</th>
+                                    <th>Severity</th>
+                                    <th>Treatment Plan</th>
+                                    <th>Onset Date</th>
+                                    <th>Resolution Date</th>                     
+                                    <th>Action</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for health_issue in health_issues %}
+                                    <tr>
+                                        <td>{{ health_issue.name }}</td>
+                                        <td>{{ health_issue.description }}</td>
+                                        <td>{{ health_issue.is_disease }}</td>
+                                        <td>{{ health_issue.severity }}</td>
+                                        <td>{{ health_issue.treatment_plan }}</td>
+                                        <td>{{ health_issue.onset_date }}</td>
+                                        <td>{{ health_issue.resolution_date }}</td>
+                                        <td>
+                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editHealthIssueModal{{ health_issue.id }}"  data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteHealthIssueModal{{ health_issue.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        </td>
+                               
+                                          <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteHealthIssueModal{{ health_issue.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteHealthIssueModalLabel{{ health_issue.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteHealthIssueModalLabel{{ health_issue.id }}">Delete Category</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete this health issue: <strong>{{ health_issue.name }}</strong>?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                        <button type="button" class="btn btn-danger" onclick="deleteHealthIssue({{ health_issue.id }})">Delete</button>
+                                    </div>
+                                </div>
+                    
+                                <script>
+                                    function deleteHealthIssue(healthId) {
+                                        $.ajax({
+                                            type: 'POST',
+                                            url: '/delete_health_issue/' + healthId + '/',  // Replace with your URL
+                                            data: {},
+                                            success: function (data) {
+                                                if (data.status === 'success') {
+                                                    $('#deleteHealthIssue' + healthId).modal('hide');
+                                                    location.reload(true);
+                                                    // Refresh the category list or perform any other actions
+                                                } else {
+                                                    // Handle other status cases if needed
+                                                    console.log(data.message);
+                                                }
+                                            },
+                                            error: function (error) {
+                                                console.log(error);
+                                                // Handle errors if necessary
+                                            }
+                                        });
+                                    }
+                                </script>
+                            </div>
+                        </div>                   
+                                     <!-- Updated modal with Bootstrap grid -->
+                    
+                                     <div class="modal fade" id="editHealthIssueModal{{ health_issue.id }}" tabindex="-1" role="dialog" aria-labelledby="editHealthIssueModalLabel{{ health_issue.id }}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="editHealthIssueModalLabel{{ health_issue.id }}">Add Health Issue</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form id="editHealthIssueForm{{ health_issue.id }}">
+                                                        <div class="row">
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="name">Name</label>
+                                                                <input type="text" class="form-control" id="name" name="name" value="{{ health_issue.name }}" required>
+                                                                <input type="hidden" class="form-control" id="health_id" name="health_id" value="{{ health_issue.id }}" >
+                                                            </div>
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="description">Description</label>
+                                                                <textarea class="form-control" id="description" name="description" >{{ health_issue.description }}</textarea>
+                                                            </div>
+                                                           
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="is_disease">Is Disease</label>
+                                                                <select class="form-control" id="is_disease" name="is_disease" required>
+                                                                    <option value="1" {% if health_issue.is_disease == '1' %} selected {% endif %}>Yes</option>
+                                                                    <option value="0" {% if health_issue.is_disease == '0' %} selected {% endif %}>No</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Additional rows with more fields -->
+                                                        <div class="row">
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="severity">Severity</label>
+                                                                <input type="text" class="form-control" id="severity" name="severity" value="{{ health_issue.severity }}">
+                                                            </div>
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="onset_date">Onset Date</label>
+                                                                <input type="date" class="form-control" id="onset_date" name="onset_date" value="{{ health_issue.onset_date|date:'Y-m-d' }}">
+                                                            </div>
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="resolution_date">Resolution Date</label>
+                                                                <input type="date" class="form-control" id="resolution_date" name="resolution_date" value="{{ health_issue.resolution_date|date:'Y-m-d' }}">
+                                                            </div>
+                                                        </div>
+                                                        <div class="row">
+                                                            <div class="col-md-4 form-group">
+                                                                <label for="treatment_plan">Treatment Plan</label>
+                                                                <textarea class="form-control" id="treatment_plan" name="treatment_plan" >{{ health_issue.treatment_plan }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <!-- Add more rows with additional fields as needed -->
+                                                        <div class="row">
+                                                            <div class="col-md-12 mt-2 form-group">
+                                                                <button type="submit" class="btn btn-primary  float-right" id="submitBtn">Edit Health Issue</button>                 
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                        
+                                        <script>
+                                            // Handle form submission using AJAX
+                                            $(document).ready(function () {
+                                                // Assuming you have a loop or iteration for equipment, replace "forEach" with your actual loop
+                                                {% for health_issue in health_issues %}
+                                                    $('#editHealthIssueForm{{ health_issue.id }}').submit(function (e) {
+                                                        e.preventDefault();
+                                                        $.ajax({
+                                                            type: 'POST',
+                                                            url: '{% url "add_health_issue" %}',  // Replace with your URL
+                                                            data: $('#editHealthIssueForm{{ health_issue.id }}').serialize(),
+                                                            success: function (data) {
+                                                                if (data.status === 'success') {
+                                                                    $('#editHealthIssueModal{{ health_issue.id }}').modal('hide');
+                                                                    location.reload(true);
+                                                                    // Refresh the category list or perform any other actions
+                                                                } else {
+                                                                    // Handle other status cases if needed
+                                                                    alert(data.message);
+                                                                }
+                                                            },
+                                                            error: function (error) {
+                                                                alert(error);
+                                                                // Handle errors if necessary
+                                                            }
+                                                        });
+                                                    });
+                                                {% endfor %}
+                                            });
+                                        </script>                                        
+                                    </tr>                   
+                               {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>                   
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- health_issue_modal.html -->
+
+<div class="modal fade" id="addHealthIssueModal" tabindex="-1" role="dialog" aria-labelledby="addHealthIssueModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addHealthIssueModalLabel">Add Health Issue</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addHealthIssueForm">
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label for="name">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <input type="hidden" class="form-control" id="health_id" name="health_id" >
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" required></textarea>
+                        </div>
+                      
+                        <div class="col-md-4 form-group">
+                            <label for="is_disease">Is Disease</label>
+                            <select class="form-control" id="is_disease" name="is_disease" required>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Additional rows with more fields -->
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label for="severity">Severity</label>
+                            <input type="text" class="form-control" id="severity" name="severity">
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label for="onset_date">Onset Date</label>
+                            <input type="date" class="form-control" id="onset_date" name="onset_date">
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label for="resolution_date">Resolution Date</label>
+                            <input type="date" class="form-control" id="resolution_date" name="resolution_date">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label for="treatment_plan">Treatment Plan</label>
+                            <textarea class="form-control" id="treatment_plan" name="treatment_plan" ></textarea>
+                        </div>
+                    </div>
+                    <!-- Add more rows with additional fields as needed -->
+                    <div class="row">
+                        <div class="col-md-12 mt-2 form-group">
+                            <button type="button" class="btn btn-primary  float-right" onclick="addAddHealthIssue()">Add Health Issue</button>                 
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+  
+
+  
+<script>
+    // Handle form submission using AJAX
+    function addAddHealthIssue() {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "add_health_issue" %}',  // Replace with your URL
+            data: $('#addHealthIssueForm').serialize(),
+            success: function (data) {
+                if (data.status === 'success') {
+                    $('#addHealthIssueModal').modal('hide');
+                    location.reload(true);
+                    // Refresh the inventory item list or perform any other actions
+                } else {
+                    // Handle other status cases if needed
+                    alert(data.message);
+                }
+            },
+            error: function (error) {
+                console.log(error);
+                // Handle errors if necessary
+            }
+        });
+    }
+</script>
+  
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'kahama_template/datatable.html' %}
+{% endblock main_content %}

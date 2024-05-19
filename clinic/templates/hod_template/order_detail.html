@@ -1,0 +1,231 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+Order Details
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+Order Details
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header card-primary">
+                    <h3 class="header-title text-center mt-0 mb-1 text-uppercase">List of all Orders</h3>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="search" placeholder="Search" onkeyup="searchFunction()" class="form-control mb-3">
+                    <div class="table-responsive">    
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="OrdersTable">
+                            <thead>
+                                <tr>                                   
+                                    <th>Order Number</th>
+                                    <th>Order Type</th>
+                                    <th>Order To</th>
+                                    <th>Patient</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% regroup orders by order_date as order_dates %}
+                                {% for order_date in order_dates %}
+                                <tr>
+                                    <td colspan="8"><a href="{% url 'clinic:orders_by_date' order_date.grouper %}"><strong>{{ order_date.grouper }}</strong></a></td>
+                                </tr>
+                                {% for date, total_cost in order_dates_with_total_cost %}
+                                {% if date == order_date.grouper %}
+                                <tr>
+                                    <td colspan="4"><strong>Total Cost:</strong></td>
+                                    <td colspan="3"><strong>{% if total_cost %}
+                                        {{ total_cost }}
+                                        {% else %}
+                                    {% endif %}</strong></td>
+                                    <td></td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                                {% for order in order_date.list %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>{{ order.doctor }}
+                                        <p><strong>{{ order.doctor.role }}</strong></p>
+                                    </td>
+                                    <td>{{ order.patient }}
+                                        <p>{{ order.patient.payment_form }}</p>
+                                    </td>
+                                    <td>{{ order.cost }}</td>
+                                    <td>
+                                        {% if order.status == 'Paid' %}
+                                        <span class="badge badge-success">{{ order.status }}</span>
+                                        {% else %}
+                                        <span class="badge badge-warning">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.order_date }}</td>
+                                    <td>
+                                        <a href="{% url 'clinic:generate_invoice_bill' order.id %}" data-toggle="tooltip" title="View order">
+                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button> 
+                                        </a> 
+                                    </td>                                
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>                            
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="pagination" class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            <button onclick="prevPage()" class="btn btn-primary mr-2" id="prevBtn">Previous</button>
+            <span id="pageNumbers"></span>
+            <button onclick="nextPage()" class="btn btn-primary" id="nextBtn">Next</button>
+        </div>
+        <div>
+            <span id="paginationInfo" class="mr-2"></span>
+            <span class="mr-2">Records per page:</span>
+            <select id="recordsPerPage" class="form-control" onchange="changeRecordsPerPage()">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentPage = 0;
+    var rowsPerPage = 10;
+    var ordersTable = document.getElementById('OrdersTable').getElementsByTagName('tbody')[0];
+    var rows = ordersTable.getElementsByTagName('tr');
+    var totalPages = Math.ceil(rows.length / rowsPerPage);
+    var prevBtn = document.getElementById('prevBtn');
+    var nextBtn = document.getElementById('nextBtn');
+    var paginationInfo = document.getElementById('paginationInfo');
+
+    function searchFunction() {
+        // Your search function logic here
+    }
+
+    function showPage(page) {
+        var start = page * rowsPerPage;
+        var end = Math.min(start + rowsPerPage, rows.length);
+
+        for (var i = 0; i < rows.length; i++) {
+            if (i >= start && i < end) {
+                rows[i].style.display = '';
+            } else {
+                rows[i].style.display = 'none';
+            }
+        }
+
+        // Update current page display
+        currentPage = page;
+        updatePaginationInfo();
+    }
+
+    function nextPage() {
+        if (currentPage + 1 < totalPages) {
+            currentPage++;
+            showPage(currentPage);
+        }
+    }
+
+    function prevPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            showPage(currentPage);
+        }
+    }
+
+    function changeRecordsPerPage() {
+        rowsPerPage = parseInt(document.getElementById('recordsPerPage').value);
+        totalPages = Math.ceil(rows.length / rowsPerPage);
+        showPage(currentPage);
+    }
+
+    function updatePaginationInfo() {
+        // Clear the existing page numbers
+        var pageNumbersDiv = document.getElementById('pageNumbers');
+        pageNumbersDiv.innerHTML = '';
+
+        // Add page numbers
+        for (var i = 0; i < totalPages; i++) {
+            var pageNumberButton = document.createElement('button');
+            pageNumberButton.innerText = i + 1;
+            pageNumberButton.className = 'btn btn-outline-primary mr-2';
+            pageNumberButton.onclick = function() {
+                showPage(parseInt(this.innerText) - 1);
+            };
+            if (i === currentPage) {
+                pageNumberButton.classList.add('active'); // Highlight the active page
+            }
+            pageNumbersDiv.appendChild(pageNumberButton);
+        }
+
+        // Disable prev button if on first page, enable otherwise
+        prevBtn.disabled = currentPage === 0;
+
+        // Disable next button if on last page, enable otherwise
+        nextBtn.disabled = currentPage === totalPages - 1;
+
+        // Update pagination info
+        var startIndex = currentPage * rowsPerPage + 1;
+        var endIndex = Math.min((currentPage + 1) * rowsPerPage, rows.length);
+        paginationInfo.innerText = "Showing " + startIndex + " to " + endIndex + " of " + rows.length + " entries";
+    }
+
+    showPage(currentPage);
+    updatePaginationInfo();
+</script>
+
+
+
+<script>
+    // Add your custom JS if needed
+    // For example, a simple search function
+    function searchFunction() {
+        var input = document.getElementById('search');
+        var filter = input.value.toUpperCase();
+        var table = document.getElementById('OrdersTable');
+        var tr = table.getElementsByTagName('tr');
+
+        // Loop through all table rows, and hide those that do not match the search query
+        for (var i = 0; i < tr.length; i++) {
+            var found = false;
+            // Loop through all table data cells in the current row
+            for (var j = 0; j < tr[i].cells.length; j++) {
+                var td = tr[i].cells[j];
+                if (td) {
+                    var txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break; // If a match is found in this row, no need to check other cells
+                    }
+                }
+            }
+            // Show or hide the row based on search result
+            if (found) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+</script>
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}

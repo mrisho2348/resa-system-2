@@ -1,0 +1,289 @@
+{% extends 'pharmacist_template/base_template.html' %}
+
+{% block title %}
+   All medicine
+{% endblock title %}
+
+{% block page_title %}
+   All medicine
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addMedicineModal">
+    <i class="fas fa-plus"></i> New medicine
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'clinic:import_medicine_records' %}">
+  <i class="fas fa-file-import"></i> Import medicine
+</a>
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
+
+<div class="table-responsive">
+    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Side Effect</th>
+                <th>Dosage</th>
+                <th>Storage Condition</th>
+                <th>Manufacturer</th>
+                <th>Description</th>
+                <th>Expiration Date</th>
+                <th>Unit Price</th>              
+                <th>Action</th>              
+            </tr>
+        </thead>
+        <tbody>
+            {% for medicine in medicines %}
+                <tr>
+                    <td>{{ medicine.name }}</td>
+                    <td>{{ medicine.get_medicine_type_display }}</td>
+                    <td>{{ medicine.side_effect }}</td>
+                    <td>{{ medicine.dosage }}</td>
+                    <td>{{ medicine.storage_condition }}</td>
+                    <td>{{ medicine.manufacturer }}</td>
+                    <td>{{ medicine.description|default:"N/A" }}</td>
+                    <td>{{ medicine.expiration_date }}</td>
+                    <td>{{ medicine.unit_price }}</td>
+                    <td>
+                      <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-edit text-white"></i>
+                    </button>
+                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                      <button  class="btn btn-primary btn-sm" data-toggle="modal" data-target="#viewMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="View">
+                        <i class="fa fa-eye text-dark"></i>
+                    </button>  
+                        <!-- Add Inventory Button -->
+                    <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addInventoryModal{{ medicine.id }}"  data-toggle="tooltip" title="Add Inventory">
+                        <i class="fas fa-plus"></i>
+                    </button>                 
+                    </td>
+                </tr>
+
+                    <!-- Bootstrap Modal Form for Adding Medicine Inventory -->
+                <div class="modal fade" id="addInventoryModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="addInventoryModalLabel{{ medicine.id }}" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="addInventoryModalLabel{{ medicine.id }}">Add Inventory for {{ medicine.name }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        </div>
+                        <div class="modal-body">
+                        <!-- Bootstrap-styled form -->
+                        <form method="post" action="{% url 'clinic:add_inventory' %}">
+                             {% csrf_token %}
+                
+                            <!-- Hidden Field for Medicine ID -->
+                            <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+                
+                            <!-- Quantity -->
+                            <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" required>
+                            </div>
+                
+                            <!-- Purchase Date -->
+                            <div class="form-group">
+                            <label for="purchaseDate">Purchase Date</label>
+                            <input type="date" class="form-control" id="purchaseDate" name="purchase_date" required>
+                            </div>
+                            <div class="form-group pt-2 float-end">
+                                <div class="row">
+                                    <div class="col-md-8"></div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-md btn-primary">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <!-- Delete Medicine Modal -->
+                    <div class="modal fade" id="deleteMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteMedicineModalLabel{{ medicine.id }}">Delete Medicine</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete {{ medicine.name }}?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                    <a href="#" onclick="deleteMedicine({{ medicine.id }})" class="btn btn-danger">Delete</a>
+                                </div>
+                            </div>
+                            <script>
+                                function deleteMedicine(medicineId) {
+                                    // Send AJAX request to delete medicine
+                                    $.ajax({
+                                        url: `/delete_medicine/${medicineId}/`,  // Update the URL as per your project structure
+                                        method: 'POST',
+                                        success: function (response) {
+                                            // Handle success
+                                            $('#deleteMedicineModal' + medicineId).modal('hide');
+                                            // Reload the page
+                                            location.reload(true);  // Pass true to force a reload from the server rather than the cache
+                                        },
+                                        error: function (xhr, status, error) {
+                                            // Handle other status codes or errors
+                                            console.error('Error deleting medicine:', error);
+                                        }
+                                    });
+                                }
+                            </script>
+                            
+                            
+                        </div>
+                    </div>
+
+
+              <!-- Edit Medicine Modal -->
+                <div class="modal fade" id="editMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="editMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editMedicineModalLabel{{ medicine.id }}">Edit Medicine</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" id="editMedicineForm" action="{% url 'clinic:edit_medicine' medicine.id %}">
+                                    {% csrf_token %}
+                                
+                                    <!-- Medicine Name, Medicine Type, Side Effect -->
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="editMedicineName">Medicine Name</label>
+                                            <input type="text" class="form-control" id="editMedicineName" name="name" value="{{ medicine.name }}" required>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="editMedicineType">Medicine Type</label>
+                                            <select  class="form-control select2bs4" style="width: 100%;" id="editMedicineType" name="medicine_type" required>
+                                                <option value="Tablet" {% if medicine.medicine_type == 'Tablet' %}selected{% endif %}>Tablet</option>
+                                                <option value="Capsule" {% if medicine.medicine_type == 'Capsule' %}selected{% endif %}>Capsule</option>
+                                                <option value="Injection" {% if medicine.medicine_type == 'Injection' %}selected{% endif %}>Injection</option>
+                                                <option value="Ointment" {% if medicine.medicine_type == 'Ointment' %}selected{% endif %}>Ointment</option>
+                                                <option value="Drops" {% if medicine.medicine_type == 'Drops' %}selected{% endif %}>Drops</option>
+                                                <option value="Inhaler" {% if medicine.medicine_type == 'Inhaler' %}selected{% endif %}>Inhaler</option>
+                                                <option value="Patch" {% if medicine.medicine_type == 'Patch' %}selected{% endif %}>Patch</option>
+                                                <option value="Liquid" {% if medicine.medicine_type == 'Liquid' %}selected{% endif %}>Liquid</option>
+                                                <option value="Cream" {% if medicine.medicine_type == 'Cream' %}selected{% endif %}>Cream</option>
+                                                <option value="Gel" {% if medicine.medicine_type == 'Gel' %}selected{% endif %}>Gel</option>
+                                                <option value="Suppository" {% if medicine.medicine_type == 'Suppository' %}selected{% endif %}>Suppository</option>
+                                                <option value="Powder" {% if medicine.medicine_type == 'Powder' %}selected{% endif %}>Powder</option>
+                                                <option value="Suspension" {% if medicine.medicine_type == 'Suspension' %}selected{% endif %}>Suspension</option>
+                                                <option value="Lozenge" {% if medicine.medicine_type == 'Lozenge' %}selected{% endif %}>Lozenge</option>
+                                                <!-- Add more options as needed -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="editSideEffect">Side Effect</label>
+                                            <textarea class="form-control" id="editSideEffect" name="side_effect">{{ medicine.side_effect }}</textarea>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Dosage, Storage Condition, Manufacturer -->
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="editDosage">Dosage</label>
+                                            <input type="text" class="form-control" id="editDosage" name="dosage" value="{{ medicine.dosage }}" required>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="editStorageCondition">Storage Condition</label>
+                                            <input type="text" class="form-control" id="editStorageCondition" name="storage_condition" value="{{ medicine.storage_condition }}" required>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="editManufacturer">Manufacturer</label>
+                                            <input type="text" class="form-control" id="editManufacturer" name="manufacturer" value="{{ medicine.manufacturer }}" required>
+                                        </div>
+                                    </div>
+                                
+                                    <!-- Description -->
+                                    <div class="form-group">
+                                        <label for="editDescription">Description</label>
+                                        <textarea class="form-control" id="editDescription" name="description">{{ medicine.description }}</textarea>
+                                    </div>
+                                
+                                    <!-- Expiration Date, Unit Price -->
+                                    <div class="form-row">
+                                        <div class="form-group col-md-4">
+                                            <label for="editExpirationDate">Expiration Date</label>
+                                            <input type="date" class="form-control" id="editExpirationDate" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="editUnitPrice">Unit Price</label>
+                                            <input type="text" class="form-control" id="editUnitPrice" name="unit_price" value="{{ medicine.unit_price }}" required>
+                                        </div>
+                                    </div>
+                                    <div id="messageContainer" class="text-center mt-2"></div>
+                                    <div id="expirationDateError" class="text-center mt-2"></div>
+                                      
+                                    <div class="form-group pt-2 float-end">
+                                        <div class="row">
+                                            <div class="col-md-8"></div>
+                                            <div class="col-md-4">
+                                                <button type="submit" class="btn btn-md btn-primary">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>                        
+                           </div>
+                        </div>
+                    </div>
+                </div>
+
+                                 
+                            <!-- JavaScript for time validation -->
+            <script>
+                // Function to validate that expiration date is greater than the current date
+                        function validateTime() {
+                            var expirationDate = new Date($('#editExpirationDate').val());
+                            var currentDate = new Date().toISOString().split('T')[0];
+
+                            if (expirationDate <= currentDate) {
+                                alert('Expiration date must be greater than the current date.');
+                                return false;
+                            }
+                            return true;
+                        }
+
+                        // Attach the validation function to the form submission
+                        document.querySelector('#editMedicineForm').addEventListener('submit', function (event) {
+                            if (!validateTime()) {
+                                event.preventDefault();
+                            }
+                        });
+                </script>
+
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

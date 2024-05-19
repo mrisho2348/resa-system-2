@@ -1,0 +1,208 @@
+{% extends 'kahama_template/base_template.html' %}
+
+{% block title %}
+   All staff
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#staffModal">
+    <i class="fas fa-plus"></i> New Staff
+</a>
+
+<!-- Add Import Staff link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'kahamahmis:import_staff' %}">
+    <i class="fas fa-file-import"></i> Import Staff
+</a>
+
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+        
+   
+<style>
+    /* Custom styles for checkboxes and labels */
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .form-check-input {
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+    }
+
+    .form-check-label {
+        display: flex;
+        align-items: center;
+        font-size: 16px;
+        padding-left: 6px;
+    }
+
+ 
+
+    .form-check-input~.custom-checkbox {
+        position: relative;
+        cursor: pointer;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .form-check-input~.custom-checkbox::before {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #3498db;
+        background-color: #fff;
+        border-radius: 5px;
+        position: relative;
+    }
+
+    .form-check-input:checked~.custom-checkbox::before {
+        background-color: #3498db;
+        border: 2px solid #3498db;
+        color: #fff;
+    }
+
+    .form-check-input:checked~.custom-checkbox::after {
+        content: '\2713';
+        font-size: 14px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+    }
+
+    /* Styling the labels */
+    .form-check-label {
+        color: #555;
+        cursor: pointer;
+    }
+
+    /* Hover effect for labels */
+    .form-check-label:hover {
+        text-decoration: underline;
+    }
+
+    .modal-content .modal-header {
+        background-color: #0b51b7;
+        color
+    }
+    
+    .modal-header {
+       
+        display: flex;
+        -ms-flex-negative: 0;
+        flex-shrink: 0;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+        justify-content: space-between;
+        padding: 1rem 1rem;
+        border-bottom: 0 solid #e8ebf3;
+        border-top-left-radius: .3rem;
+        border-top-right-radius: .3rem;
+    }
+</style>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase">  All staff </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Number</th>
+                                    <th>Name</th>
+                                    <th>Gender</th>
+                                    <th>Age</th>
+                                    <th>Email</th>
+                                    <th>Mobile</th>
+                                    <th>Last Logged In</th>
+                                    <th>Joining</th>
+                                    <th>Position</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body">
+                                {% for staff in staffs %}
+                                <tr>
+                                    <td>{{ staff.admin.id }}</td>
+                                    <td>{{ staff.admin.first_name }} {{ staff.middle_name }}  {{ staff.admin.last_name }}</td>
+                                    <td> {{ staff.gender }} </td>
+                                    <td>      <script>
+                                        var dob = new Date("{{ staff.date_of_birth|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var ageMilliseconds = now - dob;
+                                        var ageSeconds = ageMilliseconds / 1000;
+                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                        document.write(ageYears + ' years');
+                                    </script>
+                                </td>
+                                <!-- ... (unchanged) ... --></td>
+                                    <td>{{ staff.admin.email }}</td>
+                                    <td>{{ staff.phone_number }}</td>
+                                    <td>{{ staff.admin.last_login }}</td>
+                                    <td>{{ staff.created_at }}</td>
+                                    <td>{{ staff.role }}</td>              
+                                    <td>
+                                        <form method="POST" action="{% url 'kahamahmis:update_staff_status' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="user_id" value="{{ staff.admin.id }}">
+                                            <input type="hidden" name="is_active" value="{% if staff.admin.is_active %}1{% else %}0{% endif %}">
+                                            <input
+                                                type="checkbox"
+                                                data-toggle="switchbutton"
+                                                data-size="xs"
+                                                data-onlabel="Active"
+                                                data-offlabel="Inactive"
+                                                data-offstyle="danger"
+                                                data-onstyle="success"
+                                                {% if staff.admin.is_active %}checked{% endif %}
+                                                onchange="submitForm(this)"
+                                            >
+                                        </form>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'kahamahmis:single_staff_detail' staff_id=staff.id %}" data-toggle="tooltip" title="View detail">
+                                            <button type="button" class="btn btn-light border btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a>
+                                        <a href="{% url 'kahamahmis:edit_staff' staff_id=staff.id %}" data-toggle="tooltip" title="Edit Staff">
+                                            <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-edit text-white"></i></button>
+                                        </a>
+                                        <a href="{% url 'kahamahmis:delete_staff' staff_id=staff.id %}" class="btn btn-danger btn-delete" data-toggle="tooltip" title="Delete staff" onclick="return confirm('Are you sure you want to delete this staff record?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function submitForm(checkbox) {
+        checkbox.form.submit();
+    }
+</script>
+<!-- Add this script at the end of your HTML file -->
+
+
+{% include 'kahama_template/datatable.html' %}
+{% endblock main_content %}

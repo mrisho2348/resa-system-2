@@ -1,0 +1,468 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+   All medicine
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+
+<a class="btn btn-success float-right mr-2" href="{% url 'clinic:download_medicine_excel_template' %}">
+    <i class="fas fa-download"></i> download template
+  </a>
+<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addMedicineModal">
+    <i class="fas fa-plus"></i> New medicine
+</a>
+<!-- Add Import insurance link and modal trigger -->
+<a class="btn btn-success float-right mr-2" href="{% url 'clinic:import_medicine_records' %}">
+  <i class="fas fa-file-import"></i> Import medicine
+</a>
+{% endblock breadcrumb %}
+
+
+{% load static %}
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> All medicine </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Drug Name</th>
+                                    <th>Drug Type</th>
+                                    <th>Formulation Unit</th>
+                                    <th>Manufacturer</th>
+                                    <th>Remaining Quantity</th>
+                                    <th>Quantity</th>
+                                    <th>Dividable</th>
+                                    <th>Batch Number</th>
+                                    <th>Expiration Date</th>
+                                    <th>Cash Cost</th>
+                                    <th>Insurance Cost</th>
+                                    <th>NHIF Cost</th>
+                                    <th>Buying Price</th>
+                                    <th>Total Buying Price</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>                           
+                                    <th>Action</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for medicine in medicines %}
+                                    <tr>
+                                        <td>{{ medicine.drug_name }}</td>
+                                        <td>{{ medicine.drug_type }}</td>
+                                        <td>{{ medicine.formulation_unit }}</td>
+                                        <td>{{ medicine.manufacturer }}</td>
+                                        <td>{{ medicine.remain_quantity }}</td>
+                                        <td>{{ medicine.quantity }}</td>
+                                        <td>{{ medicine.dividable }}</td>
+                                        <td>{{ medicine.batch_number }}</td>
+                                        <td>{{ medicine.expiration_date }}</td>
+                                        <td>{{ medicine.cash_cost }}</td>
+                                        <td>{{ medicine.insurance_cost }}</td>
+                                        <td>{{ medicine.nhif_cost }}</td>
+                                        <td>{{ medicine.buying_price }}</td>
+                                        <td>{{ medicine.total_buying_price }}</td>
+                                        <td>{{ medicine.created_at }}</td>
+                                        <td>{{ medicine.updated_at }}</td>
+                                        <td>
+                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                     
+                                                      
+                                        </td>
+                                    </tr>                                      
+                                    <!-- Delete Medicine Modal -->
+                                        <div class="modal fade" id="deleteMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="deleteMedicineModalLabel{{ medicine.id }}">Delete Medicine</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to delete {{ medicine.name }}?</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                        <a href="#" onclick="deleteMedicine({{ medicine.id }})" class="btn btn-danger">Delete</a>
+                                                    </div>
+                                                </div>
+                                                <script>
+                                                    function deleteMedicine(medicineId) {
+                                                        // Send AJAX request to delete medicine
+                                                        $.ajax({
+                                                            url: `/delete_medicine/${medicineId}/`,  // Update the URL as per your project structure
+                                                            method: 'POST',
+                                                            success: function (response) {
+                                                                // Handle success
+                                                                $('#deleteMedicineModal' + medicineId).modal('hide');
+                                                                // Reload the page
+                                                                location.reload(true);  // Pass true to force a reload from the server rather than the cache
+                                                            },
+                                                            error: function (xhr, status, error) {
+                                                                // Handle other status codes or errors
+                                                                console.error('Error deleting medicine:', error);
+                                                            }
+                                                        });
+                                                    }
+                                                </script>
+                                                
+                                                
+                                            </div>
+                                        </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% for medicine in medicines %}
+<div class="modal fade" id="editMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="editMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMedicineModalLabel{{ medicine.id }}">Edit Medicine</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editMedicineForm{{ medicine.id }}" data-medicine-id="{{ medicine.id }}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="drug_name{{ medicine.id }}">Drug Name</label>
+                                <input type="text" class="form-control" id="drug_name{{ medicine.id }}" name="drug_name" value="{{ medicine.drug_name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="drug_type{{ medicine.id }}">Drug Type</label>
+                                <select  class="form-control select2bs4" style="width: 100%;" id="drug_type{{ medicine.id }}" name="drug_type" required>
+                                    <option value="Tablet" {% if medicine.drug_type == 'Tablet' %}selected{% endif %}>Tablet</option>
+                                    <option value="Capsule" {% if medicine.drug_type == 'Capsule' %}selected{% endif %}>Capsule</option>
+                                    <option value="Injection" {% if medicine.drug_type == 'Injection' %}selected{% endif %}>Injection</option>
+                                    <option value="Ointment" {% if medicine.drug_type == 'Ointment' %}selected{% endif %}>Ointment</option>
+                                    <option value="Drops" {% if medicine.drug_type == 'Drops' %}selected{% endif %}>Drops</option>
+                                    <option value="Inhaler" {% if medicine.drug_type == 'Inhaler' %}selected{% endif %}>Inhaler</option>
+                                    <option value="Patch" {% if medicine.drug_type == 'Patch' %}selected{% endif %}>Patch</option>
+                                    <option value="Liquid" {% if medicine.drug_type == 'Liquid' %}selected{% endif %}>Liquid</option>
+                                    <option value="Cream" {% if medicine.drug_type == 'Cream' %}selected{% endif %}>Cream</option>
+                                    <option value="Gel" {% if medicine.drug_type == 'Gel' %}selected{% endif %}>Gel</option>
+                                    <option value="Suppository" {% if medicine.drug_type == 'Suppository' %}selected{% endif %}>Suppository</option>
+                                    <option value="Powder" {% if medicine.drug_type == 'Powder' %}selected{% endif %}>Powder</option>
+                                    <option value="Suspension" {% if medicine.drug_type == 'Suspension' %}selected{% endif %}>Suspension</option>
+                                    <option value="Lozenge" {% if medicine.drug_type == 'Lozenge' %}selected{% endif %}>Lozenge</option>                      
+                                    <!-- Add more options as needed -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="formulation_unit{{ medicine.id }}">Formulation Unit</label>
+                                <input type="text" class="form-control" id="formulation_unit{{ medicine.id }}" name="formulation_unit" value="{{ medicine.formulation_unit }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="manufacturer{{ medicine.id }}">Manufacturer</label>
+                                <input type="text" class="form-control" id="manufacturer{{ medicine.id }}" name="manufacturer" value="{{ medicine.manufacturer }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="quantity{{ medicine.id }}">Quantity</label>
+                                <input type="number" class="form-control" id="quantity{{ medicine.id }}" name="quantity" value="{{ medicine.quantity }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="dividable{{ medicine.id }}">Dividable</label>
+                                <select  class="form-control select2bs4" style="width: 100%;" id="dividable{{ medicine.id }}" name="dividable">
+                                    <option value=""></option>
+                                    <option value="True" {% if medicine.dividable == 'True' %}selected{% endif %}>True</option>
+                                    <option value="False" {% if medicine.dividable == 'False' %}selected{% endif %}>False</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="batch_number{{ medicine.id }}">Batch Number</label>
+                                <input type="text" class="form-control" id="batch_number{{ medicine.id }}" name="batch_number" value="{{ medicine.batch_number }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="expiration_date{{ medicine.id }}">Expiration Date</label>
+                                <input type="date" class="form-control" id="expiration_date{{ medicine.id }}" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="buying_price{{ medicine.id }}">Buying Price</label>
+                                <input type="number" step="0.01" class="form-control" id="buying_price{{ medicine.id }}" name="buying_price" value="{{ medicine.buying_price }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="cash_cost{{ medicine.id }}">Cash Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="cash_cost{{ medicine.id }}" name="cash_cost" value="{{ medicine.cash_cost }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="insurance_cost{{ medicine.id }}">Insurance Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="insurance_cost{{ medicine.id }}" name="insurance_cost" value="{{ medicine.insurance_cost }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="nhif_cost{{ medicine.id }}">NHIF Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="nhif_cost{{ medicine.id }}" name="nhif_cost" value="{{ medicine.nhif_cost }}">
+                            </div>
+                        </div>
+                    </div>               
+                    <div class="row">                      
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="medicineMessage">
+
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+<script>
+    $(document).ready(function () {
+        $('form[id^="editMedicineForm"]').on('submit', function (event) {
+            event.preventDefault();
+            
+            const form = $(this);
+            const formData = form.serialize();
+            const medicineId = form.data('medicine-id');
+            const url = '{% url "clinic:add_medicine" %}'; // Adjust this URL if you have a specific URL for editing
+    
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: formData + '&medicine_id=' + medicineId,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#medicineMessage').html('<div class="alert alert-success">Medicine updated successfully!</div>');
+                        location.reload(true)
+                       
+                    } else {
+                        $('#medicineMessage').html('<div class="alert alert-danger">Error: ' + response.error + '</div>');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#medicineMessage').html('<div class="alert alert-danger">Error: ' + error + '</div>');
+                }
+            });
+        });
+    });
+</script>
+
+<!-- Add Medicine Modal -->
+<div class="modal fade" id="addMedicineModal" tabindex="-1" role="dialog" aria-labelledby="addMedicineModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMedicineModalLabel">Add Medicine</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addMedicineForm">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="drug_name">Drug Name</label>
+                                <input type="text" class="form-control" id="drug_name" name="drug_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_drug_type">Drug Type</label>
+                                <select  class="form-control select2bs4" style="width: 100%;" id="edit_drug_type" name="drug_type" required>
+                                    <option value=""></option>
+                                    <option value="Tablet">Tablet</option>
+                                    <option value="Capsule">Capsule</option>
+                                    <option value="Injection">Injection</option>
+                                    <option value="Ointment">Ointment</option>
+                                    <option value="Drops">Drops</option>
+                                    <option value="Inhaler">Inhaler</option>
+                                    <option value="Patch">Patch</option>
+                                    <option value="Liquid">Liquid</option>
+                                    <option value="Cream">Cream</option>
+                                    <option value="Gel">Gel</option>
+                                    <option value="Suppository">Suppository</option>
+                                    <option value="Powder">Powder</option>
+                                    <option value="Suspension">Suspension</option>
+                                    <option value="Lozenge">Lozenge</option>                     
+                                    <!-- Add more options as needed -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="formulation_unit">Formulation Unit</label>
+                                <input type="text" class="form-control" id="formulation_unit" name="formulation_unit" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="manufacturer">Manufacturer</label>
+                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="dividable">Dividable</label>
+                                <select  class="form-control select2bs4" style="width: 100%;" id="dividable" name="dividable">
+                                    <option value=""></option>
+                                    <option value="True" {% if medicine.dividable == 'True' %}selected{% endif %}>True</option>
+                                    <option value="False" {% if medicine.dividable == 'False' %}selected{% endif %}>False</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="batch_number">Batch Number</label>
+                                <input type="text" class="form-control" id="batch_number" name="batch_number">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="expiration_date">Expiration Date</label>
+                                <input type="date" class="form-control" id="expiration_date" name="expiration_date">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="buying_price">Buying Price</label>
+                                <input type="number" step="0.01" class="form-control" id="buying_price" name="buying_price">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="cash_cost">Cash Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="cash_cost" name="cash_cost">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="insurance_cost">Insurance Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="insurance_cost" name="insurance_cost">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="nhif_cost">NHIF Cost</label>
+                                <input type="number" step="0.01" class="form-control" id="nhif_cost" name="nhif_cost">
+                            </div>
+                        </div>
+                    </div>                   
+                    <div class="row">                      
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary btn-block">Save and Continue</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="responseMessage">
+
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#addMedicineForm').on('submit', function (event) {
+            event.preventDefault();
+            
+            const formData = $(this).serialize();
+            const url = '{% url "clinic:add_medicine" %}';
+            
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#responseMessage').html('<div class="alert alert-success">Medicine added successfully!</div>');
+                        $('#addMedicineForm')[0].reset();
+                        location.reload(true)
+                     
+                    } else {
+                        $('#responseMessage').html('<div class="alert alert-danger">Error: ' + response.error + '</div>');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#responseMessage').html('<div class="alert alert-danger">Error: ' + error + '</div>');
+                }
+            });
+        });
+    });
+    
+</script>
+
+
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}
