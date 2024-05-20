@@ -1,5 +1,7 @@
 from django import forms
 from django.core.validators import FileExtensionValidator
+from clinic.models import RemoteLaboratoryOrder, RemoteProcedure
+from django_ckeditor_5.widgets import CKEditor5Widget
 class ImportInsuranceCompanyForm(forms.Form):
     file = forms.FileField(
         label='Choose an Excel file',
@@ -49,3 +51,35 @@ class CountryImportForm(forms.Form):
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
+class RemoteProcedureForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make the 'result' field optional
+        self.fields["result"].required = False
+
+    class Meta:
+        model = RemoteProcedure
+        fields = ("result",)
+        widgets = {
+            "result": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5"},  # Add a custom CSS class
+                config_name="extends"  # Specify the CKEditor configuration to use
+            )
+        }
+        
+class RemoteLaboratoryOrderForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make the 'result' field optional
+        self.fields["result"].required = False
+
+    class Meta:
+        model = RemoteLaboratoryOrder
+        fields = ("result",)
+        widgets = {
+            "result": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5"},  # Add a custom CSS class
+                config_name="extends"  # Specify the CKEditor configuration to use
+            )
+        }        

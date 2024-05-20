@@ -419,7 +419,47 @@ def delete_result(request):
             return JsonResponse({'success': False, 'message': f'Error deleting result: {str(e)}'})
     else:
         # Return a JSON response indicating failure
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})     
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})    
+     
+      
+@csrf_exempt
+def delete_remoteinsurancecompany(request):
+    if request.method == 'POST':
+        try:
+            company_id = request.POST.get('company_id')    
+            company = InsuranceCompany.objects.get(id=company_id)
+            company.delete()     
+            deleted_company_id = company_id
+            # Return a JSON response indicating success
+            return JsonResponse({'success': True, 'company_id': deleted_company_id})
+        except Exception as e:
+            # Return a JSON response indicating failure
+            return JsonResponse({'success': False, 'message': f'Error deleting result: {str(e)}'})
+    else:
+        # Return a JSON response indicating failure
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
+    
+@csrf_exempt
+@login_required
+def delete_pathology_record(request):
+    if request.method == 'POST':
+        try:
+            pathology_record_id = request.POST.get('pathology_record_id')
+            pathology_record = PathodologyRecord.objects.get(id=pathology_record_id)
+            pathology_record_name = pathology_record.name  # Capture the name before deletion
+            pathology_record.delete()
+            # Return a JSON response indicating success and include the name of the deleted record
+            return JsonResponse({'success': True, 'message': f'Pathology record "{pathology_record_name}" deleted successfully.'})
+        except PathodologyRecord.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Pathology record not found.'})
+        except Exception as e:
+            # Return a JSON response indicating failure
+            return JsonResponse({'success': False, 'message': f'Error deleting result: {str(e)}'})
+    else:
+        # Return a JSON response indicating failure
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
       
 @csrf_exempt
 def delete_drug(request):

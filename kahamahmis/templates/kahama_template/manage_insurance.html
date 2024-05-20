@@ -38,6 +38,7 @@
                                 <th>Phone</th>
                                 <th>Address</th>
                                 <th>Email</th>
+                                <th>Website</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -49,9 +50,14 @@
                                     <td>{{ company.phone }}</td>
                                     <td>{{ company.address }}</td>
                                     <td>{{ company.email }}</td>
+                                    <td>{{ company.website }}</td>
                                     <td>
-                                      <a href="{% url 'edit_insurance' company.id %}" class="btn btn-info">Edit</a>
-                                      <a href="{% url 'delete_insurance' company.id %}" class="btn btn-danger">Delete</a>
+                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteCompanyModal{{ company.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#insuranceModal{{ company.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                      
                                     </td>
                                 </tr>
@@ -64,6 +70,162 @@
         </div>
     </div>
 </div>
+
+{% for company in insurance_companies %}
+    <!-- Delete Company Modal -->
+    <div class="modal fade" id="deleteCompanyModal{{ company.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteCompanyModal{{ company.id }}Label" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Company: {{ company.name }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this company? <span><b>{{ company.name }}</b></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <!-- Use a unique ID for the delete button -->
+                    <button type="button" class="btn btn-danger" id="confirmDelete{{ company.id }}">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Event listener for delete button click
+            $('#confirmDelete{{ company.id }}').click(function() {
+                // Send AJAX request to delete company
+                $.ajax({
+                    url: '{% url "kahamahmis:delete_remoteinsurancecompany" %}', // Update with the actual URL
+                    type: 'POST',
+                    // Send the company ID in the request data
+                    data: {
+                        company_id: {{ company.id }}
+                    },
+                    success: function(response) {
+                        // Check if deletion was successful
+                        if (response.success) {
+                            // Company successfully deleted
+                            // You may want to update the UI accordingly
+                            // For example, remove the company row from the table
+                            $('#deleteCompanyModal{{ company.id }}').modal('hide');
+                            location.reload(true); // Reload the page to reflect changes
+                        } else {
+                            // Handle deletion failure
+                            alert('Failed to delete company: ' + response.error);
+                        }
+                    },
+                    error: function() {
+                        // Handle AJAX request failure
+                        alert('AJAX request failed');
+                    }
+                });
+            });
+        });
+    </script>
+{% endfor %}
+
+
+{% for company in insurance_companies %}
+    <!-- Modal -->
+    <div class="modal fade" id="insuranceModal{{ company.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Insurance Company</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">  
+                        <div id="insuranceMessageContainer{{ company.id }}" class="alert" role="alert"></div> <!-- Added for messages -->        
+                        <form id="insuranceForm{{ company.id }}" method="post">
+                            {% csrf_token %}
+                            <div class="row">                  
+                                <div class="form-group col-sm-6">
+                                    <label for="Name" class="col-sm-1-12 col-form-label">Name</label>
+                                    <input type="text" class="form-control" name="Name" id="Name{{ company.id }}"  value="{{ company.name }}" required>
+                                    <input type="hidden" name="company_id" id="company_id{{ company.id }}"  value="{{ company.id }}">
+                                </div>
+                                <div class="form-group col-sm-6">
+                                    <label for="Phone" class="col-sm-1-12 col-form-label">Phone</label>
+                                    <input type="tel" class="form-control" name="Phone" id="Phone{{ company.id }}"  value="{{ company.phone }}">
+                                </div>
+                            </div>                
+                            <div class="row">                  
+                                <div class="form-group col-sm-6">
+                                    <label for="Short_name" class="col-sm-1-12 col-form-label">Short name</label>
+                                    <input type="text" class="form-control" name="Short_name" id="Short_name{{ company.id }}"  value="{{ company.short_name }}">
+                                </div>
+                                <div class="form-group col-sm-6">
+                                    <label for="Email" class="col-sm-1-12 col-form-label">Email</label>
+                                    <input type="email" class="form-control" name="Email" id="Email{{ company.id }}"  value="{{ company.email }}" required>
+                                </div>
+                            </div>                
+                            <div class="row">                  
+                                <div class="form-group col-sm-6">
+                                    <label for="Address" class="col-sm-1-12 col-form-label">Address</label>
+                                    <input type="text" class="form-control" name="Address" id="Address{{ company.id }}"  value="{{ company.address }}">
+                                </div>
+                                <div class="form-group col-sm-6">
+                                    <label for="website" class="col-sm-1-12 col-form-label">Website</label>
+                                    <input type="url" class="form-control" name="website" id="website{{ company.id }}"  value="{{ company.website }}">
+                                </div>
+                            </div>                
+                            <div class="form-group row">
+                                <div class="offset-md-6 col-md-6 text-right">
+                                    <button type="button" class="btn btn-primary"  id="saveInsurance{{ company.id }}">Save and Continue</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function () {
+            $('#saveInsurance{{ company.id }}').click(function () {
+                // Capture form data
+                var name = $('#Name{{ company.id }}').val();
+                var email = $('#Email{{ company.id }}').val();
+                
+                // Validate required fields
+                if (!name || !email) {
+                    $('#insuranceMessageContainer{{ company.id }}').html('<div class="alert alert-danger">Name and Email are required</div>');
+                    return;
+                }
+                
+                // If all required fields are filled, proceed with AJAX request
+                var formData = $('#insuranceForm{{ company.id }}').serialize();
+                $.ajax({
+                    url: '{% url "kahamahmis:add_insurance_company" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        // If the request is successful, display a success message
+                        if (response.success) {
+                            $('#insuranceMessageContainer{{ company.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            $('#insuranceMessageContainer{{ company.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function (xhr,  error) {
+                        // If the request fails, display an error message
+                        $('#insuranceMessageContainer{{ company.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+                    }
+                });
+            });
+        });
+    </script>
+{% endfor %}
 
 
 {% include 'kahama_template/datatable.html' %}

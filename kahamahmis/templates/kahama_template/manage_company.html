@@ -122,13 +122,15 @@
                                         </div>
                                         <div class="modal-body">
                                             <!-- Edit Company Form -->
+                                            <div id="companyMessageContainer{{ company.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
                                             <form method="post" id="editCompanyForm{{ company.id }}">
                                                 {% csrf_token %}
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="editName{{ company.id }}">Name</label>
-                                                            <input type="text" class="form-control" id="editName{{ company.id }}" name="name" value="{{ company.name }}">
+                                                            <input type="text" class="form-control" id="editName{{ company.id }}" name="Name" value="{{ company.name }}" required>
+                                                            <input type="hidden" id="company_id{{ company.id }}" name="company_id" value="{{ company.id }}">
                                                         </div>
                                                     </div>
                                                     <div class="col-md-4">
@@ -173,32 +175,45 @@
                             
                             <script>
                                 $(document).ready(function () {
-                                    $('#saveRemoteCompany{{ company.id }}').click(function () {
+                                    $('#saveRemoteCompany{{ company.id }}').click(function (event) {
+                                        event.preventDefault(); // Prevent default form submission
+                                        
+                                        // Clear any previous error messages
+                                        $('#companyMessageContainer{{ company.id }}').html('');
+                                        
+                                        // Validate required fields
+                                        var companyName = $('#editName{{ company.id }}').val().trim();
+                                        if (companyName === '') {
+                                            $('#companyMessageContainer{{ company.id }}').html('<div class="alert alert-danger">Company name is required</div>');
+                                            return;
+                                        }
+                                        
                                         // Capture form data
                                         var formData = $('#editCompanyForm{{ company.id }}').serialize();
-                            
+                                        
                                         // Send AJAX request
                                         $.ajax({
-                                            url: '{% url "kahamahmis:edit_remote_company" company.id %}',
+                                            url: '{% url "kahamahmis:add_company" %}',
                                             type: 'POST',
                                             data: formData,
                                             success: function (response) {
+                                                // If the request is successful, display a success message
                                                 if (response.success) {
-                                                    // Handle success (e.g., close the modal)
-                                                    $('#editCompanyModal{{ company.id }}').modal('hide');
+                                                    $('#companyMessageContainer{{ company.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
                                                     location.reload(true);
                                                 } else {
-                                                    // Handle error
-                                                    alert('Failed to save company:', response.error);
+                                                    $('#companyMessageContainer{{ company.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
                                                 }
                                             },
-                                            error: function () {
-                                                alert('AJAX request failed');
+                                            error: function (xhr, status, error) {
+                                                // If the request fails, display an error message
+                                                $('#companyMessageContainer{{ company.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
                                             }
                                         });
                                     });
                                 });
                             </script>
+                            
                     
                                 <!-- End Edit Company Modal -->
                                 {% endfor %}

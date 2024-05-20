@@ -38,14 +38,18 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="pathology-record-table-body">
+                        <tbody >
                             {% for disease in disease_records %}
                                 <tr>
                                     <td>{{ disease.disease_name }}</td>
                                     <td>{{ disease.code }}</td>
                                     <td>
-                                      <a href="{% url 'kahamahmis:edit_disease_record' disease.id %}" class="btn btn-info">Edit</a>
-                                      <a href="{% url 'kahamahmis:delete_disease_record' disease.id %}" class="btn btn-danger">Delete</a>
+                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletediseaseModal{{ disease.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#diseaseModal{{ disease.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                     
                                     </td>
                                 </tr>
@@ -58,6 +62,79 @@
         </div>
     </div>
 </div>
+
+{% for disease in disease_records %}
+<div class="modal fade" id="diseaseModal{{ disease.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Disease</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div id="diseaseMessageContainer{{ disease.id }}" class="alert" role="alert"></div>
+                    <form method="post" id="diseaseForm{{ disease.id }}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                <label for="Disease" class="col-sm-1-12 col-form-label">Disease</label>
+                                <input type="text" class="form-control" name="Disease" id="Disease{{ disease.id }}" value="{{ disease.disease_name }}" required>
+                                <input type="hidden" name="disease_id" id="disease_id{{ disease.id }}" value="{{ disease.id }}">
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="Code" class="col-sm-1-12 col-form-label">Code</label>
+                                <input type="text" class="form-control" name="Code" id="Code{{ disease.id }}" value="{{ disease.code }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="offset-md-6 col-md-6 text-right">
+                                <button type="button" class="btn btn-primary" id="saveDisease{{ disease.id }}">Save and Continue</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#saveDisease{{ disease.id }}').click(function () {
+            // Capture form data
+            var formData = $('#diseaseForm{{ disease.id }}').serialize();
+
+            // Check if required fields are filled
+            if ($('#Disease{{ disease.id }}').val() === '' || $('#Code{{ disease.id }}').val() === '') {
+                $('#diseaseMessageContainer{{ disease.id }}').html('<div class="alert alert-danger">Please fill in all required fields</div>');
+                return; // Prevent form submission
+            }
+
+            // Send AJAX request
+            $.ajax({
+                url: '{% url "kahamahmis:add_disease" %}',  // Update with your actual URL
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    // If the request is successful, display a success message
+                    if (response.success) {
+                        $('#diseaseMessageContainer{{ disease.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                        location.reload(true);
+                    } else {
+                        $('#diseaseMessageContainer{{ disease.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function (xhr, error) {
+                    // If the request fails, display an error message
+                    $('#diseaseMessageContainer{{ disease.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+                }
+            });
+        });
+    });
+</script>
+{% endfor %}
 
 {% include 'kahama_template/datatable.html' %}
 {% endblock main_content %}

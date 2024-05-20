@@ -896,73 +896,156 @@ def import_staff(request):
 @csrf_exempt
 @login_required
 def add_disease(request):
-    try:
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
+            # Extract data from the request
+            disease_id = request.POST.get('disease_id')  # Get disease ID if provided
             disease_name = request.POST.get('Disease')
             code = request.POST.get('Code')
 
-            # Save data to the model
-            DiseaseRecode.objects.create(disease_name=disease_name, code=code)
+            # If disease ID is provided, it's an edit operation
+            if disease_id:
+                # Check if the disease with the given ID exists
+                disease = DiseaseRecode.objects.get(pk=disease_id)
+                if disease:
+                    # Check if updating the disease name and code will cause a duplicate entry error
+                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(disease_name=disease_name, code=code).exists():
+                        return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})
+                    
+                    # Update disease data
+                    disease.disease_name = disease_name
+                    disease.code = code
+                    disease.save()
+                    return JsonResponse({'success': True, 'message': 'Disease updated successfully'})
+                else:
+                    return JsonResponse({'success': False, 'message': 'Disease does not exist'})
 
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+            # Check if the disease already exists
+            if DiseaseRecode.objects.filter(disease_name=disease_name, code=code).exists():
+                return JsonResponse({'success': False, 'message': 'Disease already exists'})
+
+            # Save data to the model for new disease
+            DiseaseRecode.objects.create(disease_name=disease_name, code=code)
+            return JsonResponse({'success': True, 'message': 'Disease added successfully'})
+
+        except IntegrityError:
+            # Handle the specific IntegrityError raised when a duplicate entry occurs
+            return JsonResponse({'success': False, 'message': 'Disease already exists'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
  
 @csrf_exempt
 @login_required    
 def add_insurance_company(request):
-    try:
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
+            # Extract data from the request
+            company_id = request.POST.get('company_id')
             name = request.POST.get('Name')
             phone = request.POST.get('Phone')
             short_name = request.POST.get('Short_name')
             email = request.POST.get('Email')
             address = request.POST.get('Address')
+            website = request.POST.get('website')
 
-            # Save data to the model
-            InsuranceCompany.objects.create(
-                name=name,
-                phone=phone,
-                short_name=short_name,
-                email=email,
-                address=address
-            )
+            # Check if company_id is provided
+            if company_id:
+                # Get the existing insurance company object
+                insurance_company = InsuranceCompany.objects.get(pk=company_id)
+                if insurance_company:
+                    # Check if the new name conflicts with existing names
+                    if InsuranceCompany.objects.exclude(pk=company_id).filter(name=name).exists():
+                        return JsonResponse({'success': False, 'message': 'Another insurance company with the same name already exists'})
+                    
+                    # Update the insurance company details
+                    insurance_company.name = name
+                    insurance_company.phone = phone
+                    insurance_company.short_name = short_name
+                    insurance_company.email = email
+                    insurance_company.address = address
+                    insurance_company.website = website
+                    insurance_company.save()
+                    return JsonResponse({'success': True, 'message': 'Insurance company updated successfully'})
+                else:
+                    return JsonResponse({'success': False, 'message': 'Insurance company does not exist'})
+            else:
+                # Check if an insurance company with the same name already exists
+                if InsuranceCompany.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': 'Insurance company already exists'})
+                
+                # Save data to the model for new insurance company
+                InsuranceCompany.objects.create(
+                    name=name,
+                    phone=phone,
+                    short_name=short_name,
+                    email=email,
+                    address=address,
+                    website=website,
+                )
+                
+                return JsonResponse({'success': True, 'message': 'Insurance company added successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})    
  
 @csrf_exempt
-@login_required      
+@login_required
 def add_company(request):
-    try:
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
+            # Get data from the request
+            company_id = request.POST.get('company_id')
             name = request.POST.get('Name')
-            industry = request.POST.get('industry')
-            sector = request.POST.get('sector')
-            headquarters = request.POST.get('headquarters')
-            Founded = request.POST.get('Founded')
-            Notes = request.POST.get('Notes')
+            industry = request.POST.get('industry', '')
+            sector = request.POST.get('sector', '')
+            headquarters = request.POST.get('headquarters', '')
+            Founded = request.POST.get('Founded', '')
+            Notes = request.POST.get('Notes', '')
 
-            # Save data to the model
-            RemoteCompany.objects.create(
-                name=name,
-                industry=industry,
-                sector=sector,
-                headquarters=headquarters,
-                Founded=Founded,
-                Notes=Notes,
-            )
+            # Check if company_id is provided
+            if company_id:
+                # Fetch the existing company object
+                company = RemoteCompany.objects.get(pk=company_id)
 
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+                # Check if the new name already exists and it's not the same as the current name
+                if RemoteCompany.objects.filter(name=name).exclude(pk=company_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Company with the provided name already exists'})
+
+                # Update company data
+                company.name = name
+                company.industry = industry
+                company.sector = sector
+                company.headquarters = headquarters
+                company.Founded = Founded
+                company.Notes = Notes
+                company.save()
+
+                return JsonResponse({'success': True, 'message': 'Company updated successfully'})
+            else:
+                # Check if a company with the given name already exists
+                if RemoteCompany.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': 'Company already exists'})
+
+                # Save new company data
+                RemoteCompany.objects.create(
+                    name=name,
+                    industry=industry,
+                    sector=sector,
+                    headquarters=headquarters,
+                    Founded=Founded,
+                    Notes=Notes,
+                )
+
+                return JsonResponse({'success': True, 'message': 'Company added successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
     
 @csrf_exempt
@@ -987,21 +1070,42 @@ def edit_remote_company(request, company_id):
 @csrf_exempt
 @login_required
 def add_pathodology_record(request):
-    try:
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
+            # Extract data from the request
             name = request.POST.get('Name')
-            description = request.POST.get('Description')       
+            description = request.POST.get('Description')
+            pathology_record_id = request.POST.get('pathology_record_id')  # Check if pathology record ID is provided
+            
+            # If pathology record ID is provided, it's an edit operation
+            if pathology_record_id:             
+                
+                # Check if the provided name already exists in the database excluding the current record
+                if PathodologyRecord.objects.exclude(pk=pathology_record_id).filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message':  f'Another pathology record with the name "{name}" already exists'})
+                 # Get the existing pathology record object
+                pathology_record = PathodologyRecord.objects.get(pk=pathology_record_id)
+                # Update the existing pathology record
+                pathology_record.name = name
+                pathology_record.description = description
+                pathology_record.save()
+                return JsonResponse({'success': True, 'message': 'Patholody updated successfully'})
+            else:  # If no pathology record ID is provided, it's an add operation
+                # Check if the provided name already exists in the database
+                if PathodologyRecord.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message':  f'A pathology record with the name "{name}" already exists'})
 
-            # Save data to the model
-            pathodology_record = PathodologyRecord.objects.create(
-                name=name,
-                description=description
-            )
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+                # Save data to the model for a new pathology record
+                pathodology_record = PathodologyRecord.objects.create(
+                    name=name,
+                    description=description
+                )
+                return JsonResponse({'success': True, 'message': f'{name} added successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
   
 
 def save_service_data(request):
@@ -2079,10 +2183,16 @@ def save_nextlaboratory(request, patient_id, visit_id):
     remote_service = RemoteService.objects.filter(category='Laboratory')
     data_recorder = request.user.staff
     previous_results = RemoteLaboratoryOrder.objects.filter(patient=patient)
-
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     # Check if the laboratory order already exists for this patient on the specified visit
     laboratory_order = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).first()
-    context = {'patient': patient, 'visit': visit, 'previous_results': previous_results, 'remote_service': remote_service} 
+    context = {
+                'patient': patient,
+               'visit': visit, 
+               'previous_results': previous_results,
+               'remote_service': remote_service,
+               'consultation_notes': consultation_notes,
+               } 
 
     if request.method == 'POST':
         # Retrieve the list of investigation names, descriptions, and results from the form data
@@ -2838,8 +2948,7 @@ def remoteservice_list(request):
     return render(request, 'kahama_template/service_list.html', {'services': services})
 
 
-
-
+@login_required
 @csrf_exempt
 @require_POST
 def save_remote_service(request):
@@ -2847,31 +2956,39 @@ def save_remote_service(request):
         # Extract data from the request
         service_id = request.POST.get('service_id')
         name = request.POST.get('name')
-        price = request.POST.get('price')        
         description = request.POST.get('description')
         category = request.POST.get('category')
 
-
-
-        # Check if the notes ID is provided for editing
         if service_id:
-            # Editing existing consultation notes
+            # Editing existing remote service
             service = RemoteService.objects.get(pk=service_id)
-        else:
-            # Creating new consultation notes
-            service = RemoteService()
-
-        # Update or set values for consultation notes fields
-        service.name = name
-        service.price = price
-        service.description = description
-        service.category = category
-        
-        service.save()   
             
-        return JsonResponse({'status': 'success'})
+            # Check for duplicate name excluding the current record
+            if RemoteService.objects.exclude(pk=service_id).filter(name=name).exists():
+                return JsonResponse({'success': False, 'message': f'A service with the name "{name}" already exists.'})
+            
+            # Update the existing service
+            service.name = name
+            service.description = description
+            service.category = category
+            service.save()
+            
+            return JsonResponse({'success': True, 'message': 'Updated successfully'})
+        else:
+            # Creating new remote service
+            # Check for duplicate name
+            if RemoteService.objects.filter(name=name).exists():
+                return JsonResponse({'success': False, 'message': f'A service with the name "{name}" already exists.'})
+            
+            # Create a new service
+            service = RemoteService(name=name, description=description, category=category)
+            service.save()
+            
+            return JsonResponse({'success': True, 'message': 'Added successfully'})
+    except RemoteService.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Service not found.'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'success': False, 'message': str(e)})
    
 
     

@@ -19,6 +19,7 @@ from openpyxl.styles import Alignment, Font
 from django.core.exceptions import ValidationError
 from django.db.models.functions import ExtractMonth  # Add this import
 from django.template.loader import render_to_string
+from kahamahmis.forms import RemoteLaboratoryOrderForm, RemoteProcedureForm
 import numpy as np
 
 @login_required
@@ -123,6 +124,7 @@ def health_record_list(request):
     records = HealthRecord.objects.all()
     return render(request, 'kahama_template/healthrecord_list.html', {'records': records})
 
+@login_required
 @csrf_exempt
 def save_health_record(request):
     if request.method == 'POST':
@@ -134,21 +136,31 @@ def save_health_record(request):
             if health_record_id:  # If health record ID is provided, it's an edit operation
                 # Get the existing health record object
                 health_record = HealthRecord.objects.get(pk=health_record_id)
+                
+                # Check if the provided name already exists in the database
+                if HealthRecord.objects.exclude(pk=health_record_id).filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': f'A record with the name "{name}" already exists.'})
+                
                 # Update the existing health record
                 health_record.name = name
                 health_record.save()
             else:  # If no health record ID is provided, it's an add operation
+                # Check if the provided name already exists in the database
+                if HealthRecord.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': f'A record with the name "{name}" already exists.'})
+                
                 # Create a new health record
                 HealthRecord.objects.create(name=name)
             
             # Return success response
-            return JsonResponse({'success': True,'message': 'Successfully saved.'}, status=200)
+            return JsonResponse({'success': True, 'message': 'Successfully saved.'})
         except Exception as e:
             # Return error response if an exception occurs
             return JsonResponse({'success': False, 'message': str(e)})
     else:
         # Return error response for invalid requests
         return JsonResponse({'success': False, 'message': 'Invalid request'})
+
     
     
 @csrf_exempt      
@@ -739,12 +751,14 @@ def save_remoteprocedure(request, patient_id, visit_id):
     patient = get_object_or_404(RemotePatient, id=patient_id)
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)
     procedures = RemoteService.objects.filter(category='Procedure')
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     previous_procedures = RemoteProcedure.objects.filter(patient_id=patient_id)
     context = {
         'patient': patient, 
         'visit': visit, 
         'procedures': procedures,
         'previous_procedures': previous_procedures,
+        'consultation_notes': consultation_notes,
     }   
     try:
         if request.method == 'POST':
@@ -834,10 +848,15 @@ def save_laboratory(request, patient_id, visit_id):
     remote_service = RemoteService.objects.filter(category='Laboratory')
     data_recorder = request.user.staff
     previous_results = RemoteLaboratoryOrder.objects.filter(patient=patient)
-
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     # Check if the laboratory order already exists for this patient on the specified visit
     laboratory_order = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).first()
-    context = {'patient': patient, 'visit': visit, 'previous_results': previous_results, 'remote_service': remote_service} 
+    context = {'patient': patient,
+               'visit': visit, 
+               'previous_results': previous_results, 
+               'consultation_notes': consultation_notes, 
+               'remote_service': remote_service
+               } 
 
     if request.method == 'POST':
         # Retrieve the list of investigation names, descriptions, and results from the form data
@@ -1816,16 +1835,17 @@ def remotemedicine_list(request):
     medicines = RemoteMedicine.objects.all()
     return render(request, 'kahama_template/remotemedicine_list.html', {'medicines': medicines})
 
+@login_required
 @csrf_exempt
 def add_remote_medicine(request):
     if request.method == 'POST':
         try:
             # Retrieve data from POST request
-            drug_id = request.POST.get('drug_id')  # Check if drug ID is provided
+            drug_id = request.POST.get('drug_id')
             drug_name = request.POST.get('drug_name')
             drug_type = request.POST.get('drug_type')
             formulation_unit = request.POST.get('formulation_unit')
-            manufacturer = request.POST.get('manufacturer')           
+            manufacturer = request.POST.get('manufacturer')
             quantity = request.POST.get('quantity')
             dividable = request.POST.get('dividable')
             batch_number = request.POST.get('batch_number')
@@ -1837,7 +1857,7 @@ def add_remote_medicine(request):
             if not (drug_name and quantity and buying_price):
                 return JsonResponse({'success': False, 'message': 'Missing required fields'})
 
-            # Convert quantity and buying_price to integers
+            # Convert quantity and buying_price to integers or floats
             try:
                 quantity = int(quantity)
                 buying_price = float(buying_price)
@@ -1846,6 +1866,12 @@ def add_remote_medicine(request):
 
             # If drug ID is provided, it indicates editing existing data
             if drug_id:
+                # Check if another medicine with the same name or batch number already exists
+                if RemoteMedicine.objects.exclude(pk=drug_id).filter(drug_name=drug_name).exists():
+                    return JsonResponse({'success': False, 'message': 'Another medicine with the same name already exists'})
+                if RemoteMedicine.objects.exclude(pk=drug_id).filter(batch_number=batch_number).exists():
+                    return JsonResponse({'success': False, 'message': 'Another medicine with the same batch number already exists'})
+                
                 # Get the RemoteMedicine object to edit
                 medicine = RemoteMedicine.objects.get(pk=drug_id)
                 
@@ -1853,29 +1879,34 @@ def add_remote_medicine(request):
                 medicine.drug_name = drug_name
                 medicine.drug_type = drug_type
                 medicine.formulation_unit = formulation_unit
-                medicine.manufacturer = manufacturer                
+                medicine.manufacturer = manufacturer
                 medicine.quantity = quantity
                 medicine.remain_quantity = quantity
                 medicine.dividable = dividable
                 medicine.batch_number = batch_number
                 medicine.expiration_date = expiration_date
                 medicine.unit_cost = unit_cost
-                medicine.buying_price = buying_price                
+                medicine.buying_price = buying_price
+                
                 # Save the changes
-                medicine.save()                
+                medicine.save()
+                
                 # Return success response
                 return JsonResponse({'success': True, 'message': 'Medicine updated successfully'})
             
             else:            
-                 # Check if drug name already exists in the database
-                if not drug_id and RemoteMedicine.objects.filter(drug_name=drug_name).exists():
-                    return JsonResponse({'success': False, 'message': 'Medicine with this name already exists'})
-                    # Create RemoteMedicine object for adding new data
+                # Check if another medicine with the same name or batch number already exists
+                if RemoteMedicine.objects.filter(drug_name=drug_name).exists():
+                    return JsonResponse({'success': False, 'message': 'Medicine with the same name already exists'})
+                if RemoteMedicine.objects.filter(batch_number=batch_number).exists():
+                    return JsonResponse({'success': False, 'message': 'Medicine with the same batch number already exists'})
+                
+                # Create RemoteMedicine object for adding new data
                 medicine = RemoteMedicine(
                     drug_name=drug_name,
                     drug_type=drug_type,
                     formulation_unit=formulation_unit,
-                    manufacturer=manufacturer,            
+                    manufacturer=manufacturer,
                     quantity=quantity,
                     remain_quantity=quantity,
                     dividable=dividable,
@@ -1897,6 +1928,7 @@ def add_remote_medicine(request):
 
     # If request method is not POST, return error response
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
 
 
 @login_required
@@ -1959,5 +1991,113 @@ def company_registration_view(request, company_id=None):
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
         return render(request, 'kahama_template/company_registration.html')
+    
+@login_required    
+def edit_lab_result(request, patient_id, visit_id, lab_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)            
+
+    procedures = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
+    
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'procedures': procedures,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = RemoteLaboratoryOrderForm(request.POST, instance=procedures)
+        
+        # Check if a record already exists for the patient and visit
+        if procedures:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Remote Lab result updated successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient          
+            form.instance.visit = visit
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Remote Lab result saved successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect(reverse('kahamahmis:patient_lab_result_history_view', args=[patient.mrn]))
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = RemoteLaboratoryOrderForm(instance=procedures)   
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'kahama_template/edit_lab_result.html', context)
+
+@login_required    
+def edit_procedure_result(request, patient_id, visit_id, procedure_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)            
+
+    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit, id=procedure_id).first()
+    
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'procedures': procedures,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = RemoteProcedureForm(request.POST, instance=procedures)
+        
+        # Check if a record already exists for the patient and visit
+        if procedures:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Remote counseling updated successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient          
+            form.instance.visit = visit
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Remote counseling saved successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect(reverse('kahamahmis:patient_procedure_history_view_mrn', args=[patient.mrn]))
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = RemoteProcedureForm(instance=procedures)   
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'kahama_template/edit_procedure_result.html', context)
+
+    
         
     

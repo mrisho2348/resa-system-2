@@ -108,25 +108,26 @@
                         </div>
                         <div class="modal-body">
                           <!-- Form for adding Remote Service -->
+                          <div id="serviceMessageContainer{{ service.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
                           <form id="editRemoteServiceForm{{ service.id }}" method="post">
                             {% csrf_token %}
                             <div class="form-group">
                               <label for="serviceName">Name:</label>
                               <input type="text" class="form-control" id="serviceName" name="name" value="{{ service.name }}" required>
                               <input type="hidden" class="form-control" id="service_id" name="service_id" value="{{ service.id }}" >
-                            </div>
-                            <div class="form-group">
-                              <label for="servicePrice">Price:</label>
-                              <input type="number" class="form-control" id="servicePrice" name="price" value="{{ service.price }}" required>
-                            </div>         
+                            </div>                                
                             <div class="form-group">
                               <label for="serviceDescription">Description:</label>
                               <textarea class="form-control" id="serviceDescription" name="description" >{{ service.description }}</textarea>
                             </div>
                             <div class="form-group">
                               <label for="serviceCategory">Category:</label>
-                              <input type="text" class="form-control" id="serviceCategory" name="category" value="{{ service.category }}">
-                            </div>
+                              <select class="form-control" id="serviceCategory" name="category">
+                                  <option value="Procedure" {% if service.category == "Procedure" %}selected{% endif %}>Procedure</option>
+                                  <option value="Laboratory" {% if service.category == "Laboratory" %}selected{% endif %}>Laboratory</option>
+                                  <option value="Consultation" {% if service.category == "Consultation" %}selected{% endif %}>Consultation</option>
+                              </select>
+                          </div>
                             <!-- Hidden fields for CSRF token -->
                          
                             <div class="modal-footer">
@@ -149,20 +150,20 @@
                                     type: 'POST',
                                     url: '{% url "kahamahmis:save_remote_service" %}',  // Replace with your URL
                                     data: $('#editRemoteServiceForm{{ service.id }}').serialize(),
-                                    success: function (data) {
-                                        if (data.status === 'success') {
-                                            $('#editRemoteServiceModal{{ service.id }}').modal('hide');
-                                            location.reload(true);
-                                            // Refresh the category list or perform any other actions
-                                        } else {
-                                            // Handle other status cases if needed
-                                           alert(data.message);
-                                        }
-                                    },
-                                    error: function (error) {
-                                        alert(error);
-                                        // Handle errors if necessary
-                                    }
+                                    success: function (response) {
+                                      // If the request is successful, display a success message
+                                      if (response.success) {
+                                          $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                                          location.reload(true)
+                                       
+                                      } else {
+                                          $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                                      }
+                                  },
+                                  error: function (xhr,  error) {
+                                      // If the request fails, display an error message
+                                      $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+                                  }
                                 });
                             });
                         {% endfor %}
@@ -182,8 +183,6 @@
    
 
 
-<!-- Bootstrap Modal for Adding/Editing Service -->
-<!-- Modal HTML -->
 <div class="modal fade" id="addRemoteServiceModal" tabindex="-1" role="dialog" aria-labelledby="addRemoteServiceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
       <div class="modal-content">
@@ -195,30 +194,29 @@
         </div>
         <div class="modal-body">
           <!-- Form for adding Remote Service -->
+          <div id="serviceMessageContainer" class="alert" role="alert"></div> <!-- Added for messages -->
           <form id="addRemoteServiceForm" method="post">
             {% csrf_token %}
             <div class="form-group">
               <label for="serviceName">Name:</label>
               <input type="text" class="form-control" id="serviceName" name="name" required>
               <input type="hidden" class="form-control" id="service_id" name="service_id" >
-            </div>
-            <div class="form-group">
-              <label for="servicePrice">Price:</label>
-              <input type="number" class="form-control" id="servicePrice" name="price" required>
-            </div>         
+            </div>                   
             <div class="form-group">
               <label for="serviceDescription">Description:</label>
               <textarea class="form-control" id="serviceDescription" name="description" ></textarea>
             </div>
             <div class="form-group">
               <label for="serviceCategory">Category:</label>
-              <input type="text" class="form-control" id="serviceCategory" name="category">
-            </div>
-            <!-- Hidden fields for CSRF token -->
+              <select class="form-control" id="serviceCategory" name="category">
+                  <option value="Procedure">Procedure</option>
+                  <option value="Laboratory" >Laboratory</option>
+                  <option value="Consultation" >Consultation</option>
+              </select>
+          </div> 
          
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-primary"  onclick="addRemoteServices()">Save changes</button>
+            <div class="modal-footer">        
+              <button type="button" class="btn btn-primary btn-block"  onclick="addRemoteServices()">Save changes</button>
             </div>
           </form>
         </div>
@@ -233,20 +231,20 @@
             type: 'POST',
             url: '{% url "kahamahmis:save_remote_service" %}',  // Replace with your URL
             data: $('#addRemoteServiceForm').serialize(),
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#addRemoteServiceModal').modal('hide');
-                    location.reload(true);
-                    // Refresh the inventory service list or perform any other actions
-                } else {
-                    // Handle other status cases if needed
-                    console.log(data.message);
-                }
-            },
-            error: function (error) {
-                console.log(error);
-                // Handle errors if necessary
-            }
+            success: function (response) {
+              // If the request is successful, display a success message
+              if (response.success) {
+                  $('#serviceMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                  location.reload(true)
+               
+              } else {
+                  $('#serviceMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+              }
+          },
+          error: function (xhr,  error) {
+              // If the request fails, display an error message
+              $('#serviceMessageContainer').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+          }
         });
     }
 </script>

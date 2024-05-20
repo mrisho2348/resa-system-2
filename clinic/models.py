@@ -1582,6 +1582,7 @@ class RemoteProcedure(models.Model):
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE)   
     name = models.ForeignKey(RemoteService, on_delete=models.CASCADE, blank=True, null=True) 
     description = models.TextField()   
+    result = CKEditor5Field(config_name='extends',blank=True, null=True)  
     image = models.ImageField(upload_to='procedure_images/', blank=True, null=True)  # New field for uploading images
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

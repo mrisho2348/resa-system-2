@@ -155,13 +155,10 @@ def import_health_record_data(request):
             # Read data from rows
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 data = dict(zip(headers, row))
-                try:
-                    HealthRecord.objects.create(
-                        name=data['name']
-                    )
-                except IntegrityError:
-                    # Skip duplicate entries and continue
-                    continue
+                # Use get_or_create to avoid duplicates
+                HealthRecord.objects.get_or_create(
+                    name=data['name']
+                )
 
             return HttpResponseRedirect(reverse('kahamahmis:health_record_list'))
 
@@ -169,6 +166,7 @@ def import_health_record_data(request):
         form = HealthRecordImportForm()
 
     return render(request, 'kahamaImport/import_health_record.html', {'form': form})
+
 
 def import_remote_company_data(request):
     if request.method == 'POST':
@@ -190,24 +188,36 @@ def import_remote_company_data(request):
             # Read data from rows
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 data = dict(zip(headers, row))
-                try:
-                    RemoteCompany.objects.create(
-                        name=data['name'],
-                        industry=data['industry'],
-                        sector=data['sector'],
-                        headquarters=data['headquarters'],
-                        Founded=data['Founded'],
-                        Notes=data['Notes']
-                    )
-                except IntegrityError:
-                    # Skip duplicate entries and continue
-                    continue
+                
+                # Check if the required fields are present and default missing optional fields to empty string
+                name = data.get('name')
+                industry = data.get('industry', '')
+                sector = data.get('sector', '')
+                headquarters = data.get('headquarters', '')
+                Founded = data.get('Founded', '')
+                Notes = data.get('Notes', '')
+
+                if name:  # Ensure that the name field is present before creating the record
+                    try:
+                        RemoteCompany.objects.create(
+                            name=name,
+                            industry=industry,
+                            sector=sector,
+                            headquarters=headquarters,
+                            Founded=Founded,
+                            Notes=Notes
+                        )
+                    except IntegrityError:
+                        # Skip duplicate entries and continue
+                        continue
 
             return HttpResponseRedirect(reverse('kahamahmis:manage_company'))
-
     else:
         form = RemoteCompanyImportForm()
+
     return render(request, 'kahamaImport/import_remote_company.html', {'form': form})
+
+
 
 def import_pathodology_record_data(request):
     if request.method == 'POST':
@@ -228,21 +238,24 @@ def import_pathodology_record_data(request):
 
             # Read data from rows
             for row in sheet.iter_rows(min_row=2, values_only=True):
+                # Ensure each header is mapped to a value, defaulting to an empty string if necessary
                 data = dict(zip(headers, row))
-                try:
-                    PathodologyRecord.objects.create(
-                        name=data['name'],
-                        description=data['description']
-                    )
-                except IntegrityError:
-                    # Skip duplicate entries and continue
-                    continue
+                name = data.get('name')
+                description = data.get('Description', '')
+
+                if name:  # Only proceed if name is present
+                    try:
+                        PathodologyRecord.objects.create(
+                            name=name,
+                            description=description
+                        )
+                    except IntegrityError:
+                        # Skip duplicate entries and continue
+                        continue
 
             return HttpResponseRedirect(reverse('kahamahmis:manage_pathodology'))
-
     else:
         form = PathodologyRecordImportForm()
-
     return render(request, 'kahamaImport/import_pathodology_record.html', {'form': form})
 
 def import_remote_service_data(request):
