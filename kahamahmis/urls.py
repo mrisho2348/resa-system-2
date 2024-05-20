@@ -1,6 +1,6 @@
 
 from django.urls import include, path
-from kahamahmis import KahamaReportsView, kahamaViews
+from kahamahmis import KahamaReportsView, kahamaExcelTemplate, kahamaViews
 from . import kahamaImports, views,delete,editView
 
 urlpatterns = [  
@@ -76,13 +76,8 @@ urlpatterns = [
         path('save_nextobservation/<int:patient_id>/<int:visit_id>/', views.save_nextobservation, name='nextsave_observation'),        
  
         path('save_remotepatient_vital/',views.save_remotepatient_vital, name="save_remotepatient_vital"),       
-        
-        
-        path('add_health_issue',views.add_health_issue, name="add_health_issue"),
         path('resa/dashboard',views.kahama_dashboard, name="dashboard"),
-        path('fetch_model_data/', views.fetch_model_data, name='fetch_model_data'),
         path('resa/ImportExcel',views.import_staff, name="import_staff"),      
-
         path('add_disease/', views.add_disease, name='add_disease'),
         path('add_insurance_company/', views.add_insurance_company, name='add_insurance_company'),
         path('add_company/', views.add_company, name='add_company'),
@@ -159,7 +154,6 @@ urlpatterns = [
         path('patient_visit_details_view/<int:patient_id>/<int:visit_id>/', views.patient_visit_details_view, name='patient_visit_details_view'),
         path('patient_health_record_view/<int:patient_id>/<int:visit_id>/', views.patient_health_record_view, name='patient_health_record_view'),
         path('patient_visit_history/<int:patient_id>/', views.patient_visit_history_view, name='patient_visit_history_view'),
-        path('health-issues/', views.health_issue_list, name='health_issue_list'),
         path('prescriptions/<str:visit_number>/<int:patient_id>/', views.prescription_detail, name='prescription_detail'),
         path('prescription-billing/<str:visit_number>/<int:patient_id>/', views.prescription_billing, name='prescription_billing'),
         path('prescription-notes/<str:visit_number>/<int:patient_id>/', views.prescription_notes, name='prescription_notes'),
@@ -170,7 +164,6 @@ urlpatterns = [
         path('observation_records/', views.observation_record_list_view, name='observation_record_list'),
         path('resa/in-stock-items/', views.in_stock_items, name='in_stock_items'),
         path('resa/out-of-stock-items/', views.out_of_stock_items, name='out_of_stock_items'),       
-        path('pathology_diagnostic_test_list/', views.pathology_diagnostic_test_list, name='pathology_diagnostic_test_list'),
         path('resa/manage-referral/', views.manage_referral, name='manage_referral'),
         path('resa/patient-procedure-view/', views.patient_procedure_view, name='patient_procedure_view'),
    
@@ -185,8 +178,7 @@ urlpatterns = [
         path('resa/manage-disease',views.manage_disease, name="manage_disease"),
       
         path('resa/manage-staff',views.manage_staff, name="manage_staff"),
-        path('resa/manage-insurance',views.manage_insurance, name="manage_insurance"),
-        path('resa/manage-service',views.manage_service, name="manage_service"),
+        path('resa/manage-insurance',views.manage_insurance, name="manage_insurance"),       
         path('resa/manage-adjustment',views.manage_adjustment, name="manage_adjustment"),
         path('resa/manage-pathodology',views.manage_pathodology, name="manage_pathodology"),
         path('resa/appointments/', views.appointment_list_view, name='appointment_list'),
@@ -195,7 +187,6 @@ urlpatterns = [
         path('confirm_meeting/<int:appointment_id>/', views.confirm_meeting, name='confirm_meeting'),
         path('generate-bill/<int:procedure_id>/', views.generate_billing, name='generate_billing'),
         path('edit_meeting/<int:appointment_id>/', views.edit_meeting, name='edit_meeting'),
-        path('resa/medicine-list/', views.medicine_list, name='medicine_list'),
         path('resa/medicine-expired-list/', views.medicine_expired_list, name='medicine_expired_list'),
         path('add_medicine/', views.add_medicine, name='add_medicine'),      
         path('save_referral/', views.save_referral, name='save_referral'),        
@@ -203,31 +194,7 @@ urlpatterns = [
         path('api/out-of-stock-medicines/', views.out_of_stock_medicines, name='out_of_stock_medicines'),
         path('api/out-of-stock-reagent-count/', views.get_out_of_stock_count_reagent, name='get_out_of_stock_count_reagent'),
         
-        # imports urls 
-        path('import_medicine_drug_records', kahamaImports.import_medicine_drug_records, name='import_medicine_drug_records'),
-        path('import_health_records', kahamaImports.import_health_records, name='import_health_records'),
-        path('import_country_records', kahamaImports.import_country_records, name='import_country_records'),
-        path('resa/import_Import/import_patient_vital_records',kahamaImports.import_patient_vital_records, name="import_patient_vital_records"),
-        path('resa/import_Import/Inventory/ItemForm_records',kahamaImports.import_ImportInventoryItemForm_records, name="import_ImportInventoryItemForm_records"),
-        path('resa/ImportExcel_category',kahamaImports.import_category, name="import_category"),
-        path('resa/ImportExcel_service',kahamaImports.import_service_records, name="import_service_records"),
-        path('resa/ImportExcel_disease',kahamaImports.import_disease_recode, name="import_disease_recode"),
-        path('import-insurance-companies/', kahamaImports.import_insurance_companies, name='import_insurance_companies'),
-        path('import_maintenance/', kahamaImports.import_maintenance, name='import_maintenance'),
-        path('import_remoteservice_records', kahamaImports.import_remoteservice_records, name='import_remoteservice_records'),
-        path('import_reagent', kahamaImports.import_reagent, name='import_reagent'),
-        path('import_health_issue', kahamaImports.import_health_issue, name='import_health_issue'),
-        path('import-diagnosis-records', kahamaImports.import_diagnosis_records, name='import_diagnosis_records'),
-        path('import_equipment', kahamaImports.import_equipment, name='import_equipment'),
-        path('import_patient', kahamaImports.import_patient, name='import_patient'),
-        path('import_prescription_records', kahamaImports.import_prescription_records, name='import_prescription_records'),
-        path('import_consultation_notes_records', kahamaImports.import_consultation_notes_records, name='import_consultation_notes_records'),
-        path('import-companies/', kahamaImports.import_companies, name='import_companies'),        
-        path('import-pathology-records/', kahamaImports.import_pathology_records, name='import_pathology_records'),
-        path('import-medicine-records/', kahamaImports.import_medicine_records, name='import_medicine_records'),
-        path('import-procedure-records/', kahamaImports.import_procedure_records, name='import_procedure_records'),
-        path('import-referral-records/', kahamaImports.import_referral_records, name='import_referral_records'),
-        
+      
      
         path('disease-records/<int:disease_id>/edit/', editView.edit_disease_record, name='edit_disease_record'),
         path('insurance-records/<int:insurance_id>/edit/', editView.edit_insurance, name='edit_insurance'),
@@ -250,12 +217,9 @@ urlpatterns = [
         path('delete_ConsultationNotes/<int:consultation_id>/', delete.delete_ConsultationNotes, name='delete_ConsultationNotes'),
         path('delete_patient_vital/<int:vital_id>/', delete.delete_patient_vital, name='delete_patient_vital'),
         path('delete_prescription/<int:prescription_id>/', delete.delete_prescription, name='delete_prescription'),
-       
         path('delete-consultation/<int:appointment_id>/', delete.delete_consultation, name='delete_consultation'),
-        
         path('delete_medicine/<int:medicine_id>/', delete.delete_medicine, name='delete_medicine'),
         path('disease-records/<int:disease_id>/delete/', delete.delete_disease_record, name='delete_disease_record'),
-        
         path('delete_equipment/<int:equipment_id>/', delete.delete_equipment, name='delete_equipment'),
         path('delete_inventory/<int:item_id>/', delete.delete_inventory, name='delete_inventory'),
         path('delete_category/<int:category_id>/', delete.delete_category, name='delete_category'),
@@ -263,9 +227,7 @@ urlpatterns = [
         path('delete_medicine_inventory/<int:inventory_id>/', delete.delete_medicine_inventory, name='delete_medicine_inventory'),
         path('delete_reagent/<int:reagent_id>/', delete.delete_reagent, name='delete_reagent'),
         path('delete_usage_history/<int:usage_id>/', delete.delete_usage_history, name='delete_usage_history'),
-        path('delete_health_issue/<int:health_issue_id>/', delete.delete_health_issue, name='delete_health_issue'),
-        path('delete_reagent_used/<int:reagentusage_id>/', delete.delete_reagent_used, name='delete_reagent_used'),
-                
+        path('delete_reagent_used/<int:reagentusage_id>/', delete.delete_reagent_used, name='delete_reagent_used'),                
         path('insurance-records/<int:insurance_id>/delete/', delete.delete_insurance, name='delete_insurance'),        
         path('pathodology/<int:pathodology_id>/delete/', delete.delete_pathodology, name='delete_pathodology'),
         path('company/<int:company_id>/delete/', delete.delete_company, name='delete_company'),
@@ -282,11 +244,34 @@ urlpatterns = [
         path('delete_family_medical_history_record/', delete.delete_family_medical_history_record, name='delete_family_medical_history_record'),       
         path('delete_lab_result/', delete.delete_lab_result, name='delete_lab_result'),        
         path('delete_referral/', delete.delete_referral, name='delete_referral'),
-        path('delete_qualitycontrol/<int:control_id>/', delete.delete_qualitycontrol, name='delete_qualitycontrol'),
-       
-        
+        path('delete_qualitycontrol/<int:control_id>/', delete.delete_qualitycontrol, name='delete_qualitycontrol'),     
         path('delete_patient_visit/<int:patient_visit_id>/', delete.delete_patient_visit, name='delete_patient_visit'),
         
-  
-       
-]
+        # excel template
+        path('download-disease-template/', kahamaExcelTemplate.download_disease_recode_excel_template, name='disease_recode_template_download'),
+        path('download-health-template/', kahamaExcelTemplate.download_health_record_excel_template, name='health_record_template_download'),
+        path('download-remote-company-template/', kahamaExcelTemplate.download_remote_company_excel_template, name='remote_company_template_download'),
+        path('download-pathodology-template/', kahamaExcelTemplate.download_pathodology_record_excel_template, name='pathodology_record_template_download'),
+        path('download-supplier-template/', kahamaExcelTemplate.download_supplier_excel_template, name='supplier_template_download'),
+        path('download-category-template/', kahamaExcelTemplate.download_category_excel_template, name='category_template_download'),
+        path('download-service-template/', kahamaExcelTemplate.download_service_excel_template, name='service_template_download'),
+        path('download-insurance-company-template/', kahamaExcelTemplate.download_insurance_company_excel_template, name='insurance_company_template_download'),
+        path('download-staffs-template/', kahamaExcelTemplate.download_staffs_excel_template, name='staffs_template_download'),
+        path('download-prescription-frequency-template/', kahamaExcelTemplate.download_prescription_frequency_excel_template, name='prescription_frequency_template_download'),
+        path('download-ambulance-route-template/', kahamaExcelTemplate.download_ambulance_route_excel_template, name='ambulance_route_template_download'),
+        path('download-ambulance-vehicle-order-template/', kahamaExcelTemplate.download_ambulance_vehicle_order_excel_template, name='ambulance_vehicle_order_template_download'),
+        path('download-hospital-vehicle-template/', kahamaExcelTemplate.download_hospital_vehicle_excel_template, name='hospital_vehicle_template_download'),
+        path('download-remote-medicine-template/', kahamaExcelTemplate.download_remote_medicine_excel_template, name='remote_medicine_template_download'),
+        path('download-remote-service-template/', kahamaExcelTemplate.download_remote_service_excel_template, name='remote_service_template_download'),
+        path('download-country-template/', kahamaExcelTemplate.download_country_excel_template, name='download_country_template'), 
+           # imports urls 
+        path('import_insurance_company_data', kahamaImports.import_insurance_company_data, name='import_insurance_company_data'),
+        path('import-disease-data/', kahamaImports.import_disease_recode_data, name='import_disease_recode_data'),
+        path('import-remote-medicine-data/', kahamaImports.import_remote_medicine_data, name='import_remote_medicine_data'),
+        path('import-health-record-data/', kahamaImports.import_health_record_data, name='import_health_record_data'),
+        path('import-remote-company-data/', kahamaImports.import_remote_company_data, name='import_remote_company_data'),
+        path('import-pathodology-record-data/', kahamaImports.import_pathodology_record_data, name='import_pathodology_record_data'),
+        path('import-remote-service-data/', kahamaImports.import_remote_service_data, name='import_remote_service_data'),
+        path('import-country-data/', kahamaImports.import_country_data, name='import_country_data'),
+]       
+

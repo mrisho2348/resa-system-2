@@ -4,16 +4,9 @@ from django.db.models.signals import post_save,pre_save
 from django.dispatch import receiver
 
 
-from .models import AmbulanceOrder, Consultation, ConsultationNotification, ConsultationOrder, DeductionOrganization, EmployeeDeduction, ImagingRecord, InventoryItem, LaboratoryOrder, MedicationPayment, MedicineInventory, Order, Prescription, Procedure, Reagent, ReagentUsage, RemotePrescription, SalaryChangeRecord, SalaryPayment, UsageHistory
+from .models import AmbulanceOrder, Consultation, ConsultationNotification, ConsultationOrder, DeductionOrganization, EmployeeDeduction, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineInventory, Order, Prescription, Procedure, Reagent, ReagentUsage, RemotePrescription, SalaryChangeRecord, SalaryPayment, UsageHistory
 from django.db.models import F
 from django.db import models
-
-@receiver(post_save, sender=MedicationPayment)
-def update_inventory(sender, instance, **kwargs):
-    if kwargs.get('created', False) or kwargs.get('update_fields', None):
-        # Use F() expression to perform the update in the database
-        MedicineInventory.objects.filter(medicine=instance.medicine).update(remain_quantity=F('remain_quantity') - instance.quantity)
-        
 
 
 @receiver(post_save, sender=Consultation)

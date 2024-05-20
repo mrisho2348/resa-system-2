@@ -4,9 +4,9 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.db import IntegrityError
 import openpyxl
-from clinic.models import AmbulanceActivity, AmbulanceRoute, Category, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance, HealthIssue, InsuranceCompany, InventoryItem, Medicine, PathodologyRecord, PatientVital, Patients, Prescription, Procedure, Reagent, Referral, RemoteCompany, Service, Staffs, Supplier
+from clinic.models import AmbulanceActivity, AmbulanceRoute, Category, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance,  InsuranceCompany, InventoryItem, Medicine, PathodologyRecord, PatientVital, Patients, Prescription, Procedure, Reagent, Referral, RemoteCompany, Service, Staffs, Supplier
 
-from .resources import AmbulanceActivityResource, AmbulanceRouteResource, CategoryResource, CompanyResource, ConsultationNotesResource, DiagnosisResource, DiseaseRecodeResource, EquipmentMaintenanceResource, EquipmentResource, HealthIssueResource, InsuranceCompanyResource, InventoryItemResource, MedicineResource, MedicineRouteResource, MedicineUnitMeasureResource, PathologyRecordResource, PatientVitalResource, PatientsResource, PrescriptionFrequencyResource, PrescriptionResource, ProcedureResource, ReagentResource, ReferralResource, ServiceResource, SupplierResource
+from .resources import AmbulanceActivityResource, AmbulanceRouteResource, CategoryResource, CompanyResource, ConsultationNotesResource, DiagnosisResource, DiseaseRecodeResource, EquipmentMaintenanceResource, EquipmentResource, InsuranceCompanyResource, InventoryItemResource, MedicineResource, MedicineRouteResource, MedicineUnitMeasureResource, PathologyRecordResource, PatientVitalResource, PatientsResource, PrescriptionFrequencyResource, PrescriptionResource, ProcedureResource, ReagentResource, ReferralResource, ServiceResource, SupplierResource
 from .forms import ImportAmbulanceActivityForm, ImportAmbulanceRouteForm, ImportCategoryForm, ImportCompanyForm, ImportConsultationNotesForm, ImportDiagnosisForm, ImportDiseaseForm, ImportEquipmentForm, ImportEquipmentMaintenanceForm, ImportHealthIssueForm, ImportInsuranceCompanyForm, ImportInventoryItemForm, ImportMedicineForm, ImportMedicineRouteForm, ImportMedicineUnitMeasureForm, ImportPathologyRecordForm, ImportPatientVitalForm, ImportPatientsForm, ImportPrescriptionForm, ImportPrescriptionFrequencyForm, ImportProcedureForm, ImportReagentForm, ImportReferralForm, ImportServiceForm, ImportSupplierForm
 from tablib import Dataset
 from django.contrib.auth.decorators import login_required
@@ -339,43 +339,7 @@ def import_reagent(request):
 
     return render(request, 'hod_template/import_reagent.html', {'form': form})
 
-@login_required  
-def import_health_issue(request):
-    if request.method == 'POST':
-        form = ImportHealthIssueForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                resource = HealthIssueResource()
-                new_health = request.FILES['health_records_file']
-                
-                # Use tablib to load the imported data
-                dataset = Dataset()
-                imported_data = dataset.load(new_health.read(), format='xlsx')  # Assuming you are using xlsx, adjust accordingly
 
-                for data in imported_data:
-                     health_record = HealthIssue(
-                        name=data[0],
-                        description=data[1],
-                        is_disease=data[2],
-                        severity=data[3],
-                        treatment_plan=data[4],
-                        onset_date=data[5],
-                        resolution_date=data[6],
-                      
-                       
-                  
-                      
-                    )
-                     health_record.save()
-
-                return redirect('clinic:health_issue_list') 
-            except Exception as e:
-                messages.error(request, f'An error occurred: {e}')
-
-    else:
-        form = ImportHealthIssueForm()
-
-    return render(request, 'hod_template/import_health.html', {'form': form})
 
 
 @login_required  

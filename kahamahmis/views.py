@@ -23,15 +23,13 @@ from django.core.mail import send_mail
 from clinic.emailBackEnd import EmailBackend
 from django.core.exceptions import ObjectDoesNotExist
 from clinic.forms import ImportStaffForm, RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm
-from clinic.models import ChiefComplaint, Counseling, FamilyMedicalHistory, ImagingRecord, LaboratoryOrder,  Consultation, ContactDetails, Country, CustomUser, DiseaseRecode, InsuranceCompany, Medicine, MedicineInventory, Notification, NotificationMedicine, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, Patients, PrescriptionFrequency, PrimaryPhysicalExamination, Procedure, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination, ServiceRequest,Staffs
+from clinic.models import ChiefComplaint, Counseling, FamilyMedicalHistory, ContactDetails, Country, CustomUser, DiseaseRecode, InsuranceCompany, Medicine, MedicineInventory, Notification, NotificationMedicine, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, Patients, PrescriptionFrequency, PrimaryPhysicalExamination,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
 from clinic.resources import StaffResources
 from tablib import Dataset
 from django.db.models import Sum
-from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import OuterRef, Subquery
-from clinic.models import Category, ConsultationFee, ConsultationNotes, Diagnosis, DiagnosticTest, Diagnosis, Equipment, EquipmentMaintenance, HealthIssue, InventoryItem, MedicationPayment, PathologyDiagnosticTest, PatientDisease, PatientVisits, PatientVital, Prescription, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral,  Sample, Service, Supplier, UsageHistory
+from clinic.models import Category,  Diagnosis,  Diagnosis, Equipment, EquipmentMaintenance,  InventoryItem,  Patients,  Reagent, ReagentUsage, Referral,  Service, Supplier, UsageHistory
 
 
 
@@ -268,13 +266,7 @@ def manage_insurance(request):
 def resa_report(request):
     return render(request,"kahama_template/resa_reports.html")
 
-@login_required
-def manage_service(request):
-    services=Service.objects.all()
-    context = {
-        'services':services
-    }
-    return render(request,"kahama_template/manage_service.html",context)
+
 
 def manage_adjustment(request):
     return render(request,"kahama_template/manage_adjustment.html")
@@ -616,20 +608,7 @@ def edit_meeting(request, appointment_id):
 
     return redirect('kahamahmis:appointment_list')
 
-@login_required
-def medicine_list(request):
-    # Retrieve medicines and check for expired ones
-    medicines = Medicine.objects.all()
-    expired_medicines = medicines.filter(expiration_date__lt=timezone.now())
 
-    # Create notifications for expired medicines
-    for medicine in expired_medicines:
-        message = f"The medicine '{medicine.name}' has expired."
-        NotificationMedicine.objects.create(user=request.user, message=message)
-    # Get unread notifications
-    unread_notifications = NotificationMedicine.objects.filter(user=request.user, is_read=False)
-    # Render the template with medicine data and notifications
-    return render(request, 'kahama_template/manage_medicine.html', {'medicines': medicines, 'unread_notifications': unread_notifications})
 
 @csrf_exempt
 @login_required
@@ -1011,43 +990,19 @@ def add_pathodology_record(request):
     try:
         if request.method == 'POST':
             name = request.POST.get('Name')
-            description = request.POST.get('Description')
-            related_diseases_ids = request.POST.getlist('RelatedDiseases')
+            description = request.POST.get('Description')       
 
             # Save data to the model
             pathodology_record = PathodologyRecord.objects.create(
                 name=name,
                 description=description
             )
-
-            # Add related diseases
-            for disease_id in related_diseases_ids:
-                disease = DiseaseRecode.objects.get(pk=disease_id)
-                pathodology_record.related_diseases.add(disease)
-
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error': 'Invalid request method'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
-    
-
-
- 
-@login_required
-def pathology_diagnostic_test_list(request):
-    Pathology_diagnostic_tests = PathologyDiagnosticTest.objects.all()
-    pathology_records=PathodologyRecord.objects.all() 
-    diagnostic_tests = DiagnosticTest.objects.all()
-    return render(request, 'kahama_template/manage_pathology_diagnostic_test_list.html', {
-        'Pathology_diagnostic_tests': Pathology_diagnostic_tests,
-        'pathology_records': pathology_records,
-        'diagnostic_tests': diagnostic_tests,
-        }) 
-
-
-
-
+  
 
 def save_service_data(request):
     if request.method == 'POST':
@@ -1610,70 +1565,6 @@ def add_reagent_used(request):
         return JsonResponse({'status': 'error', 'message': str(e)})
     
 
-
-
-@login_required    
-def health_issue_list(request):
-    health_issues = HealthIssue.objects.all()
-    return render(request, 'kahama_template/manage_health_issues.html', {'health_issues': health_issues})       
-
-@csrf_exempt     
-@require_POST
-def add_health_issue(request):
-    try:
-        health_id = request.POST.get('health_id')
-        name = request.POST.get('name')
-        description = request.POST.get('description')
-        is_disease = request.POST.get('is_disease')
-        severity = request.POST.get('severity')
-        treatment_plan = request.POST.get('treatment_plan')
-        onset_date = request.POST.get('onset_date')
-        resolution_date = request.POST.get('resolution_date')
-
-        if health_id:
-            # Editing existing HealthIssue item
-            health_issue = HealthIssue.objects.get(pk=health_id)
-            health_issue.name = name
-            health_issue.description = description
-            health_issue.is_disease = bool(is_disease)
-            health_issue.onset_date =  onset_date            
-            health_issue.severity = severity
-            health_issue.treatment_plan = treatment_plan
-            health_issue.resolution_date = resolution_date
-                            
-            health_issue.save()
-        else:
-            # Adding new HealthIssue item
-            health_issue = HealthIssue(
-            name=name,
-            description=description,
-            is_disease=bool(is_disease),
-            severity=severity,
-            onset_date=onset_date,
-            treatment_plan=treatment_plan,
-            resolution_date=resolution_date
-                          
-               
-            )
-            health_issue.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-    
- 
-def fetch_model_data(request):
-    selected_option = request.GET.get('selected_option')
-    data = []
-
-    if selected_option == 'disease':
-        data = list(DiseaseRecode.objects.values_list('id', 'disease_name'))
-    elif selected_option == 'pathology':
-        data = list(PathodologyRecord.objects.values_list('id', 'name'))
-    elif selected_option == 'health_issue':
-        data = list(HealthIssue.objects.values_list('id', 'name'))
-
-    return JsonResponse({'data': data})    
 
 @login_required
 def patient_visit_history_view(request, patient_id):

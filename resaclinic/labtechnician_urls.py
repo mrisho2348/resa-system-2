@@ -19,7 +19,7 @@ urlpatterns = [
         path('all_orders_view/', LabTechnicianView.all_orders_view, name='lab_all_orders_view'),
         path('save_edited_patient/',LabTechnicianView.save_edited_patient, name="lab_save_edited_patient"),
         
-        path('fetch_model_data/', LabTechnicianView.fetch_model_data, name='lab_fetch_model_data'),
+        
         path('manage_laboratory/', LabTechnicianView.manage_laboratory, name='lab_manage_laboratory'),
         path('save_consultation_data/', LabTechnicianView.save_consultation_data, name='lab_save_consultation_data'),
       
@@ -74,8 +74,7 @@ urlpatterns = [
               
         # edit urls              
         path('pathodology/<int:pathodology_id>/edit/', editView.edit_pathodology, name='lab_edit_pathodology'),    
-        path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='lab_update_consultation_data'),         
-        path('update_consultation_fee/', editView.update_consultation_fee, name='lab_update_consultation_fee'), 
+        path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='lab_update_consultation_data'),        
         path('edit_procedure/', editView.edit_procedure, name='lab_edit_procedure'), 
         path('edit_referral/', editView.edit_referral, name='lab_edit_referral'), 
         path('Patient/<int:patient_id>/add/', LabTechnicianView.appointment_view, name='lab_appointment_view'), 

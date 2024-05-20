@@ -1,10 +1,6 @@
-
-
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render,get_object_or_404
-
-
-from .models import Category, Consultation, ConsultationFee, ConsultationNotes, Diagnosis, DiagnosticTest, DiseaseRecode, Equipment, EquipmentMaintenance, HealthIssue, HealthRecord, InsuranceCompany, InventoryItem, MedicationPayment, Medicine, MedicineInventory, PathodologyRecord, PathologyDiagnosticTest, PatientDisease, PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, Referral, RemoteCompany, RemotePatient, RemoteService, Sample, Service, Staffs, Supplier, UsageHistory
+from .models import Category, Consultation, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance, HealthRecord, InsuranceCompany, InventoryItem,  Medicine, MedicineInventory, PathodologyRecord,  PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, Referral, RemoteCompany, RemotePatient, RemoteService,  Service, Staffs, Supplier, UsageHistory
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -184,50 +180,7 @@ def delete_medicine_inventory(request, inventory_id):
     # Redirect to the medicine inventory page
     return redirect('clinic:medicine_inventory') 
 
-@require_POST
-def delete_patient_disease(request, patient_disease_id):
-    # Get the PatientDisease object
-    patient_disease = get_object_or_404(PatientDisease, pk=patient_disease_id)
 
-    # Perform deletion
-    patient_disease.delete()
-
-    # Redirect to the PatientDisease page
-    return redirect('clinic:patient_diseases_view') 
-
-@require_POST
-def delete_diagnostic_test(request, test_id):
-    # Get the MedicineInventory object
-    test = get_object_or_404(DiagnosticTest, pk=test_id)
-
-    # Perform deletion
-    test.delete()
-
-    # Redirect to the medicine inventory page
-    return redirect('clinic:diagnostic_tests')
- 
-@require_POST
-def delete_sample(request, sample_id):
-    # Get the MedicineInventory object
-    sample = get_object_or_404(Sample, pk=sample_id)
-
-    # Perform deletion
-    sample.delete()
-
-    # Redirect to the medicine inventory page
-    return redirect('clinic:sample_list') 
-
-@require_POST
-def pathology_diagnostic_test_delete(request, test_id):
-    # Get the PathologyDiagnosticTest object
-    pathology_diagnostic_test = get_object_or_404(PathologyDiagnosticTest, pk=test_id)
-
-    # Perform deletion
-    pathology_diagnostic_test.delete()
-
-    # Redirect to the PathologyDiagnosticTest  page
-    return redirect('clinic:pathology_diagnostic_test_list')
- 
 @require_POST
 def delete_consultation(request, appointment_id):
     # Get the Consultation object
@@ -239,16 +192,6 @@ def delete_consultation(request, appointment_id):
     # Redirect to the Consultation  page
     return redirect('clinic:appointment_list')
  
-@require_POST
-def delete_consultation_fee(request, fee_id):
-    # Get the ConsultationFee object
-    consultation_fee = get_object_or_404(ConsultationFee, pk=fee_id)
-
-    # Perform deletion
-    consultation_fee.delete()
-
-    # Redirect to the ConsultationFee  page
-    return redirect('clinic:consultation_fee_list') 
 
 @require_POST
 def delete_service(request):
@@ -264,32 +207,7 @@ def delete_service(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-   
-@require_POST
-def delete_medication_payment(request, payment_id):
-    try:
-        # Get the MedicationPayment object
-        medication_payment = get_object_or_404(MedicationPayment, pk=payment_id)
-
-        # Store the quantity being deleted for later adjustment
-        deleted_quantity = medication_payment.quantity
-
-        with transaction.atomic():
-            # Perform deletion
-            medication_payment.delete()
-
-            # Adjust MedicineInventory
-            MedicineInventory.objects.filter(medicine=medication_payment.medicine).update(
-                remain_quantity=F('remain_quantity') + deleted_quantity
-            )
-
-        # Redirect to the MedicationPayment
-        return redirect('clinic:patient_medicationpayment_history_view_mrn', mrn=medication_payment.patient.mrn)
-
-    except MedicationPayment.DoesNotExist:
-        return HttpResponseBadRequest("MedicationPayment not found.")
-    
-
+ 
 @csrf_exempt      
 @require_POST
 def delete_category(request, category_id):
@@ -457,15 +375,7 @@ def delete_qualitycontrol(request, control_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}) 
     
-@csrf_exempt      
-@require_POST
-def delete_health_issue(request, health_issue_id):
-    try:
-        health_issue = get_object_or_404(HealthIssue, pk=health_issue_id)
-        health_issue.delete()
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}) 
+
        
 @csrf_exempt      
 @require_POST

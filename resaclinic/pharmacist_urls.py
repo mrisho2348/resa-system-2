@@ -1,9 +1,6 @@
 
 from django.urls import include, path
-
 from clinic import  PharmacistView, editView, imports
-
-
 
 urlpatterns = [
         path('save_prescription/<int:patient_id>/<int:visit_id>/', PharmacistView.save_prescription, name='pharmacist_save_prescription'),
@@ -91,8 +88,6 @@ urlpatterns = [
         path('import_disease_recode/', imports.import_disease_recode, name='pharmacist_import_disease_recode'), 
              
         # edit urls        
-       
-        path('edit-patient-disease-save/<int:patient_disease_id>/edit/', editView.edit_patient_disease_save, name='pharmacist_edit_patient_disease_save'),
         path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='pharmacist_update_consultation_data'), 
         path('Patient/<int:patient_id>/edit/', editView.edit_patient, name='pharmacist_edit_patient'),
         path('edit_procedure/', editView.edit_procedure, name='pharmacist_edit_procedure'), 

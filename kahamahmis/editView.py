@@ -2,10 +2,9 @@ from datetime import datetime
 import logging
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from clinic.models import Consultation, ConsultationFee, DiagnosticTest, DiseaseRecode, InsuranceCompany, MedicationPayment, MedicineInventory, PathodologyRecord, PathologyDiagnosticTest, PatientDisease, Patients, Medicine, Procedure, Referral, RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral, Sample, Staffs
+from clinic.models import DiseaseRecode, InsuranceCompany,  MedicineInventory, PathodologyRecord, Patients, Medicine, Procedure, Referral, RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral, Staffs
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import F

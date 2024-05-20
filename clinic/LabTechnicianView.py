@@ -16,7 +16,7 @@ from django.db.models import Q
 from clinic.models import  Consultation,  DiseaseRecode, Medicine, Notification,  PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import ConsultationNotes, ConsultationOrder,Country, Diagnosis,Diagnosis,HealthIssue, ImagingRecord, LaboratoryOrder, Order, PatientVisits, PatientVital, Prescription, Procedure, Patients,Service
+from .models import ConsultationNotes, ConsultationOrder,Country, Diagnosis, ImagingRecord, LaboratoryOrder, Order, PatientVisits, PatientVital, Prescription, Procedure, Patients,Service
 
 @login_required
 def labtechnician_dashboard(request):
@@ -1001,18 +1001,7 @@ def add_investigation(request):
     
        
  
-def fetch_model_data(request):
-    selected_option = request.GET.get('selected_option')
-    data = []
 
-    if selected_option == 'disease':
-        data = list(DiseaseRecode.objects.values_list('id', 'disease_name'))
-    elif selected_option == 'pathology':
-        data = list(PathodologyRecord.objects.values_list('id', 'name'))
-    elif selected_option == 'health_issue':
-        data = list(HealthIssue.objects.values_list('id', 'name'))
-
-    return JsonResponse({'data': data})    
 
 @login_required
 def patient_visit_history_view(request, patient_id):

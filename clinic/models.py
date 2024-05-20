@@ -202,8 +202,8 @@ class Service(models.Model):
 
 class MedicineUnitMeasure(models.Model):
     name = models.CharField(max_length=100)
-    short_name = models.CharField(max_length=20)
-    application_user = models.CharField(max_length=100)  # You may want to adjust the field type as per your application requirements
+    short_name = models.CharField(max_length=20,default="")  
+    application_user = models.CharField(max_length=100,default="")  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -243,7 +243,7 @@ class UsageHistory(models.Model):
     def __str__(self):
         return f"{self.usage_date} - {self.quantity_used} units"    
 class Category(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=255, unique=True)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -252,9 +252,9 @@ class Category(models.Model):
         return self.name    
         
 class Supplier(models.Model):
-    name = models.CharField(max_length=100)
-    address = models.CharField(max_length=100,blank=True, null=True)
-    contact_information = models.TextField(blank=True)
+    name = models.CharField(max_length=255, unique=True)  
+    address = models.CharField(max_length=100,default="")
+    contact_information = models.CharField(max_length=100,default="")
     email = models.EmailField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -264,8 +264,8 @@ class Supplier(models.Model):
         return self.name    
         
 class PathodologyRecord(models.Model):
-    name = models.CharField(max_length=255)    
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(max_length=255, unique=True)    
+    description = models.TextField(default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -274,9 +274,8 @@ class PathodologyRecord(models.Model):
     
     
 class DiseaseRecode(models.Model):
-    disease_name = models.CharField(max_length=255)
-    related_pathology_records = models.ManyToManyField(PathodologyRecord, blank=True)
-    code = models.TextField()
+    disease_name = models.CharField(max_length=255, unique=True)  
+    code = models.CharField(max_length=25,unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -303,9 +302,9 @@ class Patients(models.Model):
     # Auto-incremented primary key (ID)
     # The unique constraint for MRN is maintained separately
     mrn = models.CharField(max_length=20, unique=True, editable=False)
-    first_name = models.CharField(max_length=100, blank=True, null=True)
-    middle_name = models.CharField(max_length=100, blank=True, null=True)
-    last_name = models.CharField(max_length=100, blank=True, null=True)
+    first_name = models.CharField(max_length=100, default="")
+    middle_name = models.CharField(max_length=100,default="")
+    last_name = models.CharField(max_length=100, default="")
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])
     age = models.IntegerField(blank=True, null=True)
     dob = models.DateField(null=True, blank=True) 
@@ -318,11 +317,11 @@ class Patients(models.Model):
         ('Insurance', 'Insurance'),
     ]
     payment_form = models.CharField(max_length=255, choices=PAYMENT_CHOICES)
-    insurance_name = models.CharField(max_length=255, blank=True, null=True)
+    insurance_name = models.CharField(max_length=255,default="")
     insurance_number = models.CharField(max_length=255, blank=True, null=True)
-    emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
-    emergency_contact_relation = models.CharField(max_length=100, blank=True, null=True)    
-    emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    emergency_contact_name = models.CharField(max_length=100, default="")
+    emergency_contact_relation = models.CharField(max_length=100,default="")    
+    emergency_contact_phone = models.CharField(max_length=20,default="0657315955")
     marital_status = models.CharField(max_length=255)
     patient_type = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -362,7 +361,7 @@ def generate_mrn():
 
  
 class Country(models.Model):
-        name = models.CharField(max_length=100)
+        name = models.CharField(max_length=100,unique=True)
         created_at = models.DateTimeField(auto_now_add=True)
         updated_at = models.DateTimeField(auto_now=True)
         objects = models.Manager()        
@@ -700,76 +699,6 @@ class AmbulanceVehicleOrder(models.Model):
     def __str__(self):
         return f"{self.vehicle_type} - {self.organization}"
  
-class ConsultationFee(models.Model):
-    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)    
-    consultation = models.ForeignKey('Consultation', on_delete=models.SET_NULL, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    def __str__(self):
-        return f"Consultation fee of {self.fee_amount} for {self.doctor.name} by {self.patient.fullname} on {self.consultation_date}"
-    
-    
-class DiagnosticTest(models.Model):
-    # Unique identifier for DiagnosticTest
-    test_id = models.CharField(max_length=12, unique=True, editable=False)
-    patient = models.ForeignKey('Patients', on_delete=models.CASCADE, related_name='diagnostic_tests')
-    test_type = models.CharField(max_length=255)
-    test_date = models.DateField()
-    result = CKEditor5Field(config_name='extends',blank=True, null=True)   
-    # Additional Fields for Diseases
-    diseases = models.ManyToManyField(DiseaseRecode)
-    health_issues = models.ManyToManyField('HealthIssue')
-    pathology_record = models.ForeignKey(PathodologyRecord, on_delete=models.SET_NULL, blank=True, null=True)
-    def save(self, *args, **kwargs):
-        # Generate a unique identifier based on count of existing records
-        if not self.test_id:
-            self.test_id = generate_test_id()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.test_type} for {self.patient.fullname} on {self.test_date}"
-
-def generate_test_id():
-    # Retrieve the last diagnostic test from the database
-    last_test = DiagnosticTest.objects.last()
-
-    # Extract the numeric part from the last TID, or start from 0 if there are no tests yet
-    last_test_number = int(last_test.test_id.split('-')[-1]) if last_test else 0
-
-    # Increment the numeric part for the new test
-    new_test_number = last_test_number + 1
-
-    # Format the TID with leading zeros and concatenate with the prefix "TID-"
-    new_test_id = f"TID-{new_test_number:05d}"
-
-    return new_test_id
-      
-class Sample(models.Model):
-    sample_id = models.CharField(max_length=12, unique=True, editable=False)
-    lab_test = models.ForeignKey(DiagnosticTest, on_delete=models.CASCADE, related_name='samples')
-    collection_date = models.DateField(null=True, blank=True)
-    processing_date = models.DateField(null=True, blank=True)
-    analysis_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=[('collected', 'Collected'), ('processing', 'Processing'), ('analyzed', 'Analyzed')], default='collected')
-
-
-    def save(self, *args, **kwargs):
-        # Generate a unique identifier based on count of existing records
-        if not self.sample_id:
-            self.sample_id = generate_sample_id()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Sample {self.sample_id} - {self.lab_test.test_type} - {self.status}"
-
-def generate_sample_id():
-    last_sample = Sample.objects.last()
-    last_sample_number = int(last_sample.sample_id.split('-')[-1]) if last_sample else 0
-    new_sample_number = last_sample_number + 1
-    return f"SMP-{new_sample_number:05d}"    
 
 
 class PrescriptionFrequency(models.Model):
@@ -1083,67 +1012,6 @@ class Prescription(models.Model):
     def __str__(self):
         return f"{self.patient.first_name} - {self.medicine.name}"  # Accessing drug's name   
     
-    
-
-class PathologyDiagnosticTest(models.Model):
-    pathology_record = models.ForeignKey(PathodologyRecord, on_delete=models.CASCADE, related_name='diagnostic_tests')
-    diagnostic_test = models.ForeignKey(DiagnosticTest, on_delete=models.CASCADE)
-    
-    # Additional fields
-    test_result = models.TextField(blank=True, null=True)
-    testing_date = models.DateField(blank=True, null=True)
-    conducted_by = models.CharField(max_length=255, blank=True, null=True)
-    def __str__(self):
-        return f"{self.pathology_record.name} - {self.diagnostic_test.test_type}"    
-class MedicationPayment(models.Model):
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE, null=True, blank=True)
-    non_registered_patient_name = models.CharField(max_length=255, null=True, blank=True)
-    non_registered_patient_email = models.EmailField(null=True, blank=True)
-    non_registered_patient_phone = models.CharField(max_length=15, null=True, blank=True)
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_date = models.DateField()
-
-    def __str__(self):
-        patient_info = self.patient.fullname if self.patient else f"Non-Registered: {self.non_registered_patient_name}"
-        return f"Payment of {self.amount} for {self.quantity} {self.medicine.name}(s) by {patient_info} on {self.payment_date}"
-
-class PatientDisease(models.Model):
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE, related_name='diseases')
-    disease_record = models.ForeignKey(DiseaseRecode, on_delete=models.CASCADE)    
-    # Additional fields related to the patient's diagnosis
-    diagnosis_date = models.DateField()
-    severity = models.CharField(max_length=50)
-    treatment_plan = models.TextField(blank=True, null=True)
-    # Add more fields as needed    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return f"{self.patient.fullname} - {self.disease_record.disease_name} ({self.diagnosis_date})"
-    
-
-    
-   
-class HealthIssue(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
-    is_disease = models.BooleanField(default=True)    
-    # Additional fields
-    severity = models.CharField(max_length=50, blank=True, null=True)
-    treatment_plan = models.TextField(blank=True, null=True)
-    onset_date = models.DateField(blank=True, null=True)
-    resolution_date = models.DateField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    # Add more fields as needed
-    
-    def __str__(self):
-        return self.name
-      
 class Equipment(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)  # Description of the equipment
@@ -1251,12 +1119,12 @@ class Company(models.Model):
    
 
 class RemoteCompany(models.Model):
-    name = models.CharField(max_length=255)
-    industry = models.CharField(max_length=50, default="Unspecified", null=True)
-    sector = models.CharField(max_length=50, default="Unspecified", null=True)
-    headquarters = models.CharField(max_length=100, default="Unspecified", null=True)
-    Founded = models.CharField(max_length=10,null=True, default="Unspecified",)
-    Notes = models.TextField(max_length=100, null=True)
+    name =  models.CharField(max_length=255, unique=True)
+    industry = models.CharField(max_length=50, default="")
+    sector = models.CharField(max_length=50, default="")
+    headquarters = models.CharField(max_length=100, default="")
+    Founded = models.CharField(max_length=10, default="")
+    Notes = models.TextField(max_length=100, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -1285,7 +1153,7 @@ class PatientSurgery(models.Model):
         return f"{self.surgery_name} - {self.surgery_date}"  
  
 class HealthRecord(models.Model):    
-    name = models.TextField()
+    name = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -1337,7 +1205,7 @@ def generate_for_remote_mrn():
 class RemotePatient(models.Model):
     mrn = models.CharField(max_length=20, unique=True, editable=False, verbose_name='MRN')
     first_name = models.CharField(max_length=100)
-    middle_name = models.CharField(max_length=100, blank=True, null=True)
+    middle_name = models.CharField(max_length=100, default="")
     last_name = models.CharField(max_length=100)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])
     age = models.IntegerField(blank=True, null=True)
@@ -1398,8 +1266,8 @@ class FamilyMedicalHistory(models.Model):
         return f"{self.patient} - {self.condition}"
             
 class RemoteService(models.Model):
-    name = models.CharField(max_length=100)  
-    description = models.TextField( null=True, blank=True,)
+    name = models.CharField(max_length=225,unique=True)  
+    description = models.TextField(default="")
     category = models.CharField(max_length=50, null=True, blank=True,)   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1408,29 +1276,7 @@ class RemoteService(models.Model):
     def __str__(self):
         return f"{self.name}-{self.category}"
     
-    
 
-    
-class ServiceRequest(models.Model):
-    STATUS_CHOICES = (
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
-        ('Rejected', 'Rejected'),
-    )
-
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
-    visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)
-    service = models.ForeignKey(RemoteService, on_delete=models.CASCADE)
-    date_requested = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
-    result = CKEditor5Field(config_name='extends',blank=True, null=True)   
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return f"{self.patient} - {self.service} ({self.status})"    
-
-    
 class RemotePatientVital(models.Model):
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)  

@@ -4,9 +4,7 @@ from django.urls import include, path
 from clinic import DoctorView, delete, editView, imports
 
 
-urlpatterns = [
-     
-   
+urlpatterns = [     
         path('doctor_dashboard/', DoctorView.doctor_dashboard, name='doctor_dashboard'),
         path('fetch_lab_order_counts_view/', DoctorView.fetch_lab_order_counts_view, name='fetch_lab_order_counts_view'),
         path('patient_lab_view/', DoctorView.patient_lab_view, name='patient_lab_view'),
@@ -32,10 +30,8 @@ urlpatterns = [
         path('add_prescription/',DoctorView.add_prescription, name="add_prescription"),
         path('save_edited_patient/',DoctorView.save_edited_patient, name="save_edited_patient"),
         path('add_patient_visit/',DoctorView.add_patient_visit, name="add_patient_visit"),
-        path('fetch_model_data/', DoctorView.fetch_model_data, name='fetch_model_data'),
         path('manage_laboratory/', DoctorView.manage_laboratory, name='manage_laboratory'),
         path('save_consultation_data/', DoctorView.save_consultation_data, name='save_consultation_data'),
-        path('save_consultation_fee/', DoctorView.save_consultation_fee, name='save_consultation_fee'),
         path('add_pathodology_record/', DoctorView.add_pathodology_record, name='add_pathodology_record'),
         path('add_remotepatient_visit', DoctorView.add_remotepatient_visit, name='add_remotepatient_visit'),  # Move this line here
         path('add_patient/', DoctorView.add_patient, name='add_patient'),
@@ -78,7 +74,6 @@ urlpatterns = [
         path('resa/patient-procedure-view/', DoctorView.patient_procedure_view, name='patient_procedure_view'),
         path('resa/all-patients',DoctorView.manage_patient, name="manage_patient"),
         path('resa/consultation-queue',DoctorView.manage_consultation, name="manage_consultation"),
-        path('consultation-fees/', DoctorView.consultation_fee_list, name='consultation_fee_list'),       
         path('resa/manage-pathodology',DoctorView.manage_pathodology, name="manage_pathodology"),
         path('resa/appointments/', DoctorView.appointment_list_view, name='appointment_list'),
         path('notifications/', DoctorView.notification_view, name='notification_view'),
@@ -104,7 +99,6 @@ urlpatterns = [
         # edit urls              
         path('pathodology/<int:pathodology_id>/edit/', editView.edit_pathodology, name='edit_pathodology'),    
         path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='update_consultation_data'),         
-        path('update_consultation_fee/', editView.update_consultation_fee, name='update_consultation_fee'), 
         path('edit_procedure/', editView.edit_procedure, name='edit_procedure'), 
         path('edit_referral/', editView.edit_referral, name='edit_referral'), 
         path('Patient/<int:patient_id>/add/', DoctorView.appointment_view, name='appointment_view'), 
@@ -115,7 +109,6 @@ urlpatterns = [
         path('delete_ConsultationNotes/<int:consultation_id>/', delete.delete_ConsultationNotes, name='delete_ConsultationNotes'),
         path('delete_patient_vital/<int:vital_id>/', delete.delete_patient_vital, name='delete_patient_vital'),
         path('delete_prescription/<int:prescription_id>/', delete.delete_prescription, name='delete_prescription'),
-        path('delete-consultation-fee/<int:fee_id>/', delete.delete_consultation_fee, name='delete_consultation_fee'),
         path('delete-consultation/<int:appointment_id>/', delete.delete_consultation, name='delete_consultation'),    
         path('pathodology/<int:pathodology_id>/delete/', delete.delete_pathodology, name='delete_pathodology'),     
         path('delete_remote_patient/<int:patient_id>/', delete.delete_remote_patient, name='delete_remote_patient'),

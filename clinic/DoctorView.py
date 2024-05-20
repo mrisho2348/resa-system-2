@@ -18,7 +18,7 @@ from django.core.exceptions import ValidationError
 from clinic.models import  Consultation,  DiseaseRecode, Medicine, Notification,  PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import ConsultationFee, ConsultationNotes, ConsultationNotification, ConsultationOrder, Counseling, Country, Diagnosis,Diagnosis,HealthIssue, ImagingRecord, InventoryItem,LaboratoryOrder, Order, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, Referral,Service
+from .models import ConsultationNotes, ConsultationNotification, ConsultationOrder, Counseling, Country, Diagnosis,Diagnosis, ImagingRecord, InventoryItem,LaboratoryOrder, Order, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, Referral,Service
 from django.views.decorators.http import require_GET
 
 @login_required
@@ -682,13 +682,6 @@ def generate_mrn():
     return new_mrn
 
 
-
-
-
-
-
-
-
 @require_POST
 def save_consultation_data(request):
     try:
@@ -720,54 +713,6 @@ def save_consultation_data(request):
         return redirect('appointment_list')
     except Exception as e:
         return HttpResponseBadRequest(f"Error: {str(e)}")
-
-@login_required
-def consultation_fee_list(request):
-    # Get distinct patients who have consultations
-    patients = Patients.objects.filter(consultation__isnull=False).distinct()
-
-    # Get distinct doctors who have consultations
-    doctors = Staffs.objects.filter(consultation__isnull=False).distinct()
-
-    # Get all consultation fees
-    consultation_fees = ConsultationFee.objects.all()
-
-    # Get all consultations
-    consultations = Consultation.objects.all()
-
-    return render(request, 'doctor_template/manage_consultation_fee_list.html', {
-        'consultation_fees': consultation_fees,
-        'patients': patients,
-        'doctors': doctors,
-        'consultations': consultations,
-    })
-
-@require_POST
-def save_consultation_fee(request):
-    try:
-        # Extract form data from the request
-        doctor_id = request.POST.get('doctor')
-        patient_id = request.POST.get('patient')
-        fee_amount = request.POST.get('feeAmount')
-        consultation_id = request.POST.get('consultation')
-
-        # Create ConsultationFee instance
-        consultation_fee = ConsultationFee.objects.create(
-            doctor=Staffs.objects.get(id=doctor_id),
-            patient=Patients.objects.get(id=patient_id),
-            fee_amount=fee_amount,
-            consultation=Consultation.objects.get(id=consultation_id),
-        )
-
-        # Return a JsonResponse to indicate success
-        return redirect('consultation_fee_list') 
-    except Exception as e:
-        # Return a JsonResponse with an error message
-        return HttpResponseBadRequest(f"Error: {str(e)}")  
-    
-    
-
-
 
 
 @csrf_exempt
@@ -1766,23 +1711,6 @@ def remotegenerate_vst():
 
     return new_vst 
  
-
-    
-
-
-   
-def fetch_model_data(request):
-    selected_option = request.GET.get('selected_option')
-    data = []
-
-    if selected_option == 'disease':
-        data = list(DiseaseRecode.objects.values_list('id', 'disease_name'))
-    elif selected_option == 'pathology':
-        data = list(PathodologyRecord.objects.values_list('id', 'name'))
-    elif selected_option == 'health_issue':
-        data = list(HealthIssue.objects.values_list('id', 'name'))
-
-    return JsonResponse({'data': data})    
 
 @login_required
 def patient_visit_history_view(request, patient_id):

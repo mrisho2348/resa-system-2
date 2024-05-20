@@ -78,8 +78,6 @@ urlpatterns = [
         path('import-referral-records/', imports.import_referral_records, name='receptionist_import_referral_records'), 
              
         # edit urls        
-       
-        path('edit-patient-disease-save/<int:patient_disease_id>/edit/', editView.edit_patient_disease_save, name='receptionist_edit_patient_disease_save'),
         path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='receptionist_update_consultation_data'), 
         path('Patient/<int:patient_id>/edit/', editView.edit_patient, name='receptionist_edit_patient'),
         path('edit_procedure/', editView.edit_procedure, name='receptionist_edit_procedure'), 

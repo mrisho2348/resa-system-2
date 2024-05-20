@@ -2,7 +2,7 @@
 
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render,get_object_or_404
-from clinic.models import Category,  Consultation, ConsultationFee, ConsultationNotes, Diagnosis, DiagnosticTest, DiseaseRecode, Equipment, EquipmentMaintenance, FamilyMedicalHistory, HealthIssue, InsuranceCompany, InventoryItem, MedicationPayment, Medicine, MedicineInventory, PathodologyRecord, PathologyDiagnosticTest, PatientDisease, PatientHealthCondition, PatientMedicationAllergy, PatientSurgery, PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral, Sample, Service, Staffs, Supplier, UsageHistory
+from clinic.models import Category,  ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance, FamilyMedicalHistory,  InsuranceCompany, InventoryItem,  Medicine, MedicineInventory, PathodologyRecord,  PatientHealthCondition, PatientMedicationAllergy, PatientSurgery, PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral,Service, Staffs,  UsageHistory
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -351,15 +351,7 @@ def delete_qualitycontrol(request, control_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}) 
     
-@csrf_exempt      
-@require_POST
-def delete_health_issue(request, health_issue_id):
-    try:
-        health_issue = get_object_or_404(HealthIssue, pk=health_issue_id)
-        health_issue.delete()
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}) 
+
        
 @csrf_exempt      
 @require_POST
