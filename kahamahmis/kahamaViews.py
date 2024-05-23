@@ -6,7 +6,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.contrib import messages
 from clinic.forms import RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm, YearSelectionForm
-from clinic.models import ChiefComplaint, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, Medicine, Notification, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
+from clinic.models import ChiefComplaint, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, Medicine, Notification, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.exceptions import ObjectDoesNotExist
@@ -130,8 +130,8 @@ def save_health_record(request):
     if request.method == 'POST':
         try:
             # Extract data from POST request
-            name = request.POST.get('name')
-            health_record_id = request.POST.get('health_record_id')  # Check if health record ID is provided
+            name = request.POST.get('name').strip()
+            health_record_id = request.POST.get('health_record_id')
             
             if health_record_id:  # If health record ID is provided, it's an edit operation
                 # Get the existing health record object
@@ -205,8 +205,9 @@ def get_chief_complaints(request):
 @csrf_exempt
 def save_chief_complaint(request):
     try:
+        # Ensure the request method is POST
         if request.method == 'POST':
-            # Extract data from the request
+            # Extract data from the POST request
             patient_id = request.POST.get('patient_id')
             visit_id = request.POST.get('visit_id')
             health_record_id = request.POST.get('chief_complain_name')
@@ -222,16 +223,17 @@ def save_chief_complaint(request):
 
             # Set the appropriate fields based on the provided data
             if health_record_id == "other":
-                if ChiefComplaint.objects.filter(visit_id=visit_id,other_complaint=other_chief_complaint).exists():
-                    return JsonResponse({'error': 'A ChiefComplaint with the same health record already exists for this visit'}, status=400)
+                # Check if a ChiefComplaint with the same other_complaint already exists for the given visit_id
+                if ChiefComplaint.objects.filter(visit_id=visit_id, other_complaint=other_chief_complaint).exists():
+                    return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name already exists for this patient'})
                 chief_complaint.other_complaint = other_chief_complaint
             else:
                 # Check if a ChiefComplaint with the same health_record_id already exists for the given visit_id
                 if ChiefComplaint.objects.filter(health_record_id=health_record_id, visit_id=visit_id).exists():
-                    return JsonResponse({'error': 'A ChiefComplaint with the same health record already exists for this visit'}, status=400)
-               
+                    return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name  already exists for this patient'})
                 chief_complaint.health_record_id = health_record_id          
 
+            # Save the ChiefComplaint object
             chief_complaint.save()
 
             # Initialize health_record_data to None
@@ -245,21 +247,23 @@ def save_chief_complaint(request):
             
             # Return the saved data as a JSON response
             response_data = {
+                'status': True,
                 'id': chief_complaint.id,
                 'health_record': health_record_data,
                 'duration': chief_complaint.duration,
             }
 
+            # Include other_complaint in the response data if present
             if other_chief_complaint:
                 response_data['other_complaint'] = other_chief_complaint
 
-            return JsonResponse(response_data, status=200)
+            return JsonResponse(response_data)
 
         # If request method is not POST, return an error response
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+        return JsonResponse({'status': False, 'message': 'Invalid request method'})
     except Exception as e:
         # Catch any exceptions and return an error response
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'status': False, 'message': str(e)})
 
 def fetch_existing_data(request):
     try:
@@ -419,7 +423,8 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     range_301 = range(301)
     range_101 = range(101)
     range_15 = range(3, 16)
-    temps = np.arange(start=0, stop=51, step=0.1)
+    integer_range = np.arange(start=0, stop=510, step=1)
+    temps = integer_range / 10
     
     context = {
         'secondary_examination': secondary_examination,
@@ -1842,16 +1847,16 @@ def add_remote_medicine(request):
         try:
             # Retrieve data from POST request
             drug_id = request.POST.get('drug_id')
-            drug_name = request.POST.get('drug_name')
-            drug_type = request.POST.get('drug_type')
-            formulation_unit = request.POST.get('formulation_unit')
-            manufacturer = request.POST.get('manufacturer')
-            quantity = request.POST.get('quantity')
+            drug_name = request.POST.get('drug_name').strip()
+            drug_type = request.POST.get('drug_type').strip()
+            formulation_unit = request.POST.get('formulation_unit').strip()
+            manufacturer = request.POST.get('manufacturer').strip()
+            quantity = request.POST.get('quantity').strip()
             dividable = request.POST.get('dividable')
-            batch_number = request.POST.get('batch_number')
+            batch_number = request.POST.get('batch_number').strip()
             expiration_date = request.POST.get('expiration_date')
-            unit_cost = request.POST.get('unit_cost')
-            buying_price = request.POST.get('buying_price')
+            unit_cost = request.POST.get('unit_cost').strip()
+            buying_price = request.POST.get('buying_price').strip()
             
             # Check if required fields are provided
             if not (drug_name and quantity and buying_price):
@@ -1889,8 +1894,7 @@ def add_remote_medicine(request):
                 medicine.buying_price = buying_price
                 
                 # Save the changes
-                medicine.save()
-                
+                medicine.save()                
                 # Return success response
                 return JsonResponse({'success': True, 'message': 'Medicine updated successfully'})
             
@@ -1917,15 +1921,13 @@ def add_remote_medicine(request):
                 )
                 
                 # Save the object
-                medicine.save()
-                
+                medicine.save()                
                 # Return success response
                 return JsonResponse({'success': True, 'message': 'Medicine added successfully'})
         
         except Exception as e:
             # Return error response if an exception occurs
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-
     # If request method is not POST, return error response
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
@@ -1935,16 +1937,16 @@ def add_remote_medicine(request):
 def company_registration_view(request, company_id=None):
     try:
         if request.method == 'POST':
-            name = request.POST.get('name')
+            name = request.POST.get('name').strip()
             registration_number = request.POST.get('registration_number')
-            address = request.POST.get('address')
-            city = request.POST.get('city')
-            state = request.POST.get('state')
-            country = request.POST.get('country')
-            postal_code = request.POST.get('postal_code')
-            phone_number = request.POST.get('phone_number')
-            email = request.POST.get('email')
-            website = request.POST.get('website')
+            address = request.POST.get('address').strip()
+            city = request.POST.get('city').strip()
+            state = request.POST.get('state').strip()
+            country = request.POST.get('country').strip()
+            postal_code = request.POST.get('postal_code').strip()
+            phone_number = request.POST.get('phone_number').strip()
+            email = request.POST.get('email').strip()
+            website = request.POST.get('website').strip()
             logo = request.FILES.get('logo') if 'logo' in request.FILES else None
 
             if company_id:  # Editing existing record
@@ -2098,6 +2100,157 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
     context['form'] = form    
     return render(request, 'kahama_template/edit_procedure_result.html', context)
 
-    
+@login_required
+def remote_equipment_list(request):
+    equipment_list = RemoteEquipment.objects.all()
+    return render(request, 'kahama_template/remote_equipment_list.html', {'equipment_list': equipment_list})
+
+
+@login_required    
+@csrf_exempt
+def add_or_edit_remote_equipment(request):
+    if request.method == 'POST':
+        data = request.POST
+        equipment_id = data.get('equipment_id')
+        name = data.get('name').strip()
+        description = data.get('description', '')
+        serial_number = data.get('serial_number').strip()
+        manufacturer = data.get('manufacturer', '')
+        purchase_date = data.get('purchase_date')
+        warranty_expiry_date = data.get('warranty_expiry_date', None)
+        location = data.get('location', '')
+        status = data.get('status', 'Operational')
+
+        # Check for uniqueness
+        try:
+            if equipment_id:
+                # Edit existing record
+                equipment = RemoteEquipment.objects.get(id=equipment_id)
+                if RemoteEquipment.objects.exclude(id=equipment_id).filter(name=name).exists():
+                    return JsonResponse({'status': 'false', 'message': 'Equipment with this name already exists.'})
+                if RemoteEquipment.objects.exclude(id=equipment_id).filter(serial_number=serial_number).exists():
+                    return JsonResponse({'status': 'false', 'message': 'Equipment with this serial number already exists.'})
+
+                equipment.name = name
+                equipment.description = description
+                equipment.serial_number = serial_number
+                equipment.manufacturer = manufacturer
+                equipment.purchase_date = purchase_date
+                equipment.warranty_expiry_date = warranty_expiry_date
+                equipment.location = location
+                equipment.status = status
+                equipment.save()
+                return JsonResponse({'status': 'true', 'message': 'Equipment updated successfully!'})
+            else:
+                # Add new record
+                if RemoteEquipment.objects.filter(name=name).exists():
+                    return JsonResponse({'status': 'false', 'message': 'Equipment with this name already exists.'})
+                if RemoteEquipment.objects.filter(serial_number=serial_number).exists():
+                    return JsonResponse({'status': 'false', 'message': 'Equipment with this serial number already exists.'})
+
+                RemoteEquipment.objects.create(
+                    name=name,
+                    description=description,
+                    serial_number=serial_number,
+                    manufacturer=manufacturer,
+                    purchase_date=purchase_date,
+                    warranty_expiry_date=warranty_expiry_date,
+                    location=location,
+                    status=status
+                )
+                return JsonResponse({'status': 'true', 'message': 'Equipment added successfully!'})
+        except RemoteEquipment.DoesNotExist:
+            return JsonResponse({'status': 'false', 'message': 'Equipment not found.'})
+        except Exception as e:
+            return JsonResponse({'status': 'false', 'message': str(e)})
+
+    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
+
+
+@login_required
+@csrf_exempt
+def delete_remote_equipment(request):
+    if request.method == 'POST':
+        equipment_id = request.POST.get('id')
         
+        try:
+            equipment = RemoteEquipment.objects.get(id=equipment_id)
+            equipment.delete()
+            return JsonResponse({'status': 'true', 'message': 'Equipment deleted successfully!'})
+        except RemoteEquipment.DoesNotExist:
+            return JsonResponse({'status': 'false', 'message': 'Equipment not found.'})
+        except Exception as e:
+            return JsonResponse({'status': 'false', 'message': str(e)})
+    
+    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
+
+
+
+@login_required
+def reagent_list(request):
+    reagent_list = RemoteReagent.objects.all()
+    return render(request, 'kahama_template/remotereagent_list.html', {'reagent_list': reagent_list})
+
+@login_required    
+@csrf_exempt
+def add_or_edit_reagent(request):
+    if request.method == 'POST':
+        data = request.POST  # Using request.POST for form data
+        reagent_id = data.get('reagent_id')
+        name = data.get('name').strip()
+        supplier = data.get('supplier', '')
+        quantity = data.get('quantity')
+        expiry_date = data.get('expiry_date')
+        storage_conditions = data.get('storage_conditions', '')
+
+        try:
+            # Check for uniqueness before creating or updating
+            if reagent_id:
+                # Edit existing record
+                existing_reagent = RemoteReagent.objects.exclude(id=reagent_id).filter(name=name)
+                if existing_reagent.exists():
+                    return JsonResponse({'status': 'false', 'message': 'A reagent with the same name  already exists.'})
+                reagent = RemoteReagent.objects.get(id=reagent_id)
+                reagent.name = name
+                reagent.supplier = supplier
+                reagent.quantity = quantity
+                reagent.expiry_date = expiry_date
+                reagent.storage_conditions = storage_conditions
+                reagent.save()
+                return JsonResponse({'status': 'true', 'message': 'Reagent updated successfully!'})
+            else:
+                # Add new record
+                existing_reagent = RemoteReagent.objects.filter(name=name)
+                if existing_reagent.exists():
+                    return JsonResponse({'status': 'false', 'message': 'A reagent with the same name  already exists.'})
+                RemoteReagent.objects.create(
+                    name=name,
+                    supplier=supplier,
+                    quantity=quantity,
+                    expiry_date=expiry_date,
+                    storage_conditions=storage_conditions
+                )
+                return JsonResponse({'status': 'true', 'message': 'Reagent added successfully!'})
+        except Exception as e:
+            return JsonResponse({'status': 'false', 'message': str(e)})
+
+    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
+
+@login_required
+@csrf_exempt
+def delete_reagent(request):
+    if request.method == 'POST':
+        reagent_id = request.POST.get('id')
+
+        try:
+            # Check if the reagent exists
+            reagent = RemoteReagent.objects.get(id=reagent_id)
+            reagent.delete()
+            return JsonResponse({'status': 'true', 'message': 'Reagent deleted successfully'})
+        except RemoteReagent.DoesNotExist:
+            return JsonResponse({'status': 'false', 'message': 'Reagent does not exist'})
+        except Exception as e:
+            return JsonResponse({'status': 'false', 'message': str(e)})
+
+    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
     

@@ -1280,41 +1280,29 @@ class RemoteService(models.Model):
 class RemotePatientVital(models.Model):
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)  
-    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
+    doctor = models.ForeignKey('Staffs', on_delete=models.CASCADE, blank=True, null=True)
     recorded_at = models.DateTimeField(auto_now_add=True)
     respiratory_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Respiratory rate in breaths per minute")
     pulse_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Pulse rate in beats per minute")
-    sbp = models.CharField(max_length=20, null=True, blank=True, help_text="Systolic Blood Pressure (mmHg)")
-    dbp = models.CharField(max_length=20, null=True, blank=True, help_text="Diastolic Blood Pressure (mmHg)")
-    blood_pressure = models.CharField(max_length=20, null=True, blank=True, help_text="Blood pressure measurement")
+    sbp = models.PositiveIntegerField(null=True, blank=True, help_text="Systolic Blood Pressure (mmHg)")
+    dbp = models.PositiveIntegerField(null=True, blank=True, help_text="Diastolic Blood Pressure (mmHg)")
+    blood_pressure = models.CharField(max_length=7, null=True, blank=True, help_text="Blood pressure measurement in format 'SBP/DBP'")
     spo2 = models.PositiveIntegerField(null=True, blank=True, help_text="SPO2 measurement in percentage")
-    temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Temperature measurement in Celsius",default=37.5)
+    temperature = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, help_text="Temperature measurement in Celsius", default=37.5)
     gcs = models.PositiveIntegerField(null=True, blank=True, help_text="Glasgow Coma Scale measurement")
-    avpu = models.CharField(max_length=20, null=True, blank=True, help_text="AVPU scale measurement")
-    unique_identifier = models.CharField(max_length=20, unique=True, editable=False)
+    avpu = models.CharField(max_length=20, null=True, blank=True, help_text="AVPU scale measurement") 
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
-
     def __str__(self):
         return f"Vital information for {self.patient} recorded at {self.recorded_at}"
 
-    def save(self, *args, **kwargs):
-        # Generate a unique identifier based on the patient's format
-        if not self.unique_identifier:
-            self.unique_identifier = self.generate_remoteunique_identifier()
-        super().save(*args, **kwargs)
 
-    def generate_remoteunique_identifier(self):
-        last_patient_vital = RemotePatientVital.objects.last()
-        last_number = int(last_patient_vital.unique_identifier.split('-')[-1]) if last_patient_vital else 0
-        new_number = last_number + 1
-        return f"VTN-{new_number:07d}"
 
         
 
 class Diagnosis(models.Model):
-    diagnosis_name= models.CharField(max_length=255)
-    diagnosis_code= models.CharField(max_length=20, null=True, blank=True)
+    diagnosis_name= models.CharField(max_length=255,unique=True)
+    diagnosis_code= models.CharField(max_length=20,unique=True,default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -1650,8 +1638,7 @@ class RemoteConsultation(models.Model):
         (6, 'Confirmed'),
         (7, 'Arrived'),
     ]
-    status = models.IntegerField(choices=STATUS_CHOICES, default=0)    
-    pathodology_record = models.ForeignKey(PathodologyRecord, on_delete=models.SET_NULL, blank=True, null=True)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=0)   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()    
@@ -1834,7 +1821,30 @@ class SecondaryPhysicalExamination(models.Model):
         return self.pk
 
   
+class RemoteReagent(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    supplier = models.CharField(max_length=255, blank=True, null=True)
+    quantity = models.PositiveIntegerField()
+    expiry_date = models.DateField()
+    storage_conditions = models.TextField(blank=True, null=True)
+    date_received = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name  
     
+class RemoteEquipment(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    serial_number = models.CharField(max_length=255, unique=True)
+    manufacturer = models.CharField(max_length=255, blank=True, null=True)
+    purchase_date = models.DateField()
+    warranty_expiry_date = models.DateField(blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=50, choices=[('Operational', 'Operational'), ('Under Maintenance', 'Under Maintenance'), ('Out of Service', 'Out of Service')], default='Operational')
+    date_added = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name      
     
 class RemotePrescription(models.Model):
     VERIFICATION_CHOICES = (
@@ -2105,3 +2115,5 @@ class Client(models.Model):
 
     def __str__(self):
         return self.name
+    
+    

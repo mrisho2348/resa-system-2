@@ -434,34 +434,7 @@ def update_staff_status(request):
     # Redirect back to the staff list page
     return redirect('manage_staff')  # Make sure 'manage_staffs' is the name of your staff list URL
 
-def update_equipment_status(request):
-    try:
-        if request.method == 'POST':
-            # Get the user_id and is_active values from POST data
-            equipment_id = request.POST.get('equipment_id')
-            is_active = request.POST.get('is_active')
 
-            # Retrieve the staff object or return a 404 response if not found
-            equipment = get_object_or_404(Equipment, id=equipment_id)
-
-            # Toggle the is_active status based on the received value
-            if is_active == '1':
-                equipment.is_active = False
-            elif is_active == '0':
-                equipment.is_active = True
-            else:
-                messages.error(request, 'Invalid request')
-                return redirect('equipment_list')  # Make sure 'manage_staffs' is the name of your staff list URL
-
-            equipment.save()
-            messages.success(request, 'equipment updated successfully')
-        else:
-            messages.error(request, 'Invalid request method')
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-
-    # Redirect back to the staff list page
-    return redirect('equipment_list')  # Make sure 'manage_staffs' is the name of your staff list URL
 
 @login_required
 def edit_staff(request, staff_id):
@@ -550,17 +523,7 @@ def view_patient(request, patient_id):
 
 
 
-@login_required    
-def notification_view(request):
-    notifications = Notification.objects.filter(is_read=False)
-    
-    # Mark notifications as read when the user accesses them
-    for notification in notifications:
-        notification.is_read = True
-        notification.save()
-    
-    context = {'notifications': notifications}
-    return render(request, 'kahama_template/manage_notification.html', context)
+
 
 def confirm_meeting(request, appointment_id):
     try:
@@ -609,105 +572,6 @@ def edit_meeting(request, appointment_id):
     return redirect('kahamahmis:appointment_list')
 
 
-
-@csrf_exempt
-@login_required
-def add_medicine(request):
-    if request.method == 'POST':
-        try:
-            # Retrieve data from the form
-            name = request.POST['name']
-            medicine_type = request.POST['medicine_type']
-            side_effect = request.POST.get('side_effect', '')
-            dosage = request.POST['dosage']
-            storage_condition = request.POST['storage_condition']
-            manufacturer = request.POST['manufacturer']
-            description = request.POST.get('description', '')
-            expiration_date = request.POST['expiration_date']
-            unit_price = request.POST['unit_price']
-
-            # Validate expiration date
-            if expiration_date <= str(date.today()):                
-                return JsonResponse({'error': 'The expiration date cannot be in the past'}, status=500)
-
-            # Save the data to the Medicine model
-            medicine = Medicine.objects.create(
-                name=name,
-                medicine_type=medicine_type,
-                side_effect=side_effect,
-                dosage=dosage,
-                storage_condition=storage_condition,
-                manufacturer=manufacturer,
-                description=description,
-                expiration_date=expiration_date,
-                unit_price=unit_price
-            )
-
-           
-            return JsonResponse({'message': 'Medicine added successfully'}, status=200)
-
-        except Exception as e:            
-            logger.error(f"Error adding Medicine: {str(e)}")
-            return JsonResponse({'error': 'Failed to add Medicine'}, status=500)
-
-    return JsonResponse({'error': 'Failed to add Medicine'}, status=500)
-
-@require_POST
-def add_inventory(request):
-    if request.method == 'POST':
-        try:
-            # Retrieve data from the POST request
-            medicine_id = request.POST.get('medicine_id')
-            quantity = request.POST.get('quantity')
-            purchase_date = request.POST.get('purchase_date')
-
-            # Perform basic validation
-            if not medicine_id or not quantity or not purchase_date:
-                # Handle validation error, redirect or display an error message
-                return redirect('error_page')  # Adjust the URL as needed
-
-            # Convert the quantity to an integer
-            quantity = int(quantity)
-
-            # Convert the purchase date to a datetime object
-            purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
-
-            # Call the helper method to update or create the inventory
-            MedicineInventory.update_or_create_inventory(medicine_id, quantity, purchase_date)
-
-            # Perform additional processing if needed
-
-            # Redirect to a success page or the medicine details page
-            return redirect('medicine_inventory')  # Adjust the URL as needed
-
-        except (ValueError, TypeError):
-            # Handle invalid data types, redirect or display an error message
-            return redirect('medicine_list')  # Adjust the URL as needed
-
-    else:
-        # Handle non-POST requests, redirect or display an error message
-        return redirect('medicine_list')  # Adjust the URL as needed
-
-@login_required    
-def medicine_inventory_list(request):
-    # Retrieve all medicine inventories
-    medicine_inventories = MedicineInventory.objects.all()
-
-    # Retrieve medicines with quantity below 100
-    low_quantity_medicines = MedicineInventory.objects.filter(quantity__lt=100)
-    current_date = timezone.now().date()
-    non_expired_medicines = Medicine.objects.filter(expiration_date__gte=current_date)
-    total_payment = sum(inventory.total_payment for inventory in medicine_inventories)
-
-    # Pass the context variables to the template
-    context = {
-        'medicine_inventories': medicine_inventories,
-        'low_quantity_medicines': low_quantity_medicines,
-        'non_expired_medicines': non_expired_medicines,
-        'total_payment': total_payment,
-    }
-
-    return render(request, 'kahama_template/manage_medical_inventory.html', context)
 
 @login_required
 def medicine_expired_list(request):
@@ -899,9 +763,9 @@ def add_disease(request):
     if request.method == 'POST':
         try:
             # Extract data from the request
-            disease_id = request.POST.get('disease_id')  # Get disease ID if provided
-            disease_name = request.POST.get('Disease')
-            code = request.POST.get('Code')
+            disease_id = request.POST.get('disease_id')
+            disease_name = request.POST.get('Disease').strip()
+            code = request.POST.get('Code').strip()
 
             # If disease ID is provided, it's an edit operation
             if disease_id:
@@ -909,8 +773,10 @@ def add_disease(request):
                 disease = DiseaseRecode.objects.get(pk=disease_id)
                 if disease:
                     # Check if updating the disease name and code will cause a duplicate entry error
-                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(disease_name=disease_name, code=code).exists():
-                        return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})
+                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(disease_name=disease_name).exists():
+                        return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})                    
+                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(code=code).exists():
+                        return JsonResponse({'success': False, 'message': 'Another disease with the same code already exists'})
                     
                     # Update disease data
                     disease.disease_name = disease_name
@@ -921,7 +787,9 @@ def add_disease(request):
                     return JsonResponse({'success': False, 'message': 'Disease does not exist'})
 
             # Check if the disease already exists
-            if DiseaseRecode.objects.filter(disease_name=disease_name, code=code).exists():
+            if DiseaseRecode.objects.filter(disease_name=disease_name).exists():
+                return JsonResponse({'success': False, 'message': 'Disease already exists'})            
+            if DiseaseRecode.objects.filter(code=code).exists():
                 return JsonResponse({'success': False, 'message': 'Disease already exists'})
 
             # Save data to the model for new disease
@@ -936,6 +804,7 @@ def add_disease(request):
             return JsonResponse({'success': False, 'message': str(e)})
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
  
 @csrf_exempt
 @login_required    
@@ -944,12 +813,12 @@ def add_insurance_company(request):
         try:
             # Extract data from the request
             company_id = request.POST.get('company_id')
-            name = request.POST.get('Name')
-            phone = request.POST.get('Phone')
-            short_name = request.POST.get('Short_name')
-            email = request.POST.get('Email')
-            address = request.POST.get('Address')
-            website = request.POST.get('website')
+            name = request.POST.get('Name').strip()
+            phone = request.POST.get('Phone').strip()
+            short_name = request.POST.get('Short_name').strip()
+            email = request.POST.get('Email').strip()
+            address = request.POST.get('Address').strip()
+            website = request.POST.get('website').strip()
 
             # Check if company_id is provided
             if company_id:
@@ -1000,7 +869,7 @@ def add_company(request):
         try:
             # Get data from the request
             company_id = request.POST.get('company_id')
-            name = request.POST.get('Name')
+            name = request.POST.get('Name').strip()
             industry = request.POST.get('industry', '')
             sector = request.POST.get('sector', '')
             headquarters = request.POST.get('headquarters', '')
@@ -1047,25 +916,7 @@ def add_company(request):
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
-    
-@csrf_exempt
-def edit_remote_company(request, company_id):
-    if request.method == 'POST':
-        try:
-            company = RemoteCompany.objects.get(id=company_id)
-            # Update company fields
-            company.name = request.POST.get('name')
-            company.industry = request.POST.get('industry')
-            company.sector = request.POST.get('sector')
-            company.headquarters = request.POST.get('headquarters')
-            company.Founded = request.POST.get('Founded')
-            company.Notes = request.POST.get('Notes')
-            company.save()
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    else:
-        return JsonResponse({'success': False, 'error': 'Method not allowed'})    
+  
  
 @csrf_exempt
 @login_required
@@ -1073,9 +924,9 @@ def add_pathodology_record(request):
     if request.method == 'POST':
         try:
             # Extract data from the request
-            name = request.POST.get('Name')
+            name = request.POST.get('Name').strip()
             description = request.POST.get('Description')
-            pathology_record_id = request.POST.get('pathology_record_id')  # Check if pathology record ID is provided
+            pathology_record_id = request.POST.get('pathology_record_id')
             
             # If pathology record ID is provided, it's an edit operation
             if pathology_record_id:             
@@ -1106,295 +957,6 @@ def add_pathodology_record(request):
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
-  
-
-def save_service_data(request):
-    if request.method == 'POST':
-        service_id = request.POST.get('service_id')
-        covarage = request.POST.get('covarage')
-        department = request.POST.get('department')
-        type_service = request.POST.get('typeService')
-        name = request.POST.get('serviceName')
-        description = request.POST.get('description')
-        cost = request.POST.get('cost')
-        try:
-            if service_id:
-                # Editing existing service
-                service = Service.objects.get(pk=service_id)
-            else:
-                # Creating a new service
-                service = Service()
-
-            service.covarage = covarage
-            service.department = department
-            service.type_service = type_service
-            service.name = name
-            service.description = description
-            service.cost = cost
-            service.save()
-            return redirect('manage_service')
-        except Exception as e:
-            return HttpResponseBadRequest(f"Error: {str(e)}") 
-    # If the request is not a POST request, handle it accordingly
-    return HttpResponseBadRequest("Invalid request method.")  
-
-@login_required
-def category_list(request):
-    categories = Category.objects.all()
-    return render(request, 'kahama_template/manage_category_list.html', {'categories': categories})
-
-
-@require_POST
-def add_category(request):
-    try:
-        category_id = request.POST.get('category_id')
-        name = request.POST.get('name')
-        # Add more fields as needed
-
-        if category_id:
-            # Editing an existing category
-            category = Category.objects.get(pk=category_id)
-            category.name = name
-         
-            category.save()
-        else:
-            # Adding a new category
-            category = Category(name=name)
-            category.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-
-
- 
-@login_required 
-def inventory_list(request):
-    inventory_items = InventoryItem.objects.all()  
-    suppliers = Supplier.objects.all()
-    categories = Category.objects.all()
-    return render(request, 'kahama_template/manage_inventory_list.html', {
-        'inventory_items': inventory_items,
-        'suppliers': suppliers,
-        'categories': categories 
-        }) 
-
-
-
-@require_POST
-def add_inventory_item(request):
-    try:
-        inventory_id = request.POST.get('inventory_id')
-        name = request.POST.get('name')
-        supplier = request.POST.get('supplier')
-        category = request.POST.get('category')
-        quantity = int(request.POST.get('quantity'))
-        description = request.POST.get('description')
-        purchase_date = request.POST.get('purchase_date')
-        purchase_price = request.POST.get('purchase_price')
-        expiry_date = request.POST.get('expiry_date')
-        min_stock_level = request.POST.get('min_stock_level')
-        condition = request.POST.get('condition')
-        location_in_storage = request.POST.get('location_in_storage')
-        # Add more fields as needed
-
-        if inventory_id:
-            # Editing existing inventory item
-            inventory_item = InventoryItem.objects.get(pk=inventory_id)
-            inventory_item.name = name
-            inventory_item.quantity = quantity
-            inventory_item.remain_quantity = quantity
-            inventory_item.category =  Category.objects.get(id=category)
-            inventory_item.description = description
-            inventory_item.supplier =  Supplier.objects.get(id=supplier)
-            inventory_item.purchase_date = purchase_date
-            inventory_item.purchase_price = purchase_price
-            inventory_item.location_in_storage = location_in_storage
-            inventory_item.min_stock_level = min_stock_level
-            inventory_item.expiry_date = expiry_date
-            inventory_item.condition = condition
-            inventory_item.save()
-        else:
-            # Adding new inventory item
-            inventory_item = InventoryItem(
-                name=name,
-                quantity=quantity,
-                remain_quantity=quantity,
-                category = Category.objects.get(id=category),
-                description = description,
-                supplier = Supplier.objects.get(id=supplier),
-                purchase_date = purchase_date,
-                purchase_price = purchase_price,
-                location_in_storage = location_in_storage,
-                min_stock_level = min_stock_level,
-                expiry_date = expiry_date,
-                condition = condition,
-               
-            )
-            inventory_item.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})      
-    
-@login_required
-def usage_history_list(request):
-    usage_history_list = UsageHistory.objects.filter(quantity_used__gt=0)
-    inventory_item = InventoryItem.objects.all()
-    return render(request, 'kahama_template/manage_usage_history_list.html', {
-        'usage_history_list': usage_history_list,
-        'inventory_item': inventory_item,
-        })    
-
-@require_POST
-def save_usage_history(request):
-    try:
-        # Extract data from the request
-        usage_history_id = request.POST.get('usageHistoryId')
-        usage_date = request.POST.get('usageDate')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        notes = request.POST.get('notes')
-        item_id = request.POST.get('item')
-
-        # Retrieve the corresponding InventoryItem
-        item = InventoryItem.objects.get(id=item_id)
-        if quantity_used > item.remain_quantity:
-            return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
-
-
-        # Check if the usageHistoryId is provided for editing
-        if usage_history_id:
-            # Editing existing usage history
-            usage_history = UsageHistory.objects.get(pk=usage_history_id)
-            # Get the previous quantity used
-            previous_quantity_used = usage_history.quantity_used
-            # Calculate the difference in quantity
-            quantity_difference = quantity_used - previous_quantity_used
-            # Update the stock level of the corresponding item
-            item.remain_quantity -= quantity_difference
-        else:
-            # Creating new usage history
-            usage_history = UsageHistory()
-         
-
-        # Update or set values for other fields
-        usage_history.usage_date = usage_date
-        usage_history.quantity_used = quantity_used
-        usage_history.notes = notes
-        usage_history.inventory_item = item
-
-        # Save the changes to both models
-        item.save()
-        usage_history.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-
-@csrf_exempt
-def get_item_quantity(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('itemId')  # Use request.POST.get() instead of request.GET.get()
-        print(item_id)      
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            quantity = item.quantity
-            print(quantity)
-            return JsonResponse({'quantity': quantity})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'error': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    
-@login_required
-def out_of_stock_items(request):
-    out_of_stock_items = InventoryItem.objects.filter(remain_quantity=0)
-    return render(request, 'kahama_template/manage_out_of_stock_items.html', {'out_of_stock_items': out_of_stock_items}) 
-
-@login_required
-def in_stock_items(request):
-    in_stock_items = InventoryItem.objects.filter(remain_quantity__gt=0)
-    return render(request, 'kahama_template/manage_in_stock_items.html', {'in_stock_items': in_stock_items})   
-
-
-def get_out_of_stock_count(request):
-    count = InventoryItem.objects.filter(remain_quantity=0).count()
-    
-    return JsonResponse({'count': count})
-
-def get_out_of_stock_count_reagent(request):
-    count = Reagent.objects.filter(remaining_quantity=0).count()
-    
-    return JsonResponse({'count': count})
-
-def get_items_below_min_stock(request):
-    items_below_min_stock = InventoryItem.objects.filter(remain_quantity__lt=F('min_stock_level')).count()
-    return JsonResponse({'count': items_below_min_stock})
-
-@csrf_exempt
-def increase_inventory_stock(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('item_id')
-        quantity_to_add = int(request.POST.get('quantityToAdd'))
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            item.quantity += quantity_to_add
-            item.remain_quantity += quantity_to_add
-            item.save()
-            return JsonResponse({'status': 'success', 'message': f'Stock level increased by {quantity_to_add} for item {item.name}'})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-    
-@csrf_exempt
-def increase_reagent_stock(request):
-    if request.method == 'POST':
-        reagent_id = request.POST.get('reagent_id')
-        quantity_to_add = int(request.POST.get('quantityToAdd'))
-        try:
-            reagent = Reagent.objects.get(id=reagent_id)
-            reagent.quantity_in_stock += quantity_to_add
-            reagent.remaining_quantity += quantity_to_add
-            reagent.save()
-            return JsonResponse({'status': 'success', 'message': f'Stock level increased by {quantity_to_add} for item {reagent.name}'})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-@csrf_exempt    
-def use_inventory_item(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('itemId')
-        notes = request.POST.get('notes')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        usage_date = request.POST.get('usageDate')
-
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            if quantity_used > item.remain_quantity:
-                return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
-
-            # Create a new usage history entry
-            UsageHistory.objects.create(
-                inventory_item=item,
-                quantity_used=quantity_used,
-                notes=notes,
-                usage_date=usage_date
-            )
-
-            item.remain_quantity -= quantity_used
-            item.save()
-
-            message = f'Stock level decreased by {quantity_used} for item {item.name}'
-            return JsonResponse({'status': 'success', 'message': message})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'})
-    
 def out_of_stock_medicines(request):
     try:
         # Query the database for the count of out-of-stock medicines
@@ -1420,18 +982,7 @@ def out_of_stock_medicines_view(request):
         # Handle any errors and return an error response
         return render(request, '404.html', {'error_message': str(e)}) 
 
-@login_required    
-def out_of_stock_reagent_view(request):
-    try:
-        # Query the database for out-of-stock medicines
-        out_of_stock_reagent = Reagent.objects.filter(remaining_quantity=0)
-        
-        # Render the template with the out-of-stock medicines data
-        return render(request, 'kahama_template/manage_out_of_stock_reagent.html', {'out_of_stock_reagent': out_of_stock_reagent})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return render(request, '404.html', {'error_message': str(e)}) 
+
     
 @login_required    
 def in_stock_medicines_view(request):
@@ -1440,234 +991,6 @@ def in_stock_medicines_view(request):
 
     return render(request, 'kahama_template/manage_in_stock_medicines.html', {'in_stock_medicines': in_stock_medicines})  
 
-@login_required
-def in_stock_reagent_view(request):
-    # Retrieve medicines with inventory levels above zero
-    in_stock_reagent = Reagent.objects.filter(remaining_quantity__gt=0)
-
-    return render(request, 'kahama_template/manage_in_stock_reagent.html', {'in_stock_reagent': in_stock_reagent})  
-
-@login_required
-def equipment_list(request):
-    equipment_list = Equipment.objects.all()
-    return render(request, 'kahama_template/manage_equipment_list.html', {'equipment_list': equipment_list})  
-
- 
-@csrf_exempt     
-@require_POST
-def add_equipment(request):
-    try:
-        equipment_id = request.POST.get('equipment_id')
-        Manufacturer = request.POST.get('Manufacturer')
-        SerialNumber = request.POST.get('SerialNumber')
-        AcquisitionDate = request.POST.get('AcquisitionDate')
-        warrantyExpiryDate = request.POST.get('warrantyExpiryDate')
-        Location = request.POST.get('Location')
-        description = request.POST.get('description')
-        Name = request.POST.get('Name')
-      
-        # Add more fields as needed
-
-        if equipment_id:
-            # Editing existing inventory item
-            equipment = Equipment.objects.get(pk=equipment_id)
-            equipment.manufacturer = Manufacturer
-            equipment.serial_number = SerialNumber
-            equipment.acquisition_date = AcquisitionDate
-            equipment.warranty_expiry_date =  warrantyExpiryDate
-            equipment.description = description
-            equipment.location = Location
-            equipment.name = Name        
-            equipment.save()
-        else:
-            # Adding new inventory item
-            equipment = Equipment(
-                name=Name,
-                manufacturer=Manufacturer,
-                serial_number=SerialNumber,
-                acquisition_date = AcquisitionDate,
-                description = description,
-                warranty_expiry_date = warrantyExpiryDate,
-                location = Location,             
-               
-            )
-            equipment.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
-    
-@login_required    
-def equipment_maintenance_list(request):
-    maintenance_list = EquipmentMaintenance.objects.all()
-    equipments = Equipment.objects.all()
-    return render(request, 'kahama_template/manage_equipment_maintenance_list.html',
-                  {
-                      'maintenance_list': maintenance_list,
-                      'equipments': equipments,
-                   })    
-
-@csrf_exempt     
-@require_POST
-def add_maintainance(request):
-    try:
-        maintenance_id = request.POST.get('maintenance_id')
-        equipment = request.POST.get('equipment')
-        maintenance_date = request.POST.get('maintenance_date')
-        technician = request.POST.get('technician')
-        description = request.POST.get('description')
-        cost = request.POST.get('cost')
-        notes = request.POST.get('notes')
-      
-      
-        # Add more fields as needed
-
-        if maintenance_id:
-            # Editing existing inventory item
-            maintainance = EquipmentMaintenance.objects.get(pk=maintenance_id)
-            maintainance.equipment = Equipment.objects.get(id=equipment)
-            maintainance.maintenance_date = maintenance_date
-            maintainance.technician = technician
-            maintainance.description =  description
-            maintainance.cost = cost
-            maintainance.notes = notes                    
-            maintainance.save()
-        else:
-            # Adding new inventory item
-            maintainance = EquipmentMaintenance(
-                equipment= Equipment.objects.get(id=equipment),
-                maintenance_date=maintenance_date,
-                technician=technician,
-                description = description,
-                cost = cost,
-                notes = notes,
-                          
-               
-            )
-            maintainance.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
-
-@login_required 
-def reagent_list(request):
-    reagent_list = Reagent.objects.all()
-    return render(request, 'kahama_template/manage_reagent_list.html', {'reagent_list': reagent_list})    
-
-@csrf_exempt     
-@require_POST
-def add_reagent(request):
-    try:
-        reagent_id = request.POST.get('reagent_id')
-        name = request.POST.get('name')
-        expiration_date = request.POST.get('expiration_date')
-        manufacturer = request.POST.get('manufacturer')
-        lot_number = request.POST.get('lot_number')
-        storage_conditions = request.POST.get('storage_conditions')
-        quantity_in_stock = int(request.POST.get('quantity_in_stock'))
-        price_per_unit = float(request.POST.get('price_per_unit'))
-      
-      
-        # Add more fields as needed
-
-        if reagent_id:
-            # Editing existing inventory item
-            reagent = Reagent.objects.get(pk=reagent_id)
-            reagent.name = name
-            reagent.expiration_date = expiration_date
-            reagent.manufacturer = manufacturer
-            reagent.lot_number =  lot_number
-            reagent.storage_conditions = storage_conditions
-            reagent.quantity_in_stock = quantity_in_stock                    
-            reagent.price_per_unit = price_per_unit                    
-            reagent.remaining_quantity = quantity_in_stock                    
-            reagent.save()
-        else:
-            # Adding new inventory item
-            reagent = Reagent(
-                name=name,
-                expiration_date=expiration_date,
-                manufacturer=manufacturer,
-                lot_number = lot_number,
-                storage_conditions = storage_conditions,
-                quantity_in_stock = quantity_in_stock,
-                price_per_unit = price_per_unit,
-                remaining_quantity = quantity_in_stock,
-                          
-               
-            )
-            reagent.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
-
-@login_required
-def reagent_usage_list(request):
-    reagent_usage_list = ReagentUsage.objects.all()
-    technicians = Staffs.objects.all()
-    reagents = Reagent.objects.all()
-    return render(request, 'kahama_template/manage_reagent_usage_list.html',
-                  {
-                      'reagent_usage_list': reagent_usage_list,
-                      'technicians': technicians,
-                      'reagents': reagents,
-                   }
-                  )
-
-@csrf_exempt
-@require_POST
-def add_reagent_used(request):
-    try:
-        # Extract data from the request
-        usage_id = request.POST.get('usage_id')
-        labTechnician = request.POST.get('labTechnician')
-        reagent_id = request.POST.get('reagent')
-        usage_date = request.POST.get('usage_date')
-        quantity_used = int(request.POST.get('quantity_used'))
-        observation = request.POST.get('observation')
-        technician_notes = request.POST.get('technician_notes')
-
-        # Retrieve the corresponding InventoryItem
-        labTechnician = Staffs.objects.get(id=labTechnician)
-        reagent = Reagent.objects.get(id=reagent_id)
-        
-        if quantity_used > reagent.remaining_quantity:
-            return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
-
-
-        # Check if the usageHistoryId is provided for editing
-        if usage_id:
-            # Editing existing usage history
-            usage_history = ReagentUsage.objects.get(pk=usage_id)
-            # Get the previous quantity used
-            previous_quantity_used = usage_history.quantity_used
-            # Calculate the difference in quantity
-            quantity_difference = quantity_used - previous_quantity_used
-            # Update the stock level of the corresponding item
-            reagent.remaining_quantity -= quantity_difference
-        else:
-            # Creating new usage history
-            usage_history = ReagentUsage()
-         
-
-        # Update or set values for other fields
-        usage_history.lab_technician = labTechnician
-        usage_history.usage_date = usage_date
-        usage_history.quantity_used = quantity_used
-        usage_history.technician_notes = technician_notes
-        usage_history.reagent = reagent
-        usage_history.observation = observation
-
-        # Save the changes to both models
-        reagent.save()
-        usage_history.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-    
 
 
 @login_required
@@ -1971,64 +1294,101 @@ def patient_vital_all_list(request):
     return render(request, 'kahama_template/manage_all_patient_vital.html', context)    
 
 
+@login_required
 @csrf_exempt
 @require_POST
 def save_remotepatient_vital(request):
     try:
         # Extract data from the request
         vital_id = request.POST.get('vital_id')
-        patient_id = request.POST.get('patient_id')        
+        patient_id = request.POST.get('patient_id')
         visit_id = request.POST.get('visit_id')
         respiratory_rate = request.POST.get('respiratory_rate')
-        pulse_rate = request.POST.get('pulse_rate')        
+        pulse_rate = request.POST.get('pulse_rate')
         sbp = request.POST.get('sbp')
         dbp = request.POST.get('dbp')
         spo2 = request.POST.get('spo2')
-        
         temperature = request.POST.get('temperature')
         gcs = request.POST.get('gcs')
         avpu = request.POST.get('avpu')
         doctor = request.user.staff
-        # Retrieve the corresponding InventoryItem
-        patient = RemotePatient.objects.get(id=patient_id)
-        visit = RemotePatientVisits.objects.get(id=visit_id)            
 
+        try:
+            # Retrieve the patient
+            patient = RemotePatient.objects.get(id=patient_id)
+        except RemotePatient.DoesNotExist:
+            return JsonResponse({'status': False, 'message': 'Patient does not exist'})
 
-        # Check if the usageHistoryId is provided for editing
+        try:
+            # Retrieve the visit
+            visit = RemotePatientVisits.objects.get(id=visit_id)
+        except RemotePatientVisits.DoesNotExist:
+            return JsonResponse({'status': False, 'message': 'Visit does not exist'})
+
+        # Check for duplicate records
+        blood_pressure = f"{sbp}/{dbp}"
+        if not vital_id:
+            duplicate_vitals = RemotePatientVital.objects.filter(
+                patient=patient,
+                visit=visit,
+                respiratory_rate=respiratory_rate,
+                pulse_rate=pulse_rate,
+                blood_pressure=blood_pressure,
+                spo2=spo2,
+                sbp=sbp,
+                dbp=dbp,
+                temperature=temperature,
+                gcs=gcs,
+                avpu=avpu,
+            )
+            if duplicate_vitals.exists():
+                return JsonResponse({'status': False, 'message': 'A similar vital record already exists for this patient during this visit.'})
+
         if vital_id:
-            # Editing existing usage history
-            vital = RemotePatientVital.objects.get(pk=vital_id)
-            vital.blood_pressure= request.POST.get('blood_pressure') 
-          
+            try:
+                # Editing existing vital
+                vital = RemotePatientVital.objects.get(pk=vital_id)
+                vital.blood_pressure = blood_pressure if sbp and dbp else vital.blood_pressure  # Use existing SBP/DBP if not provided
+                message = 'Patient vital updated successfully'
+            except RemotePatientVital.DoesNotExist:
+                return JsonResponse({'status': False, 'message': 'Vital record does not exist'})
         else:
-            # Creating new usage history
-            vital = RemotePatientVital()   
-            blood_pressure = f"{sbp}/{dbp}"
-            vital.blood_pressure = blood_pressure     
+            # Creating new vital
+            vital = RemotePatientVital()
+            vital.blood_pressure = blood_pressure
+            message = 'Patient vital created successfully'
 
         # Update or set values for other fields
         vital.visit = visit
         vital.respiratory_rate = respiratory_rate
-        vital.pulse_rate = pulse_rate        
+        vital.pulse_rate = pulse_rate
         vital.doctor = doctor
+        vital.blood_pressure = blood_pressure
         vital.sbp = sbp
         vital.dbp = dbp
         vital.spo2 = spo2
         vital.gcs = gcs
         vital.temperature = temperature
         vital.avpu = avpu
-        vital.patient = patient    
+        vital.patient = patient
         vital.save()
-        return JsonResponse({'status': 'success'})
+
+        return JsonResponse({'status': True, 'message': message})
+    except RemotePatient.DoesNotExist:
+        return JsonResponse({'status': False, 'message': 'Patient does not exist'})
+    except RemotePatientVisits.DoesNotExist:
+        return JsonResponse({'status': False, 'message': 'Visit does not exist'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': False, 'message': str(e)})
+    
     
 @login_required
 def save_remotepatient_vitals(request, patient_id, visit_id):
     patient = RemotePatient.objects.get(pk=patient_id)
     visit = RemotePatientVisits.objects.get(patient=patient_id, id=visit_id)
     range_51 = range(51)
-    temps = np.arange(start=0, stop=51, step=0.1)
+    integer_range = np.arange(start=0, stop=510, step=1)
+    temps = integer_range / 10
     range_301 = range(301)
     range_101 = range(101)
     range_15 = range(3, 16)
@@ -2046,7 +1406,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
         doctor = request.user.staff
         
         # Check if a vital record already exists for this patient and visit
-        existing_vital = RemotePatientVital.objects.filter(patient=patient, visit=visit).first()
+        existing_vital = RemotePatientVital.objects.filter(patient=patient, visit=visit).last()
         
         if existing_vital:
             # Include existing vital in the context if it exists
@@ -2462,28 +1822,52 @@ def diagnosis_list(request):
     return render(request, 'kahama_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
 
 
+@login_required
 @csrf_exempt
 @require_POST
 def save_diagnosis(request):
     try:
-        # Extract data from the request
-        diagnosis_name = request.POST.get('diagnosis_name')
-        diagnosis_id = request.POST.get('diagnosis_id')
+        # Extract and trim data from the request
+        diagnosis_name = request.POST.get('diagnosis_name', '').strip()
+        diagnosis_code = request.POST.get('diagnosis_code', '').strip()
+        diagnosis_id = request.POST.get('diagnosis_id', '')
 
-        # Check if the Diagnosis ID is provided for editing
         if diagnosis_id:
             # Editing existing diagnosis
-            diagnosis = Diagnosis.objects.get(pk=diagnosis_id)
+            try:
+                diagnosis = Diagnosis.objects.get(pk=diagnosis_id)
+            except Diagnosis.DoesNotExist:
+                return JsonResponse({'status': False, 'message': 'Diagnosis not found.'})
+
+            # Check for uniqueness excluding the current diagnosis
+            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_name=diagnosis_name).exists():
+                return JsonResponse({'status': False, 'message': 'Diagnosis with this name already exists.'})
+            
+            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_code=diagnosis_code).exists():
+                return JsonResponse({'status': False, 'message': 'Diagnosis with this code already exists.'})
+
+            # Update fields
             diagnosis.diagnosis_name = diagnosis_name
+            diagnosis.diagnosis_code = diagnosis_code
+            diagnosis.save()
+            return JsonResponse({'status': True, 'message': 'Diagnosis updated successfully.'})
         else:
-            # Creating a new diagnosis
-            diagnosis = Diagnosis.objects.create(diagnosis_name=diagnosis_name)
+            # Adding new diagnosis
+            # Check for uniqueness
+            if Diagnosis.objects.filter(diagnosis_name=diagnosis_name).exists():
+                return JsonResponse({'status': False, 'message': 'Diagnosis with this name already exists.'})
+            if Diagnosis.objects.filter(diagnosis_code=diagnosis_code).exists():
+                return JsonResponse({'status': False, 'message': 'Diagnosis with this code already exists.'})
 
-        diagnosis.save()
+            # Create new diagnosis
+            diagnosis = Diagnosis.objects.create(diagnosis_name=diagnosis_name, diagnosis_code=diagnosis_code)
+            return JsonResponse({'status': True, 'message': 'Diagnosis added successfully.'})
 
-        return JsonResponse({'status': 'success'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': False, 'message': str(e)})
+
+  
+    
     
 @login_required    
 def patient_info_form(request):  
@@ -2518,7 +1902,25 @@ def patient_info_form(request):
             company_id = request.POST.get('company')
             age = request.POST.get('age')
             dob = request.POST.get('dob')
-
+            # Check if age or dob is provided
+            if dob:
+                # Calculate age from dob
+                try:
+                    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()  # Use datetime class from datetime module
+                    current_date = datetime.today().date()  # Use datetime class from datetime module
+                    age = current_date.year - dob_date.year - ((current_date.month, current_date.day) < (dob_date.month, dob_date.day))
+                except ValueError:
+                    age = None
+                    
+            elif age:
+                # Calculate dob from age
+                try:
+                    age_int = int(age)
+                    current_date = datetime.today().date()  # Use datetime class from datetime module
+                    dob = current_date.replace(year=current_date.year - age_int)
+                except ValueError:
+                    dob = None           
+             # Check if a patient with the same name already exists
             # Convert empty fields to None
             date_of_osha_certification = date_of_osha_certification or None
             dob = dob or None
@@ -2686,11 +2088,25 @@ def patient_info_form_edit(request, patient_id):
             other_patient_type = request.POST.get('other_patient_type')
             company_id = request.POST.get('company')
             age = request.POST.get('age')
-            dob = request.POST.get('dob')
-
-            # Convert empty strings to None for date fields
-            if dob == '':
-                dob = None
+            dob = request.POST.get('dob')          
+            if dob:
+                # Calculate age from dob
+                try:
+                    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()  # Use datetime class from datetime module
+                    current_date = datetime.today().date()  # Use datetime class from datetime module
+                    age = current_date.year - dob_date.year - ((current_date.month, current_date.day) < (dob_date.month, dob_date.day))
+                except ValueError:
+                    age = None
+                    
+            elif age:
+                # Calculate dob from age
+                try:
+                    age_int = int(age)
+                    current_date = datetime.today().date()  # Use datetime class from datetime module
+                    dob = current_date.replace(year=current_date.year - age_int)
+                except ValueError:
+                    dob = None           
+             # Check if a patient with the same name already exists
 
             if date_of_osha_certification == '':
                 date_of_osha_certification = None
@@ -2955,7 +2371,7 @@ def save_remote_service(request):
     try:
         # Extract data from the request
         service_id = request.POST.get('service_id')
-        name = request.POST.get('name')
+        name = request.POST.get('name').strip()
         description = request.POST.get('description')
         category = request.POST.get('category')
 
@@ -3066,7 +2482,6 @@ def save_consultation_data(request):
             pathodology_record= PathodologyRecord.objects.get(id=pathodology_record_id),
             
         )
-
         return redirect('kahamahmis:appointment_list')
     except Exception as e:
         return HttpResponseBadRequest(f"Error: {str(e)}")

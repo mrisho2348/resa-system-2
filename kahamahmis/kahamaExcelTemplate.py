@@ -1,6 +1,6 @@
 import openpyxl
 from django.http import HttpResponse
-from clinic.models import AmbulanceRoute, AmbulanceVehicleOrder, Category, Country, DiseaseRecode, HealthRecord, HospitalVehicle, InsuranceCompany, MedicineUnitMeasure, PathodologyRecord, PrescriptionFrequency, RemoteCompany, RemoteMedicine, RemoteService, Service, Staffs, Supplier
+from clinic.models import AmbulanceRoute, AmbulanceVehicleOrder, Category, Country, Diagnosis, DiseaseRecode, HealthRecord, HospitalVehicle, InsuranceCompany, MedicineUnitMeasure, PathodologyRecord, PrescriptionFrequency, RemoteCompany, RemoteEquipment, RemoteMedicine, RemoteReagent, RemoteService, Service, Staffs, Supplier
 
 
 def download_disease_recode_excel_template(request):
@@ -394,6 +394,75 @@ def download_country_excel_template(request):
     # Save the workbook to a response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=country_template.xlsx'
+    workbook.save(response)
+
+    return response
+
+def download_remote_reagent_excel_template(request):
+    # Create a new Workbook
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Reagent Template"
+    
+    # Define column headers from model fields
+    excluded_fields = ['id', 'date_received']
+    model_fields = [field.name for field in RemoteReagent._meta.get_fields()
+                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
+
+    # Add headers to the first row
+    for col_num, column_title in enumerate(model_fields, 1):
+        cell = sheet.cell(row=1, column=col_num)
+        cell.value = column_title
+
+    # Save the workbook to a response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=remote_reagent_template.xlsx'
+    workbook.save(response)
+
+    return response
+
+def download_remote_equipment_excel_template(request):
+    # Create a new Workbook
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Equipment Template"
+    
+    # Define column headers from model fields
+    excluded_fields = ['id', 'date_added']
+    model_fields = [field.name for field in RemoteEquipment._meta.get_fields()
+                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
+
+    # Add headers to the first row
+    for col_num, column_title in enumerate(model_fields, 1):
+        cell = sheet.cell(row=1, column=col_num)
+        cell.value = column_title
+
+    # Save the workbook to a response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=equipment_template.xlsx'
+    workbook.save(response)
+
+    return response
+
+def download_diagnosis_excel_template(request):
+    # Create a new Workbook
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Diagnosis Template"
+    
+    # Define column headers from model fields
+    excluded_fields = ['id', 'created_at', 'updated_at']
+    model_fields = [field.name for field in Diagnosis._meta.get_fields()
+                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
+
+    # Add headers to the first row
+    for col_num, column_title in enumerate(model_fields, 1):
+        cell = sheet.cell(row=1, column=col_num)
+        cell.value = column_title
+
+    # Save the workbook to a response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=diagnosis_template.xlsx'
     workbook.save(response)
 
     return response
