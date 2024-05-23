@@ -813,7 +813,12 @@ def save_observation(request, patient_id, visit_id):
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)
     data_recorder = request.user.staff
     record_exists = RemoteObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    context = {'patient': patient, 'visit': visit, 'record_exists': record_exists}
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    context = {'patient': patient, 
+               'visit': visit, 
+               'consultation_notes': consultation_notes, 
+               'record_exists': record_exists
+               }
     if request.method == 'POST':
         form = RemoteObservationRecordForm(request.POST)
         if form.is_valid():
@@ -1391,10 +1396,12 @@ def delete_remote_patient(request, patient_id):
 def save_remote_discharges_notes(request, patient_id, visit_id):
     patient = get_object_or_404(RemotePatient, id=patient_id)
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
     remote_discharges_notes = RemoteDischargesNotes.objects.filter(patient=patient, visit=visit).first()  
     context = {
             'patient': patient,
             'visit': visit,
+            'consultation_notes': consultation_notes,
             'remote_discharges_notes': remote_discharges_notes,         
         }
         

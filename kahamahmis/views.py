@@ -1638,7 +1638,8 @@ def save_nextremotereferral(request, patient_id, visit_id):
 def save_nextcounsel(request, patient_id, visit_id):
     # Retrieve patient and visit objects
     patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)              
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)   
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)             
     data_recorder = request.user.staff
     # Retrieve existing remote counseling record if it exists
     remote_counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).first()
@@ -1647,6 +1648,7 @@ def save_nextcounsel(request, patient_id, visit_id):
     context = {
         'patient': patient, 
         'visit': visit,
+        'consultation_notes': consultation_notes,
         'remote_counseling': remote_counseling,
     }
     
