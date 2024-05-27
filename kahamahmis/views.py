@@ -1975,7 +1975,7 @@ def patient_info_form(request):
             return redirect(reverse('kahamahmis:patient_info_form'))
 
     # If the request method is not POST, render the form template
-    range_121 = range(1, 121)
+    range_121 = range(0, 121)
     all_country = Country.objects.all()
     all_company = RemoteCompany.objects.all()
     
@@ -2489,7 +2489,7 @@ def save_consultation_data(request):
         return HttpResponseBadRequest(f"Error: {str(e)}")
     
 def counseling_list_view(request):
-    counselings = Counseling.objects.all().order_by('-created_at')
+    counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_counselling.html', {'counselings': counselings})    
 
 def observation_record_list_view(request):

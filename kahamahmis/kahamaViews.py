@@ -658,12 +658,13 @@ def save_counsel(request, patient_id, visit_id):
     data_recorder = request.user.staff
     # Retrieve existing remote counseling record if it exists
     remote_counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).first()
-    
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     # Prepare context for rendering the template
     context = {
         'patient': patient, 
         'visit': visit,
         'remote_counseling': remote_counseling,
+        'consultation_notes': consultation_notes,
     }
     
     # Handle form submission
