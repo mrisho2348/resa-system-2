@@ -63,14 +63,14 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="dob">Date of Birth:</label>
-                                        <input type="date" class="form-control" id="dob" name="dob" value="{{ patient.dob }}">
+                                        <input type="date" class="form-control" id="dob" name="dob" value="{{ patient.dob }}" max="">
                                     </div>
                                 </div>
                                 <!-- Age -->
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="age">Age:</label>
-                                        <select class="form-control select2" style="width: 100%;" id="age" name="age" required>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="age" name="age" required>
                                             {% for age in range_121 %}
                                                 <option value="{{ age }}" {% if patient.age == age %} selected {% endif %}>{{ age }}</option>
                                             {% endfor %}
@@ -96,7 +96,7 @@
                                         <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
                                             pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
                                             onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with '0'')" 
-                                            oninput="setCustomValidity('')">
+                                            oninput="setCustomValidity('')" max="10" min="10">
                                         <div id="phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
                                     </div>
                                 </div>
@@ -254,7 +254,7 @@
                                 <!-- Emergency Contact Name -->
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="emergency_contact_name">Next of Kin Details  :</label> <span class="error">* </span>
+                                        <label for="emergency_contact_name">Next of Kin Name  :</label> <span class="error">* </span>
                                         <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" value="{{ patient.emergency_contact_name }}" required>
                                     </div>
                                 </div>
@@ -328,8 +328,8 @@
 
     <script>
         $(document).ready(function() {
-            // Initialize select2
-            $('.select2').select2();
+            const today = new Date().toISOString().split('T')[0];
+            $('#dob').attr('max', today);
     
             function calculateAge(dob) {
                 const today = new Date();
@@ -341,12 +341,25 @@
                 }
                 return age;
             }
-    
+
             function calculateDOB(age) {
                 const today = new Date();
+                console.log('Today:', today);
                 const birthYear = today.getFullYear() - age;
-                return new Date(birthYear, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+                console.log('Birth Year:', birthYear);
+                const birthDate = new Date(birthYear, 6, 1);
+                console.log('Birth Date:', birthDate);
+            
+                // Manually format the date to YYYY-MM-DD
+                const year = birthDate.getFullYear();
+                const month = String(birthDate.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
+                const day = String(birthDate.getDate()).padStart(2, '0');
+                
+                const dob = `${year}-${month}-${day}`;
+                console.log('Calculated DOB:', dob);
+                return dob;
             }
+    
     
             $('#dob').on('change', function() {
                 const dob = $(this).val();
@@ -361,6 +374,7 @@
             });
         });
     </script>
+    
     <style>
         .error {color: #FF0000;
             font-size: 18px;
