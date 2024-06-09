@@ -18,7 +18,7 @@ urlpatterns = [
         path('new_consultation_order/',LabTechnicianView.new_consultation_order, name="lab_new_consultation_order"),
         path('all_orders_view/', LabTechnicianView.all_orders_view, name='lab_all_orders_view'),
         path('save_edited_patient/',LabTechnicianView.save_edited_patient, name="lab_save_edited_patient"),
-        
+        path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', LabTechnicianView.edit_lab_result, name='lab_save_edit_lab_result'),   
         
         path('manage_laboratory/', LabTechnicianView.manage_laboratory, name='lab_manage_laboratory'),
         path('save_consultation_data/', LabTechnicianView.save_consultation_data, name='lab_save_consultation_data'),

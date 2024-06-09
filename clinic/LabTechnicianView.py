@@ -12,7 +12,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Sum
+from django.core.exceptions import ValidationError
 from django.db.models import Q
+from clinic.forms import LaboratoryOrderForm
 from clinic.models import  Consultation,  DiseaseRecode, Medicine, Notification,  PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
@@ -29,7 +31,7 @@ def labtechnician_dashboard(request):
     # Other data you may want to fetch
     total_patients = Patients.objects.count()
     recently_added_patients = Patients.objects.order_by('-created_at')[:6]
-    doctors = Staffs.objects.filter(role='doctor')
+    doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
 
     context = {
         'total_patients': total_patients,
@@ -48,7 +50,7 @@ def manage_patient(request):
     patient_records=Patients.objects.all().order_by('-created_at') 
     range_121 = range(1, 121)
     all_country = Country.objects.all()
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     return render(request,"labtechnician_template/manage_patients.html", {
         "patient_records":patient_records,
         "range_121":range_121,
@@ -84,7 +86,7 @@ def patient_consultation_detail(request, patient_id, visit_id):
             remote_service = Service.objects.filter(type_service='Consultation')
         total_price = sum(prescription.total_price for prescription in prescriptions)    
        
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         return render(request, 'labtechnician_template/patient_consultation_detail.html', {        
             
             'prescriptions': prescriptions,
@@ -106,7 +108,7 @@ def patient_consultation_detail(request, patient_id, visit_id):
 def manage_consultation(request):
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -240,7 +242,7 @@ def appointment_view(request, patient_id):
 
         # If the request is not a POST, handle the GET request
         patient = get_object_or_404(Patients, id=patient_id)
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
 
         context = {
             'patient': patient,
@@ -485,7 +487,7 @@ def appointment_list_view(request):
     unread_notification_count = Notification.objects.filter(is_read=False).count()
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -511,13 +513,66 @@ def fetch_laborders_counts(request):
 def lab_unread_orders_view(request):
     template_name = 'labtechnician_template/unread_lab_orders.html'
     doctor = request.user.staff
+    current_date = timezone.now().date() 
     # Query to retrieve the latest procedure record for each patient
     lab_orders = LaboratoryOrder.objects.filter(doctor=doctor).order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[lab_order.name.name for lab_order in lab_orders], is_read=True) 
-    print(unread_orders)
+    unread_orders = Order.objects.filter(order_type__in=[lab_order.name.name for lab_order in lab_orders],  order_date=current_date) 
     orders = unread_orders 
     unread_orders.update(is_read=True)         
     return render(request, template_name, {'orders': orders})
+
+@login_required    
+def edit_lab_result(request, patient_id, visit_id, lab_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)            
+
+    procedures = LaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
+    
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'procedures': procedures,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = LaboratoryOrderForm(request.POST, instance=procedures)
+        
+        # Check if a record already exists for the patient and visit
+        if procedures:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Lab result updated successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient          
+            form.instance.visit = visit
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Lab result saved successfully.')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect('lab_read_orders')
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = LaboratoryOrderForm(instance=procedures)   
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'labtechnician_template/edit_lab_result.html', context)
 
 @login_required
 def lab_read_orders_view(request):
@@ -672,7 +727,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
 
         patient = Patients.objects.get(id=patient_id)
 
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         # Fetching services based on coverage and type
         if patient.payment_form == 'insurance':
             # If patient's payment form is insurance, fetch services with matching coverage
@@ -723,15 +778,38 @@ def get_patient_details(request, patient_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
+@csrf_exempt
 def get_procedure_cost(request):
-    if request.method == 'GET':
-        procedure_id = request.GET.get('procedure_id')
+    if request.method == 'POST':  # Change to POST method
+        procedure_id = request.POST.get('procedure_id')
+        patient_id = request.POST.get('patient_id')  # Receive patient ID        
         try:
-            procedure = Service.objects.get(id=procedure_id)
-            cost = procedure.cost
-            return JsonResponse({'cost': cost})
+            procedure = Service.objects.get(id=procedure_id)            
+            # Get the patient
+            patient = Patients.objects.get(id=patient_id)            
+            # Check the patient's payment form
+            payment_form = patient.payment_form            
+            # Initialize cost variable
+            cost = None            
+            # If payment form is cash, fetch cash cost
+            if payment_form == 'Cash':
+                cost = procedure.cash_cost
+            elif payment_form == 'Insurance':
+                # Check if insurance company name is NHIF
+                if patient.insurance_name == 'NHIF':
+                    cost = procedure.nhif_cost
+                else:
+                    cost = procedure.insurance_cost
+            
+            if cost is not None:
+                return JsonResponse({'cost': cost})
+            else:
+                return JsonResponse({'error': 'Cost not available for this payment form'}, status=404)
+        
         except Service.DoesNotExist:
             return JsonResponse({'error': 'Procedure not found'}, status=404)
+        except Patients.DoesNotExist:
+            return JsonResponse({'error': 'Patient not found'}, status=404)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=400)
     
@@ -788,17 +866,37 @@ def add_procedure(request):
 
     
     
+@require_POST
+@csrf_exempt
 def get_unit_price(request):
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            unit_price = medicine.unit_price
-            return JsonResponse({'unit_price': unit_price})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
+    medicine_id = request.POST.get('medicine_id')
+    patient_id = request.POST.get('patient_id')
+
+    if not medicine_id or not patient_id:
+        return JsonResponse({'error': 'Medicine ID and Patient ID are required'}, status=400)
+
+    try:
+        patient = Patients.objects.get(id=patient_id)
+        medicine = Medicine.objects.get(pk=medicine_id)
+    except Patients.DoesNotExist:
+        return JsonResponse({'error': 'Patient not found'}, status=404)
+    except Medicine.DoesNotExist:
+        return JsonResponse({'error': 'Medicine not found'}, status=404)
+
+    unit_price = None
+
+    if patient.payment_form == 'Cash':
+        unit_price = medicine.cash_cost
+    elif patient.payment_form == 'Insurance':
+        if patient.insurance_name == 'NHIF':
+            unit_price = medicine.nhif_cost
+        else:
+            unit_price = medicine.insurance_cost
+
+    if unit_price is not None:
+        return JsonResponse({'unit_price': unit_price})
     else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)   
+        return JsonResponse({'error': 'Cost not available for this payment form'}, status=404) 
     
 
    
@@ -823,7 +921,7 @@ def save_observation(request, patient_id, visit_id):
         except Procedure.DoesNotExist:
             procedures = None
 
-        doctors=Staffs.objects.filter(role='doctor')
+        doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
         total_price = sum(prescription.total_price for prescription in prescriptions)
 
         patient = Patients.objects.get(id=patient_id)
@@ -925,7 +1023,7 @@ def save_laboratory(request, patient_id, visit_id):
         except Procedure.DoesNotExist:
             procedures = None
 
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         total_price = sum(prescription.total_price for prescription in prescriptions)
 
         patient = Patients.objects.get(id=patient_id)
@@ -1197,8 +1295,7 @@ def new_consultation_order(request):
     # Retrieve all unread orders for the ConsultationOrder instances
     unread_orders = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders], is_read=True)    
     # Mark the retrieved unread orders as read
-    orders = unread_orders 
-    print(unread_orders)
+    orders = unread_orders    
     unread_orders.update(is_read=True)    
     # Render the template with the fetched unread orders
     return render(request, 'labtechnician_template/new_consultation_order.html', {'orders': orders})

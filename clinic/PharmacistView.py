@@ -1,3 +1,4 @@
+import calendar
 from datetime import  datetime
 from django.urls import reverse
 from django.utils import timezone
@@ -11,12 +12,14 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist,ValidationError
 from clinic.models import Consultation,  Medicine,Notification,PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import AmbulanceOrder,ConsultationNotes, ConsultationOrder, Country, Diagnosis, Diagnosis, DiseaseRecode, ImagingRecord,InventoryItem, LaboratoryOrder, MedicineInventory, NotificationMedicine, Order, PatientVisits, PatientVital, Prescription, Referral,Service, AmbulanceVehicleOrder
+from .models import AmbulanceOrder,ConsultationNotes, ConsultationOrder, Country, Diagnosis, Diagnosis, DiseaseRecode, ImagingRecord,InventoryItem, LaboratoryOrder, MedicineInventory, NotificationMedicine, Order, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Referral,Service, AmbulanceVehicleOrder
 from django.db.models import Sum
 from django.db.models import Q
+from django.db import transaction
 # Create your views here.
 
 def get_unit_price(request):
@@ -32,17 +35,135 @@ def get_unit_price(request):
         return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
+def update_profile_picture(request):
+    if request.method == 'POST':
+        try:
+            # Get the user's profile
+            user_profile = request.user  # Use request.user to get the CustomUser instance
+            # Accessing the uploaded picture from the form
+            new_picture = request.FILES.get('profile_picture')  
+            
+            if new_picture:
+                # Check if the uploaded file is an image
+                if not new_picture.content_type.startswith('image'):
+                    raise ValidationError("Invalid image file type. Please upload a valid image.")
+
+                # Check if the file size is within limit (2MB)
+                if new_picture.size > 2 * 1024 * 1024:  # 2MB in bytes
+                    raise ValidationError("File size exceeds the limit. Please upload a file smaller than 2MB.")
+                
+                # Get the staff object associated with the user profile
+                staff = user_profile.staff
+                
+                if staff:
+                    # Update the profile picture
+                    staff.profile_picture = new_picture
+                    
+                    # Save the changes
+                    staff.save()
+                    
+                    # Redirect to a success page or back to the profile page
+                    return render(request, 'pharmacist_template/update_profile_picture.html')
+                else:
+                    raise ValidationError("User profile does not exist.")
+            else:
+                raise ValidationError("No profile picture uploaded.")
+        except ValidationError as e:
+            # Handle validation errors (e.g., invalid file type or size)
+            messages.error(request, str(e))
+        except Exception as e:
+            # Handle any other unexpected errors
+            messages.error(request, str(e))
+            # You may want to log this error for debugging purposes
+            
+    return render(request, 'pharmacist_template/update_profile_picture.html')
+
+@login_required
 def pharmacist_dashboard(request):
-    total_patients = Patients.objects.count()
+    # Count total records for different models
+    total_patients_count = Patients.objects.count()
+    total_medicines_count = Medicine.objects.count()
+    total_lab_orders_count = LaboratoryOrder.objects.count()
+    total_disease_records_count = DiseaseRecode.objects.count()
+    total_services_count = Service.objects.count()
+
+    # Fetch the most recently added patients (limit to 6)
     recently_added_patients = Patients.objects.order_by('-created_at')[:6]
-    doctors = Staffs.objects.filter(role='doctor')
+
+    # Count staff by roles
+    total_doctors_count = Staffs.objects.filter(role='doctor', work_place="resa").count()
+    total_nurses_count = Staffs.objects.filter(role='nurse', work_place="resa").count()
+    total_physiotherapists_count = Staffs.objects.filter(role='physiotherapist', work_place="resa").count()
+    total_lab_technicians_count = Staffs.objects.filter(role='labTechnician', work_place="resa").count()
+    total_pharmacists_count = Staffs.objects.filter(role='pharmacist', work_place="resa").count()
+    total_receptionists_count = Staffs.objects.filter(role='receptionist', work_place="resa").count()
+
+    # Prepare the context dictionary
     context = {
-        'total_patients': total_patients,
+        'total_patients_count': total_patients_count,
+        'total_medicines_count': total_medicines_count,
+        'total_lab_orders_count': total_lab_orders_count,
+        'total_disease_records_count': total_disease_records_count,
+        'total_services_count': total_services_count,
         'recently_added_patients': recently_added_patients,
-        'doctors': doctors,
-        # 'gender_based_monthly_counts': gender_based_monthly_counts,
+        'total_doctors_count': total_doctors_count,
+        'total_nurses_count': total_nurses_count,
+        'total_physiotherapists_count': total_physiotherapists_count,
+        'total_lab_technicians_count': total_lab_technicians_count,
+        'total_pharmacists_count': total_pharmacists_count,
+        'total_receptionists_count': total_receptionists_count,
+        # 'gender_based_monthly_counts': gender_based_monthly_counts,  # Uncomment and implement if needed
     }
-    return render(request,"pharmacist_template/home_content.html",context)
+
+    # Render the template with the context
+    return render(request, "pharmacist_template/home_content.html", context)
+
+def get_gender_yearly_data(request):
+    if request.method == 'GET':
+        selected_year = request.GET.get('year')
+        
+        # Query the database to get the total number of male and female patients for the selected year
+        male_count = Patients.objects.filter(gender='Male', created_at__year=selected_year).count()
+        female_count = Patients.objects.filter(gender='Female', created_at__year=selected_year).count()
+
+        # Create a dictionary with the total male and female counts
+        yearly_gender_data = {
+            'Male': male_count,
+            'Female': female_count
+        }
+
+        return JsonResponse(yearly_gender_data)
+    else:
+        # Return an error response if the request method is not GET or if it's not an AJAX request
+        return JsonResponse({'error': 'Invalid request'})
+    
+def get_gender_monthly_data(request):
+    if request.method == 'GET':
+        selected_year = request.GET.get('year')       
+        # Initialize a dictionary to store gender-wise monthly data
+        gender_monthly_data = {}
+
+        # Loop through each month and calculate gender-wise counts
+        for month in range(1, 13):
+            # Get the number of males and females for the current month and year
+            male_count = Patients.objects.filter(
+                gender='Male',
+                created_at__year=selected_year,
+                created_at__month=month
+            ).count()            
+            female_count = Patients.objects.filter(
+                gender='Female',
+                created_at__year=selected_year,
+                created_at__month=month
+            ).count()
+
+            # Store the counts in the dictionary
+            month_name = calendar.month_name[month]
+            gender_monthly_data[month_name] = {'Male': male_count, 'Female': female_count}
+
+        return JsonResponse(gender_monthly_data)
+    else:
+        return JsonResponse({'error': 'Invalid request'})
 
 @login_required
 def all_orders_view(request):
@@ -84,7 +205,7 @@ def manage_patients(request):
     patient_records=Patients.objects.all().order_by('-created_at') 
     range_121 = range(1, 121)
     all_country = Country.objects.all()
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place="resa")
     return render(request,"pharmacist_template/manage_patients.html", {
         "patient_records":patient_records,
         "range_121":range_121,
@@ -178,64 +299,77 @@ def save_patient_vital(request):
 @require_POST
 def add_remoteprescription(request):
     try:
-        # Extract data from the request
-        patient_id = request.POST.get('patient_id')
-        visit_id = request.POST.get('visit_id')
-        medicines = request.POST.getlist('medicine[]')
-        doses = request.POST.getlist('dose[]')
-        frequencies = request.POST.getlist('frequency[]')
-        durations = request.POST.getlist('duration[]')
-        quantities = request.POST.getlist('quantity[]')
-        entered_by = request.user.staff
-        # Retrieve the corresponding patient and visit
-        patient = Patients.objects.get(id=patient_id)
-        visit = PatientVisits.objects.get(id=visit_id)
+        with transaction.atomic():
+            # Extract data from the request
+            patient_id = request.POST.get('patient_id')
+            visit_id = request.POST.get('visit_id')
+            medicines = request.POST.getlist('medicine[]')
+            doses = request.POST.getlist('dose[]')
+            frequencies = request.POST.getlist('frequency[]')
+            durations = request.POST.getlist('duration[]')
+            quantities = request.POST.getlist('quantity[]')
+            total_price = request.POST.getlist('total_price[]')
+            entered_by = request.user.staff
 
-        # Check inventory levels for each medicine
-        for i in range(len(medicines)):
-            medicine = Medicine.objects.get(id=medicines[i])
-            quantity_used_str = quantities[i]  # Get the quantity as a string
+            # Retrieve the corresponding patient and visit
+            patient = Patients.objects.get(id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id)
 
-            if quantity_used_str is None:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity cannot be empty.'})
+            # Save prescriptions only if inventory check passes
+            for i in range(len(medicines)):
+                medicine = Medicine.objects.get(id=medicines[i])
+                quantity_used_str = quantities[i]  # Get the quantity as a string
 
-            try:
-                quantity_used = int(quantity_used_str)
-            except ValueError:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity must be a valid number.'})
+                if not quantity_used_str:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity cannot be empty.')
 
-            if quantity_used < 0:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity must be a non-negative number.'})
+                try:
+                    quantity_used = int(quantity_used_str)
+                except ValueError:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a valid whole number.')
 
-            # Retrieve the corresponding medicine inventory
-            medicine_inventory = medicine.medicineinventory_set.first()
+                if float(quantity_used_str) != quantity_used:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a whole number.')
 
-            if medicine_inventory and quantity_used > medicine_inventory.remain_quantity:
-                return JsonResponse({'status': 'error', 'message': f'Insufficient stock for {medicine.name}. Only {medicine_inventory.remain_quantity} available.'})
+                if quantity_used < 0:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a non-negative number.')
 
-        # Save prescriptions only if inventory check passes
-        for i in range(len(medicines)):
-            medicine = Medicine.objects.get(id=medicines[i])
-            prescription = Prescription()
-            prescription.patient = patient
-            prescription.medicine = medicine
-            prescription.entered_by = entered_by
-            prescription.visit = visit
-            prescription.dose = doses[i]
-            prescription.frequency = frequencies[i]
-            prescription.duration = durations[i]
-            prescription.quantity_used = int(quantities[i])
-            prescription.save()
+                # Retrieve the remaining quantity of the medicine
+                remain_quantity = medicine.remain_quantity
 
-        return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
+                if remain_quantity is not None and quantity_used > remain_quantity:
+                    raise ValueError(f'Insufficient stock for {medicine.drug_name}. Only {remain_quantity} available.')
+
+                # Reduce the remaining quantity of the medicine
+                if remain_quantity is not None:
+                    medicine.remain_quantity -= quantity_used
+                    medicine.save()
+
+                # Save prescription
+                Prescription.objects.create(
+                    patient=patient,
+                    medicine=medicine,
+                    entered_by=entered_by,
+                    visit=visit,
+                    dose=doses[i],
+                    frequency=PrescriptionFrequency.objects.get(id=frequencies[i]),
+                    duration=durations[i],
+                    quantity_used=quantity_used,
+                    total_price=total_price[i]
+                )
+
+            return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
+    except ValueError as ve:
+        return JsonResponse({'status': 'error', 'message': str(ve)})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': 'error', 'message': 'An unexpected error occurred: ' + str(e)})
+    
     
 @login_required
 def manage_consultation(request):
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place="resa")
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -267,7 +401,7 @@ def save_observation(request, patient_id, visit_id):
         except Procedure.DoesNotExist:
             procedures = None
 
-        doctors=Staffs.objects.filter(role='doctor')
+        doctors=Staffs.objects.filter(role='doctor', work_place="resa")
         total_price = sum(prescription.total_price for prescription in prescriptions)
 
         patient = Patients.objects.get(id=patient_id)
@@ -407,7 +541,7 @@ def save_remotereferral(request, patient_id, visit_id):
         except Referral.DoesNotExist:
             referral = None
         pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place="resa")
         provisional_diagnoses = Diagnosis.objects.all()
         final_diagnoses = Diagnosis.objects.all()
 
@@ -533,7 +667,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
 
         patient = Patients.objects.get(id=patient_id)
 
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place="resa")
         # Fetching services based on coverage and type
         if patient.payment_form == 'insurance':
             # If patient's payment form is insurance, fetch services with matching coverage
@@ -561,16 +695,18 @@ def save_remoteprocedure(request, patient_id, visit_id):
         # Handle other exceptions if necessary
         return render(request, '404.html', {'error_message': str(e)})    
 
+@login_required         
 def save_prescription(request, patient_id, visit_id):
     try:
         # Retrieve visit history for the specified patient
-        visit = PatientVisits.objects.get(id=visit_id)         
+        visit = PatientVisits.objects.get(id=visit_id)   
+        frequencies = PrescriptionFrequency.objects.all()       
         prescriptions = Prescription.objects.filter(patient=patient_id, visit_id=visit_id)        
         current_date = timezone.now().date()
         patient = Patients.objects.get(id=patient_id)    
         total_price = sum(prescription.total_price for prescription in prescriptions)  
         medicines = Medicine.objects.filter(
-            medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
+            remain_quantity__gt=0,  # Inventory level greater than zero
             expiration_date__gt=current_date  # Not expired
         ).distinct()
         range_31 = range(31)
@@ -581,11 +717,12 @@ def save_prescription(request, patient_id, visit_id):
             'total_price': total_price,
             'range_31': range_31,
             'prescriptions': prescriptions,
+            'frequencies': frequencies,
          
         })
     except Exception as e:
         # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
+        return render(request, '404.html', {'error_message': str(e)}) 
 
 @login_required
 def save_laboratory(request, patient_id, visit_id):
@@ -732,7 +869,7 @@ def patient_health_record(request, patient_id, visit_id):
         total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
         lab_tests_cost = lab_results.aggregate(Sum('cost'))['cost__sum']      
         pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place="resa")
         provisional_diagnoses = Diagnosis.objects.all()
         final_diagnoses = Diagnosis.objects.all()
 
@@ -1102,7 +1239,7 @@ def appointment_list_view(request):
     unread_notification_count = Notification.objects.filter(is_read=False).count()
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place="resa")
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -1322,7 +1459,7 @@ def patient_consultation_detail(request, patient_id, visit_id):
             remote_service = Service.objects.filter(type_service='Consultation')
         total_price = sum(prescription.total_price for prescription in prescriptions)    
        
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place="resa")
         return render(request, 'pharmacist_template/patient_consultation_detail.html', {        
             
             'prescriptions': prescriptions,
@@ -1489,7 +1626,7 @@ def patient_visit_history_view(request, patient_id):
     visit_history = PatientVisits.objects.filter(patient_id=patient_id)
     current_date = timezone.now().date()
     patient = Patients.objects.get(id=patient_id)
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place="resa")
     range_31 = range(31)
     medicines = Medicine.objects.filter(
         medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
@@ -1571,6 +1708,133 @@ def prescription_detail(request, visit_number, patient_id):
         'payment_status': payment_status,
     }
     return render(request, "pharmacist_template/prescription_detail.html", context)
+
+@login_required
+def prescription_billing(request, visit_number, patient_id):
+    patient = Patients.objects.get(id=patient_id)
+    visit = PatientVisits.objects.get(vst=visit_number)
+    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
+    prescriber = None
+    if prescriptions.exists():
+        prescriber = prescriptions.first().entered_by
+    context = {
+        'patient': patient, 
+        'prescriptions': prescriptions,
+        'prescriber': prescriber,
+        'visit_number': visit_number,
+        'visit': visit,
+        }
+    return render(request, "pharmacist_template/prescription_bill.html", context)
+
+@login_required
+def prescription_notes(request, visit_number, patient_id):
+    patient = Patients.objects.get(id=patient_id)
+    visit = PatientVisits.objects.get(vst=visit_number)
+    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
+    prescriber = None
+    if prescriptions.exists():
+        prescriber = prescriptions.first().entered_by
+    context = {
+        'patient': patient, 
+        'prescriptions': prescriptions,
+        'prescriber': prescriber,
+        'visit_number': visit_number,
+        'visit': visit,
+        }
+    return render(request, "pharmacist_template/prescription_notes.html", context)
+
+@csrf_exempt
+@login_required
+def add_medicine(request):
+    if request.method == 'POST':
+        try:
+            # Extract data from request
+            medicine_id = request.POST.get('medicine_id')
+            drug_name = request.POST.get('drug_name')
+            drug_type = request.POST.get('drug_type')
+            formulation_unit = request.POST.get('formulation_unit')
+            manufacturer = request.POST.get('manufacturer')
+            quantity = request.POST.get('quantity')
+            dividable = request.POST.get('dividable')
+            batch_number = request.POST.get('batch_number')
+            expiration_date = request.POST.get('expiration_date')
+            cash_cost = request.POST.get('cash_cost')
+            insurance_cost = request.POST.get('insurance_cost')
+            nhif_cost = request.POST.get('nhif_cost')
+            buying_price = request.POST.get('buying_price')
+
+            # Validate expiration_date
+            if expiration_date:
+                expiration_date_obj = datetime.strptime(expiration_date, '%Y-%m-%d').date()
+                if expiration_date_obj <= datetime.now().date():
+                    return JsonResponse({'status': 'fail', 'error': 'Expiration date must be in the future.'})
+
+             # Check if required fields are provided
+            if not (drug_name and quantity and buying_price):
+                return JsonResponse({'status': 'fail', 'error': 'Missing required fields'})
+
+            # Convert quantity and buying_price to integers .exclude(pk=disease_id)
+            try:
+                quantity = int(quantity)
+                buying_price = float(buying_price)
+            except ValueError:
+                return JsonResponse({'status': 'fail', 'error': 'Invalid quantity or buying price'})
+            # Check if this is an edit operation
+            if medicine_id:
+                if Medicine.objects.exclude(pk=medicine_id).filter(drug_name=drug_name).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The medicine drug with the same name  already exists.'})
+                if Medicine.objects.exclude(pk=medicine_id).filter(batch_number=batch_number).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
+                
+                medicine = Medicine.objects.get(pk=medicine_id)
+                medicine.drug_name = drug_name
+                medicine.drug_type = drug_type
+                medicine.formulation_unit = formulation_unit
+                medicine.manufacturer = manufacturer
+                medicine.quantity = quantity
+                medicine.remain_quantity = quantity
+                medicine.dividable = dividable
+                medicine.batch_number = batch_number
+                medicine.expiration_date = expiration_date
+                medicine.cash_cost = cash_cost
+                medicine.insurance_cost = insurance_cost
+                medicine.nhif_cost = nhif_cost
+                medicine.buying_price = buying_price
+            else:
+                # Check for uniqueness
+                if Medicine.objects.filter(drug_name=drug_name).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same name  already exists.'})
+                if Medicine.objects.filter(batch_number=batch_number).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
+
+                # Create a new Medicine instance
+                medicine = Medicine(
+                    drug_name=drug_name,
+                    drug_type=drug_type,
+                    formulation_unit=formulation_unit,
+                    manufacturer=manufacturer,
+                    quantity=quantity,
+                    remain_quantity=quantity,
+                    dividable=dividable,
+                    batch_number=batch_number,
+                    expiration_date=expiration_date,
+                    cash_cost=cash_cost,
+                    insurance_cost=insurance_cost,
+                    nhif_cost=nhif_cost,
+                    buying_price=buying_price,
+                )
+
+            # Save the medicine instance
+            medicine.save()
+            return JsonResponse({'status': 'success'})
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 'fail', 'error': 'Medicine not found.'})
+        except ValidationError as ve:
+            return JsonResponse({'status': 'fail', 'error': ve.message})
+        except Exception as e:
+            return JsonResponse({'status': 'fail', 'error': str(e)})
+    return JsonResponse({'status': 'fail', 'error': 'Invalid request method'})
+
 
 
 @login_required    
@@ -1840,8 +2104,7 @@ def new_procedure_order(request):
     data_recorder = request.user.staff
     # Query to retrieve the latest procedure record for each patient
     procedures = Procedure.objects.filter(data_recorder=data_recorder.id).order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], is_read=True) 
-    print(unread_orders)
+    unread_orders = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], is_read=True)     
     orders = unread_orders 
     unread_orders.update(is_read=True)         
     return render(request, template_name, {'orders': orders})
@@ -1994,7 +2257,7 @@ def medicine_expired_list(request):
         days_remaining = (medicine.expiration_date - timezone.now().date()).days
         if days_remaining <= 10:
             medicines.append({
-                'name': medicine.name,
+                'name': medicine.drug_name,
                 'expiration_date': medicine.expiration_date,
                 'days_remaining': days_remaining,
             })
@@ -2004,7 +2267,7 @@ def medicine_expired_list(request):
 @login_required
 def in_stock_medicines_view(request):
     # Retrieve medicines with inventory levels above zero
-    in_stock_medicines = MedicineInventory.objects.filter(remain_quantity__gt=0)
+    in_stock_medicines = Medicine.objects.filter(remain_quantity__gt=0)
 
     return render(request, 'pharmacist_template/manage_in_stock_medicines.html', {'in_stock_medicines': in_stock_medicines})  
 
@@ -2012,7 +2275,7 @@ def in_stock_medicines_view(request):
 def out_of_stock_medicines_view(request):
     try:
         # Query the database for out-of-stock medicines
-        out_of_stock_medicines = MedicineInventory.objects.filter(remain_quantity=0)
+        out_of_stock_medicines = Medicine.objects.filter(remain_quantity=0)
         
         # Render the template with the out-of-stock medicines data
         return render(request, 'pharmacist_template/manage_out_of_stock_medicines.html', {'out_of_stock_medicines': out_of_stock_medicines})
@@ -2020,11 +2283,56 @@ def out_of_stock_medicines_view(request):
     except Exception as e:
         # Handle any errors and return an error response
         return render(request, '404.html', {'error_message': str(e)}) 
+    
+@login_required
+def expired_medicines_view(request):
+    try:
+        # Calculate the date ten days ago from today
+        ten_days_ago = timezone.now().date() - timezone.timedelta(days=10)
+        
+        # Query the database for medicines that are expired
+        expired_medicines = Medicine.objects.filter(expiration_date__lt=ten_days_ago)
+        
+        # Render the template with the expired medicines data
+        return render(request, 'pharmacist_template/manage_medicine_expired.html', {'expired_medicines': expired_medicines})
+    
+    except Exception as e:
+        # Handle any errors and return an error response
+        return render(request, '404.html', {'error_message': str(e)})
+   
+@login_required
+def expiring_soon_medicines_count(request):
+    today = timezone.now().date()
+    ten_days_from_now = today + timezone.timedelta(days=10)
+    count = Medicine.objects.filter(expiration_date__lt=ten_days_from_now, expiration_date__gte=today).count()
+    return JsonResponse({'count': count})
+
+@login_required
+def total_quantity(request):
+    total_quantity = Medicine.objects.filter(remain_quantity__gt=0).count()
+    return JsonResponse({'total_quantity': total_quantity})  
+
+@login_required
+def total_lab_orders_today(request):
+    today = timezone.now()
+    start_of_day = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    staff = request.user.staff  # Assuming the logged-in staff is the user
+    total_lab_orders = LaboratoryOrder.objects.filter(created_at__range=(start_of_day, end_of_day), doctor=staff).count()
+    return JsonResponse({'total_quantity': total_lab_orders or 0})
+
+@login_required
+def total_patients_today(request):
+    today = timezone.now()
+    start_of_day = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    total_patients = Patients.objects.filter(created_at__range=(start_of_day, end_of_day)).count()
+    return JsonResponse({'total_patients': total_patients})
 
 def out_of_stock_medicines(request):
     try:
         # Query the database for the count of out-of-stock medicines
-        out_of_stock_count = MedicineInventory.objects.filter(remain_quantity=0).count()
+        out_of_stock_count = Medicine.objects.filter(remain_quantity=0).count()
         
         # Return the count in JSON format
         return JsonResponse({'count': out_of_stock_count})

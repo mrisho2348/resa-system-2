@@ -30,6 +30,7 @@ urlpatterns = [
     path('reception/', include('resaclinic.receptionist_urls')),
     path('Pharmacy/', include('resaclinic.pharmacist_urls')),
     path('Lab/', include('resaclinic.labtechnician_urls')),
+    path('Hod/', include('resaclinic.hod_urls')),
     path('doctor/', include('resaclinic.doctor_urls')),
     path('nurse/', include('resaclinic.nurse_urls')),
     path('accounts/', include('django.contrib.auth.urls')), 

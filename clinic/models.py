@@ -125,6 +125,7 @@ class Staffs(models.Model):
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,  blank=True)    
     work_place = models.CharField(max_length=50, choices=work_place_choices, blank=True)
     joining_date = models.DateField(blank=True, null=True)  # New field added here
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)  # Profile picture field added here
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -1911,13 +1912,13 @@ class Payroll(models.Model):
   
 
 class BankAccount(models.Model):   
-    bank_name = models.CharField(max_length=100)   
+    bank_name = models.CharField(max_length=100, unique=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
 
     def __str__(self):
-        return f"Bank Account:  {self.bank_name}"    
+        return f"Bank:  {self.bank_name}"    
 
 class SalaryPayment(models.Model):
     PAYMENT_STATUS_CHOICES = [
@@ -1941,7 +1942,7 @@ class SalaryPayment(models.Model):
         verbose_name = " Salary Payment"   
 
 class Employee(models.Model):
-    name =  models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
+    name =  models.OneToOneField(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     employee_id = models.CharField(max_length=20, unique=True)    
     department = models.CharField(max_length=100)
     FULL_TIME = 'Full-time'
@@ -1977,19 +1978,30 @@ class Employee(models.Model):
     objects = models.Manager()
     
     def save(self, *args, **kwargs):
-        # Generate unique employee ID
+        # Generate MRN only if it's not provided
         if not self.employee_id:
-            self.employee_id = self.generate_employee_id()
+            self.employee_id = generate_employee_id()
         super().save(*args, **kwargs)
 
-    def generate_employee_id(self):
-        # Generate a unique employee ID using a combination of letters and digits
-        prefix = 'EMP'  # You can customize the prefix as needed
-        unique_id = str(uuid4())[:8]  # Get the first 8 characters of a UUID
-        return f'{prefix}-{unique_id}'
 
     def __str__(self):
-        return self.name.admin.username
+        return f"{self.name.admin.first_name} {self.name.middle_name} {self.name.admin.last_name}"
+    
+def generate_employee_id():
+    # Retrieve the last patient's MRN from the database
+    last_employee = Employee.objects.last()
+
+    # Extract the numeric part from the last MRN, or start from 0 if there are no patients yet
+    last_employee_number = int(last_employee.employee_id.split('-')[-1]) if last_employee else 0
+
+    # Increment the numeric part for the new patient
+    new_employee_number = last_employee_number + 1
+
+    # Format the MRN with leading zeros and concatenate with the prefix "PAT-"
+    new_number= f"RES-{new_employee_number:05d}"
+
+    return new_number    
+    
 class DeductionOrganization(models.Model):
     name = models.CharField(max_length=100)
     rate = models.DecimalField(max_digits=5, decimal_places=2)
@@ -2027,7 +2039,7 @@ class SalaryChangeRecord(models.Model):
         return f"Salary change for {self.employee} on {self.change_date}"        
     
 class PaymentMethod(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True) 
@@ -2036,7 +2048,7 @@ class PaymentMethod(models.Model):
         return self.name    
     
 class ExpenseCategory(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True) 
@@ -2058,6 +2070,40 @@ class Expense(models.Model):
     def __str__(self):
         return f"Expense of {self.amount} on {self.date}"
 
+class Investment(models.Model):
+    investment_type = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField()
+    description = models.TextField(blank=True)
+
+    # Add any additional fields as needed
+    
+    def __str__(self):
+        return f"{self.investment_type} - {self.amount} - {self.date}"
+    
+class Grant(models.Model):
+    grant_name = models.CharField(max_length=100)
+    funding_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    donor_name = models.CharField(max_length=100)
+    grant_date = models.DateField()
+    description = models.TextField(blank=True)
+
+    # Add any additional fields as needed
+
+    def __str__(self):
+        return f"{self.grant_name} - {self.funding_amount} - {self.grant_date}"
+
+class GovernmentProgram(models.Model):
+    program_name = models.CharField(max_length=100)
+    funding_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    eligibility_criteria = models.TextField()
+    description = models.TextField(blank=True)
+
+    # Add any additional fields as needed
+
+    def __str__(self):
+        return self.program_name    
+    
 class Invoice(models.Model):
     STATUS_CHOICES = [
         ('paid', 'Paid'),
@@ -2070,7 +2116,7 @@ class Invoice(models.Model):
     due_date = models.DateField()
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-    client = models.ForeignKey('Client', on_delete=models.CASCADE)
+    client = models.ForeignKey('Clients', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True) 
     objects = models.Manager()
@@ -2102,7 +2148,7 @@ class Payment(models.Model):
 
 
 
-class Client(models.Model):
+class Clients(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)

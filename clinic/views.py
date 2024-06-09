@@ -17,7 +17,6 @@ from django.views.generic.edit import FormView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.mail import send_mail
 from clinic.emailBackEnd import EmailBackend
-from django.core.exceptions import ObjectDoesNotExist
 from clinic.forms import ImportStaffForm
 from clinic.models import Consultation, ContactDetails, CustomUser, DiseaseRecode, InsuranceCompany, Medicine, MedicineInventory, Notification, NotificationMedicine, PathodologyRecord, Patients, Procedure, Staffs
 from clinic.resources import StaffResources
@@ -760,7 +759,7 @@ def add_medicine(request):
             if not (drug_name and quantity and buying_price):
                 return JsonResponse({'status': 'fail', 'error': 'Missing required fields'})
 
-            # Convert quantity and buying_price to integers
+            # Convert quantity and buying_price to integers .exclude(pk=disease_id)
             try:
                 quantity = int(quantity)
                 buying_price = float(buying_price)
@@ -768,6 +767,11 @@ def add_medicine(request):
                 return JsonResponse({'status': 'fail', 'error': 'Invalid quantity or buying price'})
             # Check if this is an edit operation
             if medicine_id:
+                if Medicine.objects.exclude(pk=medicine_id).filter(drug_name=drug_name).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The medicine drug with the same name  already exists.'})
+                if Medicine.objects.exclude(pk=medicine_id).filter(batch_number=batch_number).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
+                
                 medicine = Medicine.objects.get(pk=medicine_id)
                 medicine.drug_name = drug_name
                 medicine.drug_type = drug_type
@@ -784,8 +788,10 @@ def add_medicine(request):
                 medicine.buying_price = buying_price
             else:
                 # Check for uniqueness
-                if Medicine.objects.filter(drug_name=drug_name, manufacturer=manufacturer, batch_number=batch_number).exists():
-                    return JsonResponse({'status': 'fail', 'error': 'This medicine already exists.'})
+                if Medicine.objects.filter(drug_name=drug_name).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same name  already exists.'})
+                if Medicine.objects.filter(batch_number=batch_number).exists():
+                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
 
                 # Create a new Medicine instance
                 medicine = Medicine(
@@ -3318,4 +3324,6 @@ def delete_medicine_unit_measure(request):
             return JsonResponse({'success': False, 'message': 'Invalid request method'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})  
+    
+    
     

@@ -21,23 +21,44 @@ from django.db.models import Sum
 from django.db.models import Q
 # Create your views here.
 
+@require_POST
+@csrf_exempt
 def get_unit_price(request):
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            unit_price = medicine.unit_price
-            return JsonResponse({'unit_price': unit_price})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
+    medicine_id = request.POST.get('medicine_id')
+    patient_id = request.POST.get('patient_id')
+
+    if not medicine_id or not patient_id:
+        return JsonResponse({'error': 'Medicine ID and Patient ID are required'}, status=400)
+
+    try:
+        patient = Patients.objects.get(id=patient_id)
+        medicine = Medicine.objects.get(pk=medicine_id)
+    except Patients.DoesNotExist:
+        return JsonResponse({'error': 'Patient not found'}, status=404)
+    except Medicine.DoesNotExist:
+        return JsonResponse({'error': 'Medicine not found'}, status=404)
+
+    unit_price = None
+
+    if patient.payment_form == 'Cash':
+        unit_price = medicine.cash_cost
+    elif patient.payment_form == 'Insurance':
+        if patient.insurance_name == 'NHIF':
+            unit_price = medicine.nhif_cost
+        else:
+            unit_price = medicine.insurance_cost
+
+    if unit_price is not None:
+        return JsonResponse({'unit_price': unit_price})
     else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)
+        return JsonResponse({'error': 'Cost not available for this payment form'}, status=404)
+    
 
 @login_required
 def receptionist_dashboard(request):
     total_patients = Patients.objects.count()
     recently_added_patients = Patients.objects.order_by('-created_at')[:6]
-    doctors = Staffs.objects.filter(role='doctor')
+    doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
         'total_patients': total_patients,
         'recently_added_patients': recently_added_patients,
@@ -109,9 +130,9 @@ def update_orderpayment_status(request):
 @login_required
 def manage_patients(request):
     patient_records=Patients.objects.all().order_by('-created_at') 
-    range_121 = range(1, 121)
+    range_121 = range(0, 121)
     all_country = Country.objects.all()
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     return render(request,"receptionist_template/manage_patients.html", {
         "patient_records":patient_records,
         "range_121":range_121,
@@ -262,7 +283,7 @@ def add_remoteprescription(request):
 def manage_consultation(request):
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -294,7 +315,7 @@ def save_observation(request, patient_id, visit_id):
         except Procedure.DoesNotExist:
             procedures = None
 
-        doctors=Staffs.objects.filter(role='doctor')
+        doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
         total_price = sum(prescription.total_price for prescription in prescriptions)
 
         patient = Patients.objects.get(id=patient_id)
@@ -434,7 +455,7 @@ def save_remotereferral(request, patient_id, visit_id):
         except Referral.DoesNotExist:
             referral = None
         pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         provisional_diagnoses = Diagnosis.objects.all()
         final_diagnoses = Diagnosis.objects.all()
 
@@ -582,7 +603,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
 
         patient = Patients.objects.get(id=patient_id)
 
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         # Fetching services based on coverage and type
         if patient.payment_form == 'insurance':
             # If patient's payment form is insurance, fetch services with matching coverage
@@ -781,7 +802,7 @@ def patient_health_record(request, patient_id, visit_id):
         total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
         lab_tests_cost = lab_results.aggregate(Sum('cost'))['cost__sum']      
         pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         provisional_diagnoses = Diagnosis.objects.all()
         final_diagnoses = Diagnosis.objects.all()
 
@@ -1155,7 +1176,7 @@ def appointment_list_view(request):
     unread_notification_count = Notification.objects.filter(is_read=False).count()
     patients=Patients.objects.all() 
     pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
         'patients':patients,
         'pathology_records':pathology_records,
@@ -1419,7 +1440,7 @@ def patient_consultation_detail(request, patient_id, visit_id):
             remote_service = Service.objects.filter(type_service='Consultation')
         total_price = sum(prescription.total_price for prescription in prescriptions)    
        
-        doctors = Staffs.objects.filter(role='doctor')
+        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         return render(request, 'receptionist_template/patient_consultation_detail.html', {        
             
             'prescriptions': prescriptions,
@@ -1586,7 +1607,7 @@ def patient_visit_history_view(request, patient_id):
     visit_history = PatientVisits.objects.filter(patient_id=patient_id)
     current_date = timezone.now().date()
     patient = Patients.objects.get(id=patient_id)
-    doctors=Staffs.objects.filter(role='doctor')
+    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     range_31 = range(31)
     medicines = Medicine.objects.filter(
         medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero

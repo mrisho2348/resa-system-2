@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Sum
+from django.db import transaction
 from django.db.models import Q
 from clinic.forms import ImagingRecordForm, LaboratoryOrderForm, ProcedureForm
 from django.core.exceptions import ValidationError
@@ -1084,63 +1085,67 @@ def save_remotereferral(request, patient_id, visit_id):
 @require_POST
 def add_remoteprescription(request):
     try:
-        # Extract data from the request
-        patient_id = request.POST.get('patient_id')
-        visit_id = request.POST.get('visit_id')
-        medicines = request.POST.getlist('medicine[]')
-        doses = request.POST.getlist('dose[]')
-        frequencies = request.POST.getlist('frequency[]')
-        durations = request.POST.getlist('duration[]')
-        quantities = request.POST.getlist('quantity[]')
-        total_price = request.POST.getlist('total_price[]')
-        entered_by = request.user.staff
-        # Retrieve the corresponding patient and visit
-        patient = Patients.objects.get(id=patient_id)
-        visit = PatientVisits.objects.get(id=visit_id)
+        with transaction.atomic():
+            # Extract data from the request
+            patient_id = request.POST.get('patient_id')
+            visit_id = request.POST.get('visit_id')
+            medicines = request.POST.getlist('medicine[]')
+            doses = request.POST.getlist('dose[]')
+            frequencies = request.POST.getlist('frequency[]')
+            durations = request.POST.getlist('duration[]')
+            quantities = request.POST.getlist('quantity[]')
+            total_price = request.POST.getlist('total_price[]')
+            entered_by = request.user.staff
 
-        # Save prescriptions only if inventory check passes
-        for i in range(len(medicines)):
-            medicine = Medicine.objects.get(id=medicines[i])
-            quantity_used_str = quantities[i]  # Get the quantity as a string
+            # Retrieve the corresponding patient and visit
+            patient = Patients.objects.get(id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id)
 
-            if quantity_used_str is None:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.drug_name}. Quantity cannot be empty.'})
+            # Save prescriptions only if inventory check passes
+            for i in range(len(medicines)):
+                medicine = Medicine.objects.get(id=medicines[i])
+                quantity_used_str = quantities[i]  # Get the quantity as a string
 
-            try:
-                quantity_used = int(quantity_used_str)
-            except ValueError:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.drug_name}. Quantity must be a valid number.'})
+                if quantity_used_str is None:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity cannot be empty.')
 
-            if quantity_used < 0:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.drug_name}. Quantity must be a non-negative number.'})
+                try:
+                    quantity_used = int(quantity_used_str)
+                except ValueError:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a valid number.')
 
-            # Retrieve the remaining quantity of the medicine
-            remain_quantity = medicine.remain_quantity
+                if quantity_used < 0:
+                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a non-negative number.')
 
-            if remain_quantity is not None and quantity_used > remain_quantity:
-                return JsonResponse({'status': 'error', 'message': f'Insufficient stock for {medicine.drug_name}. Only {remain_quantity} available.'})
+                # Retrieve the remaining quantity of the medicine
+                remain_quantity = medicine.remain_quantity
 
-            # Reduce the remain quantity of the medicine
-            if remain_quantity is not None:
-                medicine.remain_quantity -= quantity_used
-                medicine.save()
+                if remain_quantity is not None and quantity_used > remain_quantity:
+                    raise ValueError(f'Insufficient stock for {medicine.drug_name}. Only {remain_quantity} available.')
 
-            # Save prescription
-            prescription = Prescription.objects.create(
-                patient=patient,
-                medicine=medicine,
-                entered_by=entered_by,
-                visit=visit,
-                dose=doses[i],
-                frequency=PrescriptionFrequency.objects.get(id=frequencies[i]),
-                duration=durations[i],
-                quantity_used=quantity_used,
-                total_price=total_price[i]
-            )
+                # Reduce the remain quantity of the medicine
+                if remain_quantity is not None:
+                    medicine.remain_quantity -= quantity_used
+                    medicine.save()
 
-        return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
+                # Save prescription
+                Prescription.objects.create(
+                    patient=patient,
+                    medicine=medicine,
+                    entered_by=entered_by,
+                    visit=visit,
+                    dose=doses[i],
+                    frequency=PrescriptionFrequency.objects.get(id=frequencies[i]),
+                    duration=durations[i],
+                    quantity_used=quantity_used,
+                    total_price=total_price[i]
+                )
+
+            return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
+    except ValueError as ve:
+        return JsonResponse({'status': 'error', 'message': str(ve)})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': 'error', 'message': 'An unexpected error occurred: ' + str(e)})
     
 @login_required         
 def save_prescription(request, patient_id, visit_id):

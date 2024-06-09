@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.forms import TextInput, Textarea
-from clinic.models import AdminHOD, AmbulanceActivity, BankAccount, Category, Client, Company, CustomUser, DeductionOrganization, DiseaseRecode, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, Expense, ExpenseCategory, HospitalVehicle, InsuranceCompany, Invoice, MedicineUnitMeasure, PathodologyRecord, Payment, PaymentMethod, Payroll, Reagent, ReagentUsage, SalaryChangeRecord, SalaryPayment, Service, Staffs, Supplier
+from clinic.models import AdminHOD, AmbulanceActivity, BankAccount, Category,  Clients, Company, CustomUser, DeductionOrganization, DiseaseRecode, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, Expense, ExpenseCategory, HospitalVehicle, InsuranceCompany, Invoice, MedicineUnitMeasure, PathodologyRecord, Payment, PaymentMethod, Payroll, Reagent, ReagentUsage, SalaryChangeRecord, SalaryPayment, Service, Staffs, Supplier
 from django.db import models
 from django.contrib.auth.admin import UserAdmin
 # Register your models here.
@@ -201,7 +201,7 @@ class ClientAdmin(admin.ModelAdmin):
         }),
     )
 
-admin.site.register(Client, ClientAdmin)
+admin.site.register(Clients, ClientAdmin)
 
 
 class PayrollAdmin(admin.ModelAdmin):

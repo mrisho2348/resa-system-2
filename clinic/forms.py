@@ -2,7 +2,7 @@ from django import forms
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.widgets import CKEditor5Widget
 
-from clinic.models import ImagingRecord, LaboratoryOrder, Procedure, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral
+from clinic.models import BankAccount, Clients, DeductionOrganization, Employee, Expense, ExpenseCategory, ImagingRecord, LaboratoryOrder, Payment, PaymentMethod, Payroll, Procedure, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral, SalaryPayment, Staffs
 class ImportStaffForm(forms.Form):
     staff_file = forms.FileField(
         label='Choose an Excel file',
@@ -192,10 +192,23 @@ class ImportRemoteMedicineForm(forms.Form):
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
     
+class LaboratoryOrderForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make the 'result' field optional
+        self.fields["result"].required = False
+
+    class Meta:
+        model = LaboratoryOrder
+        fields = ("result",)
+        widgets = {
+            "result": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5"},  # Add a custom CSS class
+                config_name="extends"  # Specify the CKEditor configuration to use
+            )
+        } 
 
 
-# class RemoteObservationRecordForm(forms.Form):
-#     observation_notes = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}))
 
 class RemoteObservationRecordForm(forms.ModelForm):
     """Form for observation notes."""
@@ -340,3 +353,249 @@ class YearSelectionForm(forms.Form):
     year = forms.IntegerField(label='Year', widget=forms.TextInput(attrs={'class': 'form-control'}))       
 #------------------------------
 #   Editing existing data
+
+class BankAccountForm(forms.ModelForm):
+    class Meta:
+        model = BankAccount
+        fields = ['bank_name']
+        widgets = {
+            'bank_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        instance = getattr(self, 'instance', None)
+        if instance and instance.pk:
+            if BankAccount.objects.exclude(pk=instance.pk).filter(name=name).exists():
+                raise forms.ValidationError("A bank account with this name already exists.")
+        else:
+            if BankAccount.objects.filter(name=name).exists():
+                raise forms.ValidationError("A bank account with this name already exists.")
+        return name
+    
+class PayrollForm(forms.ModelForm):
+    class Meta:
+        model = Payroll
+        fields = ['payroll_date', 'total_salary', 'status', 'payment_method', 'details']
+        widgets = {
+            'payroll_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'total_salary': forms.NumberInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'payment_method': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        payroll_date = cleaned_data.get('payroll_date')
+        payment_method = cleaned_data.get('payment_method')
+        instance = self.instance
+
+        # Check if the form is in update mode (instance exists and has an ID)
+        if instance and instance.id:
+            # Exclude the current instance from the queryset
+            existing_payrolls = Payroll.objects.exclude(id=instance.id)
+        else:
+            existing_payrolls = Payroll.objects.all()
+
+        # Check if a payroll with the same date and payment method already exists
+        if existing_payrolls.filter(payroll_date=payroll_date, payment_method=payment_method).exists():
+            raise forms.ValidationError("A payroll with this date and payment method already exists.")
+
+        return cleaned_data
+    
+class PaymentMethodForm(forms.ModelForm):
+    class Meta:
+        model = PaymentMethod
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        instance = self.instance
+        if PaymentMethod.objects.filter(name=name).exclude(pk=instance.pk).exists():
+            raise forms.ValidationError("A payment method with this name already exists.")
+        return name
+    
+class ExpenseCategoryForm(forms.ModelForm):
+    class Meta:
+        model = ExpenseCategory
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        instance = getattr(self, 'instance', None)
+        if instance and ExpenseCategory.objects.filter(name=name).exclude(id=instance.id).exists():
+            raise forms.ValidationError("An expense category with this name already exists.")
+        return name  
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['date', 'amount', 'description', 'category', 'additional_details', 'receipt']
+        widgets = {
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'category': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'additional_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'receipt': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        date = cleaned_data.get('date')
+        amount = cleaned_data.get('amount')
+        category = cleaned_data.get('category')
+        
+        # Exclude the current instance from the check if it exists
+        qs = Expense.objects.filter(date=date, amount=amount, category=category)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError("An expense with this date, amount, and category already exists.")
+        
+        return cleaned_data
+ 
+    
+class DeductionOrganizationForm(forms.ModelForm):
+    class Meta:
+        model = DeductionOrganization
+        fields = ['name', 'rate', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'rate': forms.NumberInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        instance = getattr(self, 'instance', None)
+        if DeductionOrganization.objects.filter(name=name).exclude(pk=instance.pk).exists():
+            raise forms.ValidationError("An organization with this name already exists.")
+        return name   
+    
+class EmployeeForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(EmployeeForm, self).__init__(*args, **kwargs)
+        # Filter employee names based on working place
+        self.fields['name'].queryset = Staffs.objects.filter(work_place='resa')
+
+    class Meta:
+        model = Employee
+        fields = [
+            'name',  'department', 'employment_type', 'start_date', 'end_date', 
+            'salary', 'bank_account', 'bank_account_number', 'account_holder_name', 
+            'tin_number', 'nssf_membership_number', 'nhif_number', 'wcf_number',
+            'tra_deduction_status', 'nssf_deduction_status', 'wcf_deduction_status', 'heslb_deduction_status'
+        ]
+        widgets = {
+            'name': forms.Select(attrs={'class': 'form-control select2bs4'}),      
+            'department': forms.TextInput(attrs={'class': 'form-control'}),
+            'employment_type': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control'}),
+            'bank_account': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'bank_account_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'account_holder_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'tin_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'nssf_membership_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'nhif_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'wcf_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'tra_deduction_status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'nssf_deduction_status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'wcf_deduction_status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'heslb_deduction_status': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        employee_id = cleaned_data.get('employee_id')
+        
+        # Check if the employee_id already exists in other records
+        qs = Employee.objects.filter(employee_id=employee_id)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError("An employee with this ID already exists.")
+        
+        return cleaned_data
+
+    
+class SalaryPaymentForm(forms.ModelForm):
+    class Meta:
+        model = SalaryPayment
+        fields = ['employee', 'payroll', 'payment_date', 'payment_status', 'payment_details']
+        widgets = {
+            'payment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'payment_status': forms.Select(attrs={'class': 'form-control select2bs4'}),
+            'payment_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['employee'].widget.attrs.update({'class': 'form-control select2bs4'})
+        self.fields['payroll'].widget.attrs.update({'class': 'form-control select2bs4'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        payment_date = cleaned_data.get('payment_date')
+        employee = cleaned_data.get('employee')
+
+        if self.instance.pk:
+            if SalaryPayment.objects.filter(employee=employee, payment_date=payment_date).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError("A salary payment for this employee on the same date already exists.")
+        else:
+            if SalaryPayment.objects.filter(employee=employee, payment_date=payment_date).exists():
+                raise forms.ValidationError("A salary payment for this employee on the same date already exists.")
+        
+        return cleaned_data
+
+    
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ['date', 'amount', 'method', 'invoice', 'description']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['date'].widget.attrs.update({'class': 'form-control'})
+        self.fields['amount'].widget.attrs.update({'class': 'form-control'})
+        self.fields['method'].widget.attrs.update({'class': 'form-control select2bs4'})
+        self.fields['invoice'].widget.attrs.update({'class': 'form-control select2bs4'})
+        self.fields['description'].widget.attrs.update({'class': 'form-control'})    
+        
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Clients
+        fields = ['name', 'email', 'phone_number', 'address', 'contact_person']
+
+    def __init__(self, *args, **kwargs):
+        super(ClientForm, self).__init__(*args, **kwargs)
+        # Apply Bootstrap classes to each field
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        # If instance exists (updating), exclude it from the queryset
+        instance = getattr(self, 'instance', None)
+        if instance and instance.pk:
+            existing_clients = Clients.objects.exclude(pk=instance.pk)
+        else:
+            existing_clients = Clients.objects.all()
+
+        if existing_clients.filter(name=name).exists():
+            raise forms.ValidationError("A client with this name already exists.")
+        return name
+      
