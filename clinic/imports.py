@@ -4,10 +4,10 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.db import IntegrityError
 import openpyxl
-from clinic.models import AmbulanceActivity, AmbulanceRoute, Category, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance,  InsuranceCompany, InventoryItem, Medicine, PathodologyRecord, PatientVital, Patients, Prescription, Procedure, Reagent, Referral, RemoteCompany, Service, Staffs, Supplier
+from clinic.models import AmbulanceActivity, AmbulanceRoute, Category, CustomUser, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance,  InsuranceCompany, InventoryItem, Medicine, PathodologyRecord, PatientVital, Patients, Prescription, Procedure, Reagent, Referral, RemoteCompany, Service, Staffs, Supplier
 
-from .resources import AmbulanceActivityResource, AmbulanceRouteResource, CategoryResource, CompanyResource, ConsultationNotesResource, DiagnosisResource, DiseaseRecodeResource, EquipmentMaintenanceResource, EquipmentResource, InsuranceCompanyResource, InventoryItemResource, MedicineResource, MedicineRouteResource, MedicineUnitMeasureResource, PathologyRecordResource, PatientVitalResource, PatientsResource, PrescriptionFrequencyResource, PrescriptionResource, ProcedureResource, ReagentResource, ReferralResource, ServiceResource, SupplierResource
-from .forms import ImportAmbulanceActivityForm, ImportAmbulanceRouteForm, ImportCategoryForm, ImportCompanyForm, ImportConsultationNotesForm, ImportDiagnosisForm, ImportDiseaseForm, ImportEquipmentForm, ImportEquipmentMaintenanceForm, ImportHealthIssueForm, ImportInsuranceCompanyForm, ImportInventoryItemForm, ImportMedicineForm, ImportMedicineRouteForm, ImportMedicineUnitMeasureForm, ImportPathologyRecordForm, ImportPatientVitalForm, ImportPatientsForm, ImportPrescriptionForm, ImportPrescriptionFrequencyForm, ImportProcedureForm, ImportReagentForm, ImportReferralForm, ImportServiceForm, ImportSupplierForm
+from .resources import AmbulanceActivityResource, AmbulanceRouteResource, CategoryResource, CompanyResource, ConsultationNotesResource, DiagnosisResource, DiseaseRecodeResource, EquipmentMaintenanceResource, EquipmentResource, InsuranceCompanyResource, InventoryItemResource, MedicineResource, MedicineRouteResource, MedicineUnitMeasureResource, PathologyRecordResource, PatientVitalResource, PatientsResource, PrescriptionFrequencyResource, PrescriptionResource, ProcedureResource, ReagentResource, ReferralResource, ServiceResource, StaffResources, SupplierResource
+from .forms import ImportAmbulanceActivityForm, ImportAmbulanceRouteForm, ImportCategoryForm, ImportCompanyForm, ImportConsultationNotesForm, ImportDiagnosisForm, ImportDiseaseForm, ImportEquipmentForm, ImportEquipmentMaintenanceForm, ImportHealthIssueForm, ImportInsuranceCompanyForm, ImportInventoryItemForm, ImportMedicineForm, ImportMedicineRouteForm, ImportMedicineUnitMeasureForm, ImportPathologyRecordForm, ImportPatientVitalForm, ImportPatientsForm, ImportPrescriptionForm, ImportPrescriptionFrequencyForm, ImportProcedureForm, ImportReagentForm, ImportReferralForm, ImportServiceForm, ImportStaffForm, ImportSupplierForm
 from tablib import Dataset
 from django.contrib.auth.decorators import login_required
 logger = logging.getLogger(__name__)
@@ -933,3 +933,41 @@ def import_service_data(request):
     else:
         return render(request, 'hod_template/import_service.html')
 
+@login_required
+def import_staff(request):
+    if request.method == 'POST':
+        form = ImportStaffForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                staff_resource = StaffResources()
+                new_staffs = request.FILES['staff_file']
+                
+                # Use tablib to load the imported data
+                dataset = Dataset()
+                imported_data = dataset.load(new_staffs.read(), format='xlsx')  # Assuming you are using xlsx, adjust accordingly
+
+                for data in imported_data:
+                   
+                    user = CustomUser.objects.create_user(username=data[2],
+                                                          password=data[2], 
+                                                          email=data[2], 
+                                                          first_name=data[0],
+                                                          last_name=data[1],
+                                                          user_type=2)
+                    user.staff.middle_name =data[3],
+                    user.staff.date_of_birth = data[5]
+                    user.staff.gender = data[4],           
+                    user.staff.phone_number = data[8]            
+                    user.staff.marital_status = data[6]
+                    user.staff.profession = data[7]
+                    user.staff.role =data[9]
+                    user.save()
+
+                messages.success(request, 'Staff data imported successfully!')
+            except Exception as e:
+                messages.error(request, f'An error occurred: {e}')
+
+    else:
+        form = ImportStaffForm()
+
+    return render(request, 'hod_template/import_staff.html', {'form': form})

@@ -1,9 +1,12 @@
 from multiprocessing.connection import Client
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from .models import BankAccount, Clients, DeductionOrganization, Employee, EmployeeDeduction, Expense, ExpenseCategory, GovernmentProgram, Grant, Investment, Invoice, Payment, PaymentMethod, Payroll, SalaryChangeRecord, SalaryPayment
+from .models import BankAccount, Clients, Company, DeductionOrganization, Employee, EmployeeDeduction, Expense, ExpenseCategory, GovernmentProgram, Grant, Investment, Invoice, Payment, PaymentMethod, Payroll, SalaryChangeRecord, SalaryPayment
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .forms import BankAccountForm, ClientForm, DeductionOrganizationForm, EmployeeForm, ExpenseCategoryForm, ExpenseForm, PaymentForm, PaymentMethodForm, PayrollForm, SalaryPaymentForm
+from .forms import BankAccountForm, ClientForm, DeductionOrganizationForm, EmployeeForm, ExpenseCategoryForm, ExpenseForm, GovernmentProgramForm, GrantForm, InvestmentForm, PaymentForm, PaymentMethodForm, PayrollForm, SalaryPaymentForm
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 
 def bank_account_list(request):
     bank_accounts = BankAccount.objects.all()
@@ -471,3 +474,176 @@ def grant_list(request):
 def government_program_list(request):
     government_programs = GovernmentProgram.objects.all()
     return render(request, 'hod_template/manage_government_program_list.html', {'government_programs': government_programs})
+
+def add_investment(request, pk=None):
+    if pk:
+        investment = get_object_or_404(Investment, pk=pk)
+    else:
+        investment = None
+
+    if request.method == 'POST':
+        form = InvestmentForm(request.POST, instance=investment)
+        try:
+            if form.is_valid():
+                form.save()
+                if investment:
+                    messages.success(request, 'Investment updated successfully!')
+                else:
+                    messages.success(request, 'Investment added successfully!')
+                if 'save_and_add_another' in request.POST:
+                    return redirect('add_investment')
+                else:
+                    return redirect('investment_list')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    else:
+        form = InvestmentForm(instance=investment)
+    
+    return render(request, 'hod_template/add_investment.html', {'form': form, 'investment': investment})
+
+
+def add_grant(request, pk=None):
+    if pk:
+        grant = get_object_or_404(Grant, pk=pk)
+    else:
+        grant = None
+
+    if request.method == 'POST':
+        form = GrantForm(request.POST, instance=grant)
+        try:
+            if form.is_valid():
+                form.save()
+                if grant:
+                    messages.success(request, 'Grant updated successfully!')
+                else:
+                    messages.success(request, 'Grant added successfully!')
+                if 'save_and_add_another' in request.POST:
+                    return redirect('add_grant')
+                else:
+                    return redirect('grant_list')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    else:
+        form = GrantForm(instance=grant)
+    
+    return render(request, 'hod_template/add_grant.html', {'form': form, 'grant': grant})
+
+
+def add_government_program(request, pk=None):
+    if pk:
+        program = get_object_or_404(GovernmentProgram, pk=pk)
+    else:
+        program = None
+
+    if request.method == 'POST':
+        form = GovernmentProgramForm(request.POST, instance=program)
+        try:
+            if form.is_valid():
+                form.save()
+                if program:
+                    messages.success(request, 'Government Program updated successfully!')
+                else:
+                    messages.success(request, 'Government Program added successfully!')
+                if 'save_and_add_another' in request.POST:
+                    return redirect('add_government_program')
+                else:
+                    return redirect('government_program_list')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    else:
+        form = GovernmentProgramForm(instance=program)
+    
+    return render(request, 'hod_template/add_government_program.html', {'form': form, 'program': program})
+
+
+def delete_grant(request, pk):
+    grant = get_object_or_404(Grant, pk=pk)
+    grant.delete()
+    messages.success(request, 'Grant deleted successfully!')
+    return redirect('grant_list')
+
+def delete_government_program(request, pk):
+    program = get_object_or_404(GovernmentProgram, pk=pk)
+    program.delete()
+    messages.success(request, 'Government Program deleted successfully!')
+    return redirect('government_program_list')
+
+def delete_investment(request, pk):
+    investment = get_object_or_404(Investment, pk=pk)
+    investment.delete()
+    messages.success(request, 'Investment deleted successfully!')
+    return redirect('investment_list')
+
+
+@csrf_exempt
+@login_required
+def add_company(request):
+    if request.method == 'POST':
+        try:
+            # Get data from the request
+            company_id = request.POST.get('company_id')
+            name = request.POST.get('Name').strip()
+            industry = request.POST.get('industry', '')
+            sector = request.POST.get('sector', '')
+            headquarters = request.POST.get('headquarters', '')
+            Founded = request.POST.get('Founded', '')
+            Notes = request.POST.get('Notes', '')
+
+            # Check if company_id is provided
+            if company_id:
+                # Fetch the existing company object
+                company = Company.objects.get(pk=company_id)
+
+                # Check if the new name already exists and it's not the same as the current name
+                if Company.objects.filter(name=name).exclude(pk=company_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Company with the provided name already exists'})
+
+                # Update company data
+                company.name = name
+                company.industry = industry
+                company.sector = sector
+                company.headquarters = headquarters
+                company.Founded = Founded
+                company.Notes = Notes
+                company.save()
+
+                return JsonResponse({'success': True, 'message': 'Company updated successfully'})
+            else:
+                # Check if a company with the given name already exists
+                if Company.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': 'Company already exists'})
+
+                # Save new company data
+                Company.objects.create(
+                    name=name,
+                    industry=industry,
+                    sector=sector,
+                    headquarters=headquarters,
+                    Founded=Founded,
+                    Notes=Notes,
+                )
+
+                return JsonResponse({'success': True, 'message': 'Company added successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
+    
+@csrf_exempt
+def delete_remotecompany(request):
+    if request.method == 'POST':
+        company_id = request.POST.get('company_id')
+        try:
+            company = get_object_or_404(Company, id=company_id)
+            company.delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})    

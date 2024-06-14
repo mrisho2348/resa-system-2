@@ -38,7 +38,7 @@ def edit_insurance(request, insurance_id):
             insurance.save()
 
             messages.success(request, 'Insurance details updated successfully!')
-            return redirect('clinic:manage_insurance')  # Replace 'your_redirect_url' with the appropriate URL name
+            return redirect('admin_manage_insurance')  # Replace 'your_redirect_url' with the appropriate URL name
 
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')

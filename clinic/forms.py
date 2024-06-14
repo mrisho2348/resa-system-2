@@ -1,8 +1,7 @@
 from django import forms
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.widgets import CKEditor5Widget
-
-from clinic.models import BankAccount, Clients, DeductionOrganization, Employee, Expense, ExpenseCategory, ImagingRecord, LaboratoryOrder, Payment, PaymentMethod, Payroll, Procedure, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral, SalaryPayment, Staffs
+from clinic.models import BankAccount, Clients, DeductionOrganization, Employee, Expense, ExpenseCategory, GovernmentProgram, Grant, ImagingRecord, Investment, LaboratoryOrder, Payment, PaymentMethod, Payroll, Procedure, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral, SalaryPayment, Staffs
 class ImportStaffForm(forms.Form):
     staff_file = forms.FileField(
         label='Choose an Excel file',
@@ -599,3 +598,105 @@ class ClientForm(forms.ModelForm):
             raise forms.ValidationError("A client with this name already exists.")
         return name
       
+class InvestmentForm(forms.ModelForm):
+    class Meta:
+        model = Investment
+        fields = ['investment_type', 'amount', 'date', 'description']
+        widgets = {
+            'investment_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+
+class GrantForm(forms.ModelForm):
+    class Meta:
+        model = Grant
+        fields = ['grant_name', 'funding_amount', 'donor_name', 'grant_date', 'description']
+        widgets = {
+            'grant_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'funding_amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'donor_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'grant_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+
+class GovernmentProgramForm(forms.ModelForm):
+    class Meta:
+        model = GovernmentProgram
+        fields = ['program_name', 'funding_amount', 'eligibility_criteria', 'description']
+        widgets = {
+            'program_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'funding_amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'eligibility_criteria': forms.Textarea(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control'}),
+        }      
+ 
+MARITAL_STATUS_CHOICES = [
+        ('single', 'Single'),
+        ('married', 'Married'),
+        ('divorced', 'Divorced'),
+        ('widowed', 'Widowed'),
+    ]
+
+ROLE_CHOICES = [
+        ('admin', 'Administrator'),
+        ('doctor', 'Doctor'),
+        ('nurse', 'Nurse'),
+        ('physiotherapist', 'Physiotherapist'),
+        ('labTechnician', 'Lab Technician'),
+        ('pharmacist', 'Pharmacist'),
+        ('receptionist', 'Receptionist'),
+    ]
+PROFESSION_CHOICES = [
+        ('doctor', 'Doctor'),
+        ('nurse', 'Nurse'),
+        ('pharmacist', 'Pharmacist'),
+        ('developer', 'Developer'),
+        ('designer', 'Designer'),
+        ('manager', 'Manager'),
+        ('radiologist', 'Radiologist'),
+        ('lab_technician', 'Lab Technician'),
+        ('receptionist', 'Receptionist'),
+        ('physiotherapist', 'Physiotherapist'),
+        ('accountant', 'Accountant'),
+        ('security_guard', 'Security Guard'),
+        ('chef', 'Chef'),
+        ('cleaner', 'Cleaner'),
+    ]
+
+# Existing fields...
+WORK_PLACE_CHOICES = [
+        ('resa', 'Resa'),
+        ('kahama', 'Kahama'),
+        # Add more choices as needed
+    ]
+
+GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),    
+    ]        
+class AddStaffForm(forms.Form):
+    email = forms.CharField(label='Email', max_length=50, widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "Enter Email"}))
+    password = forms.CharField(label='Password', max_length=50, widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Enter Password"}))
+    first_name = forms.CharField(label='First Name', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter First Name"}))
+    last_name = forms.CharField(label='Last Name', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Last Name"}))
+    username = forms.CharField(label='Username', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Username"}))
+    phone_number = forms.CharField(label='Phone Number', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Phone Number"}))
+    middle_name = forms.CharField(label='Middle Name', max_length=50, required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Middle Name"}))
+    date_of_birth = forms.DateField(label='Date of Birth', required=False, widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}))
+    gender = forms.ChoiceField(label='Gender', choices=GENDER_CHOICES, widget=forms.Select(attrs={"class": "form-control"}))    
+
+    marital_status = forms.ChoiceField(label='Marital Status', choices=MARITAL_STATUS_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))    
+  
+    profession = forms.ChoiceField(label='Profession', choices=PROFESSION_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))   
+  
+    role = forms.ChoiceField(label='Role', choices=ROLE_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))    
+
+    work_place = forms.ChoiceField(label='Work Place', choices=WORK_PLACE_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    
+    joining_date = forms.DateField(label='Joining Date', required=False, widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}))
+    profile_picture = forms.ImageField(label='Profile Picture', required=False, widget=forms.FileInput(attrs={"class": "form-control"}))
+
+
+       

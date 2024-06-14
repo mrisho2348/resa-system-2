@@ -14,7 +14,7 @@ Supplier List
     <i class="fas fa-plus"></i> New Supplier
 </a>
 <!-- Add Import insurance link and modal trigger -->
-<a class="btn btn-success float-right mr-2" href="{% url 'clinic:import_supplier' %}">
+<a class="btn btn-success float-right mr-2" href="{% url 'admin_import_supplier' %}">
   <i class="fas fa-file-import"></i> Import Supplier
 </a>
 {% endblock breadcrumb %}
@@ -29,7 +29,7 @@ Supplier List
                 <div class="card-header">
                     <h4 class="header-title text-center mt-0 mb-1 text-uppercase">    Supplier List  </h4>
                 </div>
-                <div class="card-body">               
+                <div class="card-body">             
     
                     <div class="table-responsive">
                         <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
@@ -62,8 +62,7 @@ Supplier List
                                                 
                                         </td>
     
-    
-                                            <!-- Delete Modal -->
+                                <!-- Delete Modal -->
                             <div class="modal fade" id="deleteSupplierModal{{ supplier.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteSupplierModalModalLabel{{ supplier.id }}" aria-hidden="true">
                                 <div class="modal-dialog" role="document">
                                     <div class="modal-content">
@@ -81,102 +80,33 @@ Supplier List
                                             <button type="button" class="btn btn-danger" onclick="deleteSupplier({{ supplier.id }})">Delete</button>
                                         </div>
                                     </div>
-    
-                                    <script>
-                                        function deleteSupplier(supplierId) {
-                                            $.ajax({
-                                                type: 'POST',
-                                                url: '/delete_supplier/' + supplierId + '/',  // Replace with your URL
-                                                data: {},
-                                                success: function (data) {
-                                                    if (data.status === 'success') {
-                                                        $('#deleteSupplierModal' + supplierId).modal('hide');
-                                                        location.reload(true);
-                                                        // Refresh the category list or perform any other actions
-                                                    } else {
-                                                        // Handle other status cases if needed
-                                                        console.log(data.message);
-                                                    }
-                                                },
-                                                error: function (error) {
-                                                    console.log(error);
-                                                    // Handle errors if necessary
-                                                }
-                                            });
+                                </div>
+                            </div>
+
+                            <script>
+                                function deleteSupplier(supplierId) {
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: '{% url "admin_delete_supplier" %}',  // Updated URL
+                                        data: {
+                                            'supplier_id': supplierId
+                                        },
+                                        success: function (data) {
+                                            if (data.status === 'success') {
+                                                $('#deleteSupplierModal' + supplierId).modal('hide');
+                                                location.reload(true);  // Pass true to force a reload from the server rather than the cache
+                                            } else {
+                                                console.log(data.message);
+                                            }
+                                        },
+                                        error: function (error) {
+                                            console.log(error);
                                         }
-                                    </script>
-                                </div>
-                            </div>
-    
-                        <div class="modal fade" id="editSupplierModal{{ supplier.id }}" tabindex="-1" role="dialog" aria-labelledby="editSupplierModalLabel{{ supplier.id }}" aria-hidden="true">
-                            <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="editSupplierModalLabel{{ supplier.id }}">Edit Supplier</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form id="editSupplierForm{{ supplier.id }}">
-                                            {% csrf_token %}
-                        
-                                            <input type="hidden" class="form-control" id="supplier_id" name="supplier_id" value="{{ supplier.id }}" >
-                                            <div class="form-group">
-                                                <label for="supplierName">Supplier Name</label>
-                                                <input type="text" class="form-control" id="supplierName" name="name"  value="{{ supplier.name }}" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="supplierAddress">Address</label>
-                                                <input type="text" class="form-control" id="supplierAddress" name="address"  value="{{ supplier.address }}">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="supplierContact">Contact Information</label>
-                                                <textarea class="form-control" id="supplierContact" name="contact_information"  >{{ supplier.contact_information }}</textarea>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="supplierEmail">Email</label>
-                                                <input type="email" class="form-control" id="supplierEmail" name="email"   value="{{ supplier.email }}" >
-                                            </div>
-                                            <!-- Add more fields as needed -->
-                        
-                                            <button type="submit" class="btn btn-primary" id="submitBtn">Edit Supplier</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                                            
-                                        <script>
-                                            // Handle form submission using AJAX
-                                            $(document).ready(function () {
-                                                // Assuming you have a loop or iteration for categories, replace "forEach" with your actual loop
-                                                {% for  supplier in suppliers %}
-                                                    $('#editSupplierForm{{ supplier.id }}').submit(function (e) {
-                                                        e.preventDefault();
-                                                        $.ajax({
-                                                            type: 'POST',
-                                                            url: '{% url "clinic:add_supplier" %}',  // Replace with your URL
-                                                            data: $('#editSupplierForm{{ supplier.id }}').serialize(),
-                                                            success: function (data) {
-                                                                if (data.status === 'success') {
-                                                                    $('#editSupplierModal{{ supplier.id }}').modal('hide');
-                                                                    location.reload(true);
-                                                                    // Refresh the category list or perform any other actions
-                                                                } else {
-                                                                    // Handle other status cases if needed
-                                                                    console.log(data.message);
-                                                                }
-                                                            },
-                                                            error: function (error) {
-                                                                console.log(error);
-                                                                // Handle errors if necessary
-                                                            }
-                                                        });
-                                                    });
-                                                {% endfor %}
-                                            });
-                                        </script>                    
+                                    });
+                                }
+                            </script> 
+                           
+                            
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -188,10 +118,98 @@ Supplier List
     </div>
 </div>
 
+{% for supplier in suppliers %}
+<!-- Modal for Editing Supplier -->
+<div class="modal fade" id="editSupplierModal{{ supplier.id }}" tabindex="-1" role="dialog" aria-labelledby="editSupplierModalLabel{{ supplier.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSupplierModalLabel{{ supplier.id }}">Edit Supplier</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="editSupplierContainer{{ supplier.id }}" class="alert" role="alert"></div>
+                <form id="editSupplierForm{{ supplier.id }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" class="form-control" name="supplier_id" value="{{ supplier.id }}">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="supplierName{{ supplier.id }}">Supplier Name</label>
+                            <input type="text" class="form-control" id="supplierName{{ supplier.id }}" name="name" value="{{ supplier.name }}" required>                           
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="supplierAddress{{ supplier.id }}">Address</label>
+                            <input type="text" class="form-control" id="supplierAddress{{ supplier.id }}" name="address" value="{{ supplier.address }}">                         
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="supplierEmail{{ supplier.id }}">Email</label>
+                            <input type="email" class="form-control" id="supplierEmail{{ supplier.id }}" name="email" value="{{ supplier.email }}">                       
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="supplierContact{{ supplier.id }}">Contact Information</label>
+                            <textarea class="form-control" id="supplierContact{{ supplier.id }}" name="contact_information">{{ supplier.contact_information }}</textarea>                          
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <button type="button" class="btn btn-primary btn-block" id="editSupplier{{ supplier.id }}">Update Supplier</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#editSupplier{{ supplier.id }}').click(function (event) {
+            // Validate form fields
+            var form = document.getElementById('editSupplierForm{{ supplier.id }}');
+            if (form.checkValidity() === false) {
+                // If form is invalid, prevent submission
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Capture form data
+                var formData = $('#editSupplierForm{{ supplier.id }}').serialize();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '{% url "admin_add_supplier" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editSupplierContainer{{ supplier.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            // Handle error
+                            $('#editSupplierContainer{{ supplier.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#editSupplierContainer{{ supplier.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
+            }
+
+            // Prevent default form submission
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+{% endfor %}
 
 
-<!-- supplier_modal.html -->
-
+<!-- Modal for Adding Supplier -->
 <div class="modal fade" id="addSupplierModal" tabindex="-1" role="dialog" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -202,59 +220,82 @@ Supplier List
                 </button>
             </div>
             <div class="modal-body">
-                <form id="addSupplierForm">
+                <div id="addSupplierContainer" class="alert" role="alert"></div>
+                <form id="addSupplierForm" method="POST">
                     {% csrf_token %}
-
-                    <input type="hidden" class="form-control" id="supplier_id" name="supplier_id" >
-                    <div class="form-group">
-                        <label for="supplierName">Supplier Name</label>
-                        <input type="text" class="form-control" id="supplierName" name="name" required>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="supplierName">Supplier Name</label>
+                            <input type="text" class="form-control" id="supplierName" name="name" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="supplierAddress">Address</label>
+                            <input type="text" class="form-control" id="supplierAddress" name="address">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="supplierAddress">Address</label>
-                        <input type="text" class="form-control" id="supplierAddress" name="address">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="supplierEmail">Email</label>
+                            <input type="email" class="form-control" id="supplierEmail" name="email">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="supplierContact">Contact Information</label>
+                            <textarea class="form-control" id="supplierContact" name="contact_information"></textarea>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="supplierContact">Contact Information</label>
-                        <textarea class="form-control" id="supplierContact" name="contact_information"></textarea>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <button type="button" class="btn btn-primary btn-block" id="addSupplier">Add Supplier</button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="supplierEmail">Email</label>
-                        <input type="email" class="form-control" id="supplierEmail" name="email">
-                    </div>
-                    <!-- Add more fields as needed -->
-
-                    <button type="button" class="btn btn-primary" onclick="addSupplier()">Add Supplier</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
+<!-- JavaScript for Handling Form Submission -->
 <script>
-    // Handle form submission using AJAX
-    function addSupplier() {
-        $.ajax({
-            type: 'POST',
-            url: '{% url "clinic:add_supplier" %}',  // Replace with your URL
-            data: $('#addSupplierForm').serialize(),
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#addSupplierModal').modal('hide');
-                    location.reload(true);
-                    // Refresh the supplier list or perform any other actions
-                } else {
-                    // Handle other status cases if needed
-                    console.log(data.message);
-                }
-            },
-            error: function (error) {
-                console.log(error);
-                // Handle errors if necessary
+    $(document).ready(function () {
+        $('#addSupplier').click(function (event) {
+            // Validate form fields
+            var form = document.getElementById('addSupplierForm');
+            if (form.checkValidity() === false) {
+                // If form is invalid, prevent submission
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Capture form data
+                var formData = $('#addSupplierForm').serialize();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '{% url "admin_add_supplier" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#addSupplierContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            // Handle error
+                            $('#addSupplierContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#addSupplierContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
             }
+
+            // Prevent default form submission
+            form.classList.add('was-validated');
         });
-    }
+    });
 </script>
+
+
 
 
 

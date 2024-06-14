@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.forms import TextInput, Textarea
-from clinic.models import AdminHOD, AmbulanceActivity, BankAccount, Category,  Clients, Company, CustomUser, DeductionOrganization, DiseaseRecode, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, Expense, ExpenseCategory, HospitalVehicle, InsuranceCompany, Invoice, MedicineUnitMeasure, PathodologyRecord, Payment, PaymentMethod, Payroll, Reagent, ReagentUsage, SalaryChangeRecord, SalaryPayment, Service, Staffs, Supplier
+from clinic.models import AdminHOD, AmbulanceActivity, BankAccount, Category,  Clients,  CustomUser, DeductionOrganization, DiseaseRecode, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, Expense, ExpenseCategory, HospitalVehicle, InsuranceCompany, Invoice, MedicineUnitMeasure, PathodologyRecord, Payment, PaymentMethod, Payroll, Reagent, ReagentUsage, SalaryChangeRecord, SalaryPayment, Service, Staffs, Supplier
 from django.db import models
 from django.contrib.auth.admin import UserAdmin
 # Register your models here.
@@ -543,24 +543,6 @@ class ReagentUsageAdmin(admin.ModelAdmin):
 
 admin.site.register(ReagentUsage, ReagentUsageAdmin)
 
-
-class CompanyAdmin(admin.ModelAdmin):
-    list_display = ['name', 'registration_number', 'city', 'state', 'country', 'phone_number', 'email', 'website', 'date_registered']
-    search_fields = ['name', 'registration_number', 'city', 'state', 'country', 'phone_number', 'email', 'website']
-    list_filter = ['country', 'date_registered']
-    readonly_fields = ('date_registered',)  # Optionally, make certain fields read-only
-
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'registration_number', 'address', 'city', 'state', 'country', 'postal_code', 'phone_number', 'email', 'website', 'logo')
-        }),
-        ('Date Information', {
-            'fields': ('date_registered',),
-            'classes': ('collapse',)
-        })
-    )
-
-admin.site.register(Company, CompanyAdmin)
 
 class AdminHODAdmin(admin.ModelAdmin):
     list_display = ('get_first_name', 'get_last_name', 'get_email', 'get_username', 'get_is_active')

@@ -1099,18 +1099,15 @@ def save_user_profile(sender, instance, **kwargs):
 
 
 class Company(models.Model):
-    name = models.CharField(max_length=100)
-    registration_number = models.CharField(max_length=50, unique=True)
-    address = models.TextField(blank=True, null=True)
-    city = models.CharField(max_length=50)
-    state = models.CharField(max_length=50, blank=True, null=True)
-    country = models.CharField(max_length=50)
-    postal_code = models.CharField(max_length=20, blank=True, null=True)
-    phone_number = models.CharField(max_length=20)
-    email = models.EmailField()
-    website = models.URLField(blank=True, null=True)
-    date_registered = models.DateField(auto_now_add=True)
-    logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
+    name =  models.CharField(max_length=255, unique=True)
+    industry = models.CharField(max_length=50, default="")
+    sector = models.CharField(max_length=50, default="")
+    headquarters = models.CharField(max_length=100, default="")
+    Founded = models.CharField(max_length=10, default="")
+    Notes = models.TextField(max_length=100, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
 
     def __str__(self):
         return self.name

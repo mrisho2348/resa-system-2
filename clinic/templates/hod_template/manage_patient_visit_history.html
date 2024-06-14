@@ -1,7 +1,7 @@
 {% extends 'hod_template/base_template.html' %}
 
 {% block title %}
-Patient Visit History
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Visit History
 {% endblock title %}
 
 {% block breadcrumb %}
@@ -19,8 +19,8 @@ Patient Visit History
                
                 <div class="card-body">
                     <div class="row" style="font-size:13px;">
-                        <div class="col-md-3"><b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
                             <script>
                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                 var now = new Date();
@@ -32,11 +32,11 @@ Patient Visit History
                             {% else %}
                             {{ patient.age }}
                             {% endif %}]</b></div>
-                        <div class="col-md-3"><b>SEX: {{ patient.gender }}</b></div>
-                        <div class="col-md-3"><b>FILE NO : {{ patient.mrn }}</b> </div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
                     </div>
                         <div class="row mt-3">
-                            <div class="col-md-3"><b>PAYMENT MODE: {{ patient.payment_form }}</b></div>
+                            <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
                         </div>
                 </div>         
             </div>
@@ -79,17 +79,17 @@ Patient Visit History
                                         </button>
                                      
                                                       <!-- Add more action links as needed -->
-                                        <a href="{% url 'clinic:patient_health_record_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
+                                        <a href="{% url 'admin_patient_health_record' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
                                             <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
                                         </a>   
                                                       <!-- Add more action links as needed -->
-                                        <a href="{% url 'clinic:patient_vital_list' visit.patient.id visit.id %}" data-toggle="tooltip" title="open vitals for this visit">
+                                        <a href="{% url 'admin_patient_vital_list' visit.patient.id visit.id %}" data-toggle="tooltip" title="open vitals for this visit">
                                             <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
                                         </a>   
                                             
                                         </td>
                                  
-                                        <div class="modal fade" id="deletetVisitModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="deletetVisitModalLabel{{ item.id }}" aria-hidden="true">
+                                        <div class="modal fade" id="deletetVisitModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="deletetVisitModalLabel{{ visit.id }}" aria-hidden="true">
                                             <div class="modal-dialog" role="document">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
@@ -106,32 +106,35 @@ Patient Visit History
                                                         <button type="button" class="btn btn-danger" onclick="deletetVisit({{ visit.id }})">Delete</button>
                                                     </div>
                                                 </div>
-                                    
-                                                <script>
-                                                    function deletetVisit(patient_visit_id) {
-                                                        $.ajax({
-                                                            type: 'POST',
-                                                            url: '/delete_patient_visit/' + patient_visit_id + '/',  // Replace with your URL
-                                                            data: {},
-                                                            success: function (data) {
-                                                                if (data.status === 'success') {
-                                                                    $('#deletetVisitModal' + patient_visit_id).modal('hide');
-                                                                    location.reload(true);
-                                                                    // Refresh the category list or perform any other actions
-                                                                } else {
-                                                                    // Handle other status cases if needed
-                                                                    alert(data.message);
-                                                                }
-                                                            },
-                                                            error: function (error) {
-                                                                alert(error);
-                                                                // Handle errors if necessary
-                                                            }
-                                                        });
-                                                    }
-                                                </script>
                                             </div>
-                                        </div>                        
+                                        </div>
+                                        
+                                        <script>
+                                            function deletetVisit(patient_visit_id) {
+                                                $.ajax({
+                                                    type: 'POST',
+                                                    url: '{% url "admin_delete_patient_visit" %}',  // Replace with your URL
+                                                    data: {
+                                                        'patient_visit_id': patient_visit_id
+                                                    },
+                                                    success: function (data) {
+                                                        if (data.status === 'success') {
+                                                            $('#deletetVisitModal' + patient_visit_id).modal('hide');
+                                                            location.reload(true);
+                                                            // Refresh the category list or perform any other actions
+                                                        } else {
+                                                            // Handle other status cases if needed
+                                                            alert(data.message);
+                                                        }
+                                                    },
+                                                    error: function (error) {
+                                                        alert(error);
+                                                        // Handle errors if necessary
+                                                    }
+                                                });
+                                            }
+                                        </script>
+                                               
                                     </tr>                   
                              {% endfor %}
                             </tbody>
