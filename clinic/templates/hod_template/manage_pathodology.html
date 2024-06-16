@@ -2,15 +2,16 @@
 {% block title %}
 Pathology
 {% endblock title %}
+
+{% block page_title %}
+Pathology
+{% endblock page_title %}
+
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
- 
-    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#pathodologyModal">
+    <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#pathodologyModal">
         <i class="fas fa-plus"></i>Add
     </a>
-    <a class="btn btn-success float-right mr-2" href="{% url 'admin_import_pathology_records' %}">
-        <i class="fas fa-file-import"></i> Import 
-      </a>
     {% load static %}
 {% endblock breadcrumb %}
 {% block main_content %}
@@ -19,7 +20,7 @@ Pathology
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-header bg-primary text-white text-center mt-0 mb-1"> Pathology</h5>
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> List of all pathology </h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -27,18 +28,22 @@ Pathology
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Description</th>                                
+                                    <th>Description</th>        
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="pathology-record-table-body">
+                            <tbody id="">
                                 {% for pathodology in pathodology_records %}
                                     <tr>
                                         <td>{{ pathodology.name }}</td>
-                                        <td>{{ pathodology.description }}</td>                                   
+                                        <td>{{ pathodology.description }}</td>                    
                                         <td>
-                                            <a href="{% url 'admin_edit_pathology' pathodology.id %}" class="btn btn-info">Edit</a>
-                                            <a href="{% url 'admin_delete_pathology' pathodology.id %}" class="btn btn-danger">Delete</a>
+                                            <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#pathodologyModal{{ pathodology.id }}"  data-toggle="tooltip" title="Delete">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePathologyModal{{ pathodology.id }}"  data-toggle="tooltip" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>                                          
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -51,46 +56,133 @@ Pathology
     </div>
 </div>
 
+{% for pathodology in pathodology_records %}
+    <!-- Delete Pathology Modal -->
+    <div class="modal fade" id="deletePathologyModal{{ pathodology.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePathologyModal{{ pathodology.id }}Label" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Pathology Record: {{ pathodology.name }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this pathology record? <b>{{ pathodology.name }}</b></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete{{ pathodology.id }}">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Event listener for delete button click
+            $('#confirmDelete{{ pathodology.id }}').click(function() {
+                // Send AJAX request to delete pathology record
+                $.ajax({
+                    url: '{% url "admin_delete_pathology_record" %}', // Update with the actual URL
+                    type: 'POST',
+                    data: {
+                        pathology_record_id: '{{ pathodology.id }}',
+                        csrfmiddlewaretoken: '{{ csrf_token }}'  // Ensure CSRF token is included
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#deletePathologyModal{{ pathodology.id }}').modal('hide');
+                        
+                            location.reload(true);
+                        } else {
+                            // Handle deletion failure
+                            alert('Failed to delete pathology record: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert('AJAX request failed: ' + error);
+                    }
+                });
+            });
+        });
+    </script>
+{% endfor %}
 
-
-<style>
-    .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-    }
-
-    .float-right {
-        float: right;
-    }
-
-    .table {
-        margin-top: 20px;
-    }
-
-    th, td {
-        text-align: center;
-    }
-
-    th {
-        background-color: #007bff;
-        color: #fff;
-    }
-
-    tbody tr:hover {
-        background-color: #f5f5f5;
-    }
-</style>
+{% for pathodology in pathodology_records %}    
+<div class="modal fade" id="pathodologyModal{{ pathodology.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Pathology Record</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div id="pathologyMessageContainer{{ pathodology.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
+                    <form method="post" id="pathodologyForm{{ pathodology.id }}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="form-group col-sm-5">
+                                <label for="Name" class="col-sm-1-12 col-form-label">Name</label>
+                                <input type="text" class="form-control" name="Name" id="Name{{ pathodology.id }}" value="{{ pathodology.name }}" required>
+                                <input type="hidden" name="pathology_record_id" id="pathology_record_id{{ pathodology.id }}" value="{{ pathodology.id }}">
+                                <div class="invalid-feedback">Name is required</div> <!-- Error message placeholder -->
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="Description" class="col-sm-1-12 col-form-label">Description</label>
+                                <input type="text" class="form-control" name="Description" id="Description{{ pathodology.id }}" value="{{ pathodology.description }}">
+                            </div>                        
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-primary btn-block" id="saveRecord{{ pathodology.id }}">Update Pathology Record</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
-</script>
+    $(document).ready(function () {
+        $('#saveRecord{{ pathodology.id }}').click(function (event) {
+            var form = document.getElementById('pathodologyForm{{ pathodology.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#pathodologyForm{{ pathodology.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "admin_add_pathology_record" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#pathologyMessageContainer{{ pathodology.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            $('#pathologyMessageContainer{{ pathodology.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#pathologyMessageContainer{{ pathodology.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+</script>         
+
+{% endfor %}
 
 {% include 'hod_template/datatable.html' %}
 

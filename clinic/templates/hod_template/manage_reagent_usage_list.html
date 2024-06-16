@@ -25,31 +25,31 @@ Reagent Usage List
       <div class="col-md-12">
           <div class="card">
               <div class="card-header">
-                  <h5 class="card-header bg-primary text-white text-center mt-0 mb-1">Reagent Usage List</h5>
+                  <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Reagent Usage List</h6>
               </div>
               <div class="card-body">
                 <div class="table-responsive">
                   <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
                       <thead>
-                          <tr>
-                              <th>Lab Technician</th>
-                              <th>Reagent</th>
-                              <th>Usage Date</th>
+                          <tr>                          
+                              <th>Reagent</th>                        
+                              <th>Original Quantity</th>
                               <th>Quantity Used</th>
-                              <th>Observation</th>
-                              <th>Technician Notes</th>                    
+                              <th>Quantity Remain</th>                          
+                              <th> Notes</th>   
+                              <th>Usage Date</th>                 
                               <th>Action</th>              
                           </tr>
                       </thead>
                       <tbody>
                           {% for reagent_usage in reagent_usage_list %}
-                              <tr>
-                                  <td>{{ reagent_usage.lab_technician }}</td>
-                                  <td>{{ reagent_usage.reagent }}</td>
-                                  <td>{{ reagent_usage.usage_date }}</td>
-                                  <td>{{ reagent_usage.quantity_used }}</td>
-                                  <td>{{ reagent_usage.observation }}</td>
+                              <tr>                             
+                                  <td>{{ reagent_usage.reagent }}</td>                                 
+                                  <td>{{ reagent_usage.reagent.quantity_in_stock }}</td>
+                                  <td>{{ reagent_usage.quantity_used }}</td>   
+                                  <td>{{ reagent_usage.reagent.remaining_quantity }}</td>                                                         
                                   <td>{{ reagent_usage.technician_notes }}</td>
+                                  <td>{{ reagent_usage.usage_date|date:"d/m/Y" }}</td>
                                   <td>
                                     <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editReagentUsageModal{{ reagent_usage.id }}"  data-toggle="tooltip" title="Edit">
                                       <i class="fa fa-edit text-white"></i>
@@ -59,143 +59,7 @@ Reagent Usage List
                                   </button>            
                                   </td>      
               
-                                   <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteReagentUsageModal{{ reagent_usage.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteReagentUsageModalLabel{{ reagent_usage.id }}" aria-hidden="true">
-                                  <div class="modal-dialog" role="document">
-                                      <div class="modal-content">
-                                          <div class="modal-header">
-                                              <h5 class="modal-title" id="deleteReagentUsageModalLabel{{ reagent_usage.id }}">Delete Reagent</h5>
-                                              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                  <span aria-hidden="true">&times;</span>
-                                              </button>
-                                          </div>
-                                          <div class="modal-body">
-                                              <p>Are you sure you want to delete this reagent: <strong>{{ reagent_usage.reagent }}</strong>?</p>
-                                          </div>
-                                          <div class="modal-footer">
-                                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                              <button type="button" class="btn btn-danger" onclick="deleteReagentUsage({{ reagent_usage.id }})">Delete</button>
-                                          </div>
-                                      </div>
-                                  </div>
-                                </div>
-
-                                <script>
-                                  function deleteReagentUsage(reagentUsedId) {
-                                      $.ajax({
-                                          type: 'POST',
-                                          url: '{% url "admin_delete_reagent_used" %}',  // Updated URL
-                                          data: {
-                                              'reagent_usage_id': reagentUsedId
-                                          },
-                                          success: function (data) {
-                                              if (data.status === 'success') {
-                                                  $('#deleteReagentUsageModal' + reagentUsedId).modal('hide');
-                                                  location.reload(true);  // Pass true to force a reload from the server rather than the cache
-                                              } else {
-                                                  console.log(data.message);
-                                              }
-                                          },
-                                          error: function (error) {
-                                              console.log(error);
-                                          }
-                                      });
-                                  }
-                                </script>
-
-              
-                                  <!-- Bootstrap Modal -->
-                                  <div class="modal fade" id="editReagentUsageModal{{ reagent_usage.id }}" tabindex="-1" role="dialog" aria-labelledby="editReagentUsageModalLabel{{ reagent_usage.id }}" aria-hidden="true">
-                                      <div class="modal-dialog" role="document">
-                                        <div class="modal-content">
-                                          <div class="modal-header">
-                                            <h5 class="modal-title" id="editReagentUsageModalLabel{{ reagent_usage.id }}">Edit Reagent Usage</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                              <span aria-hidden="true">&times;</span>
-                                            </button>
-                                          </div>
-                                          <div class="modal-body">
-                                            <!-- Bootstrap Form -->
-                                            <form id="editReagentUsageForm{{ reagent_usage.id }}" method="post">
-                                              <div class="form-row">
-                                                <div class="form-group col-md-4">
-                                                  <label for="labTechnician">Lab Technician</label>                
-                                                  <select class="form-control select2bs4" style="width: 100%;" id="labTechnician" name="labTechnician" required>
-                                                      {% for technician in technicians %}
-                                                          <option value="{{ technician.id }}" {% if technician.id == reagent_usage.lab_technician.id %}selected{% endif %}>{{ technician.admin.first_name }}  {{ technician.middle_name }}  {{ technician.admin.last_name }}</option>
-                                                      {% endfor %}
-                                                  </select>
-                                                </div>
-                                                <input type="hidden" class="form-control" id="usage_id" name="usage_id" value="{{ reagent_usage.id }}">
-                                                <div class="form-group col-md-4">
-                                                  <label for="reagent">Reagent</label>
-                                                  <select class="form-control select2bs4" style="width: 100%;" id="reagent" name="reagent" required>
-                                                      {% for reagent in reagents %}
-                                                          <option value="{{ reagent.id }}" {% if reagent.id == reagent_usage.reagent.id %}selected{% endif %}>{{ reagent.name }}</option>
-                                                      {% endfor %}
-                                                  </select>
-                                                </div>
-                                                <div class="form-group col-md-4">
-                                                  <label for="usageDate">Usage Date</label>
-                                                  <input type="date" class="form-control" id="usageDate" name="usage_date" value="{{ reagent_usage.usage_date|date:'Y-m-d' }}">
-                                                </div>
-                                              </div>
-                                              <div class="form-row">
-                                                <div class="form-group col-md-4">
-                                                  <label for="quantityUsed">Quantity Used</label>
-                                                  <input type="number" class="form-control" id="quantityUsed" name="quantity_used" placeholder="Quantity Used" value="{{ reagent_usage.quantity_used }}">
-                                                </div>
-                                                <div class="form-group col-md-4">
-                                                  <label for="observation">Observation</label>
-                                                  <textarea class="form-control" id="observation" name="observation" cols="2">{{ reagent_usage.observation }}</textarea>
-                                                </div>
-                                                <div class="form-group col-md-4">
-                                                  <label for="technicianNotes">Technician Notes</label>
-                                                  <textarea class="form-control" id="technicianNotes" name="technician_notes" cols="2">{{ reagent_usage.technician_notes }}</textarea>
-                                                </div>
-                                              </div>
-                                              <div class="form-row">
-                                                  <div class="col-md-12">
-                                                      <button  type="submit" class="btn btn-primary float-lg-right"  id="submitBtn">Edit Use</button>  
-                                                  </div>
-                                              </div>
-                                            </form>
-                                          </div>
-                                        
-                                        </div>
-                                      </div>
-                                    </div>
                                   
-                                  <script>
-                                      // Handle form submission using AJAX
-                                      $(document).ready(function () {
-                                          // Assuming you have a loop or iteration for equipment, replace "forEach" with your actual loop
-                                          {% for reagent_usage in reagent_usage_list %}
-                                              $('#editReagentUsageForm{{ reagent_usage.id }}').submit(function (e) {
-                                                  e.preventDefault();
-                                                  $.ajax({
-                                                      type: 'POST',
-                                                      url: '{% url "admin_add_reagent_used" %}',  // Replace with your URL
-                                                      data: $('#editReagentUsageForm{{ reagent_usage.id }}').serialize(),
-                                                      success: function (data) {
-                                                          if (data.status === 'success') {
-                                                              $('#editReagentUsageModal{{ reagent_usage.id }}').modal('hide');
-                                                              location.reload(true);
-                                                              // Refresh the category list or perform any other actions
-                                                          } else {
-                                                              // Handle other status cases if needed
-                                                              alert(data.message);
-                                                          }
-                                                      },
-                                                      error: function (error) {
-                                                          alert(error);
-                                                          // Handle errors if necessary
-                                                      }
-                                                  });
-                                              });
-                                          {% endfor %}
-                                      });
-                                  </script>
                                   
                               </tr>
                           {% endfor %}
@@ -208,6 +72,137 @@ Reagent Usage List
   </div>
 </div>
 
+{% for reagent_usage in reagent_usage_list %}
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteReagentUsageModal{{ reagent_usage.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteReagentUsageModalLabel{{ reagent_usage.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteReagentUsageModalLabel{{ reagent_usage.id }}">Delete Reagent</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this reagent: <strong>{{ reagent_usage.reagent }}</strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteReagentUsage({{ reagent_usage.id }})">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function deleteReagentUsage(reagentUsageId) {
+            $.ajax({
+                type: 'POST',
+                url: '{% url "admin_delete_reagent_used" %}',  // Replace with your actual URL
+                data: {
+                    'reagent_usage_id': reagentUsageId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'  // Add CSRF token for security
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#deleteReagentUsageModal' + reagentUsageId).modal('hide');
+                        location.reload(true);  // Reload the page to reflect the deletion
+                    } else {
+                        console.log(response.message);
+                    }
+                },
+                error: function (error) {
+                    console.log('AJAX request failed', error);
+                }
+            });
+        }
+    </script>
+{% endfor %}
+
+
+{% for reagent_usage in reagent_usage_list %}
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="editReagentUsageModal{{ reagent_usage.id }}" tabindex="-1" role="dialog" aria-labelledby="editReagentUsageModalLabel{{ reagent_usage.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editReagentUsageModalLabel{{ reagent_usage.id }}">Edit Reagent Usage</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="editReagentUsageContainers{{ reagent_usage.id }}" class="alert" role="alert"></div>
+                    <form id="editReagentUsageForm{{ reagent_usage.id }}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" class="form-control" id="usage_id" name="usage_id" value="{{ reagent_usage.id }}">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="reagent{{ reagent_usage.id }}">Reagent</label>
+                                <select class="form-control select2bs4" style="width: 100%;" id="reagent{{ reagent_usage.id }}" name="reagent" required>
+                                    {% for reagent in reagents %}
+                                        <option value="{{ reagent.id }}" {% if reagent.id == reagent_usage.reagent.id %}selected{% endif %}>{{ reagent.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="usageDate{{ reagent_usage.id }}">Usage Date</label>
+                                <input type="date" class="form-control" id="usageDate{{ reagent_usage.id }}" name="usageDate" value="{{ reagent_usage.usage_date|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="quantityUsed{{ reagent_usage.id }}">Quantity Used</label>
+                                <input type="number" class="form-control" id="quantityUsed{{ reagent_usage.id }}" name="quantityUsed"  value="{{ reagent_usage.quantity_used }}" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="technicianNotes{{ reagent_usage.id }}">Technician Notes</label>
+                                <textarea class="form-control" id="technicianNotes{{ reagent_usage.id }}" name="notes" rows="2">{{ reagent_usage.technician_notes }}</textarea>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-primary btn-block" id="editReagentUsage{{ reagent_usage.id }}">Edit Use</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('#editReagentUsage{{ reagent_usage.id }}').click(function (event) {
+                var form = document.getElementById('editReagentUsageForm{{ reagent_usage.id }}');
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                } else {
+                    var formData = $('#editReagentUsageForm{{ reagent_usage.id }}').serialize();
+
+                    $.ajax({
+                        url: '{% url "admin_save_use_reagent_item" %}', // Replace with your actual URL
+                        type: 'POST',
+                        data: formData,
+                        success: function (response) {
+                            if (response.success) {
+                                $('#editReagentUsageContainers{{ reagent_usage.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                                location.reload(true);
+                            } else {
+                                $('#editReagentUsageContainers{{ reagent_usage.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                            }
+                        },
+                        error: function () {
+                            console.error('AJAX request failed');
+                            $('#editReagentUsageContainers{{ reagent_usage.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                        }
+                    });
+                }
+
+                form.classList.add('was-validated');
+            });
+        });
+    </script>
+{% endfor %}
 
 
 
@@ -224,19 +219,11 @@ Reagent Usage List
           </button>
         </div>
         <div class="modal-body">
-          <!-- Bootstrap Form -->
+          <div id="addReagentUsageContainers" class="alert" role="alert"></div>
           <form id="AddReagentUsageForm" method="post">
-            <div class="form-row">
-              <div class="form-group col-md-4">
-                <label for="labTechnician">Lab Technician</label>                
-                <select class="form-control select2bs4" style="width: 100%;" id="labTechnician" name="labTechnician" required>
-                    {% for technician in technicians %}
-                        <option value="{{ technician.id }}">{{ technician.admin.first_name }}  {{ technician.middle_name }}  {{ technician.admin.last_name }}</option>
-                    {% endfor %}
-                </select>
-              </div>
+            <div class="form-row">            
               <input type="hidden" class="form-control" id="usage_id" name="usage_id">
-              <div class="form-group col-md-4">
+              <div class="form-group col-md-6">
                 <label for="reagent">Reagent</label>
                 <select class="form-control select2bs4" style="width: 100%;" id="reagent" name="reagent" required>
                     {% for reagent in reagents %}
@@ -244,28 +231,24 @@ Reagent Usage List
                     {% endfor %}
                 </select>
               </div>
-              <div class="form-group col-md-4">
+              <div class="form-group col-md-6">
                 <label for="usageDate">Usage Date</label>
-                <input type="date" class="form-control" id="usageDate" name="usage_date">
+                <input type="date" class="form-control" id="usageDate" name="usageDate" required>
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group col-md-4">
+              <div class="form-group col-md-6">
                 <label for="quantityUsed">Quantity Used</label>
-                <input type="number" class="form-control" id="quantityUsed" name="quantity_used" placeholder="Quantity Used">
-              </div>
-              <div class="form-group col-md-4">
-                <label for="observation">Observation</label>
-                <textarea class="form-control" id="observation" name="observation" cols="2"></textarea>
-              </div>
-              <div class="form-group col-md-4">
-                <label for="technicianNotes">Technician Notes</label>
-                <textarea class="form-control" id="technicianNotes" name="technician_notes" cols="2"></textarea>
+                <input type="number" class="form-control" id="quantityUsed" name="quantityUsed" placeholder="Quantity Used" required>
+              </div>              
+              <div class="form-group col-md-6">
+                <label for="technicianNotes"> Notes</label>
+                <textarea class="form-control" id="technicianNotes" name="notes" cols="2"></textarea>
               </div>
             </div>
             <div class="form-row">
                 <div class="col-md-12">
-                    <button  type="button" class="btn btn-primary float-lg-right"  onclick="addReagentUsage()">Use</button>  
+                    <button  type="button" class="btn btn-primary btn-block"  id="addReagentUsage">Use</button>  
                 </div>
             </div>
           </form>
@@ -276,39 +259,42 @@ Reagent Usage List
   </div>
   
   
-  
+  <script>
+    $(document).ready(function () {
+        $('#addReagentUsage').click(function (event) {
+            var form = document.getElementById('AddReagentUsageForm');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#AddReagentUsageForm').serialize();
 
-  
-<script>
-    // Handle form submission using AJAX
-    function addReagentUsage() {
-        $.ajax({
-            type: 'POST',
-            url: '{% url "admin_add_reagent_used" %}',  // Replace with your URL
-            data: $('#AddReagentUsageForm').serialize(),
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#AddReagentUsageModal').modal('hide');
-                    location.reload(true);
-                    // Refresh the inventory item list or perform any other actions
-                } else {
-                    // Handle other status cases if needed
-                    alert(data.message);
-                }
-            },
-            error: function (error) {
-                console.log(error);
-                // Handle errors if necessary
+                $.ajax({
+                    url: '{% url "admin_use_reagent_item" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#addReagentUsageContainers').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            $('#addReagentUsageContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#addReagentUsageContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
             }
+
+            form.classList.add('was-validated');
         });
-    }
-</script>
-  
-<script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
-</script>
+    });
+</script>  
+
+ 
+
 
 {% include 'hod_template/datatable.html' %}
 {% endblock main_content %}

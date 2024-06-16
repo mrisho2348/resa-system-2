@@ -30,5 +30,6 @@ urlpatterns = [
     re_path(r'^admin/delete-referral/$', delete.delete_referral, name='admin_delete_referral'),  
     path('delete_qualitycontrol/', delete.delete_quality_control, name='admin_delete_qualitycontrol'),
     path('admin/delete-remote-company/', delete.delete_remotecompany, name='admin_delete_remote_company'),
+    path('admin/delete-pathology-record/', delete.delete_pathology_record, name='admin_delete_pathology_record'),
     re_path(r'^admin/delete-patient-visit/', delete.delete_patient_visit, name='admin_delete_patient_visit'),
 ]

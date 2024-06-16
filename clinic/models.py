@@ -220,8 +220,7 @@ class InventoryItem(models.Model):
     supplier = models.ForeignKey('Supplier', on_delete=models.SET_NULL, null=True, blank=True)
     purchase_date = models.DateField(null=True, blank=True)
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    expiry_date = models.DateField(null=True, blank=True)
-    location_in_storage = models.CharField(max_length=100, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)   
     min_stock_level = models.PositiveIntegerField(null=True, blank=True)
     images_attachments = models.ImageField(upload_to='inventory/images/', null=True, blank=True)
     condition = models.CharField(max_length=50, blank=True)
@@ -229,8 +228,16 @@ class InventoryItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()  
+    
     def __str__(self):
-        return self.name  
+        return self.name
+    
+    @property
+    def total_price(self):
+        if self.purchase_price and self.quantity:
+            return self.purchase_price * self.quantity
+        return 0
+
    
 class UsageHistory(models.Model):
     inventory_item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
@@ -1059,14 +1066,17 @@ class Reagent(models.Model):
     def __str__(self):
         return self.name   
     
+    @property
+    def total_price(self):
+        if self.price_per_unit and self.quantity_in_stock:
+            return self.price_per_unit * self.quantity_in_stock
+        return 0
+    
 class ReagentUsage(models.Model):
-    lab_technician = models.ForeignKey(Staffs, on_delete=models.CASCADE)
     reagent = models.ForeignKey(Reagent, on_delete=models.CASCADE)
     usage_date = models.DateField()
-    quantity_used = models.PositiveIntegerField()
-    # Add other reagent usage-related information
-    observation = models.TextField()  # Additional field for observations or notes
-    technician_notes = models.TextField()  # Additional field for technician notes 
+    quantity_used = models.PositiveIntegerField() 
+    notes = models.TextField()  # Additional field for technician notes 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()  

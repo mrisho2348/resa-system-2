@@ -526,14 +526,14 @@ class ReagentAdmin(admin.ModelAdmin):
 admin.site.register(Reagent, ReagentAdmin)
 
 class ReagentUsageAdmin(admin.ModelAdmin):
-    list_display = ['lab_technician', 'reagent', 'usage_date', 'quantity_used', 'observation', 'technician_notes', 'created_at', 'updated_at']
-    search_fields = ['lab_technician__admin__first_name', 'lab_technician__admin__last_name', 'reagent__name', 'usage_date']
+    list_display = [ 'reagent', 'usage_date', 'quantity_used','notes', 'created_at', 'updated_at']
+    search_fields = ['reagent__name', 'usage_date']
     list_filter = ['usage_date', 'created_at', 'updated_at']
     readonly_fields = ('created_at', 'updated_at')  # Optionally, make certain fields read-only
 
     fieldsets = (
         (None, {
-            'fields': ('lab_technician', 'reagent', 'usage_date', 'quantity_used', 'observation', 'technician_notes')
+            'fields': ('reagent', 'usage_date', 'quantity_used', 'notes')
         }),
         ('Date Information', {
             'fields': ('created_at', 'updated_at'),

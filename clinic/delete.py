@@ -31,17 +31,14 @@ def delete_medicine(request):
     if not medicine_id:
         return JsonResponse({'success': False, 'message': 'Medicine ID is required.'})
 
-    # Get the medicine object or return 404 if not found
     medicine = get_object_or_404(Medicine, id=medicine_id)
 
     try:
-        # Delete the medicine
-        medicine_name = medicine.name  # Store the name before deletion
+        medicine_name = medicine.drug_name  # Store the name before deletion
         medicine.delete()
         message = f"Medicine '{medicine_name}' deleted successfully."
         return JsonResponse({'success': True, 'message': message})
     except Exception as e:
-        # Handle any exception or error during deletion
         return JsonResponse({'success': False, 'message': str(e)})
     
 @csrf_exempt
@@ -190,11 +187,11 @@ def delete_service(request):
         # Delete the frequency from the database
         service = Service.objects.get(id=service_id)
         service.delete()
-        return JsonResponse({'status': 'success', 'message': 'service deleted successfully'})
+        return JsonResponse({'success': True,'message': 'service deleted successfully'})
     except Service.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'service not found'}, status=404)
+        return JsonResponse({'success': False,'message': 'service not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
  
 @csrf_exempt
@@ -263,9 +260,9 @@ def delete_equipment(request):
     try:
         # Retrieve the equipment ID from the POST data
         equipment_id = request.POST.get('equipment_id')
-        
+
         if not equipment_id:
-            return JsonResponse({'status': 'error', 'message': 'Missing equipment ID'})
+            return JsonResponse({'success': False, 'message': 'Missing equipment ID'})
         
         # Retrieve the equipment object or return a 404 error if not found
         equipment = get_object_or_404(Equipment, pk=equipment_id)
@@ -274,10 +271,10 @@ def delete_equipment(request):
         equipment.delete()
         
         # Return a success response
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({'success': True, 'message': 'Equipment deleted successfully'})
     except Exception as e:
         # Return an error response with the exception message
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'success': False, 'message': str(e)})
     
     
 @csrf_exempt      
@@ -313,18 +310,51 @@ def delete_prescription(request, prescription_id):
         return JsonResponse({'status': 'error', 'message': str(e)}) 
     
 
-@csrf_exempt      
-@require_POST    
-def delete_remotecompany(request, company_id):
-    # Your delete logic here
+@csrf_exempt
+@require_POST
+def delete_remotecompany(request):
     try:
+        # Get company_id from POST data
+        company_id = request.POST.get('company_id')
+
+        # Check if company_id is provided
+        if not company_id:
+            return JsonResponse({'success': False, 'error': 'Company ID is required'})
+
+        # Try to get the company and delete it
         company = Company.objects.get(id=company_id)
         company.delete()
+
+        # Return success response
         return JsonResponse({'success': True})
-    except RemoteCompany.DoesNotExist:
+
+    except Company.DoesNotExist:
+        # Return error response if company does not exist
         return JsonResponse({'success': False, 'error': 'Company does not exist'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})    
+        # Return error response for any other exceptions
+        return JsonResponse({'success': False, 'error': str(e)}) 
+    
+    
+@csrf_exempt
+@login_required
+def delete_pathology_record(request):
+    if request.method == 'POST':
+        try:
+            pathology_record_id = request.POST.get('pathology_record_id')
+            pathology_record = PathodologyRecord.objects.get(id=pathology_record_id)
+            pathology_record_name = pathology_record.name  # Capture the name before deletion
+            pathology_record.delete()
+            # Return a JSON response indicating success and include the name of the deleted record
+            return JsonResponse({'success': True, 'message': f'Pathology record "{pathology_record_name}" deleted successfully.'})
+        except PathodologyRecord.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Pathology record not found.'})
+        except Exception as e:
+            # Return a JSON response indicating failure
+            return JsonResponse({'success': False, 'message': f'Error deleting result: {str(e)}'})
+    else:
+        # Return a JSON response indicating failure
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})     
     
 @csrf_exempt
 @require_POST
@@ -384,7 +414,7 @@ def delete_patient_vital(request):
         vital_id = request.POST.get('vital_id')
         
         if not vital_id:
-            return JsonResponse({'status': 'error', 'message': 'Missing vital ID'})
+            return JsonResponse({'success': False, 'message': 'Missing vital ID'})
         
         # Retrieve the vital object or return a 404 error if not found
         vital = get_object_or_404(PatientVital, pk=vital_id)
@@ -393,10 +423,10 @@ def delete_patient_vital(request):
         vital.delete()
         
         # Return a success response
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({'success': True})
     except Exception as e:
         # Return an error response with the exception message
-        return JsonResponse({'status': 'error', 'message': str(e)})    
+        return JsonResponse({'success': False, 'message': str(e)})    
     
 
     

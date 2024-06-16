@@ -1,4 +1,4 @@
-from django.urls import include, path, re_path
+from django.urls import  path, re_path
 from clinic import AdminViews
 
 urlpatterns = [
@@ -29,7 +29,6 @@ urlpatterns = [
     path('admin/update-equipment-status/', AdminViews.update_equipment_status, name="admin_update_equipment_status"),
     path('admin/save-usage-history/', AdminViews.save_usage_history, name="admin_save_usage_history"),
     path('admin/add-category/', AdminViews.add_category, name="admin_add_category"),
-    path('admin/accounts/', include('django.contrib.auth.urls')),
     re_path(r'^admin/staff-detail/(?P<staff_id>\d+)/$', AdminViews.single_staff_detail, name="admin_single_staff_detail"),
     re_path(r'^admin/view-patient/(?P<patient_id>\d+)/$', AdminViews.view_patient, name="admin_view_patient"),
     re_path(r'^admin/edit-staff/(?P<staff_id>\w+)/$', AdminViews.edit_staff, name="admin_edit_staff"),
@@ -49,9 +48,11 @@ urlpatterns = [
     path('admin/add-equipment/', AdminViews.add_equipment, name="admin_add_equipment"),
     path('admin/use-inventory-item/', AdminViews.use_inventory_item, name="admin_use_inventory_item"),
     path('admin/add-reagent/', AdminViews.add_reagent, name="admin_add_reagent"),
+    path('admin/use-reagent/', AdminViews.use_reagent_item, name="admin_use_reagent_item"),
+    path('admin/save-use/reagent/item/', AdminViews.save_use_reagent_item, name="admin_save_use_reagent_item"),
     path('admin/increase-reagent-stock/', AdminViews.increase_reagent_stock, name="admin_increase_reagent_stock"),
     path('admin/add-reagent-used/', AdminViews.add_reagent_used, name="admin_add_reagent_used"),
-    path('admin/add-maintenance/', AdminViews.add_maintainance, name="admin_add_maintenance"),
+    path('admin/add-maintenance/', AdminViews.add_maintenance, name="admin_add_maintenance"),
     path('admin/add-quality-control/', AdminViews.add_quality_control, name="admin_add_quality_control"),
     path('admin/quality-control-list/', AdminViews.quality_control_list, name="admin_quality_control_list"),
     path('admin/resa-report/', AdminViews.resa_report, name="admin_resa_report"),

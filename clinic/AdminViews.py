@@ -483,13 +483,13 @@ def add_medicine(request):
         try:
             # Extract data from request
             medicine_id = request.POST.get('medicine_id')
-            drug_name = request.POST.get('drug_name')
+            drug_name = request.POST.get('drug_name').strip()
             drug_type = request.POST.get('drug_type')
             formulation_unit = request.POST.get('formulation_unit')
-            manufacturer = request.POST.get('manufacturer')
+            manufacturer = request.POST.get('manufacturer').strip()
             quantity = request.POST.get('quantity')
             dividable = request.POST.get('dividable')
-            batch_number = request.POST.get('batch_number')
+            batch_number = request.POST.get('batch_number').strip()
             expiration_date = request.POST.get('expiration_date')
             cash_cost = request.POST.get('cash_cost')
             insurance_cost = request.POST.get('insurance_cost')
@@ -500,24 +500,24 @@ def add_medicine(request):
             if expiration_date:
                 expiration_date_obj = datetime.strptime(expiration_date, '%Y-%m-%d').date()
                 if expiration_date_obj <= datetime.now().date():
-                    return JsonResponse({'status': 'fail', 'error': 'Expiration date must be in the future.'})
+                    return JsonResponse({'success': False, 'message':  'Expiration date must be in the future.'})
 
              # Check if required fields are provided
             if not (drug_name and quantity and buying_price):
-                return JsonResponse({'status': 'fail', 'error': 'Missing required fields'})
+                return JsonResponse({'success': False, 'message': 'Missing required fields'})
 
             # Convert quantity and buying_price to integers .exclude(pk=disease_id)
             try:
                 quantity = int(quantity)
                 buying_price = float(buying_price)
             except ValueError:
-                return JsonResponse({'status': 'fail', 'error': 'Invalid quantity or buying price'})
+                return JsonResponse({'success': False, 'message': 'Invalid quantity or buying price'})
             # Check if this is an edit operation
             if medicine_id:
                 if Medicine.objects.exclude(pk=medicine_id).filter(drug_name=drug_name).exists():
-                    return JsonResponse({'status': 'fail', 'error': 'The medicine drug with the same name  already exists.'})
+                    return JsonResponse({'success': False, 'message':  'The medicine drug with the same name  already exists.'})
                 if Medicine.objects.exclude(pk=medicine_id).filter(batch_number=batch_number).exists():
-                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
+                    return JsonResponse({'success': False, 'message': 'The  medicine drug with the same bath number  already exists.'})
                 
                 medicine = Medicine.objects.get(pk=medicine_id)
                 medicine.drug_name = drug_name
@@ -533,12 +533,13 @@ def add_medicine(request):
                 medicine.insurance_cost = insurance_cost
                 medicine.nhif_cost = nhif_cost
                 medicine.buying_price = buying_price
+                return JsonResponse({'success': True, 'message': 'medicine drug is updated successfully'})
             else:
                 # Check for uniqueness
                 if Medicine.objects.filter(drug_name=drug_name).exists():
-                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same name  already exists.'})
+                    return JsonResponse({'success': False, 'message': 'The  medicine drug with the same name  already exists.'})
                 if Medicine.objects.filter(batch_number=batch_number).exists():
-                    return JsonResponse({'status': 'fail', 'error': 'The  medicine drug with the same bath number  already exists.'})
+                    return JsonResponse({'success': False, 'message':  'The  medicine drug with the same bath number  already exists.'})
 
                 # Create a new Medicine instance
                 medicine = Medicine(
@@ -559,14 +560,14 @@ def add_medicine(request):
 
             # Save the medicine instance
             medicine.save()
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({'success': True, 'message': 'medicine drug is added successfully'})
         except ObjectDoesNotExist:
-            return JsonResponse({'status': 'fail', 'error': 'Medicine not found.'})
+            return JsonResponse({'success': False, 'message':  'Medicine not found.'})
         except ValidationError as ve:
-            return JsonResponse({'status': 'fail', 'error': ve.message})
+            return JsonResponse({'success': False, 'message':  ve.message})
         except Exception as e:
-            return JsonResponse({'status': 'fail', 'error': str(e)})
-    return JsonResponse({'status': 'fail', 'error': 'Invalid request method'})
+            return JsonResponse({'success': False, 'message':  str(e)})
+    return JsonResponse({'success': False, 'message':  'Invalid request method'})
 
 
 
@@ -665,23 +666,50 @@ def appointment_list_view(request):
 @csrf_exempt
 @login_required
 def add_disease(request):
-    try:
-        if request.method == 'POST':
-            disease_name = request.POST.get('Disease')
-            code = request.POST.get('Code')
+    if request.method == 'POST':
+        try:
+            # Extract data from the request
+            disease_id = request.POST.get('disease_id')
+            disease_name = request.POST.get('Disease').strip()
+            code = request.POST.get('Code').strip()
+
+            # If disease ID is provided, it's an edit operation
+            if disease_id:
+                # Check if the disease with the given ID exists
+                disease = DiseaseRecode.objects.get(pk=disease_id)
+                if disease:
+                    # Check if updating the disease name and code will cause a duplicate entry error
+                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(disease_name=disease_name).exists():
+                        return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})                    
+                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(code=code).exists():
+                        return JsonResponse({'success': False, 'message': 'Another disease with the same code already exists'})
+                    
+                    # Update disease data
+                    disease.disease_name = disease_name
+                    disease.code = code
+                    disease.save()
+                    return JsonResponse({'success': True, 'message': 'Disease updated successfully'})
+                else:
+                    return JsonResponse({'success': False, 'message': 'Disease does not exist'})
 
             # Check if the disease already exists
             if DiseaseRecode.objects.filter(disease_name=disease_name).exists():
+                return JsonResponse({'success': False, 'message': 'Disease already exists'})            
+            if DiseaseRecode.objects.filter(code=code).exists():
                 return JsonResponse({'success': False, 'message': 'Disease already exists'})
 
-            # Save data to the model
+            # Save data to the model for new disease
             DiseaseRecode.objects.create(disease_name=disease_name, code=code)
+            return JsonResponse({'success': True, 'message': 'Disease added successfully'})
 
-            return JsonResponse({'success': True,'message':'disease added successfully'})
-        else:
-            return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        except IntegrityError:
+            # Handle the specific IntegrityError raised when a duplicate entry occurs
+            return JsonResponse({'success': False, 'message': 'Disease already exists'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
  
 @csrf_exempt
 @login_required
@@ -743,28 +771,41 @@ def add_insurance_company(request):
 @csrf_exempt
 @login_required
 def add_pathodology_record(request):
-    try:
-        if request.method == 'POST':
-            name = request.POST.get('Name')
+    if request.method == 'POST':
+        try:
+            # Extract data from the request
+            name = request.POST.get('Name').strip()
             description = request.POST.get('Description')
-            related_diseases_ids = request.POST.getlist('RelatedDiseases')
+            pathology_record_id = request.POST.get('pathology_record_id')
+            
+            # If pathology record ID is provided, it's an edit operation
+            if pathology_record_id:             
+                
+                # Check if the provided name already exists in the database excluding the current record
+                if PathodologyRecord.objects.exclude(pk=pathology_record_id).filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message':  f'Another pathology record with the name "{name}" already exists'})
+                 # Get the existing pathology record object
+                pathology_record = PathodologyRecord.objects.get(pk=pathology_record_id)
+                # Update the existing pathology record
+                pathology_record.name = name
+                pathology_record.description = description
+                pathology_record.save()
+                return JsonResponse({'success': True, 'message': 'Patholody updated successfully'})
+            else:  # If no pathology record ID is provided, it's an add operation
+                # Check if the provided name already exists in the database
+                if PathodologyRecord.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message':  f'A pathology record with the name "{name}" already exists'})
 
-            # Save data to the model
-            pathodology_record = PathodologyRecord.objects.create(
-                name=name,
-                description=description
-            )
-
-            # Add related diseases
-            for disease_id in related_diseases_ids:
-                disease = DiseaseRecode.objects.get(pk=disease_id)
-                pathodology_record.related_diseases.add(disease)
-
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+                # Save data to the model for a new pathology record
+                pathodology_record = PathodologyRecord.objects.create(
+                    name=name,
+                    description=description
+                )
+                return JsonResponse({'success': True, 'message': f'{name} added successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
 
 @login_required    
@@ -894,62 +935,78 @@ def add_supplier(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
     
-
+@csrf_exempt
 @require_POST
 def add_inventory_item(request):
     try:
         inventory_id = request.POST.get('inventory_id')
         name = request.POST.get('name')
-        supplier = request.POST.get('supplier')
-        category = request.POST.get('category')
+        supplier_id = request.POST.get('supplier')
+        category_id = request.POST.get('category')
         quantity = int(request.POST.get('quantity'))
         description = request.POST.get('description')
         purchase_date = request.POST.get('purchase_date')
         purchase_price = request.POST.get('purchase_price')
         expiry_date = request.POST.get('expiry_date')
-        min_stock_level = request.POST.get('min_stock_level')
+        min_stock_level = int(request.POST.get('min_stock_level'))
         condition = request.POST.get('condition')
-        location_in_storage = request.POST.get('location_in_storage')
-        # Add more fields as needed
+
+        supplier = Supplier.objects.get(id=supplier_id)
+        category = Category.objects.get(id=category_id)
 
         if inventory_id:
-            # Editing existing inventory item
-            inventory_item = InventoryItem.objects.get(pk=inventory_id)
-            inventory_item.name = name
-            inventory_item.quantity = quantity
-            inventory_item.remain_quantity = quantity
-            inventory_item.category =  Category.objects.get(id=category)
-            inventory_item.description = description
-            inventory_item.supplier =  Supplier.objects.get(id=supplier)
-            inventory_item.purchase_date = purchase_date
-            inventory_item.purchase_price = purchase_price
-            inventory_item.location_in_storage = location_in_storage
-            inventory_item.min_stock_level = min_stock_level
-            inventory_item.expiry_date = expiry_date
-            inventory_item.condition = condition
-            inventory_item.save()
+            if InventoryItem.objects.filter(name=name).exclude(pk=inventory_id).exists():
+                return JsonResponse({'success': False, 'message': 'Inventory item with this name already exists'})
+            try:
+                inventory_item = InventoryItem.objects.get(pk=inventory_id)
+                inventory_item.name = name
+                inventory_item.quantity = quantity
+                inventory_item.remain_quantity = quantity
+                inventory_item.category = category
+                inventory_item.description = description
+                inventory_item.supplier = supplier
+                inventory_item.purchase_date = purchase_date
+                inventory_item.purchase_price = purchase_price
+                inventory_item.min_stock_level = min_stock_level
+                inventory_item.expiry_date = expiry_date if expiry_date else None
+                inventory_item.condition = condition
+                inventory_item.save()
+
+                return JsonResponse({'success': True, 'message': 'Inventory item updated successfully.'})
+            except InventoryItem.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Inventory item not found.'})
+
         else:
             # Adding new inventory item
+            if InventoryItem.objects.filter(name=name, supplier=supplier, category=category).exists():
+                return JsonResponse({'success': False, 'message': 'Inventory item already exists.'})
+
             inventory_item = InventoryItem(
                 name=name,
                 quantity=quantity,
                 remain_quantity=quantity,
-                category = Category.objects.get(id=category),
-                description = description,
-                supplier = Supplier.objects.get(id=supplier),
-                purchase_date = purchase_date,
-                purchase_price = purchase_price,
-                location_in_storage = location_in_storage,
-                min_stock_level = min_stock_level,
-                expiry_date = expiry_date,
-                condition = condition,
-               
+                category=category,
+                description=description,
+                supplier=supplier,
+                purchase_date=purchase_date,
+                purchase_price=purchase_price,
+                min_stock_level=min_stock_level,
+                expiry_date=expiry_date if expiry_date else None,
+                condition=condition,
             )
             inventory_item.save()
 
-        return JsonResponse({'status': 'success'})
+            return JsonResponse({'success': True, 'message': 'Inventory item added successfully.'})
+
+    except Supplier.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Supplier not found.'})
+    except Category.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Category not found.'})
+    except ValueError as ve:
+        return JsonResponse({'success': False, 'message': f'Invalid value: {str(ve)}'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})      
+        return JsonResponse({'success': False, 'message': str(e)})
+
     
 
 @login_required
@@ -972,25 +1029,31 @@ def save_usage_history(request):
         item_id = request.POST.get('item')
 
         # Retrieve the corresponding InventoryItem
-        item = InventoryItem.objects.get(id=item_id)
-        if quantity_used > item.remain_quantity:
-            return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
+        try:
+            item = InventoryItem.objects.get(id=item_id)
+        except InventoryItem.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Inventory item not found'})
 
+        if quantity_used > item.remain_quantity:
+            return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
 
         # Check if the usageHistoryId is provided for editing
         if usage_history_id:
-            # Editing existing usage history
-            usage_history = UsageHistory.objects.get(pk=usage_history_id)
-            # Get the previous quantity used
-            previous_quantity_used = usage_history.quantity_used
-            # Calculate the difference in quantity
-            quantity_difference = quantity_used - previous_quantity_used
-            # Update the stock level of the corresponding item
-            item.remain_quantity -= quantity_difference
+            try:
+                # Editing existing usage history
+                usage_history = UsageHistory.objects.get(pk=usage_history_id)
+                # Get the previous quantity used
+                previous_quantity_used = usage_history.quantity_used
+                # Calculate the difference in quantity
+                quantity_difference = quantity_used - previous_quantity_used
+                # Update the stock level of the corresponding item
+                item.remain_quantity -= quantity_difference
+            except UsageHistory.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Usage history not found'})
         else:
             # Creating new usage history
             usage_history = UsageHistory()
-         
+            item.remain_quantity -= quantity_used
 
         # Update or set values for other fields
         usage_history.usage_date = usage_date
@@ -1002,9 +1065,11 @@ def save_usage_history(request):
         item.save()
         usage_history.save()
 
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({'success': True, 'message': 'Usage history saved successfully'})
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid data provided'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'success': False, 'message': str(e)})
 
 @csrf_exempt
 def get_item_quantity(request):
@@ -1046,40 +1111,80 @@ def get_items_below_min_stock(request):
     return JsonResponse({'count': items_below_min_stock})
 
 @csrf_exempt
+@require_POST
 def increase_inventory_stock(request):
-    if request.method == 'POST':
+    try:
         item_id = request.POST.get('item_id')
         quantity_to_add = int(request.POST.get('quantityToAdd'))
+
         try:
             item = InventoryItem.objects.get(id=item_id)
+        except InventoryItem.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Item not found'}, status=404)
+
+        if quantity_to_add <= 0:
+            return JsonResponse({'success': False, 'message': 'Quantity to add must be greater than zero'}, status=400)
+
+        try:
             item.quantity += quantity_to_add
             item.remain_quantity += quantity_to_add
             item.save()
-            return JsonResponse({'status': 'success', 'message': f'Stock level increased by {quantity_to_add} for item {item.name}'})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+            return JsonResponse({'success': True, 'message': f'Stock level increased by {quantity_to_add} for item {item.name}'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Failed to update stock: {str(e)}'}, status=500)
+
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid quantity value'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
     
 @csrf_exempt
+@require_POST
 def increase_reagent_stock(request):
     if request.method == 'POST':
-        reagent_id = request.POST.get('reagent_id')
-        quantity_to_add = int(request.POST.get('quantityToAdd'))
+        reagent_id = request.POST.get('item_id')  # Adjusted to match the form input name
+        quantity_to_add = int(request.POST.get('quantityToAdd', 0))  # Default to 0 if not provided
+        
         try:
             reagent = Reagent.objects.get(id=reagent_id)
             reagent.quantity_in_stock += quantity_to_add
             reagent.remaining_quantity += quantity_to_add
             reagent.save()
-            return JsonResponse({'status': 'success', 'message': f'Stock level increased by {quantity_to_add} for item {reagent.name}'})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Stock level increased by {quantity_to_add} for item {reagent.name}'
+            })
+        
+        except Reagent.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Reagent not found'
+            }, status=404)
+        
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid quantity provided'
+            }, status=400)
+        
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Failed to increase stock level: {str(e)}'
+            }, status=500)
+    
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid request method'
+        }, status=400)
+        
 
-@csrf_exempt    
+@csrf_exempt
+@require_POST
 def use_inventory_item(request):
-    if request.method == 'POST':
+    try:
         item_id = request.POST.get('itemId')
         notes = request.POST.get('notes')
         quantity_used = int(request.POST.get('quantityUsed'))
@@ -1087,9 +1192,9 @@ def use_inventory_item(request):
 
         try:
             item = InventoryItem.objects.get(id=item_id)
-            if quantity_used > item.remain_quantity:
-                return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
 
+            if quantity_used > item.remain_quantity:
+                return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
             # Create a new usage history entry
             UsageHistory.objects.create(
                 inventory_item=item,
@@ -1102,12 +1207,111 @@ def use_inventory_item(request):
             item.save()
 
             message = f'Stock level decreased by {quantity_used} for item {item.name}'
-            return JsonResponse({'status': 'success', 'message': message})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
+            return JsonResponse({'success': True, 'message': message})
 
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+        except InventoryItem.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Inventory item not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid quantity used'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+    
+    
+@csrf_exempt
+@require_POST
+def use_reagent_item(request):
+    try:
+        item_id = request.POST.get('reagent')
+        notes = request.POST.get('notes')
+        quantity_used = int(request.POST.get('quantityUsed'))
+        usage_date = request.POST.get('usageDate')
+
+        try:
+            item = Reagent.objects.get(id=item_id)
+
+            if quantity_used > item.remaining_quantity:
+                return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
+            # Create a new usage history entry
+            ReagentUsage.objects.create(
+                reagent=item,
+                quantity_used=quantity_used,
+                notes=notes,
+                usage_date=usage_date
+            )
+
+            item.remaining_quantity -= quantity_used
+            item.save()
+
+            message = f'Stock level decreased by {quantity_used} for item {item.name}'
+            return JsonResponse({'success': True, 'message': message})
+
+        except Reagent.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Reagent item not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid quantity used'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+    
+    
+@require_POST
+def save_use_reagent_item(request):
+    try:
+        # Extract data from the request
+        usage_history_id = request.POST.get('usage_id')
+        usage_date = request.POST.get('usageDate')
+        quantity_used = int(request.POST.get('quantityUsed'))
+        notes = request.POST.get('notes')
+        item_id = request.POST.get('reagent')
+
+        # Retrieve the corresponding InventoryItem
+        try:
+            item = Reagent.objects.get(id=item_id)
+        except Reagent.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Reagent item not found'})
+
+        if quantity_used > item.remaining_quantity:
+            return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
+
+        # Check if the usageHistoryId is provided for editing
+        if usage_history_id:
+            try:
+                # Editing existing usage history
+                usage_history = ReagentUsage.objects.get(pk=usage_history_id)
+                # Get the previous quantity used
+                previous_quantity_used = usage_history.quantity_used
+                # Calculate the difference in quantity
+                quantity_difference = quantity_used - previous_quantity_used
+                # Update the stock level of the corresponding item
+                item.remaining_quantity -= quantity_difference
+            except ReagentUsage.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Reagent Usage not found'})
+        else:
+            # Creating new usage history
+            usage_history = ReagentUsage()
+            item.remaining_quantity -= quantity_used
+
+        # Update or set values for other fields
+        usage_history.usage_date = usage_date
+        usage_history.quantity_used = quantity_used
+        usage_history.notes = notes
+        usage_history.reagent = item
+
+        # Save the changes to both models
+        item.save()
+        usage_history.save()
+
+        return JsonResponse({'success': True, 'message': 'Reagent Usage saved successfully'})
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid data provided'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})    
+    
     
 def out_of_stock_medicines(request):
     try:
@@ -1166,49 +1370,55 @@ def equipment_list(request):
     return render(request, 'hod_template/manage_equipment_list.html', {'equipment_list': equipment_list})  
 
  
-@csrf_exempt     
+@csrf_exempt
 @require_POST
 def add_equipment(request):
     try:
         equipment_id = request.POST.get('equipment_id')
-        Manufacturer = request.POST.get('Manufacturer')
-        SerialNumber = request.POST.get('SerialNumber')
-        AcquisitionDate = request.POST.get('AcquisitionDate')
-        warrantyExpiryDate = request.POST.get('warrantyExpiryDate')
-        Location = request.POST.get('Location')
+        manufacturer = request.POST.get('Manufacturer').strip()
+        serial_number = request.POST.get('SerialNumber').strip()
+        acquisition_date = request.POST.get('AcquisitionDate') or None
+        warranty_expiry_date = request.POST.get('warrantyExpiryDate') or None
+        location = request.POST.get('Location')
         description = request.POST.get('description')
-        Name = request.POST.get('Name')
-      
-        # Add more fields as needed
+        name = request.POST.get('Name').strip()
+
+       
 
         if equipment_id:
-            # Editing existing inventory item
-            equipment = Equipment.objects.get(pk=equipment_id)
-            equipment.manufacturer = Manufacturer
-            equipment.serial_number = SerialNumber
-            equipment.acquisition_date = AcquisitionDate
-            equipment.warranty_expiry_date =  warrantyExpiryDate
-            equipment.description = description
-            equipment.location = Location
-            equipment.name = Name        
-            equipment.save()
+             # Check for duplicate equipment by serial number
+            if Equipment.objects.filter(serial_number=serial_number).exclude(id=equipment_id).exists():
+                return JsonResponse({'success': False, 'message': 'Equipment with this serial number already exists.'})
+            try:
+                equipment = Equipment.objects.get(pk=equipment_id)
+                equipment.manufacturer = manufacturer
+                equipment.serial_number = serial_number
+                equipment.acquisition_date = acquisition_date
+                equipment.warranty_expiry_date = warranty_expiry_date
+                equipment.description = description
+                equipment.location = location
+                equipment.name = name
+                equipment.save()
+                return JsonResponse({'success': True, 'message': 'Equipment updated successfully.'})
+            except ObjectDoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Equipment not found.'})
         else:
-            # Adding new inventory item
+            if Equipment.objects.filter(serial_number=serial_number).exists():
+                return JsonResponse({'success': False, 'message': 'Equipment with this serial number already exists.'})
+            
             equipment = Equipment(
-                name=Name,
-                manufacturer=Manufacturer,
-                serial_number=SerialNumber,
-                acquisition_date = AcquisitionDate,
-                description = description,
-                warranty_expiry_date = warrantyExpiryDate,
-                location = Location,             
-               
+                name=name,
+                manufacturer=manufacturer,
+                serial_number=serial_number,
+                acquisition_date=acquisition_date,
+                warranty_expiry_date=warranty_expiry_date,
+                description=description,
+                location=location
             )
             equipment.save()
-
-        return JsonResponse({'status': 'success'})
+            return JsonResponse({'success': True, 'message': 'Equipment added successfully.'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
+        return JsonResponse({'success': False, 'message': str(e)})
     
 @login_required    
 def equipment_maintenance_list(request):
@@ -1220,101 +1430,112 @@ def equipment_maintenance_list(request):
                       'equipments': equipments,
                    })    
 
-@csrf_exempt     
+@csrf_exempt
 @require_POST
-def add_maintainance(request):
+def add_maintenance(request):
     try:
+        # Retrieve POST data
         maintenance_id = request.POST.get('maintenance_id')
-        equipment = request.POST.get('equipment')
+        equipment_id = request.POST.get('equipment')
         maintenance_date = request.POST.get('maintenance_date')
-        technician = request.POST.get('technician')
-        description = request.POST.get('description')
+        technician = request.POST.get('technician').strip()
+        description = request.POST.get('description', '').strip()
         cost = request.POST.get('cost')
-        notes = request.POST.get('notes')
-      
-      
-        # Add more fields as needed
+        notes = request.POST.get('notes', '').strip()
 
+        # Validate required fields
+        if not equipment_id or not technician or not cost:
+            return JsonResponse({'success': True,  'message': 'Missing required fields'})
+
+        # Retrieve equipment object
+        equipment = get_object_or_404(Equipment, id=equipment_id)
+
+        # Check if we are editing an existing maintenance record
         if maintenance_id:
-            # Editing existing inventory item
-            maintainance = EquipmentMaintenance.objects.get(pk=maintenance_id)
-            maintainance.equipment = Equipment.objects.get(id=equipment)
-            maintainance.maintenance_date = maintenance_date
-            maintainance.technician = technician
-            maintainance.description =  description
-            maintainance.cost = cost
-            maintainance.notes = notes                    
-            maintainance.save()
+            maintenance = get_object_or_404(EquipmentMaintenance, pk=maintenance_id)
+            maintenance.equipment = equipment
+            maintenance.maintenance_date = maintenance_date if maintenance_date else None
+            maintenance.technician = technician
+            maintenance.description = description
+            maintenance.cost = cost
+            maintenance.notes = notes
+            maintenance.save()
+            message = 'Maintenance record updated successfully'
         else:
-            # Adding new inventory item
-            maintainance = EquipmentMaintenance(
-                equipment= Equipment.objects.get(id=equipment),
-                maintenance_date=maintenance_date,
+            # Adding new maintenance record
+            maintenance = EquipmentMaintenance(
+                equipment=equipment,
+                maintenance_date=maintenance_date if maintenance_date else None,
                 technician=technician,
-                description = description,
-                cost = cost,
-                notes = notes,
-                          
-               
+                description=description,
+                cost=cost,
+                notes=notes,
             )
-            maintainance.save()
+            maintenance.save()
+            message = 'Maintenance record added successfully'
 
-        return JsonResponse({'status': 'success'})
+        # Return success response
+        return JsonResponse({'success': True,  'message': message})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
-
+        # Return error response with the exception message
+        return JsonResponse({'success': True,  'message': str(e)})
+    
 @login_required 
 def reagent_list(request):
     reagent_list = Reagent.objects.all()
     return render(request, 'hod_template/manage_reagent_list.html', {'reagent_list': reagent_list})    
 
-@csrf_exempt     
+@csrf_exempt
 @require_POST
 def add_reagent(request):
     try:
         reagent_id = request.POST.get('reagent_id')
-        name = request.POST.get('name')
-        expiration_date = request.POST.get('expiration_date')
-        manufacturer = request.POST.get('manufacturer')
-        lot_number = request.POST.get('lot_number')
+        name = request.POST.get('name').strip()
+        manufacturer = request.POST.get('manufacturer').strip()
+        lot_number = request.POST.get('lot_number').strip()
         storage_conditions = request.POST.get('storage_conditions')
         quantity_in_stock = int(request.POST.get('quantity_in_stock'))
         price_per_unit = float(request.POST.get('price_per_unit'))
+        
+        # Optional fields
+        expiration_date = request.POST.get('expiration_date')
+        if expiration_date:
+            expiration_date = datetime.strptime(expiration_date, '%Y-%m-%d').date()
       
-      
-        # Add more fields as needed
-
         if reagent_id:
-            # Editing existing inventory item
+            if Reagent.objects.filter(lot_number=lot_number).exclude(id=reagent_id).exists():
+                return JsonResponse({'success': False, 'message': 'Reagent with this lot number already exists.'})
             reagent = Reagent.objects.get(pk=reagent_id)
             reagent.name = name
-            reagent.expiration_date = expiration_date
             reagent.manufacturer = manufacturer
             reagent.lot_number =  lot_number
             reagent.storage_conditions = storage_conditions
-            reagent.quantity_in_stock = quantity_in_stock                    
-            reagent.price_per_unit = price_per_unit                    
-            reagent.remaining_quantity = quantity_in_stock                    
+            reagent.quantity_in_stock = quantity_in_stock
+            reagent.price_per_unit = price_per_unit
+            if expiration_date:
+                reagent.expiration_date = expiration_date
+            reagent.remaining_quantity = quantity_in_stock
             reagent.save()
+            return JsonResponse({'success': True, 'message': 'Reagent updated successfully.'})
         else:
-            # Adding new inventory item
+            if Reagent.objects.filter(lot_number=lot_number).exists():
+                return JsonResponse({'success': False, 'message': 'Reagent with this lot number already exists.'})
+            
             reagent = Reagent(
                 name=name,
-                expiration_date=expiration_date,
                 manufacturer=manufacturer,
-                lot_number = lot_number,
-                storage_conditions = storage_conditions,
-                quantity_in_stock = quantity_in_stock,
-                price_per_unit = price_per_unit,
-                remaining_quantity = quantity_in_stock,
-                          
-               
+                lot_number=lot_number,
+                storage_conditions=storage_conditions,
+                quantity_in_stock=quantity_in_stock,
+                price_per_unit=price_per_unit,
+                remaining_quantity=quantity_in_stock
             )
+            if expiration_date:
+                reagent.expiration_date = expiration_date
             reagent.save()
-
-        return JsonResponse({'status': 'success'})
+            return JsonResponse({'success': True, 'message': 'Reagent added successfully.'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})  
+        return JsonResponse({'success': False, 'message': str(e)})
 
 @login_required
 def reagent_usage_list(request):
@@ -1642,8 +1863,8 @@ def add_frequency(request):
     if request.method == 'POST':
         try:
             frequency_id = request.POST.get('frequency_id')
-            name = request.POST.get('name')
-            interval = request.POST.get('interval')
+            name = request.POST.get('name').strip()
+            interval = request.POST.get('interval').strip()
             description = request.POST.get('description')
             
             if frequency_id:
@@ -1726,30 +1947,49 @@ def diagnosis_list(request):
     return render(request, 'hod_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
 
 
+@login_required
 @csrf_exempt
 @require_POST
 def save_diagnosis(request):
     try:
-        # Extract data from the request
-        diagnosis_name = request.POST.get('diagnosis_name')
-        diagnosis_code = request.POST.get('diagnosis_code')
-        diagnosis_id = request.POST.get('diagnosis_id')
+        # Extract and trim data from the request
+        diagnosis_name = request.POST.get('diagnosis_name', '').strip()
+        diagnosis_code = request.POST.get('diagnosis_code', '').strip()
+        diagnosis_id = request.POST.get('diagnosis_id', '')
 
-        # Check if the Diagnosis ID is provided for editing
         if diagnosis_id:
             # Editing existing diagnosis
-            diagnosis = Diagnosis.objects.get(pk=diagnosis_id)
+            try:
+                diagnosis = Diagnosis.objects.get(pk=diagnosis_id)
+            except Diagnosis.DoesNotExist:
+                return JsonResponse({'success': False, 'message': 'Diagnosis not found.'})
+
+            # Check for uniqueness excluding the current diagnosis
+            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_name=diagnosis_name).exists():
+                return JsonResponse({'success': False, 'message': 'Diagnosis with this name already exists.'})
+            
+            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_code=diagnosis_code).exists():
+                return JsonResponse({'success': False, 'message': 'Diagnosis with this code already exists.'})
+
+            # Update fields
             diagnosis.diagnosis_name = diagnosis_name
             diagnosis.diagnosis_code = diagnosis_code
+            diagnosis.save()
+            return JsonResponse({'success': True, 'message': 'Diagnosis updated successfully.'})
         else:
-            # Creating a new diagnosis
-            diagnosis = Diagnosis.objects.create(diagnosis_name=diagnosis_name,diagnosis_code=diagnosis_code)
+            # Adding new diagnosis
+            # Check for uniqueness
+            if Diagnosis.objects.filter(diagnosis_name=diagnosis_name).exists():
+                return JsonResponse({'success': False, 'message': 'Diagnosis with this name already exists.'})
+            if Diagnosis.objects.filter(diagnosis_code=diagnosis_code).exists():
+                return JsonResponse({'success': False, 'message': 'Diagnosis with this code already exists.'})
 
-        diagnosis.save()
+            # Create new diagnosis
+            diagnosis = Diagnosis.objects.create(diagnosis_name=diagnosis_name, diagnosis_code=diagnosis_code)
+            return JsonResponse({'success': True, 'message': 'Diagnosis added successfully.'})
 
-        return JsonResponse({'status': 'success'})
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'success': False, 'message': str(e)})
 
 @login_required 
 def ambulance_order_view(request):
@@ -2124,6 +2364,8 @@ def add_service(request):
             service_id = request.POST.get('service_id')
             
             if service_id:
+                if Service.objects.filter(name=name).exclude(id=service_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Service with this name already exists'})
                 service = Service.objects.get(pk=service_id)
                 # Update existing service
                 service.name = name
@@ -2157,8 +2399,8 @@ def add_service(request):
                     new_service.insurance_cost = insurance_cost
                 
                 else:
-                    service.nhif_cost = 0
-                    service.insurance_cost = 0  
+                    new_service.nhif_cost = 0
+                    new_service.insurance_cost = 0  
                       
                 new_service.save()
                     
@@ -2177,12 +2419,14 @@ def add_medicine_route(request):
     try:
         if request.method == 'POST':
             # Get form data
-            name = request.POST.get('names')
+            name = request.POST.get('names').strip()
             explanation = request.POST.get('explanation')
             medicine_route_id = request.POST.get('route_id')  # Check for the ID
             
             # If ID is provided, check if it's an existing medicine route
             if medicine_route_id:
+                if MedicineRoute.objects.filter(name=name).exclude(id=medicine_route_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Medicine route with this name already exists'})
                 try:
                     medicine_route = MedicineRoute.objects.get(pk=medicine_route_id)
                     # Update existing medicine route

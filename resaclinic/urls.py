@@ -33,7 +33,7 @@ urlpatterns = [
     path('reception/', include('resaclinic.receptionist_urls')),
     path('pharmacy/', include('resaclinic.pharmacist_urls')),
     path('lab/', include('resaclinic.labtechnician_urls')),
-    path('hod/', include('resaclinic.hod_urls')),
+    path('hod/', include('resaclinic.hod_urls')),  
     path('admin-panel/', include('resaclinic.admin_urls')),
     path('admin-imports/', include('resaclinic.imports_urls')),
     path('admin-delete/', include('resaclinic.admin_delete_urls')),

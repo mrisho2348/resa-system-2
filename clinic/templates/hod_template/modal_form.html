@@ -1,184 +1,4 @@
 
-<!-- Modal -->
-<div class="modal fade" id="addMedicineModal" tabindex="-1" role="dialog" aria-labelledby="addMedicineModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addMedicineModalLabel">Add Medicine</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- Bootstrap-styled form -->
-        <form method="post" id="medicineForm">
-            {% csrf_token %}
-            <!-- Medicine Name, Medicine Type, Side Effect -->
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="medicineName">Drug Name</label>
-                    <input type="text" class="form-control" id="medicineName" name="name" required>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="medicineType">Drug Type</label>
-                    <select class="form-control select2bs4" style="width: 100%;" id="medicineType" name="medicine_type" required>
-                      <option value="Tablet">Tablet</option>
-                      <option value="Capsule">Capsule</option>
-                      <option value="Injection">Injection</option>
-                      <option value="Ointment">Ointment</option>
-                      <option value="Drops">Drops</option>
-                      <option value="Inhaler">Inhaler</option>
-                      <option value="Patch">Patch</option>
-                      <option value="Liquid">Liquid</option>
-                      <option value="Cream">Cream</option>
-                      <option value="Gel">Gel</option>
-                      <option value="Suppository">Suppository</option>
-                      <option value="Powder">Powder</option>
-                      <option value="Suspension">Suspension</option>
-                      <option value="Lozenge">Lozenge</option>    
-                    </select>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="sideEffect">Side Effect</label>
-                    <textarea class="form-control" id="sideEffect" name="side_effect"></textarea>
-                </div>
-            </div>
-        
-            <!-- Dosage, Storage Condition, Manufacturer -->
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="Formulation">Formulation</label>
-                    <input type="text" class="form-control" id="dosage" name="dosage" required>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="storageCondition">Storage Condition</label>
-                    <input type="text" class="form-control" id="storageCondition" name="storage_condition" required>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="manufacturer">Manufacturer</label>
-                    <input type="text" class="form-control" id="manufacturer" name="manufacturer" required>
-                </div>
-            </div>
-        
-            <!-- Description -->
-            <div class="form-group">
-                <label for="description">Description</label>
-                <textarea class="form-control" id="description" name="description"></textarea>
-            </div>
-        
-            <!-- Expiration Date, Cash Cost, Buying Price -->
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="expirationDate">Expiration Date</label>
-                    <input type="date" class="form-control" id="expirationDate" name="expiration_date" required>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="cashCost">Cash Cost</label>
-                    <input type="text" class="form-control" id="cashCost" name="cash_cost" required>
-                </div>
-        
-                <div class="form-group col-md-4">
-                    <label for="buyingPrice">Buying Price</label>
-                    <input type="text" class="form-control" id="buyingPrice" name="buying_price" required>
-                </div>                
-            </div>        
-            <!-- NHIF Cost -->
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="nhifCost">NHIF Cost</label>
-                    <input type="text" class="form-control" id="nhifCost" name="nhif_cost" required>
-                </div>
-                <div class="form-group col-md-4">
-                  <label for="insurance_cost">Insurance cost</label>
-                  <input type="text" class="form-control" id="insurance_cost" name="insurance_cost" required>
-              </div>
-            </div>
-        
-            <!-- Message Container -->
-            <div id="messageContainer" class="text-center mt-2"></div>
-            <!-- Expiration Date Error -->
-            <div id="expirationDateError" class="text-center mt-2"></div>
-        
-            <!-- Submit Button -->
-            <div class="form-group pt-2 float-end">
-                <div class="row">
-                    <div class="col-md-8"></div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-md btn-primary">Save and Continue <i class="mdi mdi-forward"></i></button>
-                    </div>
-                </div>
-            </div>
-        </form>
-        
-      <script>
-         // Handle form submission
-         function validateForm(event) {
-          // Get the selected expiration date
-          var expirationDate = document.getElementById('expirationDate').value;
-  
-          // Compare the expiration date with the current date
-          var currentDate = new Date().toISOString().split('T')[0];
-  
-          if (expirationDate <= currentDate) {
-              // Display error message
-              document.getElementById('expirationDateError').innerText = 'Medicine is expired!';
-              // Prevent form submission
-              event.preventDefault();
-          } else {
-              // Clear previous error message
-              document.getElementById('expirationDateError').innerText = '';
-          }
-      }
- 
-      </script>
-      <script>
-
-      $(document).ready(function () {
-         
-          $('#medicineForm').submit(function (e) {
-              e.preventDefault();
-  
-              // Serialize the form data
-              var formData = $(this).serialize();
-  
-              // Send AJAX request to the server
-              $.ajax({
-                  url: '{% url "admin_add_medicine" %}',
-                  method: 'POST',
-                  data: formData,
-                  success: function (response) {
-                      // Handle success
-                      $('#messageContainer').html('<div class="alert alert-success" role="alert">' + response.message + '</div>');
-                      // Clear the form fields
-                      $('#medicineForm')[0].reset();
-                  },
-                  error: function (xhr, status, error) {
-                      // Handle other status codes (e.g., 400 for client errors)
-                      var errorMessage = 'Error saving data';
-                      if (xhr.responseJSON && xhr.responseJSON.message) {
-                          errorMessage = xhr.responseJSON.message;
-                      }
-                      $('#messageContainer').html('<div class="alert alert-danger" role="alert">' + errorMessage + '</div>');
-                      console.error('Error saving data:', error);
-                  }
-              });
-          });
-      });
-  </script>
-  
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
 
   <!-- Visit Modal Form -->
 <div class="modal fade" id="visitModal" tabindex="-1" role="dialog" aria-labelledby="visitModalLabel" aria-hidden="true">
@@ -528,8 +348,8 @@
                             </div>
                         </div>
                         <div class="form-group row">
-                            <div class="offset-md-6 col-md-6 text-right">
-                                <button type="button" class="btn btn-primary" id="saveInsurance">Save and Continue</button>
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-primary btn-block" id="saveInsurance">Add Insurance Company</button>
                             </div>
                         </div>
                     </form>
@@ -589,7 +409,8 @@
               </button>
           </div>
       <div class="modal-body">
-        <div class="container-fluid">          
+        <div class="container-fluid">  
+          <div id="messageContainers" class="alert" role="alert"></div>        
             <form method="post" id="diseaseForm">
                 {% csrf_token %}
                 <div class="row">                  
@@ -601,52 +422,47 @@
                         <label for="Code" class="col-sm-1-12 col-form-label">Code</label>
                         <input type="text" class="form-control" name="Code" id="Code" placeholder="" required>
                     </div>
-                </div>  
-                <div class="row">
-                    <div class="col-md-12">
-                        <div id="messageContainers"></div>
-                    </div>
-                </div>            
+                </div> 
+                       
                 <div class="form-group row">
-                    <div class="offset-md-6 col-md-6 text-right">
-                        <button type="button" class="btn btn-primary" id="saveDisease">Save and Continue</button>
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-primary btn-block" id="saveDisease">Add disease</button>
                     </div>
                 </div>
             </form>
-              
-              <script>
-                $(document).ready(function () {
-                    $('#saveDisease').click(function () {
-                        // Check if all required fields are filled
-                        if ($('#Disease').val() === "" || $('#Code').val() === "") {
-                            $('#messageContainers').html('<div class="alert alert-danger">Please fill in all required fields</div>');
-                            return; // Prevent further execution
-                        }
-                        
-                        // Capture form data
-                        var formData = $('#diseaseForm').serialize();
-            
-                        // Send AJAX request
-                        $.ajax({
-                            url: '{% url "admin_add_disease" %}',  // Update with your actual URL
-                            type: 'POST',
-                            data: formData,
-                            success: function (response) {
-                                if (response.success) {
-                                    $('#messageContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                                    location.reload(true)
-                                } else {
-                                    // Handle error
-                                    $('#messageContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                }
-                            },
-                            error: function () {
-                                console.error('AJAX request failed');
-                            }
-                        });
-                    });
-                });
-            </script>
+            <script>
+              $(document).ready(function () {
+                  $('#saveDisease').click(function (event) {
+                      var form = document.getElementById('diseaseForm');
+                      if (form.checkValidity() === false) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                      } else {
+                          var formData = $('#diseaseForm').serialize();
+          
+                          $.ajax({
+                              url: '{% url "admin_add_disease" %}', // Update with your actual URL
+                              type: 'POST',
+                              data: formData,
+                              success: function (response) {
+                                  if (response.success) {
+                                      $('#messageContainers').html('<div class="alert alert-success">' + response.message + '</div>');
+                                      location.reload(true);
+                                  } else {
+                                      $('#messageContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
+                                  }
+                              },
+                              error: function () {
+                                  console.error('AJAX request failed');
+                                  $('#messageContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
+                              }
+                          });
+                      }
+          
+                      form.classList.add('was-validated');
+                  });
+              });
+          </script>             
               
         </div>
       </div>   
@@ -671,8 +487,7 @@
                       <div class="row">
                           <div class="form-group col-sm-4">
                               <label for="Name" class="col-form-label">Name</label>
-                              <input type="text" class="form-control" name="Name" id="Names" placeholder="Enter company name" required>
-                              <span id="nameError" class="text-danger"></span>
+                              <input type="text" class="form-control" name="Name" id="Names" placeholder="Enter company name" required>                            
                           </div>
                           <div class="form-group col-sm-4">
                               <label for="Category" class="col-form-label">Industry</label>
@@ -698,8 +513,8 @@
                           </div>
                       </div>
                       <div class="form-group row">
-                          <div class="offset-md-6 col-md-6 text-right">
-                              <button type="button" class="btn btn-primary" id="saveCompany">Save and Continue</button>
+                          <div class="col-md-12">
+                              <button type="button" class="btn btn-primary btn-block" id="saveCompany">Add Company</button>
                           </div>
                       </div>
                   </form>
@@ -709,46 +524,40 @@
   </div>
 </div>
 
-
-
 <script>
   $(document).ready(function () {
-      $('#saveCompany').click(function () {
-          // Clear any previous error messages
-          $('#nameError').text('');   
-  
-          // Validate name field
-          var companyName = $('#Names').val();
-          if (companyName.trim() === '') {
-              $('#nameError').text('Company name is required');
-              return;
-          }
-  
-          // Capture form data
-          var formData = $('#companyForm').serialize();   
-          // Send AJAX request
-          $.ajax({
-              url: '{% url "add_company" %}', // Update with your actual URL
-              type: 'POST',
-              data: formData,
-              success: function (response) {
-                  // If the request is successful, display a success message
-                  if (response.success) {
-                      $('#companyMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                      location.reload(true)
-                   
-                  } else {
-                      $('#companyMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+      $('#saveCompany').click(function (event) {
+          var form = document.getElementById('companyForm');
+          if (form.checkValidity() === false) {
+              event.preventDefault();
+              event.stopPropagation();
+          } else {
+              var formData = $('#companyForm').serialize();
+
+              $.ajax({
+                  url: '{% url "add_company" %}', // Update with your actual URL
+                  type: 'POST',
+                  data: formData,
+                  success: function (response) {
+                      if (response.success) {
+                          $('#companyMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                          location.reload(true);
+                      } else {
+                          $('#companyMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+                      }
+                  },
+                  error: function () {
+                      console.error('AJAX request failed');
+                      $('#companyMessageContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
                   }
-              },
-              error: function (xhr,  error) {
-                  // If the request fails, display an error message
-                  $('#companyMessageContainer').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
-              }
-          });
+              });
+          }
+
+          form.classList.add('was-validated');
       });
   });
 </script>
+
 
 
 <div class="modal fade" id="pathodologyModal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
@@ -768,8 +577,7 @@
                         <div class="row">
                             <div class="form-group col-sm-5">
                                 <label for="Name" class="col-sm-1-12 col-form-label">Name</label>
-                                <input type="text" class="form-control" name="Name" id="Name" placeholder="" required>
-                                <div class="invalid-feedback">Name is required</div> <!-- Error message placeholder -->
+                                <input type="text" class="form-control" name="Name" id="Name" placeholder="" required>                               
                             </div>
                             <div class="form-group col-sm-6">
                                 <label for="Description" class="col-sm-1-12 col-form-label">Description</label>
@@ -777,47 +585,44 @@
                             </div>                        
                         </div>
                         <div class="form-group row">
-                            <div class="offset-md-6 col-md-6 text-right">
-                                <button type="button" class="btn btn-primary" id="saveRecord">Save and Continue</button>
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-primary btn-block" id="saveRecord">Add New Record</button>
                             </div>
                         </div>
                     </form>
                     <script>
-                        $(document).ready(function () {
-                            $('#saveRecord').click(function () {
-                                // Validate form fields
-                                var form = document.getElementById('pathodologyForm');
-                                if (form.checkValidity() === false) {
-                                    form.classList.add('was-validated');
-                                    return;
-                                }
-                                
-                                // Capture form data
-                                var formData = $('#pathodologyForm').serialize();
-            
-                                // Send AJAX request
-                                $.ajax({
-                                    url: '{% url "admin_add_pathology_record" %}',  // Update with your actual URL
-                                    type: 'POST',
-                                    data: formData,
-                                    success: function (response) {
-                                      // If the request is successful, display a success message
-                                      if (response.success) {
-                                          $('#pathologyMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                                          location.reload(true)
-                                       
-                                      } else {
-                                          $('#pathologyMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+                      $(document).ready(function () {
+                          $('#saveRecord').click(function (event) {
+                              var form = document.getElementById('pathodologyForm');
+                              if (form.checkValidity() === false) {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                              } else {
+                                  var formData = $('#pathodologyForm').serialize();
+                  
+                                  $.ajax({
+                                      url: '{% url "admin_add_pathology_record" %}', // Update with your actual URL
+                                      type: 'POST',
+                                      data: formData,
+                                      success: function (response) {
+                                          if (response.success) {
+                                              $('#pathologyMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                                              location.reload(true);
+                                          } else {
+                                              $('#pathologyMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+                                          }
+                                      },
+                                      error: function () {
+                                          console.error('AJAX request failed');
+                                          $('#pathologyMessageContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
                                       }
-                                  },
-                                  error: function (xhr,  error) {
-                                      // If the request fails, display an error message
-                                      $('#pathologyMessageContainer').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
-                                  }
-                                });
-                            });
-                        });
-                    </script>
+                                  });
+                              }
+                  
+                              form.classList.add('was-validated');
+                          });
+                      });
+                  </script>                    
                 </div>
             </div>
         </div>
@@ -1136,10 +941,12 @@
                 </div>
                 <div class="form-group col-sm-4">
                   <label for="phone" class="col-form-label">Phone</label>
-                  <input type="tel" class="form-control" id="phone" name="phone" required 
-                    pattern="(0|\+255)\d{9,12}" title="Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits">
-                  <div class="invalid-feedback">Please enter a valid phone number starting with '0' or '+255' and having 10 to 13 digits.</div>
-                </div>
+                  <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
+                         pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
+                         onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with \'0\'')" 
+                         oninput="setCustomValidity('')" maxlength="10" minlength="10">
+                  <div id="phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
+              </div>
               </div>
   
               <!-- Professional Information -->
@@ -1246,8 +1053,6 @@
   
   <script>
     $(document).ready(function () {
-      
-  
       // Handle form submission
       $('#staffForm').submit(function (e) {
         e.preventDefault();
@@ -1292,10 +1097,12 @@
         });
       });
   
-      // Custom phone validation
-      $('#phone').on('input', function () {
-        var phonePattern = /(0|\+255)\d{9,12}/;
-        if (!phonePattern.test($(this).val())) {
+      // Phone number validation
+      $('#phone').on('input', function() {
+        var phonePattern = /^0\d{9}$/;
+        var phoneInput = $(this).val();
+  
+        if (!phonePattern.test(phoneInput)) {
           $(this).addClass('is-invalid');
           $('#phone-error').show();
         } else {
