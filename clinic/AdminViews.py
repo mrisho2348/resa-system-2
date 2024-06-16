@@ -1811,7 +1811,41 @@ def prescription_list(request):
         'total_price': total_price,
         'visit_total_prices': visit_total_prices,
     })
-    
+
+@login_required
+def prescription_billing(request, visit_number, patient_id):
+    patient = Patients.objects.get(id=patient_id)
+    visit = PatientVisits.objects.get(vst=visit_number)
+    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
+    prescriber = None
+    if prescriptions.exists():
+        prescriber = prescriptions.first().entered_by
+    context = {
+        'patient': patient, 
+        'prescriptions': prescriptions,
+        'prescriber': prescriber,
+        'visit_number': visit_number,
+        'visit': visit,
+        }
+    return render(request, "hod_template/prescription_bill.html", context)
+
+@login_required
+def prescription_notes(request, visit_number, patient_id):
+    patient = Patients.objects.get(id=patient_id)
+    visit = PatientVisits.objects.get(vst=visit_number)
+    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
+    prescriber = None
+    if prescriptions.exists():
+        prescriber = prescriptions.first().entered_by
+    context = {
+        'patient': patient, 
+        'prescriptions': prescriptions,
+        'prescriber': prescriber,
+        'visit_number': visit_number,
+        'visit': visit,
+        }
+    return render(request, "hod_template/prescription_notes.html", context)    
+
 
 @login_required    
 def all_orders_view(request):
@@ -1867,22 +1901,36 @@ def add_frequency(request):
             interval = request.POST.get('interval').strip()
             description = request.POST.get('description')
             
+            # Check for duplicates
             if frequency_id:
                 # Editing existing frequency
                 frequency = PrescriptionFrequency.objects.get(pk=frequency_id)
+                
+                # Ensure no duplicate name or interval (excluding the current record)
+                if PrescriptionFrequency.objects.filter(name=name).exclude(pk=frequency_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Prescription frequency with this name already exists'})
+                if PrescriptionFrequency.objects.filter(interval=interval).exclude(pk=frequency_id).exists():
+                    return JsonResponse({'success': False,  'message': 'Prescription frequency with this interval already exists'})
+                
                 frequency.name = name
                 frequency.interval = interval
                 frequency.description = description
                 frequency.save()
-                return JsonResponse({'status': 'success', 'message': 'Prescription frequency updated successfully'})
+                return JsonResponse({'success': True,  'message': 'Prescription frequency updated successfully'})
             else:
                 # Adding new frequency
+                if PrescriptionFrequency.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False,  'message': 'Prescription frequency with this name already exists'})
+                if PrescriptionFrequency.objects.filter(interval=interval).exists():
+                    return JsonResponse({'success': False,  'message': 'Prescription frequency with this interval already exists'})
+                
                 frequency = PrescriptionFrequency.objects.create(name=name, interval=interval, description=description)
-                return JsonResponse({'status': 'success', 'message': 'Prescription frequency added successfully', 'id': frequency.id})
+                return JsonResponse({'success': True, 'message': 'Prescription frequency added successfully', 'id': frequency.id})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': str(e)})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+        return JsonResponse({'success': False,  'message': 'Invalid request method'})
+
 
 @login_required    
 def generate_invoice_bill(request,  order_id):
@@ -2123,29 +2171,55 @@ def hospital_vehicle_list(request):
     vehicles = HospitalVehicle.objects.all()
     return render(request, 'hod_template/hospital_vehicle_list.html', {'vehicles': vehicles})
 
+@csrf_exempt
 def add_vehicle(request):
     if request.method == 'POST':
         try:
             vehicle_id = request.POST.get('vehicle_id')
+            number = request.POST.get('vehicleNumber')
+            plate_number = request.POST.get('plateNumber')
+            vehicle_type = request.POST.get('vehicleType')
+
+            # Check if required fields are present
+            if not number or not plate_number or not vehicle_type:
+                return JsonResponse({'success': False, 'message': 'All fields are required'})
+
+            # Strip input values
+            number = number.strip()
+            plate_number = plate_number.strip()
+            vehicle_type = vehicle_type.strip()
+
             if vehicle_id:
                 # Editing existing vehicle
                 vehicle = HospitalVehicle.objects.get(pk=vehicle_id)
-                vehicle.number = request.POST.get('number')
-                vehicle.plate_number = request.POST.get('plate_number')
-                vehicle.vehicle_type = request.POST.get('vehicle_type')
+                
+                # Check for duplicates
+                if HospitalVehicle.objects.filter(number=number).exclude(pk=vehicle_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Vehicle with this number already exists'})
+                if HospitalVehicle.objects.filter(plate_number=plate_number).exclude(pk=vehicle_id).exists():
+                    return JsonResponse({'success': False, 'message': 'Vehicle with this plate number already exists'})
+
+                # Update vehicle details
+                vehicle.number = number
+                vehicle.plate_number = plate_number
+                vehicle.vehicle_type = vehicle_type
                 vehicle.save()
-                return JsonResponse({'status': 'success', 'message': 'Hospital vehicle updated successfully'})
+                return JsonResponse({'success': True, 'message': 'Hospital vehicle updated successfully'})
             else:
-                # Adding new vehicle
-                number = request.POST.get('number')
-                plate_number = request.POST.get('plate_number')
-                vehicle_type = request.POST.get('vehicle_type')
+                # Check for duplicates when adding new vehicle
+                if HospitalVehicle.objects.filter(number=number).exists():
+                    return JsonResponse({'success': False, 'message': 'Vehicle with this number already exists'})
+                if HospitalVehicle.objects.filter(plate_number=plate_number).exists():
+                    return JsonResponse({'success': False, 'message': 'Vehicle with this plate number already exists'})
+
+                # Add new vehicle
                 new_vehicle = HospitalVehicle.objects.create(number=number, plate_number=plate_number, vehicle_type=vehicle_type)
-                return JsonResponse({'status': 'success', 'message': 'Hospital vehicle added successfully'})
+                return JsonResponse({'success': True, 'message': 'Hospital vehicle added successfully', 'id': new_vehicle.id})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': str(e)})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
 
 
 @require_POST
@@ -2156,11 +2230,11 @@ def delete_vehicle(request):
         # Delete the frequency from the database
         vehicle = HospitalVehicle.objects.get(pk=vehicle_id)
         vehicle.delete()
-        return JsonResponse({'status': 'success', 'message': 'vehicle deleted successfully'})
+        return JsonResponse({'success': True,'message': 'vehicle deleted successfully'})
     except HospitalVehicle.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'vehicle not found'}, status=404)
+        return JsonResponse({'success': False, 'message': 'vehicle not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
 @require_POST
 def delete_ambulance_route(request):
@@ -2192,7 +2266,9 @@ def delete_ambulance_activity(request):
 
 def ambulance_route_list(request):
     ambulance_routes = AmbulanceRoute.objects.all()
-    return render(request, 'hod_template/ambulance_route_list.html', {'ambulance_routes': ambulance_routes})    
+    return render(request, 'hod_template/ambulance_route_list.html', {'ambulance_routes': ambulance_routes})   
+
+ 
 
 def add_or_edit_ambulance_route(request):
     if request.method == 'POST':
@@ -2207,7 +2283,14 @@ def add_or_edit_ambulance_route(request):
 
             # Check if an AmbulanceRoute ID is provided for editing
             ambulance_route_id = request.POST.get('route_id')
+            
+            # Check for existing route with the same from_location and to_location
+            
+
             if ambulance_route_id:
+                existing_route = AmbulanceRoute.objects.filter(from_location=from_location, to_location=to_location).exclude(pk=ambulance_route_id).first()
+                if existing_route:
+                    return JsonResponse({'success': False, 'message': 'An ambulance route with the same From Location and To Location already exists.'})
                 # Edit existing AmbulanceRoute
                 ambulance_route = get_object_or_404(AmbulanceRoute, pk=ambulance_route_id)
                 ambulance_route.from_location = from_location
@@ -2217,8 +2300,11 @@ def add_or_edit_ambulance_route(request):
                 ambulance_route.profit = profit
                 ambulance_route.advanced_ambulance_cost = advanced_ambulance_cost
                 ambulance_route.save()
-                return JsonResponse({'status': 'success', 'message': 'Ambulance route updated successfully'})
+                return JsonResponse({'success': True,  'message': 'Ambulance route updated successfully'})
             else:
+                existing_route = AmbulanceRoute.objects.filter(from_location=from_location, to_location=to_location).first()
+                if existing_route:
+                    return JsonResponse({'success': False, 'message': 'An ambulance route with the same From Location and To Location already exists.'})
                 # Create new AmbulanceRoute
                 ambulance_route = AmbulanceRoute.objects.create(
                     from_location=from_location,
@@ -2228,13 +2314,13 @@ def add_or_edit_ambulance_route(request):
                     profit=profit,
                     advanced_ambulance_cost=advanced_ambulance_cost
                 )
-                return JsonResponse({'status': 'success', 'message': 'Ambulance route added successfully'})
+                return JsonResponse({'success': True,  'message': 'Ambulance route added successfully'})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': str(e)})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+        return JsonResponse({'success': False,  'message': 'Invalid request method'})
 
-  
+@csrf_exempt  
 def add_ambulance_activity(request):
     if request.method == 'POST':
         try:
@@ -2242,27 +2328,36 @@ def add_ambulance_activity(request):
             activity_id = request.POST.get('activity_id')  # For editing existing activity
             name = request.POST.get('name')
             cost = request.POST.get('cost')
-            profit = request.POST.get('profit')            
+            profit = request.POST.get('profit')
+
             # Perform data validation
             if not all([name, cost, profit]):
-                return JsonResponse({'status': 'error', 'message': 'All fields are required'}, status=400)          
+                return JsonResponse({'success': False, 'message': 'All fields are required'})
 
+            # Check for duplicates
             if activity_id:
                 # Editing existing activity
+                if AmbulanceActivity.objects.filter(name=name).exclude(id=activity_id).exists():
+                    return JsonResponse({'success': False, 'message': 'An activity with this name already exists'})
+
                 activity = AmbulanceActivity.objects.get(id=activity_id)
                 activity.name = name
                 activity.cost = cost
-                activity.profit = profit               
+                activity.profit = profit
                 activity.save()
-                return JsonResponse({'status': 'success', 'message': 'Ambulance activity updated successfully'})
+                return JsonResponse({'success': True, 'message': 'Ambulance activity updated successfully'})
             else:
                 # Adding new activity
+                if AmbulanceActivity.objects.filter(name=name).exists():
+                    return JsonResponse({'success': False, 'message': 'An activity with this name already exists'})
+
                 AmbulanceActivity.objects.create(name=name, cost=cost, profit=profit)
-                return JsonResponse({'status': 'success', 'message': 'Ambulance activity added successfully'})
+                return JsonResponse({'success': True, 'message': 'Ambulance activity added successfully'})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': str(e)})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)   
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
 
 @login_required    
 def ambulance_activity_list(request):
@@ -2473,39 +2568,50 @@ def medicine_unit_measures(request):
     measures = MedicineUnitMeasure.objects.all()
     return render(request, 'hod_template/medicine_unit_measures.html', {'measures': measures}) 
 
+@csrf_exempt
+@require_POST
 def add_medicine_unit_measure(request):
     try:
-        if request.method == 'POST':
-            # Get form data
-            name = request.POST.get('name')
-            short_name = request.POST.get('short_name')
-            application_user = request.POST.get('application_user')
+        # Get form data
+        name = request.POST.get('name')
+        short_name = request.POST.get('short_name')
+        application_user = request.POST.get('application_user')
+        
+        if not name or not short_name or not application_user:
+            return JsonResponse({'success': False, 'message': 'All fields are required'})
 
-            # Check if the medicine unit measure ID is provided (for editing existing record)
-            unit_measure_id = request.POST.get('unit_measure_id')
-            if unit_measure_id:
-                # Get the existing medicine unit measure instance
-                unit_measure = get_object_or_404(MedicineUnitMeasure, pk=unit_measure_id)
-                # Update the existing instance
-                unit_measure.name = name
-                unit_measure.short_name = short_name
-                unit_measure.application_user = application_user
-                unit_measure.save()
-                return JsonResponse({'success': True, 'message': 'Medicine unit measure updated successfully'})
+        # Check if the medicine unit measure ID is provided (for editing existing record)
+        unit_measure_id = request.POST.get('unit_measure_id')
 
-            # Check if the name already exists
+        if unit_measure_id:
+            # Get the existing medicine unit measure instance
+            unit_measure = get_object_or_404(MedicineUnitMeasure, pk=unit_measure_id)
+            
+            # Check if the name or short_name already exists for another instance
+            if MedicineUnitMeasure.objects.filter(name=name).exclude(pk=unit_measure_id).exists():
+                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this name already exists'})
+            if MedicineUnitMeasure.objects.filter(short_name=short_name).exclude(pk=unit_measure_id).exists():
+                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this short name already exists'})
+            
+            # Update the existing instance
+            unit_measure.name = name
+            unit_measure.short_name = short_name
+            unit_measure.application_user = application_user
+            unit_measure.save()
+            return JsonResponse({'success': True, 'message': 'Medicine unit measure updated successfully'})
+        else:
+            # Check if the name or short_name already exists
             if MedicineUnitMeasure.objects.filter(name=name).exists():
                 return JsonResponse({'success': False, 'message': 'Medicine unit measure with this name already exists'})
-
+            if MedicineUnitMeasure.objects.filter(short_name=short_name).exists():
+                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this short name already exists'})
+            
             # Create new MedicineUnitMeasure
             MedicineUnitMeasure.objects.create(name=name, short_name=short_name, application_user=application_user)
             return JsonResponse({'success': True, 'message': 'Medicine unit measure added successfully'})
 
-        else:
-            return JsonResponse({'success': False, 'message': 'Invalid request method'})
-
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})   
+        return JsonResponse({'success': False, 'message': str(e)}) 
    
 def delete_medicine_unit_measure(request):
     try:
