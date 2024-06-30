@@ -1,21 +1,18 @@
-import calendar
+
 from datetime import datetime
 import json
 from django.db import IntegrityError
-from django.http import HttpResponse, JsonResponse
+from django.http import  JsonResponse
 from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.contrib import messages
-from clinic.forms import RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm, YearSelectionForm
-from clinic.models import ChiefComplaint, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, Medicine, Notification, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
+from clinic.forms import RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm
+from clinic.models import ChiefComplaint, ClinicCompany, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.db.models import OuterRef, Subquery
 from django.db.models import Count
-from django.db.models import Q
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
 from django.core.exceptions import ValidationError
 from django.db.models.functions import ExtractMonth  # Add this import
 from django.template.loader import render_to_string
@@ -105,12 +102,12 @@ def save_patient_health_information(request, patient_id):
                     )
 
             # Redirect to the appropriate URL upon successful data saving
-            return redirect(reverse('kahamahmis:save_patient_visit_save', args=[patient_id]))
+            return redirect(reverse('kahama_save_patient_visit_save', args=[patient_id]))
 
     except RemotePatient.DoesNotExist:
         # Handle the case where the patient ID is not valid
         messages.error(request, 'Patient not found.')
-        return redirect(reverse('kahamahmis:save_patient_health_information', args=[patient_id])) 
+        return redirect(reverse('kahama_save_patient_health_information', args=[patient_id])) 
 
     except Exception as e:
         # Handle other exceptions
@@ -638,7 +635,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                 consultation_note.pathology.set(pathology)
                 consultation_note.save()
             messages.success(request, 'record added   successfully.')    
-            return redirect(reverse('kahamahmis:save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
+            return redirect(reverse('kahama_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
             # Add similar logic for other plans
             
         except Exception as e:
@@ -697,7 +694,7 @@ def save_counsel(request, patient_id, visit_id):
                 messages.error(request, 'Please correct the errors in the form.')
 
         # Redirect to the appropriate page after saving
-        return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))
+        return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
    
     else:
         # If it's a GET request, initialize the form with existing data (if any)
@@ -738,7 +735,7 @@ def save_remotereferral(request, patient_id, visit_id):
                     messages.success(request, 'Remote referral saved successfully.')
                 
                 # Redirect to a success page or another view
-                return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
             else:
                 messages.error(request, 'Please correct the errors in the form.')
         else:
@@ -798,7 +795,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
                         image=image,  # Add image field
                     )                    
             messages.success(request, 'Remote procedure saved successfully.')
-            return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Change 'success_page' to your success page URL name
+            return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Change 'success_page' to your success page URL name
         else:
             # If request method is not POST, render the corresponding template
             return render(request, 'kahama_template/procedure_template.html', context)
@@ -841,7 +838,7 @@ def save_observation(request, patient_id, visit_id):
                         observation_notes=description,
                     )
                     messages.success(request, 'Remote observation record saved successfully.')
-                return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
             except Exception as e:
                 messages.error(request, f'Error: {str(e)}')
         else:
@@ -894,7 +891,7 @@ def save_laboratory(request, patient_id, visit_id):
                     )
                     messages.success(request, 'Laboratory order saved successfully.')
             # Redirect to a success page or another view
-            return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))
+            return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
         except Exception as e:
             messages.error(request, f'Error: {str(e)}')
 
@@ -1310,19 +1307,19 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
 
             # Redirect based on the doctor's plan
             if doctor_plan == 'Prescription':
-                return redirect(reverse('kahamahmis:save_prescription', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_prescription', args=[patient_id, visit_id]))
             elif doctor_plan == 'Laboratory':
-                return redirect(reverse('kahamahmis:save_laboratory', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_laboratory', args=[patient_id, visit_id]))
             elif doctor_plan == 'Referral':
-                return redirect(reverse('kahamahmis:save_remotereferral', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remotereferral', args=[patient_id, visit_id]))
             elif doctor_plan == 'Counselling':
-                return redirect(reverse('kahamahmis:save_remote_counseling', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remote_counseling', args=[patient_id, visit_id]))
             elif doctor_plan == 'Procedure':
-                return redirect(reverse('kahamahmis:save_remoteprocedure', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remoteprocedure', args=[patient_id, visit_id]))
             elif doctor_plan == 'Observation':
-                return redirect(reverse('kahamahmis:save_observation', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_observation', args=[patient_id, visit_id]))
             elif doctor_plan == 'Discharge':
-                return redirect(reverse('kahamahmis:save_remote_discharges_notes', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remote_discharges_notes', args=[patient_id, visit_id]))
 
     except Exception as e:
         messages.error(request, f'Error: {str(e)}')
@@ -1419,7 +1416,7 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
                 remote_discharges_notes.data_recorder = data_recorder
                 remote_discharges_notes.save()
                 messages.success(request, 'Remote discharge notes saved successfully.')
-                return redirect(reverse('kahamahmis:save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Redirect to the next view
+                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Redirect to the next view
             else:
                 messages.error(request, 'Please correct the errors in the form.')
         else:
@@ -1816,7 +1813,7 @@ def patient_health_info_edit_record(request, patient_id):
             if 'save_and_return' in request.POST:
                 return redirect('patients_list')
             elif 'save_and_continue_family_health' in request.POST:
-                return redirect('kahamahmis:edit_patient_medication_allergy', patient_id=patient.id)
+                return redirect('kahama_edit_patient_medication_allergy', patient_id=patient.id)
         
         # Prepare context for rendering the template
         context = {
@@ -1942,8 +1939,11 @@ def add_remote_medicine(request):
 
 
 @login_required
-def company_registration_view(request, company_id=None):
+def company_registration_view(request):
     try:
+        # There should only be one company record, retrieve it if it exists
+        company = ClinicCompany.objects.first()
+
         if request.method == 'POST':
             name = request.POST.get('name').strip()
             registration_number = request.POST.get('registration_number')
@@ -1957,8 +1957,7 @@ def company_registration_view(request, company_id=None):
             website = request.POST.get('website').strip()
             logo = request.FILES.get('logo') if 'logo' in request.FILES else None
 
-            if company_id:  # Editing existing record
-                company = get_object_or_404(Company, pk=company_id)
+            if company:  # Editing existing record
                 company.name = name
                 company.registration_number = registration_number
                 company.address = address
@@ -1974,7 +1973,7 @@ def company_registration_view(request, company_id=None):
                 company.save()
                 messages.success(request, 'Company details updated successfully.')
             else:  # Adding new record
-                new_company = Company(
+                new_company = ClinicCompany(
                     name=name,
                     registration_number=registration_number,
                     address=address,
@@ -1990,17 +1989,14 @@ def company_registration_view(request, company_id=None):
                 new_company.save()
                 messages.success(request, 'Company added successfully.')
 
-            return redirect('registration_success')  # Redirect to success page
+            return redirect('kahama_add_clinic_company')  # Redirect to success page
 
         else:
-            if company_id:  # Editing existing record
-                company = get_object_or_404(Company, pk=company_id)
-            else:  # Adding new record
-                company = None
             return render(request, 'kahama_template/company_registration.html', {'company': company})
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
         return render(request, 'kahama_template/company_registration.html')
+    
     
 @login_required    
 def edit_lab_result(request, patient_id, visit_id, lab_id):
@@ -2046,7 +2042,7 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
                 messages.error(request, 'Please correct the errors in the form.')
 
         # Redirect to the appropriate page after saving
-        return redirect(reverse('kahamahmis:patient_lab_result_history_view', args=[patient.mrn]))
+        return redirect(reverse('kahama_patient_lab_result_history_view', args=[patient.mrn]))
    
     else:
         # If it's a GET request, initialize the form with existing data (if any)
@@ -2099,7 +2095,7 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
                 messages.error(request, 'Please correct the errors in the form.')
 
         # Redirect to the appropriate page after saving
-        return redirect(reverse('kahamahmis:patient_procedure_history_view_mrn', args=[patient.mrn]))
+        return redirect(reverse('kahama_patient_procedure_history_view_mrn', args=[patient.mrn]))
    
     else:
         # If it's a GET request, initialize the form with existing data (if any)
@@ -2135,9 +2131,9 @@ def add_or_edit_remote_equipment(request):
                 # Edit existing record
                 equipment = RemoteEquipment.objects.get(id=equipment_id)
                 if RemoteEquipment.objects.exclude(id=equipment_id).filter(name=name).exists():
-                    return JsonResponse({'status': 'false', 'message': 'Equipment with this name already exists.'})
+                    return JsonResponse({'success': False, 'message': 'Equipment with this name already exists.'})
                 if RemoteEquipment.objects.exclude(id=equipment_id).filter(serial_number=serial_number).exists():
-                    return JsonResponse({'status': 'false', 'message': 'Equipment with this serial number already exists.'})
+                    return JsonResponse({'success': False, 'message': 'Equipment with this serial number already exists.'})
 
                 equipment.name = name
                 equipment.description = description
@@ -2148,13 +2144,13 @@ def add_or_edit_remote_equipment(request):
                 equipment.location = location
                 equipment.status = status
                 equipment.save()
-                return JsonResponse({'status': 'true', 'message': 'Equipment updated successfully!'})
+                return JsonResponse({'success': True, 'message': 'Equipment updated successfully!'})
             else:
                 # Add new record
                 if RemoteEquipment.objects.filter(name=name).exists():
-                    return JsonResponse({'status': 'false', 'message': 'Equipment with this name already exists.'})
+                    return JsonResponse({'success': False, 'message': 'Equipment with this name already exists.'})
                 if RemoteEquipment.objects.filter(serial_number=serial_number).exists():
-                    return JsonResponse({'status': 'false', 'message': 'Equipment with this serial number already exists.'})
+                    return JsonResponse({'success': False,  'message': 'Equipment with this serial number already exists.'})
 
                 RemoteEquipment.objects.create(
                     name=name,
@@ -2166,13 +2162,13 @@ def add_or_edit_remote_equipment(request):
                     location=location,
                     status=status
                 )
-                return JsonResponse({'status': 'true', 'message': 'Equipment added successfully!'})
+                return JsonResponse({'success': True, 'message': 'Equipment added successfully!'})
         except RemoteEquipment.DoesNotExist:
-            return JsonResponse({'status': 'false', 'message': 'Equipment not found.'})
+            return JsonResponse({'success': False, 'message': 'Equipment not found.'})
         except Exception as e:
-            return JsonResponse({'status': 'false', 'message': str(e)})
+            return JsonResponse({'success': False, 'message': str(e)})
 
-    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
+    return JsonResponse({'success': False,'message': 'Invalid request method'})
 
 
 @login_required
@@ -2225,12 +2221,12 @@ def add_or_edit_reagent(request):
                 reagent.expiry_date = expiry_date
                 reagent.storage_conditions = storage_conditions
                 reagent.save()
-                return JsonResponse({'status': 'true', 'message': 'Reagent updated successfully!'})
+                return JsonResponse({'success': True, 'message': 'Reagent updated successfully!'})
             else:
                 # Add new record
                 existing_reagent = RemoteReagent.objects.filter(name=name)
                 if existing_reagent.exists():
-                    return JsonResponse({'status': 'false', 'message': 'A reagent with the same name  already exists.'})
+                    return JsonResponse({'success': False, 'message': 'A reagent with the same name  already exists.'})
                 RemoteReagent.objects.create(
                     name=name,
                     supplier=supplier,
@@ -2238,11 +2234,11 @@ def add_or_edit_reagent(request):
                     expiry_date=expiry_date,
                     storage_conditions=storage_conditions
                 )
-                return JsonResponse({'status': 'true', 'message': 'Reagent added successfully!'})
+                return JsonResponse({'success': True, 'message': 'Reagent added successfully!'})
         except Exception as e:
-            return JsonResponse({'status': 'false', 'message': str(e)})
+            return JsonResponse({'success': False,  'message': str(e)})
 
-    return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
 @login_required
 @csrf_exempt

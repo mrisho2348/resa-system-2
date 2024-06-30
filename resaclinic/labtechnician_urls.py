@@ -1,87 +1,68 @@
+from django.urls import include, path, re_path
 
-from django.urls import include, path
+from clinic import LabTechnicianView, editView, imports
 
-from clinic import LabTechnicianView, delete, editView, imports
-
-
-urlpatterns = [    
-        path('add_consultation/', LabTechnicianView.add_consultation, name='lab_add_consultation'),
-        path('labtechnician_dashboard/', LabTechnicianView.labtechnician_dashboard, name='labtechnician_dashboard'),
-        path('new_procedure_order/', LabTechnicianView.new_procedure_order, name='lab_new_procedure_order'),
-        path('new_radiology_order/', LabTechnicianView.new_radiology_order, name='lab_new_radiology_order'),
-        path('fetch_order_counts/', LabTechnicianView.fetch_order_counts_view, name='fetch_order_counts'),
-        path('fetch_laborders_counts/', LabTechnicianView.fetch_laborders_counts, name='fetch_laborders_counts'),
-        path('lab_unread_orders/', LabTechnicianView.lab_unread_orders_view, name='lab_unread_orders'),
-        path('lab_read_orders/', LabTechnicianView.lab_read_orders_view, name='lab_read_orders'),
-        path('save_lab_order_result/<int:order_id>/', LabTechnicianView.save_lab_order_result, name='save_lab_order_result'),
-        path('prescriptions/<str:visit_number>/<int:patient_id>/', LabTechnicianView.prescription_detail, name='lab_prescription_detail'),
-        path('new_consultation_order/',LabTechnicianView.new_consultation_order, name="lab_new_consultation_order"),
-        path('all_orders_view/', LabTechnicianView.all_orders_view, name='lab_all_orders_view'),
-        path('save_edited_patient/',LabTechnicianView.save_edited_patient, name="lab_save_edited_patient"),
-        path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', LabTechnicianView.edit_lab_result, name='lab_save_edit_lab_result'),   
-        
-        path('manage_laboratory/', LabTechnicianView.manage_laboratory, name='lab_manage_laboratory'),
-        path('save_consultation_data/', LabTechnicianView.save_consultation_data, name='lab_save_consultation_data'),
-      
-        path('add_pathodology_record/', LabTechnicianView.add_pathodology_record, name='lab_add_pathodology_record'),
-
-        path('accounts/', include('django.contrib.auth.urls')), 
-        path('staff_detail/<int:staff_id>/', LabTechnicianView.single_staff_detail, name='lab_single_staff_detail'),
-        path('view-patient/<int:patient_id>/', LabTechnicianView.view_patient, name='lab_view_patient'),        
-      
-   
-        
-          
-        # manage urls      
-        path('get-procedure-cost/', LabTechnicianView.get_procedure_cost, name='lab_get_procedure_cost'),   
-        path('get_patient_details/<int:patient_id>/', LabTechnicianView.get_patient_details, name='lab_get_patient_details'),
-    
-        path('add_investigation/', LabTechnicianView.add_investigation, name='lab_add_investigation'),
-        path('add_imaging/', LabTechnicianView.add_imaging, name='lab_add_imaging'),
-        path('add_procedure/', LabTechnicianView.add_procedure, name='lab_add_procedure'),    
-        path('get_unit_price/', LabTechnicianView.get_unit_price, name='lab_get_unit_price'),     
-    
-        path('resa/patient_vital_all_listt/', LabTechnicianView.patient_vital_all_list, name='lab_patient_vital_all_list'),  
-        path('patient_consultation_detail/<int:patient_id>/<int:visit_id>/', LabTechnicianView.patient_consultation_detail, name='lab_patient_consultation_detail'),
-        path('save_laboratory/<int:patient_id>/<int:visit_id>/', LabTechnicianView.save_laboratory, name='lab_save_laboratory'),
-        path('save_remoteprocedure/<int:patient_id>/<int:visit_id>/', LabTechnicianView.save_remoteprocedure, name='lab_save_remoteprocedure'),
-        path('save_observation/<int:patient_id>/<int:visit_id>/', LabTechnicianView.save_observation, name='lab_save_observation'),
-        path('patient_vital_list/<int:patient_id>/', LabTechnicianView.patient_vital_list, name='lab_patient_vital_list'),
-        path('patient_health_record_view/<int:patient_id>/<int:visit_id>/', LabTechnicianView.patient_health_record_view, name='lab_patient_health_record_view'),
-        path('patient_visit_history/<int:patient_id>/', LabTechnicianView.patient_visit_history_view, name='lab_patient_visit_history_view'),
-        path('prescriptions/', LabTechnicianView.prescription_list, name='lab_prescription_list'),       
-        path('resa/all-patients',LabTechnicianView.manage_patient, name="lab_manage_patient"),
-        path('resa/consultation-queue',LabTechnicianView.manage_consultation, name="lab_manage_consultation"),          
-        
-        path('resa/appointments/', LabTechnicianView.appointment_list_view, name='lab_appointment_list'),
-        path('notifications/', LabTechnicianView.notification_view, name='lab_notification_view'),
-        path('confirm_meeting/<int:appointment_id>/', LabTechnicianView.confirm_meeting, name='lab_confirm_meeting'),
-        path('generate-bill/<int:procedure_id>/', LabTechnicianView.generate_billing, name='lab_generate_billing'),
-        path('edit_meeting/<int:appointment_id>/', LabTechnicianView.edit_meeting, name='lab_edit_meeting'), 
-        path('save_radiology/', LabTechnicianView.save_radiology, name='lab_save_radiology'),
-        path('save_procedure/', LabTechnicianView.save_procedure, name='lab_save_procedure'),  
-        path('invoice/<int:order_id>/', LabTechnicianView.generate_invoice_bill, name='lab_generate_invoice_bill'),
-        
-        # imports urls 
-        path('resa/import_Import/import_patient_vital_records',imports.import_patient_vital_records, name="lab_import_patient_vital_records"),      
-        path('import_prescription_records', imports.import_prescription_records, name='lab_import_prescription_records'),
-        path('import_consultation_notes_records', imports.import_consultation_notes_records, name='lab_import_consultation_notes_records'),   
-        path('import-patients/', imports.import_patient_records, name='lab_import_patient_records'),
-        path('import-pathology-records/', imports.import_pathology_records, name='lab_import_pathology_records'),
-        path('import-medicine-records/', imports.import_medicine_records, name='lab_import_medicine_records'),
-        path('import-procedure-records/', imports.import_procedure_records, name='lab_import_procedure_records'),
-        path('import-referral-records/', imports.import_referral_records, name='lab_import_referral_records'),
-              
-        # edit urls              
-        path('pathodology/<int:pathodology_id>/edit/', editView.edit_pathodology, name='lab_edit_pathodology'),    
-        path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='lab_update_consultation_data'),        
-        path('edit_procedure/', editView.edit_procedure, name='lab_edit_procedure'), 
-        path('edit_referral/', editView.edit_referral, name='lab_edit_referral'), 
-        path('Patient/<int:patient_id>/add/', LabTechnicianView.appointment_view, name='lab_appointment_view'), 
-        path('appointment_view/<int:patient_id>/', LabTechnicianView.appointment_view_remote, name='lab_appointment_view_remote'),
-        path('patient-procedure-history/<str:mrn>/view/', LabTechnicianView.patient_procedure_history_view, name='lab_patient_procedure_history_view_mrn'),   
-        
-        # delete urls        
-      
-        
+urlpatterns = [
+    path('labtechnician_dashboard/', LabTechnicianView.labtechnician_dashboard, name='labtechnician_dashboard'),
+    path('new_procedure_order/', LabTechnicianView.new_procedure_order, name='lab_new_procedure_order'),
+    path('new_radiology_order/', LabTechnicianView.new_radiology_order, name='lab_new_radiology_order'),
+    path('fetch_order_counts/', LabTechnicianView.fetch_order_counts_view, name='lab_fetch_order_counts'),
+    path('fetch_laborders_counts/', LabTechnicianView.fetch_laborders_counts, name='lab_fetch_laborders_counts'),
+    path('lab_unread_orders/', LabTechnicianView.lab_unread_orders_view, name='lab_unread_orders'),
+    path('lab_read_orders/', LabTechnicianView.lab_read_orders_view, name='lab_read_orders'),
+    re_path(r'^save_lab_order_result/(?P<order_id>\d+)/$', LabTechnicianView.save_lab_order_result, name='lab_save_lab_order_result'),
+    path('prescriptions/<str:visit_number>/<int:patient_id>/',  LabTechnicianView.prescription_detail, name='lab_prescription_detail'),
+    path('new_consultation_order/', LabTechnicianView.new_consultation_order, name='lab_new_consultation_order'),
+    path('update_profile_picture/', LabTechnicianView.update_profile_picture, name='lab_update_profile_picture'),
+    path('add_consultation/', LabTechnicianView.add_consultation, name='lab_add_consultation'),
+    path('all_orders_view/', LabTechnicianView.all_orders_view, name='lab_all_orders_view'),
+    re_path(r'^edit_lab_result/(?P<patient_id>\d+)/(?P<visit_id>\d+)/(?P<lab_id>\d+)/$', LabTechnicianView.edit_lab_result, name='lab_edit_lab_result'),
+    path('manage_laboratory/', LabTechnicianView.manage_laboratory, name='lab_manage_laboratory'),
+    path('accounts/', include('django.contrib.auth.urls')),
+    re_path(r'^staff_detail/(?P<staff_id>\d+)/$', LabTechnicianView.single_staff_detail, name='lab_single_staff_detail'),
+    re_path(r'^view_patient/(?P<patient_id>\d+)/$', LabTechnicianView.view_patient, name='lab_view_patient'),
+    re_path(r'^get_procedure_cost/$', LabTechnicianView.get_procedure_cost, name='lab_get_procedure_cost'),
+    re_path(r'^get_patient_details/(?P<patient_id>\d+)/$', LabTechnicianView.get_patient_details, name='lab_get_patient_details'),
+    path('add_investigation/', LabTechnicianView.add_investigation, name='lab_add_investigation'),
+    path('add_imaging/', LabTechnicianView.add_imaging, name='lab_add_imaging'),
+    path('add_procedure/', LabTechnicianView.add_procedure, name='lab_add_procedure'),
+    path('get_unit_price/', LabTechnicianView.get_unit_price, name='lab_get_unit_price'),
+    re_path(r'^patient_vital_all_list/$', LabTechnicianView.patient_vital_all_list, name='lab_patient_vital_all_list'),
+    re_path(r'^patient_consultation_detail/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.patient_consultation_detail, name='lab_patient_consultation_detail'),
+    re_path(r'^save_laboratory/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.save_laboratory, name='lab_save_laboratory'),
+    re_path(r'^save_remoteprocedure/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.save_remoteprocedure, name='lab_save_remoteprocedure'),
+    re_path(r'^save_observation/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.save_observation, name='lab_save_observation'),
+    re_path(r'^patient_vital_list/(?P<patient_id>\d+)/$', LabTechnicianView.patient_vital_list, name='lab_patient_vital_list'),
+    re_path(r'^patient_health_record_view/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.patient_health_record_view, name='lab_patient_health_record_view'),
+    re_path(r'^patient_visit_history/(?P<patient_id>\d+)/$', LabTechnicianView.patient_visit_history_view, name='lab_patient_visit_history_view'),
+    path('prescriptions/', LabTechnicianView.prescription_list, name='lab_prescription_list'),
+    path('all-patients/', LabTechnicianView.manage_patient, name='lab_manage_patient'),
+    path('consultation-queue/', LabTechnicianView.manage_consultation, name='lab_manage_consultation'),
+    path('appointments/', LabTechnicianView.appointment_list_view, name='lab_appointment_list'),
+    re_path(r'^generate-bill/(?P<procedure_id>\d+)/$', LabTechnicianView.generate_billing, name='lab_generate_billing'),
+    re_path(r'^invoice/(?P<order_id>\d+)/$', LabTechnicianView.generate_invoice_bill, name='lab_generate_invoice_bill'),  
+    path('get_drug_division_status/', LabTechnicianView.get_drug_division_status, name='lab_get_drug_division_status'),
+    path('get_medicine_formulation/', LabTechnicianView.get_medicine_formulation, name='lab_get_medicine_formulation'),
+    path('get_formulation_unit/', LabTechnicianView.get_formulation_unit, name='lab_get_formulation_unit'),
+    path('get_frequency_name/', LabTechnicianView.get_frequency_name, name='lab_get_frequency_name'),
+    path('medicine_dosage/', LabTechnicianView.medicine_dosage, name='lab_medicine_dosage'),
+    re_path(r'^save_prescription/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', LabTechnicianView.save_prescription, name='lab_save_prescription'),
+    path('add_remoteprescription/', LabTechnicianView.add_remoteprescription, name='lab_add_remoteprescription'),
+    path('manage_service/', LabTechnicianView.manage_service, name='lab_manage_service'),
+    path('manage_disease/', LabTechnicianView.manage_disease, name='lab_manage_disease'),
+    path('get_gender_yearly_data/', LabTechnicianView.get_gender_yearly_data, name='lab_get_gender_yearly_data'),
+    path('get_gender_monthly_data/', LabTechnicianView.get_gender_monthly_data, name='lab_get_gender_monthly_data'),
+    path('medicine_list/', LabTechnicianView.medicine_list, name='lab_medicine_list'),
+    path('medicine_expired_list/', LabTechnicianView.medicine_expired_list, name='lab_medicine_expired_list'),
+    path('in_stock_medicines_view/', LabTechnicianView.in_stock_medicines_view, name='lab_in_stock_medicines_view'),
+    path('out_of_stock_medicines_view/', LabTechnicianView.out_of_stock_medicines_view, name='lab_out_of_stock_medicines_view'),
+    path('health_record_list/', LabTechnicianView.health_record_list, name='lab_health_record_list'),
+    path('reagent_list/', LabTechnicianView.reagent_list, name='lab_reagent_list'),
+  
+    re_path(r'^patient/(?P<patient_id>\d+)/add/$', LabTechnicianView.appointment_view, name='lab_appointment_view'),
+    re_path(r'^appointment_view/(?P<patient_id>\d+)/$', LabTechnicianView.appointment_view_remote, name='lab_appointment_view_remote'),
+    re_path(r'^patient_procedure_history/(?P<mrn>\w+)/view/$', LabTechnicianView.patient_procedure_history_view, name='lab_patient_procedure_history_view_mrn'),
+    path('patient/<int:patient_id>/visit/<int:visit_id>/', LabTechnicianView.patient_visit_details_view, name='lab_patient_visit_details_view'),
+    path('employee_detail/', LabTechnicianView.employee_detail, name='lab_employee_detail'),
+    path('patient/<int:patient_id>/', LabTechnicianView.patient_detail, name='lab_patient_detail'),
 ]

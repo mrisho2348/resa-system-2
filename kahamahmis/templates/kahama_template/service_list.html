@@ -5,13 +5,13 @@
 
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
-<a class="btn btn-success float-right mr-2" href="{% url 'kahamahmis:remote_service_template_download' %}">
+<a class="btn btn-success float-right mr-2" href="{% url 'kahama_remote_service_template_download' %}">
   <i class="fas fa-download"></i> download excel template 
 </a>
 <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addRemoteServiceModal">
   <i class="fas fa-plus"></i>New service
 </a>
-    <a class="btn btn-success float-right mr-2" href="{% url 'kahamahmis:import_remote_service_data' %}">
+    <a class="btn btn-success float-right mr-2" href="{% url 'kahama_import_remote_service_data' %}">
       <i class="fas fa-file-import"></i> Import service
     </a>
    
@@ -46,129 +46,11 @@
                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editRemoteServiceModal{{ service.id }}"  data-toggle="tooltip" title="Edit">
                       <i class="fa fa-edit text-white"></i>
                   </button>
-                    <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteRemoteServiceModal{{ service.id }}"  data-toggle="tooltip" title="Delete">
+                    <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteServiceModal{{ service.id }}"  data-toggle="tooltip" title="Delete">
                       <i class="fas fa-trash"></i>
                   </button>   
                 </td>       
-              <div class="modal fade" id="deleteRemoteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRemoteServiceModal{{ service.id }}" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="deleteRemoteServiceModal{{ service.id }}">Delete Service</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Are you sure you want to delete the service "<span id="deleteServiceName">{{service}}</span>"?</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                            <form id="deleteServiceForm" method="post" action="{% url 'kahamahmis:delete_service' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="service_id" id="deleteServiceId" value="{{service.id}}">
-                                <button type="button" class="btn btn-danger" onclick="deleteRemoteServices({{ service.id }})">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-              </div> <!-- end of modal div -->
-                <script>
-                    function deleteRemoteServices(serviceId) {
-                        $.ajax({
-                            type: 'POST',
-                            url: '/delete_remote_service/' + serviceId + '/',  // Replace with your URL
-                            data: {},
-                            success: function (data) {
-                                if (data.status === 'success') {
-                                    $('#deleteRemoteServiceModal' + serviceId).modal('hide');
-                                    location.reload(true);
-                                    // Refresh the category list or perform any other actions
-                                } else {
-                                    // Handle other status cases if needed
-                                    alert(data.message);
-                                }
-                            },
-                            error: function (error) {
-                                alert(error);
-                                // Handle errors if necessary
-                            }
-                        });
-                    }
-                </script>
-                <!-- Bootstrap Modal for Editing Service -->
-                <div class="modal fade" id="editRemoteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="editRemoteServiceModalLabel{{ service.id }}" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered" role="document">
-                      <div class="modal-content">
-                        <div class="modal-header">
-                          <h5 class="modal-title" id="editRemoteeServiceModalLabel{{ service.id }}">Edit  Service</h5>
-                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                          </button>
-                        </div>
-                        <div class="modal-body">
-                          <!-- Form for adding Remote Service -->
-                          <div id="serviceMessageContainer{{ service.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
-                          <form id="editRemoteServiceForm{{ service.id }}" method="post">
-                            {% csrf_token %}
-                            <div class="form-group">
-                              <label for="serviceName">Name:</label>
-                              <input type="text" class="form-control" id="serviceName" name="name" value="{{ service.name }}" required>
-                              <input type="hidden" class="form-control" id="service_id" name="service_id" value="{{ service.id }}" >
-                            </div>                                
-                            <div class="form-group">
-                              <label for="serviceDescription">Description:</label>
-                              <textarea class="form-control" id="serviceDescription" name="description" >{{ service.description }}</textarea>
-                            </div>
-                            <div class="form-group">
-                              <label for="serviceCategory">Category:</label>
-                              <select class="form-control" id="serviceCategory" name="category">
-                                  <option value="Procedure" {% if service.category == "Procedure" %}selected{% endif %}>Procedure</option>
-                                  <option value="Laboratory" {% if service.category == "Laboratory" %}selected{% endif %}>Laboratory</option>
-                                  <option value="Consultation" {% if service.category == "Consultation" %}selected{% endif %}>Consultation</option>
-                              </select>
-                          </div>
-                            <!-- Hidden fields for CSRF token -->
-                         
-                            <div class="modal-footer">
-                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                              <button type="submit" class="btn btn-primary"  id="submitBtn">Save changes</button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <script>
-                    // Handle form submission using AJAX
-                    $(document).ready(function () {
-                        // Assuming you have a loop or iteration for categories, replace "forEach" with your actual loop
-                        {% for service in services %}
-                            $('#editRemoteServiceForm{{ service.id }}').submit(function (e) {
-                                e.preventDefault();
-                                $.ajax({
-                                    type: 'POST',
-                                    url: '{% url "kahamahmis:save_remote_service" %}',  // Replace with your URL
-                                    data: $('#editRemoteServiceForm{{ service.id }}').serialize(),
-                                    success: function (response) {
-                                      // If the request is successful, display a success message
-                                      if (response.success) {
-                                          $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                                          location.reload(true)
-                                       
-                                      } else {
-                                          $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                      }
-                                  },
-                                  error: function (xhr,  error) {
-                                      // If the request fails, display an error message
-                                      $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
-                                  }
-                                });
-                            });
-                        {% endfor %}
-                    });
-                </script>
+             
                   </tr>
                 {% endfor %}
                 </tbody>
@@ -179,7 +61,131 @@
   </div>
 </div>
 
+<!-- Bootstrap Modal for Deleting Service -->
+{% for service in services %}
+<div class="modal fade" id="deleteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteServiceModalLabel{{ service.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteServiceModalLabel{{ service.id }}">Delete Service</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the service "{{ service.name }}"?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteService('{{ service.id }}')">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 
+<script>
+    function deleteService(serviceId) {
+        $.ajax({
+            url: '{% url "kahama_delete_service" %}',  // Update with your actual URL
+            type: 'POST',
+            data: {
+                service_id: serviceId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                            location.reload();
+                } else {
+                    // Handle error
+                    console.error('Delete service error:', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+</script>
+
+
+{% for service in services %}
+    <!-- Bootstrap Modal for Editing Service -->
+    <div class="modal fade" id="editRemoteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="editRemoteServiceModalLabel{{ service.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editRemoteeServiceModalLabel{{ service.id }}">Edit  Service</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <!-- Form for adding Remote Service -->
+            <div id="serviceMessageContainer{{ service.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
+            <form id="editRemoteServiceForm{{ service.id }}" method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="serviceName{{ service.id }}">Name:</label>
+                <input type="text" class="form-control" id="serviceName{{ service.id }}" name="name" value="{{ service.name }}" required>
+                <input type="hidden" class="form-control" id="service_id{{ service.id }}" name="service_id" value="{{ service.id }}" >
+              </div>                                
+              <div class="form-group">
+                <label for="serviceDescription{{ service.id }}">Description:</label>
+                <textarea class="form-control" id="serviceDescription{{ service.id }}" name="description" >{{ service.description }}</textarea>
+              </div>
+              <div class="form-group">
+                <label for="serviceCategory{{ service.id }}">Category:</label>
+                <select class="form-control" id="serviceCategory{{ service.id }}" name="category">
+                    <option value="Procedure" {% if service.category == "Procedure" %}selected{% endif %}>Procedure</option>
+                    <option value="Laboratory" {% if service.category == "Laboratory" %}selected{% endif %}>Laboratory</option>
+                    <option value="Consultation" {% if service.category == "Consultation" %}selected{% endif %}>Consultation</option>
+                </select>
+            </div>
+            <div class="form-group row">
+              <div class="col-md-12">
+                  <button type="button" class="btn btn-primary btn-block" id="editRemoteService{{ service.id }}">Edit  Service</button>
+              </div>
+          </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      $(document).ready(function () {
+          $('#editRemoteService{{ service.id }}').click(function (event) {
+              var form = document.getElementById('editRemoteServiceForm{{ service.id }}');
+              if (form.checkValidity() === false) {
+                  event.preventDefault();
+                  event.stopPropagation();
+              } else {
+                  var formData = $('#editRemoteServiceForm{{ service.id }}').serialize();
+  
+                  $.ajax({
+                      url: '{% url "kahama_save_remote_service" %}', // Update with your actual URL
+                      type: 'POST',
+                      data: formData,
+                      success: function (response) {
+                          if (response.success) {
+                              $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                              location.reload(true);
+                          } else {
+                              $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                          }
+                      },
+                      error: function () {
+                          console.error('AJAX request failed');
+                          $('#serviceMessageContainer{{ service.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                      }
+                  });
+              }
+  
+              form.classList.add('was-validated');
+          });
+      });
+  </script>    
+{% endfor %}
    
 
 
@@ -208,47 +214,54 @@
             </div>
             <div class="form-group">
               <label for="serviceCategory">Category:</label>
-              <select class="form-control" id="serviceCategory" name="category">
+              <select class="form-control" id="serviceCategory" name="category" required>
                   <option value="Procedure">Procedure</option>
                   <option value="Laboratory" >Laboratory</option>
                   <option value="Consultation" >Consultation</option>
               </select>
-          </div> 
-         
+          </div>          
             <div class="modal-footer">        
-              <button type="button" class="btn btn-primary btn-block"  onclick="addRemoteServices()">Save changes</button>
+              <button type="button" class="btn btn-primary btn-block"  id="addRemoteServices">Add  Service</button>
             </div>
           </form>
         </div>
       </div>
     </div>
   </div>
-  
   <script>
-    // Handle form submission using AJAX
-    function addRemoteServices() {
-        $.ajax({
-            type: 'POST',
-            url: '{% url "kahamahmis:save_remote_service" %}',  // Replace with your URL
-            data: $('#addRemoteServiceForm').serialize(),
-            success: function (response) {
-              // If the request is successful, display a success message
-              if (response.success) {
-                  $('#serviceMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                  location.reload(true)
-               
-              } else {
-                  $('#serviceMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
-              }
-          },
-          error: function (xhr,  error) {
-              // If the request fails, display an error message
-              $('#serviceMessageContainer').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
-          }
-        });
-    }
-</script>
+    $(document).ready(function () {
+        $('#addRemoteServices').click(function (event) {
+            var form = document.getElementById('addRemoteServiceForm');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#addRemoteServiceForm').serialize();
 
+                $.ajax({
+                    url: '{% url "kahama_save_remote_service" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#serviceMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            $('#serviceMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#serviceMessageContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+</script>     
+  
     <script>
         function submitForm(checkbox) {
             checkbox.form.submit();

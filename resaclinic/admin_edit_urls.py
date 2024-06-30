@@ -13,5 +13,5 @@ urlpatterns = [
     path('admin/edit-referral/', editView.edit_referral, name='admin_edit_referral'),      
     re_path(r'^admin/patient-procedure-history/(?P<mrn>\w+)/view/$', AdminViews.patient_procedure_history_view, name='admin_patient_procedure_history_view_mrn'), 
     re_path(r'^admin/edit-medicine/(?P<medicine_id>\d+)/$', editView.edit_medicine, name='admin_edit_medicine'),        
-    re_path(r'^admin/edit-inventory/(?P<inventory_id>\d+)/$', editView.edit_inventory, name='admin_edit_inventory'),
+  
 ]

@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Consultation,  DiseaseRecode, InsuranceCompany,  MedicineInventory, PathodologyRecord,  Patients, Medicine, Procedure, Referral, RemoteCompany, Staffs
+from .models import Consultation,  DiseaseRecode, InsuranceCompany, PathodologyRecord,  Patients, Medicine, Procedure, Referral, RemoteCompany, Staffs
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -315,45 +315,7 @@ def edit_pathodology(request, pathodology_id):
         })
 
 
-@require_POST
-def edit_inventory(request, inventory_id):
-    # Retrieve the MedicineInventory object
-    inventory = get_object_or_404(MedicineInventory, pk=inventory_id)
 
-    # Retrieve form data from request.POST
-    medicine_id = request.POST.get('medicine_id')
-    quantity = request.POST.get('quantity')
-    purchase_date = request.POST.get('purchase_date')
-
-    # Validate form data (add more validation as needed)
-    if not medicine_id or not quantity or not purchase_date:
-        # Handle validation error, redirect or display an error message
-        return redirect('clinic:medicine_inventory')  # Adjust the URL as needed
-
-    try:
-        # Convert the quantity to an integer
-        quantity = int(quantity)
-
-        # Convert the purchase date to a datetime object
-        purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').date()
-
-        # Update the existing MedicineInventory record
-        inventory.medicine_id = medicine_id
-        inventory.quantity = quantity
-        inventory.purchase_date = purchase_date
-        inventory.save()
-
-        # Recalculate total payment based on updated quantity and medicine unit price
-        total_payment = inventory.quantity * inventory.medicine.unit_price
-        inventory.total_payment = total_payment
-        inventory.save(update_fields=['total_payment'])
-
-        # Redirect to a success page or the medicine inventory page
-        return redirect('clinic:medicine_inventory')  # Adjust the URL as needed
-
-    except (ValueError, TypeError):
-        # Handle invalid data types, redirect or display an error message
-        return redirect('clinic:medicine_inventory')
     
  
 def update_consultation_data(request, appointment_id):

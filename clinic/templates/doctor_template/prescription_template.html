@@ -1,7 +1,7 @@
 {% extends 'doctor_template/base_template.html' %}
 {% load customfilter %}
 {% block title %}
-Patient prescription   
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} prescription   
 {% endblock title %}
 
 {% block page_title %}
@@ -25,32 +25,34 @@ Patient prescription
                     <h5 class="card-title text-center text-uppercase">{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} [ AGE: {{ patient.age }} ] - Prescription</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
-                        </div>
-                        <div class="col-md-3">
-                            <b>DOB: 12/07/1975 [ Age: {{ patient.age }} ]</b>
-                        </div>
-                        <div class="col-md-3">
-                            <b>SEX: {{ patient.gender }}</b>
-                        </div>
-                        <div class="col-md-3">
-                            <b>FILE NO: {{ patient.mrn }}</b>
-                        </div>
+                    <div class="row" style="font-size:13px;">
+                        <div class="col-md-6 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-6 text-uppercase">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+              
                     </div>
-                    <br />
-                    <div class="row">
-                        <div class="col-md-3">
-                            <b>Payment Mode: {{ patient.payment_form }}</b>
+                        <div class="row mt-3">
+                            <div class="col-md-6 text-uppercase" >SEX:<b> {{ patient.gender }}</b></div>
+                            <div class="col-md-6 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
                         </div>
-                        <div class="col-md-3">
-                            <b>Visit number: {{ visit.vst }}</b>
+                        <div class="row mt-3">
+                            <div class="col-md-6 text-uppercase">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                            <div class="col-md-6">
+                                Visit number:  <b>{{ visit.vst }}</b>
+                            </div>
                         </div>
-                    </div>
-                    <br />                  
-                   
-                </div>
+                </div>        
+            
             </div>
         </div>
     </div>
@@ -239,7 +241,7 @@ Patient prescription
             var row = $(this).closest('tr');
     
             $.ajax({
-                url: '{% url "get_unit_price" %}',
+                url: '{% url "doctor_get_unit_price" %}',
                 method: 'POST',
                 data: {
                     medicine_id: selectedMedicineId,
@@ -292,7 +294,7 @@ Patient prescription
         function IsDrugDividable(medicineId) {
             var dividable = '';
             $.ajax({
-                url: '{% url "get_drug_division_status" %}',
+                url: '{% url "doctor_get_drug_division_status" %}',
                 method: 'GET',
                 data: { medicine_id: medicineId },
                 async: false,
@@ -314,7 +316,7 @@ Patient prescription
         function getFrequencyName(frequencyId) {
             var frequencyName = '';
             $.ajax({
-                url: '{% url "get_frequency_name" %}',
+                url: '{% url "doctor_get_frequency_name" %}',
                 method: 'GET',
                 data: { frequency_id: frequencyId },
                 async: false,
@@ -364,7 +366,7 @@ Patient prescription
         function getFormulationUnit(medicineId) {
             var formulationUnit = 1;
             $.ajax({
-                url: '{% url "get_formulation_unit" %}',
+                url: '{% url "doctor_get_formulation_unit" %}',
                 method: 'GET',
                 data: { medicine_id: medicineId },
                 async: false,
@@ -384,12 +386,12 @@ Patient prescription
         function addPrescription{{ visit.id }}() {
             $.ajax({
                 type: 'POST',
-                url: '{% url "add_remoteprescription" %}',
+                url: '{% url "doctor_add_remoteprescription" %}',
                 data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
                 success: function(response) {
                     if (response.status === 'success') {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "prescription_list" %}';
+                        var redirectUrl = '{% url "doctor_prescription_list" %}';
                         window.location.href = redirectUrl;
                     } else {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
@@ -412,7 +414,7 @@ Patient prescription
     
                 // Make an AJAX request to fetch the formulation dosage information for the selected medicine
                 $.ajax({
-                    url: '{% url "get_medicine_formulation" %}', // Update this URL to match your endpoint
+                    url: '{% url "doctor_get_medicine_formulation" %}', // Update this URL to match your endpoint
                     method: 'GET',
                     data: { 'medicine_id': medicineId },
                     success: function(response) {

@@ -1,4 +1,4 @@
-{% extends 'doctor_template/base_template.html' %}
+{% extends 'hod_template/base_template.html' %}
 
 {% block title %}
    All Insurance
@@ -9,57 +9,219 @@
 {% endblock page_title %}
 
 {% block breadcrumb %}
-{% include "doctor_template/modal_form.html" %}
+{% include "hod_template/modal_form.html" %}
 <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#insuranceModal">
     <i class="fas fa-plus"></i> New Insurance
 </a>
 <!-- Add Import insurance link and modal trigger -->
-<a class="btn btn-success float-right mr-2" href="{% url 'import_insurance_companies' %}">
+<a class="btn btn-success float-right mr-2" href="{% url 'admin_import_insurance_companies' %}">
   <i class="fas fa-file-import"></i> Import Insurance
 </a>
 {% endblock breadcrumb %}
 
 {% load static %}
 {% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> List of all insurances </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                          <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Email</th>
+                                <th>Website</th>
+                                <th>Register Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="insurance-company-table-body">
+                            {% for company in insurance_companies %}
+                                <tr>
+                                    <td>{{ company.name }}</td>
+                                    <td>{{ company.short_name }}</td>
+                                    <td>{{ company.phone }}</td>
+                                    <td>{{ company.address }}</td>
+                                    <td>{{ company.email }}</td>
+                                    <td><a href="{{ company.website }}" target="_blank">{{ company.website }}</a></td>
+                                    <td>{{ company.updated_at }}</td>
+                                    <td>
+                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editInsuranceModal{{ company.id }}"  data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit text-white"></i>
+                                        </button>
+                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteInsuranceModal{{ company.id }}"  data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                     
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> {% endcomment %}
-
-<div class="">
-    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
-      <thead>
-        <tr>
-            <th>Title</th>
-            <th>Code</th>
-            <th>Phone</th>
-            <th>Address</th>
-            <th>Email</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="insurance-company-table-body">
-        {% for company in insurance_companies %}
-            <tr>
-                <td>{{ company.name }}</td>
-                <td>{{ company.short_name }}</td>
-                <td>{{ company.phone }}</td>
-                <td>{{ company.address }}</td>
-                <td>{{ company.email }}</td>
-                <td>
-                  <a href="{% url 'edit_insurance' company.id %}" class="btn btn-info">Edit</a>
-                  <a href="{% url 'delete_insurance' company.id %}" class="btn btn-danger">Delete</a>
-                 
-                </td>
-            </tr>
-        {% endfor %}
-    </tbody>
-    </table>
+{% for company in insurance_companies %}
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteInsuranceModal{{ company.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel{{ company.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel{{ company.id }}">Delete Insurance Company</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the insurance company <strong>{{ company.name }}</strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete{{ company.id }}">Delete</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
+    $(document).ready(function () {
+        $('#confirmDelete{{ company.id }}').click(function () {
+            // Send AJAX request to delete the company
+            $.ajax({
+                url: '{% url "admin_delete_insurance_company" %}', // Update with your actual URL
+                type: 'POST',
+                data: {
+                    'company_id': '{{ company.id }}',
+                    'csrfmiddlewaretoken': '{{ csrf_token }}' // Ensure CSRF token is included
+                },
+                success: function (response) {
+                    if (response.success) {
+                        location.reload(true); // Reload the page on successful deletion
+                    } else {
+                        alert('Failed to delete insurance company: ' + response.message);
+                    }
+                },
+                error: function () {
+                    console.error('AJAX request failed');
+                }
+            });
+        });
+    });
 </script>
+{% endfor %}
 
-{% include 'doctor_template/datatable.html' %}
+
+{% for company in insurance_companies %}    
+<!-- Modal -->
+<div class="modal fade" id="editInsuranceModal{{ company.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header ">
+                <h5 class="modal-title">Edit Insurance Company</h5> <!-- Updated the modal title -->
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                  <div id="editInsuranceContainers{{ company.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
+                    <form id="editInsuranceForm{{ company.id }}" method="post"> <!-- Updated the form id -->
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                <label for="Name{{ company.id }}" class="col-sm-1-12 col-form-label">Name</label>
+                                <input type="text" class="form-control" name="Name" id="Name{{ company.id }}" value="{{ company.name }}" placeholder="" required>
+                                <input type="hidden"  name="company_id" id="company_id{{ company.id }}" value="{{ company.id }}"> <!-- Corrected hidden input name -->
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="Phone{{ company.id }}" class="col-sm-1-12 col-form-label">Phone</label>
+                                <input type="tel" class="form-control" name="Phone" id="Phone{{ company.id }}" value="{{ company.phone }}" placeholder="" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                <label for="Short_name{{ company.id }}" class="col-sm-1-12 col-form-label">Short name/code</label>
+                                <input type="text" class="form-control" name="Short_name" id="Short_name{{ company.id }}" value="{{ company.short_name }}" placeholder="" required>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="Email{{ company.id }}" class="col-sm-1-12 col-form-label">Email</label>
+                                <input type="email" class="form-control" name="Email" id="Email{{ company.id }}" value="{{ company.email }}" placeholder="Enter email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                <label for="Address{{ company.id }}" class="col-sm-1-12 col-form-label">Address</label>
+                                <input type="text" class="form-control" name="Address" id="Address{{ company.id }}" value="{{ company.address }}" placeholder="Enter address" required>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="website{{ company.id }}" class="col-sm-1-12 col-form-label">Website</label>
+                                <input type="url" class="form-control" name="website" id="website{{ company.id }}" value="{{ company.website }}" placeholder="Enter website url" required>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-primary btn-block" id="saveEditInsurance{{ company.id }}">Save Changes</button> <!-- Updated button text -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#saveEditInsurance{{ company.id }}').click(function () {
+            // Validate form fields
+            var form = document.getElementById('editInsuranceForm{{ company.id }}');
+            if (form.checkValidity() === false) {
+                // If form is invalid, prevent submission
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Capture form data
+                var formData = $('#editInsuranceForm{{ company.id }}').serialize();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '{% url "admin_add_insurance_company" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editInsuranceContainers{{ company.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true)
+                        } else {
+                            // Handle error
+                            $('#editInsuranceContainers{{ company.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                    }
+                });
+            }
+
+            // Prevent default form submission
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+{% endfor %}
+
+{% include 'hod_template/datatable.html' %}
 {% endblock main_content %}

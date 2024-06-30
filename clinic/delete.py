@@ -1,6 +1,6 @@
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import  JsonResponse
 from django.shortcuts import redirect, render,get_object_or_404
-from .models import Category, Company, Consultation, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance, HealthRecord, InsuranceCompany, InventoryItem,  Medicine, MedicineInventory, PathodologyRecord,  PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, Referral, RemoteCompany, RemotePatient, RemoteService,  Service, Staffs, Supplier, UsageHistory
+from .models import Category, Company, Consultation, ConsultationNotes, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance,  InsuranceCompany, InventoryItem,  Medicine,  PathodologyRecord,  PatientVisits, PatientVital, Patients, Prescription, Procedure, QualityControl, Reagent, ReagentUsage, Referral, RemoteCompany, RemoteService,  Service, Staffs, Supplier, UsageHistory
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -300,7 +300,7 @@ def delete_prescription(request, prescription_id):
             prescription.delete()
 
             # Adjust MedicineInventory
-            MedicineInventory.objects.filter(medicine=prescription.medicine).update(
+            Medicine.objects.filter(medicine=prescription.medicine).update(
                 remain_quantity=F('remain_quantity') + deleted_quantity
             )
 

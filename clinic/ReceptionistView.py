@@ -1,3 +1,4 @@
+import calendar
 from datetime import  date, datetime
 from django.urls import reverse
 from django.utils import timezone
@@ -5,20 +6,22 @@ import logging
 from django.db.models import F
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
 from django.db.models import F, Window
+from django.core.exceptions import ValidationError
 from django.db.models.functions import RowNumber
-from clinic.models import Consultation,  Medicine,Notification,PathodologyRecord, Patients, Procedure, Staffs
+from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import AmbulanceOrder,ConsultationNotes, ConsultationOrder, Country, Diagnosis, Diagnosis, ImagingRecord,InventoryItem, LaboratoryOrder, Order, PatientVisits, PatientVital, Prescription, Referral,Service, AmbulanceVehicleOrder
+from .models import AmbulanceOrder, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination,ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InventoryItem, LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
 from django.db.models import Sum
 from django.db.models import Q
+import numpy as np
 # Create your views here.
 
 @require_POST
@@ -54,18 +57,144 @@ def get_unit_price(request):
         return JsonResponse({'error': 'Cost not available for this payment form'}, status=404)
     
 
+
 @login_required
 def receptionist_dashboard(request):
-    total_patients = Patients.objects.count()
-    recently_added_patients = Patients.objects.order_by('-created_at')[:6]
-    doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
-    context = {
-        'total_patients': total_patients,
-        'recently_added_patients': recently_added_patients,
-        'doctors': doctors,
-        # 'gender_based_monthly_counts': gender_based_monthly_counts,
-    }
-    return render(request,"receptionist_template/home_content.html",context)
+    try:
+        # Count total records for different models
+        total_patients_count = Patients.objects.count()
+        total_medicines_count = Medicine.objects.count()
+        total_lab_orders_count = LaboratoryOrder.objects.count()
+        total_disease_records_count = DiseaseRecode.objects.count()
+        total_services_count = Service.objects.count()
+
+        # Fetch the most recently added patients (limit to 6)
+        recently_added_patients = Patients.objects.order_by('-created_at')[:6]
+
+        # Count staff by roles
+        total_doctors_count = Staffs.objects.filter(role='doctor', work_place="resa").count()
+        total_nurses_count = Staffs.objects.filter(role='nurse', work_place="resa").count()
+        total_physiotherapists_count = Staffs.objects.filter(role='physiotherapist', work_place="resa").count()
+        total_lab_technicians_count = Staffs.objects.filter(role='labTechnician', work_place="resa").count()
+        total_pharmacists_count = Staffs.objects.filter(role='pharmacist', work_place="resa").count()
+        total_receptionists_count = Staffs.objects.filter(role='receptionist', work_place="resa").count()
+
+        # Prepare the context dictionary
+        context = {
+            'total_patients_count': total_patients_count,
+            'total_medicines_count': total_medicines_count,
+            'total_lab_orders_count': total_lab_orders_count,
+            'total_disease_records_count': total_disease_records_count,
+            'total_services_count': total_services_count,
+            'recently_added_patients': recently_added_patients,
+            'total_doctors_count': total_doctors_count,
+            'total_nurses_count': total_nurses_count,
+            'total_physiotherapists_count': total_physiotherapists_count,
+            'total_lab_technicians_count': total_lab_technicians_count,
+            'total_pharmacists_count': total_pharmacists_count,
+            'total_receptionists_count': total_receptionists_count,
+            # 'gender_based_monthly_counts': gender_based_monthly_counts,  # Uncomment and implement if needed
+        }
+
+    except Patients.DoesNotExist:
+        messages.error(request, 'Error fetching patient data.')
+    except Medicine.DoesNotExist:
+        messages.error(request, 'Error fetching medicine data.')
+    except LaboratoryOrder.DoesNotExist:
+        messages.error(request, 'Error fetching laboratory order data.')
+    except DiseaseRecode.DoesNotExist:
+        messages.error(request, 'Error fetching disease record data.')
+    except Service.DoesNotExist:
+        messages.error(request, 'Error fetching service data.')
+    except Staffs.DoesNotExist:
+        messages.error(request, 'Error fetching staff data.')
+    except Exception as e:
+        messages.error(request, f'An unexpected error occurred: {e}')
+
+    # Render the template with the context
+    return render(request, "receptionist_template/home_content.html", context)
+
+def get_gender_yearly_data(request):
+    if request.method == 'GET':
+        selected_year = request.GET.get('year')
+        
+        # Query the database to get the total number of male and female patients for the selected year
+        male_count = Patients.objects.filter(gender='Male', created_at__year=selected_year).count()
+        female_count = Patients.objects.filter(gender='Female', created_at__year=selected_year).count()
+
+        # Create a dictionary with the total male and female counts
+        yearly_gender_data = {
+            'Male': male_count,
+            'Female': female_count
+        }
+
+        return JsonResponse(yearly_gender_data)
+    else:
+        # Return an error response if the request method is not GET or if it's not an AJAX request
+        return JsonResponse({'error': 'Invalid request'})
+    
+def get_gender_monthly_data(request):
+    if request.method == 'GET':
+        selected_year = request.GET.get('year')       
+        # Initialize a dictionary to store gender-wise monthly data
+        gender_monthly_data = {}
+
+        # Loop through each month and calculate gender-wise counts
+        for month in range(1, 13):
+            # Get the number of males and females for the current month and year
+            male_count = Patients.objects.filter(
+                gender='Male',
+                created_at__year=selected_year,
+                created_at__month=month
+            ).count()            
+            female_count = Patients.objects.filter(
+                gender='Female',
+                created_at__year=selected_year,
+                created_at__month=month
+            ).count()
+
+            # Store the counts in the dictionary
+            month_name = calendar.month_name[month]
+            gender_monthly_data[month_name] = {'Male': male_count, 'Female': female_count}
+
+        return JsonResponse(gender_monthly_data)
+    else:
+        return JsonResponse({'error': 'Invalid request'})
+    
+    
+@login_required
+def employee_detail(request):
+    try:
+        # Get the logged-in staff member
+        staff_member = request.user.staff        
+        # Get the employee record for the logged-in staff member
+        employee = get_object_or_404(Employee, name=staff_member)       
+        # Fetch the related employee deductions and salary change records
+        employee_deductions = EmployeeDeduction.objects.filter(employee=employee)
+        salary_change_records = SalaryChangeRecord.objects.filter(employee=employee)
+
+        # Context data to pass to the template
+        context = {
+            'staff_member': staff_member,
+            'employee': employee,
+            'employee_deductions': employee_deductions,
+            'salary_change_records': salary_change_records,
+        }
+    except Staffs.DoesNotExist:
+        context = {
+            'error': "Staff member not found."
+        }
+    except Employee.DoesNotExist:
+        context = {
+            'error': "Employee record not found."
+        }
+    except Exception as e:
+        context = {
+            'error': str(e)
+        }
+    
+    return render(request, 'receptionist_template/employee_detail.html', context)
+
 
 @login_required
 def all_orders_view(request):
@@ -151,6 +280,8 @@ def patient_vital_visit_list(request, patient_id,visit_id):
     range_301 = range(301)
     range_101 = range(101)
     range_15 = range(3, 16)
+    integer_range = np.arange(start=0, stop=510, step=1)
+    temps = integer_range / 10
     # Retrieve all vital information for the patient
     patient_vitals = PatientVital.objects.filter(patient=patient,visit=visit).order_by('-recorded_at')
 
@@ -160,6 +291,7 @@ def patient_vital_visit_list(request, patient_id,visit_id):
         'range_301': range_301,
         'range_101': range_101,
         'range_15': range_15,
+        'temps': temps,
         'patient': patient, 
         'patient_vitals': patient_vitals,
         'visit': visit
@@ -221,6 +353,53 @@ def save_patient_vital(request):
         return JsonResponse({'status': 'success','message':'vital saved successfully'}, status=201)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+    
+@login_required
+def patient_visit_details_view(request, patient_id, visit_id):
+    try:        
+        visit = PatientVisits.objects.get(id=visit_id)
+        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
+        chief_complaints = ClinicChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
+        primary_physical_examination = ClinicPrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
+        secondary_physical_examination = ClinicSecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
+        consultation_notes = ConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
+        vitals = PatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
+        referral_records  = Referral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
+        counseling_records = Counseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
+        procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
+        imaging_records = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
+        discharge_notes = DischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
+        observation_records = ObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
+        lab_tests = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
+        procedure = Procedure.objects.filter(patient=patient_id, visit=visit_id).first()    
+        diagnosis_record = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
+        patient = get_object_or_404(Patients, id=patient_id)
+
+        context = {
+            'primary_physical_examination': primary_physical_examination,
+            'secondary_physical_examination': secondary_physical_examination,
+            'visit': visit,
+            'counseling_records': counseling_records,
+            'observation_records': observation_records,
+            'patient': patient,
+            'referral_records ': referral_records ,
+            'chief_complaints': chief_complaints,              
+            'prescriptions': prescriptions,           
+            'consultation_notes': consultation_notes,     
+            'diagnosis_record': diagnosis_record,            
+            'vitals': vitals,     
+            'lab_tests': lab_tests,
+            'procedures': procedures,
+            'procedure': procedure,
+            'imaging_records': imaging_records,
+            'discharge_notes': discharge_notes,
+        }
+
+        return render(request, 'receptionist_template/manage_patient_visit_detail_record.html', context)
+    except Patients.DoesNotExist:
+        raise Http404("Patient does not exist")
+    except Exception as e:
+        return render(request, '404.html', {'error_message': str(e)})
 
 @csrf_exempt
 @require_POST
@@ -296,28 +475,13 @@ def manage_consultation(request):
 
 @login_required
 def save_observation(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        doctor = request.user.staff
+    try:    
         try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
         except PatientVisits.DoesNotExist:
-            visit_history = None
-        try:
-            imaging_records = ImagingRecord.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        except ImagingRecord.DoesNotExist:
-            imaging_records = None
-
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        except Procedure.DoesNotExist:
-            procedures = None
-
+            visit = None
+       
         doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-
         patient = Patients.objects.get(id=patient_id)
 
         # Fetching services based on coverage and type
@@ -329,21 +493,13 @@ def save_observation(request, patient_id, visit_id):
         else:
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Imaging')
-
-        # Calculate total amount from all procedures
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
+       
         return render(request, 'receptionist_template/observation_template.html', {
-            'visit_history': visit_history,
+            'visit': visit,
             'patient': patient,
-            'doctors': doctors,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'imaging_records': imaging_records,
-            'procedures': procedures,
+            'doctors': doctors,          
             'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
+        
         })
     except Exception as e:
         # Handle other exceptions if necessary
@@ -588,18 +744,9 @@ def save_remoteprocedure(request, patient_id, visit_id):
     try:
         # Retrieve visit history for the specified patient
         try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
         except PatientVisits.DoesNotExist:
-            visit_history = None
-
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        except Procedure.DoesNotExist:
-            procedures = None
-
-        total_price = sum(prescription.total_price for prescription in prescriptions)
+            visit = None    
 
         patient = Patients.objects.get(id=patient_id)
 
@@ -614,34 +761,28 @@ def save_remoteprocedure(request, patient_id, visit_id):
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='procedure')
 
-        # Calculate total amount from all procedures
-        total_procedure_cost = Procedure.objects.filter(patient=patient_id, visit=visit_id).aggregate(Sum('cost'))['cost__sum']
-
         return render(request, 'receptionist_template/procedure_template.html', {
-            'visit_history': visit_history,
-            'patient': patient,
-            'prescriptions': prescriptions,
-            'doctors': doctors,
-            'total_price': total_price,
-            'procedures': procedures,
-            'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
+            'visit': visit,
+            'patient': patient,      
+            'doctors': doctors,        
+            'remote_service': remote_service,          
         })
     except Exception as e:
         # Handle other exceptions if necessary
         return render(request, '404.html', {'error_message': str(e)})    
 
-@login_required
+@login_required         
 def save_prescription(request, patient_id, visit_id):
     try:
         # Retrieve visit history for the specified patient
-        visit = PatientVisits.objects.get(id=visit_id)         
+        visit = PatientVisits.objects.get(id=visit_id)   
+        frequencies = PrescriptionFrequency.objects.all()       
         prescriptions = Prescription.objects.filter(patient=patient_id, visit_id=visit_id)        
         current_date = timezone.now().date()
         patient = Patients.objects.get(id=patient_id)    
         total_price = sum(prescription.total_price for prescription in prescriptions)  
         medicines = Medicine.objects.filter(
-            medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
+            remain_quantity__gt=0,  # Inventory level greater than zero
             expiration_date__gt=current_date  # Not expired
         ).distinct()
         range_31 = range(31)
@@ -652,36 +793,22 @@ def save_prescription(request, patient_id, visit_id):
             'total_price': total_price,
             'range_31': range_31,
             'prescriptions': prescriptions,
+            'frequencies': frequencies,
          
         })
     except Exception as e:
         # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
+        return render(request, '404.html', {'error_message': str(e)})   
 
 @login_required
 def save_laboratory(request, patient_id, visit_id):
     try:
-        # Retrieve visit history for the specified patient
-        doctor = request.user.staff
+       
         try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
         except PatientVisits.DoesNotExist:
-            visit_history = None
-        try:
-            Investigation = LaboratoryOrder.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        except LaboratoryOrder.DoesNotExist:
-            Investigation = None
-
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        except Procedure.DoesNotExist:
-            procedures = None
-
+            visit = None   
         doctors = Staffs.objects.filter(role='labTechnician',work_place="resa")
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-
         patient = Patients.objects.get(id=patient_id)
 
         # Fetching services based on coverage and type
@@ -694,20 +821,12 @@ def save_laboratory(request, patient_id, visit_id):
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Laboratory')
 
-        # Calculate total amount from all procedures
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = Investigation.aggregate(Sum('cost'))['cost__sum']
         return render(request, 'receptionist_template/laboratory_template.html', {
-            'visit_history': visit_history,
+            'visit': visit,
             'patient': patient,
-            'doctors': doctors,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'Investigation': Investigation,
-            'procedures': procedures,
+            'doctors': doctors,          
             'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
+       
         })
     except Exception as e:
         # Handle other exceptions if necessary
@@ -805,23 +924,14 @@ def patient_health_record(request, patient_id, visit_id):
         doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
         provisional_diagnoses = Diagnosis.objects.all()
         final_diagnoses = Diagnosis.objects.all()
-
         total_price = sum(prescription.total_price for prescription in prescriptions)
-        range_31 = range(31)
+     
         current_date = timezone.now().date()
         patient = Patients.objects.get(id=patient_id)
-
-        medicines = Medicine.objects.filter(
-            medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-
         return render(request, 'receptionist_template/manage_patient_health_record.html', {
             'visit_history': visit_history,
             'patient': patient,
-            'visit': visits,
-            'range_31': range_31,
-            'medicines': medicines,
+            'visit': visits,          
             'total_procedure_cost': total_procedure_cost,
             'total_imaging_cost': total_imaging_cost,
             'lab_tests_cost': lab_tests_cost,
@@ -844,17 +954,6 @@ def patient_health_record(request, patient_id, visit_id):
         # Handle other exceptions if necessary
         return render(request, '404.html', {'error_message': str(e)})
     
-    
-
-
-@login_required
-def manage_service(request):
-    services=Service.objects.all()
-    context = {
-        'services':services
-    }
-    return render(request,"receptionist_template/manage_service.html",context)
-
 
 
 logger = logging.getLogger(__name__)
@@ -914,15 +1013,7 @@ def appointment_view(request):
                 description=description,
                 created_by=created_by  # Set the created_by field
             )
-            consultation.save()
-
-            # Create a notification for the patient
-            notification_message = f"New appointment scheduled with Dr. { doctor.admin.first_name } { doctor.middle_name } { doctor.admin.last_name } on {date_of_consultation} from {start_time} to {end_time}."
-            Notification.objects.create(
-                content_type=ContentType.objects.get_for_model(Patients),
-                object_id=patient.id,
-                message=notification_message
-            )
+            consultation.save()           
 
             return JsonResponse({'status': 'success', 'message': 'Appointment successfully created'})           
 
@@ -934,20 +1025,7 @@ def appointment_view(request):
     except Exception as e:    
         return JsonResponse({'status': 'error', 'message': str(e)})
 
-    
 
-
-@login_required    
-def notification_view(request):
-    notifications = Notification.objects.filter(is_read=False)
-    
-    # Mark notifications as read when the user accesses them
-    for notification in notifications:
-        notification.is_read = True
-        notification.save()
-    
-    context = {'notifications': notifications}
-    return render(request, 'receptionist_template/manage_notification.html', context)
 
 
 @login_required
@@ -1172,19 +1250,12 @@ def generate_billing(request, procedure_id):
 
 @login_required
 def appointment_list_view(request):
-    appointments = Consultation.objects.all()
-    unread_notification_count = Notification.objects.filter(is_read=False).count()
-    patients=Patients.objects.all() 
-    pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
-    context = {
-        'patients':patients,
-        'pathology_records':pathology_records,
-        'doctors':doctors,
-        'unread_notification_count':unread_notification_count,
+    appointments = Consultation.objects.all()   
+    context = {         
         'appointments':appointments,
     }
     return render(request, 'receptionist_template/manage_appointment.html', context)
+
 
 
 @csrf_exempt
@@ -1205,7 +1276,7 @@ def save_edited_patient(request):
             edited_patient.nationality_id = request.POST.get('edit_nationality')
             edited_patient.payment_form = request.POST.get('edit_payment_type')
             edited_patient.emergency_contact_name = request.POST.get('edit_emergency_contact_name')
-            edited_patient.emergency_contact_relation = request.POST.get('edit_emergency_contact_relation')
+            edited_patient.emergency_contact_relation = request.POST.get('emergency_contact_relation')
             edited_patient.emergency_contact_phone = request.POST.get('edit_emergency_contact_phone')
             edited_patient.marital_status = request.POST.get('marital_status')
             edited_patient.patient_type = request.POST.get('edit_patient_type')
@@ -1417,16 +1488,10 @@ def get_item_quantity(request):
 @login_required
 def patient_consultation_detail(request, patient_id, visit_id):
     try:        
-        
-        prescriptions = Prescription.objects.filter(patient_id=patient_id, visit_id=visit_id)     
         try:
-            vital = PatientVital.objects.get(patient_id=patient_id, visit_id=visit_id)                     
-        except PatientVital.DoesNotExist:
-            vital = None
-        try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)                  
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)                  
         except PatientVisits.DoesNotExist:
-            visit_history = None    
+            visit= None    
                 
         patient = Patients.objects.get(id=patient_id)
          # Fetching services based on coverage and type
@@ -1438,17 +1503,14 @@ def patient_consultation_detail(request, patient_id, visit_id):
         else:
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Consultation')
-        total_price = sum(prescription.total_price for prescription in prescriptions)    
+     
        
         doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
-        return render(request, 'receptionist_template/patient_consultation_detail.html', {        
-            
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'visit_history': visit_history,
+        return render(request, 'receptionist_template/patient_consultation_detail.html', {      
+             'visit': visit,
             'patient': patient,       
-            'doctors': doctors,      
-            'vital': vital,
+            'doctors': doctors,     
+          
             'remote_service': remote_service,
         
         })
@@ -1604,31 +1666,17 @@ def generate_vst():
 @login_required
 def patient_visit_history_view(request, patient_id):
     # Retrieve visit history for the specified patient
-    visit_history = PatientVisits.objects.filter(patient_id=patient_id)
-    current_date = timezone.now().date()
+    visits = PatientVisits.objects.filter(patient_id=patient_id)
     patient = Patients.objects.get(id=patient_id)
-    doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
-    range_31 = range(31)
-    medicines = Medicine.objects.filter(
-        medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
-        expiration_date__gt=current_date  # Not expired
-    ).distinct() 
-
     return render(request, 'receptionist_template/manage_patient_visit_history.html', {
-        'visit_history': visit_history,
-        'patient':patient,
-        'medicines':medicines,
-        'doctors':doctors,
-        'range_31':range_31,
+        'visits': visits,
+        'patient':patient,  
+       
         })
 
 
 @login_required
-def prescription_list(request):
-    # Retrieve all patients
-    patients = Patients.objects.all()
-    # Retrieve current date
-    current_date = timezone.now().date()    
+def prescription_list(request):  
     # Retrieve all prescriptions with related patient and visit
     prescriptions = Prescription.objects.select_related('patient', 'visit')
     # Group prescriptions by visit and calculate total price for each visit
@@ -1645,17 +1693,9 @@ def prescription_list(request):
     issued=F('issued'),      # Access issued field directly from Prescription
     status=F('status'),      # Access status field directly from Prescription
 )
-    # Retrieve medicines with inventory levels not equal to zero or greater than zero, and not expired
-    medicines = Medicine.objects.filter(
-        medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
-        expiration_date__gt=current_date  # Not expired
-    ).distinct()     
-    # Calculate total price of all prescriptions
-    total_price = sum(prescription.total_price for prescription in prescriptions)     
+   
     return render(request, 'receptionist_template/manage_prescription_list.html', { 
-        'medicines': medicines,
-        'patients': patients,
-        'total_price': total_price,
+      
         'visit_total_prices': visit_total_prices,
     })
     
@@ -1726,28 +1766,97 @@ def prescription_notes(request, visit_number, patient_id):
 
 
 
-@login_required    
-def patient_vital_list(request, patient_id):
-    # Retrieve the patient object
-    patient = Patients.objects.get(pk=patient_id)
-    range_51 = range(51)
-    range_301 = range(301)
-    range_101 = range(101)
-    range_15 = range(3, 16)
-    # Retrieve all vital information for the patient
-    patient_vitals = PatientVital.objects.filter(patient=patient).order_by('-recorded_at')
+ 
 
-    # Render the template with the patient's vital information
-    context = {
-        'range_51': range_51,
-        'range_301': range_301,
-        'range_101': range_101,
-        'range_15': range_15,
-        'patient': patient, 
-        'patient_vitals': patient_vitals
-    }
-    
-    return render(request, 'receptionist_template/manage_patient_vital_list.html', context)    
+@login_required
+@csrf_exempt
+@require_POST
+def save_remotepatient_vital(request):
+    try:
+        # Extract data from the request
+        vital_id = request.POST.get('vital_id')
+        patient_id = request.POST.get('patient_id')
+        visit_id = request.POST.get('visit_id')
+        respiratory_rate = request.POST.get('respiratory_rate')
+        pulse_rate = request.POST.get('pulse_rate')
+        sbp = request.POST.get('sbp')
+        dbp = request.POST.get('dbp')
+        spo2 = request.POST.get('spo2')
+        temperature = request.POST.get('temperature')
+        gcs = request.POST.get('gcs')
+        avpu = request.POST.get('avpu')
+        weight = request.POST.get('weight')
+        doctor = request.user.staff
+
+        try:
+            # Retrieve the patient
+            patient = Patients.objects.get(id=patient_id)
+        except Patients.DoesNotExist:
+            return JsonResponse({'status': False, 'message': 'Patient does not exist'})
+
+        try:
+            # Retrieve the visit
+            visit = PatientVisits.objects.get(id=visit_id)
+        except PatientVisits.DoesNotExist:
+            return JsonResponse({'status': False, 'message': 'Visit does not exist'})
+
+        # Check for duplicate records
+        blood_pressure = f"{sbp}/{dbp}"
+        if not vital_id:
+            duplicate_vitals = PatientVital.objects.filter(
+                patient=patient,
+                visit=visit,
+                respiratory_rate=respiratory_rate,
+                pulse_rate=pulse_rate,
+                blood_pressure=blood_pressure,
+                spo2=spo2,
+                sbp=sbp,
+                dbp=dbp,
+                temperature=temperature,
+                gcs=gcs,
+                avpu=avpu,
+                weight=weight,
+            )
+            if duplicate_vitals.exists():
+                return JsonResponse({'status': False, 'message': 'A similar vital record already exists for this patient during this visit.'})
+
+        if vital_id:
+            try:
+                # Editing existing vital
+                vital = PatientVital.objects.get(pk=vital_id)
+                vital.blood_pressure = blood_pressure if sbp and dbp else vital.blood_pressure  # Use existing SBP/DBP if not provided
+                message = 'Patient vital updated successfully'
+            except PatientVital.DoesNotExist:
+                return JsonResponse({'status': False, 'message': 'Vital record does not exist'})
+        else:
+            # Creating new vital
+            vital = PatientVital()
+            vital.blood_pressure = blood_pressure
+            message = 'Patient vital created successfully'
+
+        # Update or set values for other fields
+        vital.visit = visit
+        vital.respiratory_rate = respiratory_rate
+        vital.pulse_rate = pulse_rate
+        vital.recorded_by = doctor
+        vital.blood_pressure = blood_pressure
+        vital.sbp = sbp
+        vital.dbp = dbp
+        vital.spo2 = spo2
+        vital.gcs = gcs
+        vital.temperature = temperature
+        vital.avpu = avpu
+        vital.weight = weight
+        vital.patient = patient
+        vital.save()
+
+        return JsonResponse({'status': True, 'message': message})
+    except Patients.DoesNotExist:
+        return JsonResponse({'status': False, 'message': 'Patient does not exist'})
+    except PatientVisits.DoesNotExist:
+        return JsonResponse({'status': False, 'message': 'Visit does not exist'})
+    except Exception as e:
+        return JsonResponse({'status': False, 'message': str(e)})
 
 @login_required
 def patient_vital_all_list(request):
@@ -1987,6 +2096,117 @@ def delete_ambulancedorder(request):
             return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+@login_required
+def manage_disease(request):
+    """
+    This function is used to manage disease records.
+    
+    Parameters:
+    request (HttpRequest): The request object.
+    
+    Returns:
+    HttpResponse: The HTTP response.
+    """
+    try:
+        disease_records = DiseaseRecode.objects.all()  # Assuming DiseaseRecord is the correct model name
+        return render(request, "receptionist_template/manage_disease.html", {"disease_records": disease_records})
+    except Exception as e:
+        # Handle the exception
+        print(f"An error occurred: {e}")
+        return HttpResponse("An error occurred")
+
+@login_required    
+def diagnosis_list(request):
+    diagnoses = Diagnosis.objects.all().order_by('-created_at')    
+    return render(request, 'receptionist_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
+
+@login_required
+def manage_service(request):
+    services=Service.objects.all()   
+    context = {
+        'services':services,       
+    }
+    return render(request,"receptionist_template/manage_service.html",context)
+
+@login_required
+def manage_pathodology(request):
+    pathodology_records=PathodologyRecord.objects.all()    
+    return render(request,"receptionist_template/manage_pathodology.html",{
+        "pathodology_records":pathodology_records,        
+        })
+
+@login_required
+def health_record_list(request):
+    records = HealthRecord.objects.all()
+    return render(request, 'receptionist_template/healthrecord_list.html', {'records': records})
+
+@login_required
+def medicine_list(request):    
+    medicines = Medicine.objects.all()
+    # Render the template with medicine data and notifications
+    return render(request, 'receptionist_template/manage_medicine.html', {'medicines': medicines})
+
+@login_required 
+def reagent_list(request):
+    reagent_list = Reagent.objects.all()
+    return render(request, 'receptionist_template/manage_reagent_list.html', {'reagent_list': reagent_list})    
+
+@login_required
+def patient_detail(request, patient_id):
+    # Retrieve the patient object using the patient_id
+    patient = get_object_or_404(Patients, id=patient_id)    
+    # Context to be passed to the template
+    context = {
+        'patient': patient,
+    }    
+    # Render the patient_detail template with the context
+    return render(request, 'receptionist_template/patient_detail.html', context)
+
+@login_required
+def update_profile_picture(request):
+    if request.method == 'POST':
+        try:
+            # Get the user's profile
+            user_profile = request.user  # Use request.user to get the CustomUser instance
+            # Accessing the uploaded picture from the form
+            new_picture = request.FILES.get('profile_picture')  
+            
+            if new_picture:
+                # Check if the uploaded file is an image
+                if not new_picture.content_type.startswith('image'):
+                    raise ValidationError("Invalid image file type. Please upload a valid image.")
+
+                # Check if the file size is within limit (2MB)
+                if new_picture.size > 2 * 1024 * 1024:  # 2MB in bytes
+                    raise ValidationError("File size exceeds the limit. Please upload a file smaller than 2MB.")
+                
+                # Get the staff object associated with the user profile
+                staff = user_profile.staff
+                
+                if staff:
+                    # Update the profile picture
+                    staff.profile_picture = new_picture
+                    
+                    # Save the changes
+                    staff.save()
+                    
+                    # Redirect to a success page or back to the profile page
+                    return render(request, 'receptionist_template/update_profile_picture.html')
+                else:
+                    raise ValidationError("User profile does not exist.")
+            else:
+                raise ValidationError("No profile picture uploaded.")
+        except ValidationError as e:
+            # Handle validation errors (e.g., invalid file type or size)
+            messages.error(request, str(e))
+        except Exception as e:
+            # Handle any other unexpected errors
+            messages.error(request, str(e))
+            # You may want to log this error for debugging purposes
+            
+    return render(request, 'receptionist_template/update_profile_picture.html')
+
    
 
 

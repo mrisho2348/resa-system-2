@@ -1,5 +1,5 @@
 {% extends 'pharmacist_template/base_template.html' %}
-
+{% load customfilter %}
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} - Health Record
 {% endblock title %}
@@ -57,12 +57,7 @@ Patient - Health Record
                             <a href="#radiology" data-toggle="tab" aria-expanded="false">
                                 <i class="fas fa-x-ray"></i> Radiology
                             </a>
-                        </li>
-                        <li class="list-group-item">
-                            <a href="#notes" data-toggle="tab" aria-expanded="false">
-                                <i class="far fa-clipboard"></i> Consultation
-                            </a>
-                        </li>
+                        </li>                        
                     </ul>
                 </div>
             </div>
@@ -146,7 +141,7 @@ Patient - Health Record
                                                                                         </tr>
                                                                                     </thead>
                                                                                     <tbody>
-                                                                                        {% for vital in previous_vitals %}
+                                                                                        {% for vital in vitals %}
                                                                                         <tr>
                                                                                             <td>{{ vital.visit.vst }}</td>
                                                                                             <td>{{ vital.respiratory_rate }}</td>
@@ -158,7 +153,7 @@ Patient - Health Record
                                                                                             <td>{{ vital.weight }}</td>
                                                                                             <td>{{ vital.gcs }}</td>
                                                                                             <!-- Split recorded_at into date, day of the week, and time components -->
-                                                                                            <td>{{ vital.recorded_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                                                                            <td>{{ vital.recorded_at|date:"d-m-Y" }}</td> <!-- Display date -->
                                                                                             <td>{{ vital.recorded_at|date:"l" }}</td> <!-- Display day of the week -->
                                                                                             <td>{{ vital.recorded_at|time:"H:i:s" }}</td><!-- Display time -->
                                                                                             
@@ -228,6 +223,7 @@ Patient - Health Record
                                             <a class="btn btn-default" href="{% url 'pharmacist_save_laboratory' patient.id visit.id %}">Laboratory</a>
                                             <a class="btn btn-default" href="{% url 'pharmacist_save_observation' patient.id visit.id %}">Imaging</a>
                                             <a class="btn btn-default" href="{% url 'pharmacist_save_remoteprocedure' patient.id visit.id %}">Procedure</a>
+                                            <a class="btn btn-default" href="{% url 'pharmacist_save_prescription' patient.id visit.id %}">Prescription</a>
                                             <a class="btn btn-default" href="#">Physiotherapy</a>
                                         </div>
                                     </div>
@@ -251,10 +247,12 @@ Patient - Health Record
                                                                                 <th>Lab Number</th>                                                       
                                                                                                                   
                                                                                 <th>Test Name</th>
-                                                                                <th>Description</th>
-                                                                                <th>Order Date</th>
+                                                                                <th>Description</th>                                                                                
                                                                                 <th>Test Result</th>
                                                                                 <th>Cost</th>
+                                                                                <th>Order Date</th>
+                                                                                <th>Day</th> 
+                                                                                <th>Time</th>   
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
@@ -264,10 +262,12 @@ Patient - Health Record
                                                                                 <td>{{ order.lab_number }}</td>                                                        
                                                                                                                                       
                                                                                 <td>{{ order.name }}</td>
-                                                                                <td>{{ order.description }}</td>
-                                                                                <td>{{ order.order_date }}</td>
-                                                                                <td>{{ order.result }}</td>
+                                                                                <td>{{ order.description }}</td>                                                                             
+                                                                                <td>{{ order.result|safe }}</td>
                                                                                 <td>{{ order.cost }}</td>
+                                                                                <td>{{ order.order_date|date:"d-m-Y" }}</td> 
+                                                                                <td>{{ order.order_date|date:"l" }}</td>
+                                                                                <td>{{ order.updated_at|time:"H:i:s" }}</td>                                                                                
                                                                             </tr>
                                                                             {% endfor %}
                                                                         </tbody>
@@ -298,11 +298,13 @@ Patient - Health Record
                                                                             <tr>
                                                                                 <th>Doctor</th>
                                                                                 <th>Name</th>
-                                                                                <th>Description</th>
-                                                                                <th>Duration Time</th>
+                                                                                <th>Result</th>                                                                            
+                                                                                <th>Description</th>                                                                            
                                                                                 <th>Equipments Used</th>
                                                                                 <th>Cost</th>
-                                                                                <th>Created At</th>
+                                                                                <th>Date</th>
+                                                                                <th>Day</th> 
+                                                                                <th>Time</th>   
                                                                      
                                                                             </tr>
                                                                         </thead>
@@ -311,11 +313,13 @@ Patient - Health Record
                                                                             <tr>
                                                                                 <td>{{ procedure.doctor }}</td>
                                                                                 <td>{{ procedure.name }}</td>
-                                                                                <td>{{ procedure.description }}</td>
-                                                                                <td>{{ procedure.duration_time }}</td>
+                                                                                <td>{{ procedure.result|safe }}</td>                                                                           
+                                                                                <td>{{ procedure.description }}</td>                                                                           
                                                                                 <td>{{ procedure.equipments_used }}</td>
                                                                                 <td>{{ procedure.cost }}</td>
-                                                                                <td>{{ procedure.created_at }}</td>
+                                                                                <td>{{ procedure.created_at|date:"d-m-Y" }}</td> 
+                                                                                <td>{{ procedure.created_at|date:"l" }}</td>
+                                                                                <td>{{ procedure.created_at|time:"H:i:s" }}</td>                                                                              
                                                                             
                                                                             </tr>
                                                                             {% endfor %}
@@ -354,6 +358,9 @@ Patient - Health Record
                                                                                 <th>Quantity</th>
                                                                                 <th>Unit Price</th>
                                                                                 <th>Total Price</th>
+                                                                                <th>Date</th>
+                                                                                <th>Day</th> 
+                                                                                <th>Time</th>   
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
@@ -365,8 +372,11 @@ Patient - Health Record
                                                                                 <td>{{ prescription.frequency }}</td>
                                                                                 <td>{{ prescription.duration }}</td>
                                                                                 <td>{{ prescription.quantity_used }}</td>
-                                                                                <td>{{ prescription.medicine.unit_price }}</td>
+                                                                                <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
                                                                                 <td>{{ prescription.total_price }}</td>
+                                                                                <td>{{ prescription.created_at|date:"d-m-Y" }}</td> 
+                                                                                <td>{{ prescription.created_at|date:"l" }}</td>
+                                                                                <td>{{ prescription.created_at|time:"H:i:s" }}</td>    
                                                                             </tr>
                                                                             {% endfor %}
                                                                         </tbody>
@@ -394,28 +404,31 @@ Patient - Health Record
                                                             <div class="card-body">
                                                                 <div class="table-responsive">
                                                                     <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example7"  style="width:100%">
-                                                                        <thead>
-                                                                            <tr>                                                 
-                                                                                <th>Doctor</th>
-                                                                                <th>Image Name</th>
-                                                                                <th>Description</th>                           
-                                                                                <th>Cost</th>
-                                                                                <th>Date</th> <!-- New column -->
-                                                                                <!-- Add more columns as needed -->
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {% for record in imaging_records %}
-                                                                            <tr>                                               
-                                                                                <td>{{ record.doctor }}</td>
-                                                                                <td>{{ record.imaging.name }}</td>
-                                                                                <td>{{ record.description }}</td>                            
-                                                                                <td>{{ record.cost }}</td>
-                                                                                <td>{{ record.created_at|date:"F d, Y" }}</td> <!-- Display date -->
-                                                                                <!-- Add more columns as needed -->
-                                                                            </tr>
-                                                                            {% endfor %}
-                                                                        </tbody>
+                                                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example7"  style="width:100%">
+                                                                            <thead>
+                                                                                <tr>                                                 
+                                                                                    <th>Doctor</th>
+                                                                                    <th>Image Name</th>
+                                                                                    <th>Description</th>                           
+                                                                                    <th>Cost</th>
+                                                                                    <th>Date</th>
+                                                                                    <th>Day</th> 
+                                                                                    <th>Time</th>   
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {% for record in imaging_records %}
+                                                                                <tr>                                               
+                                                                                    <td>{{ record.doctor }}</td>
+                                                                                    <td>{{ record.imaging.name }}</td>
+                                                                                    <td>{{ record.description }}</td>                            
+                                                                                    <td>{{ record.cost }}</td>
+                                                                                    <td>{{ record.created_at|date:"d-m-Y" }}</td> 
+                                                                                    <td>{{ record.created_at|date:"l" }}</td>
+                                                                                    <td>{{ record.created_at|time:"H:i:s" }}</td>  
+                                                                                </tr>
+                                                                                {% endfor %}
+                                                                            </tbody>
                                                                     </table>
                                                                 </div>
                                                             </div>
@@ -425,92 +438,7 @@ Patient - Health Record
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div class="tab-pane fade" id="notes">
-                                    <h5 class="panel-title">Consultation</h5>
-                                    <div class="panel panel-flat">                                       
-                                        <div class="panel-body">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <form id="editConsultationForm" method="post" >
-                                                        {% csrf_token %}
-                                                        <div class="container-fluid">
-                                                            <!-- First row -->
-                                                            <div class="row">
-                                                                <!-- Physical examination -->
-                                                                <div class="col-md-6 form-group">
-                                                                    <label for="physical_examination{{ consultation_notes.id }}">Physical Examination:</label>
-                                                                    <textarea class="form-control" id="physical_examination{{ consultation_notes.id }}" name="physical_examination" readonly>{{ consultation_notes.physical_examination }}</textarea>
-                                                                </div>                                                             
-                                                                <!-- Chief complaints -->
-                                                                <div class="col-md-6 form-group">
-                                                                    <label for="chief_complaints{{ consultation_notes.id }}">Chief Complaints:</label>
-                                                                    <textarea class="form-control" id="chief_complaints{{ consultation_notes.id }}" name="chief_complaints"  readonly>{{ consultation_notes.chief_complaints }}</textarea>
-                                                                </div>
-                                                            </div>                                                     
-                                                            <div class="row">
-                                                                <!-- History of presenting illness -->
-                                                                <div class="col-md-6 form-group">
-                                                                    <label for="history_of_presenting_illness{{ consultation_notes.id }}">History of Presenting Illness:</label>
-                                                                    <textarea class="form-control" id="history_of_presenting_illness{{ consultation_notes.id }}" name="history_of_presenting_illness"  readonly>{{ consultation_notes.history_of_presenting_illness }}</textarea>
-                                                                </div>                           
-                                                                <!-- Allergy to medications -->
-                                                                <div class="col-md-6 form-group">
-                                                                    <label for="allergy_to_medications{{ consultation_notes.id }}">Allergy to Medications:</label>
-                                                                    <input type="text" class="form-control" id="allergy_to_medications{{ consultation_notes.id }}" name="allergy_to_medications" value="{{ consultation_notes.allergy_to_medications }}"  readonly>                                                                  
-                                                                </div>
-                                                            </div>
-                                                            <!-- Third row -->
-                                                            <div class="row">
-                                                                <!-- Provisional diagnosis -->
-                                                                <div class="col-md-4 form-group">
-                                                                    <label for="provisional_diagnosis{{ consultation_notes.id }}">Provisional Diagnosis:</label>
-                                                                    <select class="form-control select2bs4" style="width: 100%;" id="provisional_diagnosis{{ consultation_notes.id }}" name="provisional_diagnosis[]"  disabled multiple>
-                                                                        {% for diagnosis in provisional_diagnoses %}
-                                                                        <option value="{{ diagnosis.id }}" {% if diagnosis in consultation_notes.provisional_diagnosis.all %} selected {% endif %}>{{ diagnosis.diagnosis_name }}</option>
-                                                                        {% endfor %}
-                                                                    </select>
-                                                                </div>
-                                                                <!-- Final diagnosis -->
-                                                                <div class="col-md-4 form-group">
-                                                                    <label for="final_diagnosis{{ consultation_notes.id }}">Final Diagnosis:</label>
-                                                                    <select class="form-control select2bs4" style="width: 100%;" id="final_diagnosis{{ consultation_notes.id }}" name="final_diagnosis[]"  disabled multiple>
-                                                                        {% for diagnosis in final_diagnoses %}
-                                                                        <option value="{{ diagnosis.id }}" {% if diagnosis in consultation_notes.final_diagnosis.all %} selected {% endif %}>{{ diagnosis.diagnosis_name }}</option>
-                                                                        {% endfor %}
-                                                                    </select>
-                                                                </div>
-                                                                <!-- Pathology -->
-                                                                <div class="col-md-4 form-group">
-                                                                    <label for="pathology{{ consultation_notes.id }}">Pathology:</label>
-                                                                    <select class="form-control select2bs4" readonly style="width: 100%;" id="pathology{{ consultation_notes.id }}" name="pathology[]" disabled   multiple>
-                                                                        {% for record in pathology_records %}
-                                                                        <option value="{{ record.id }}" {% if record in consultation_notes.pathology.all %} selected {% endif %}>{{ record.name }}</option>
-                                                                        {% endfor %}
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                            <!-- Fourth row -->
-                                                            <div class="row">
-                                                                <!-- Doctor plan -->
-                                                                <div class="col-md-4 form-group">
-                                                                    <label for="doctor_plan{{ consultation_notes.id }}">Doctor Plan:</label>
-                                                                    <textarea class="form-control" id="doctor_plan{{ consultation_notes.id }}" name="doctor_plan"  readonly>{{ consultation_notes.doctor_plan }}</textarea>
-                                                                </div>
-                                                                
-                                                            </div>
-                                                            <!-- Doctor plan -->
-                                                            <div class="">
-                                                                <p>Consultated by: <strong>{{consultation_notes.doctor}}</strong></p>
-                                                            </div>
-                                                        </div>                                                                                                            
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>                               
+                                </div>                                                          
                                 
                         </div>
                     </div>

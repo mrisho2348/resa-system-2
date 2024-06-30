@@ -47,7 +47,7 @@ Patient Visit History
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase">  {{ patient.first_name }} Visit History</h4>
+                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">  {{ patient.first_name }} Visit History</h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -64,7 +64,7 @@ Patient Visit History
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for visit in visit_history %}
+                                {% for visit in visits %}
                                     <tr>
                                         <td>{{ visit.vst }}</td>
                                         <td>{{ visit.get_visit_type_display }}</td>                             
@@ -74,170 +74,22 @@ Patient Visit History
                                         <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
                                         <td>                          
                                           <!-- Add more action links as needed -->
-                                        <a href="{% url 'patient_health_record_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
+                                        <a href="{% url 'doctor_patient_health_record_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
                                             <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
                                         </a>   
                                                       <!-- Add more action links as needed -->
-                                        <a href="{% url 'patient_vital_list' visit.patient.id %}" data-toggle="tooltip" title="open vital">
+                                        <a href="{% url 'doctor_patient_vital_list' visit.patient.id %}" data-toggle="tooltip" title="open vital">
                                             <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
                                         </a>   
-                                        <!-- Add action buttons based on service type -->
-                                      <!-- Add action buttons based on service type -->
-                                    {% if visit.primary_service == "Consultation" %}
-                                        <a href="{% url 'patient_consultation_detail' visit.patient.id  visit.id  %}"  class="btn btn-success btn-sm" data-toggle="tooltip" title="Open Consultation Modal">
+                                        <a href="{% url 'doctor_patient_visit_details_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open visit details">
+                                            <button type="button" class="btn btn-light border btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        </a> 
+                                        <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id  visit.id  %}"  class="btn btn-success btn-sm" data-toggle="tooltip" title="Open Consultation Modal">
                                             <i class="fas fa-plus-square"></i> Consultation
-                                        </a>
-                                        
-
-                                    {% elif visit.primary_service == "Imaging" %}
-                                        <a href="#" data-toggle="modal" data-target="#imagingModal{{ visit.id }}" data-toggle="tooltip" title="Open Imaging Modal">
-                                            <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-user-plus text-dark"></i> Imaging</button>
-                                        </a>
-                                    {% elif visit.primary_service == "Investigation" %}
-                                        <a href="#" data-toggle="modal" data-target="#investigationModal{{ visit.id }}" data-toggle="tooltip" title="Open Investigation Modal">
-                                            <button type="button" class="btn btn-warning btn-sm"><i class="fa fa-plus-square text-dark"></i> Investigation</button>
-                                        </a>
-                                    {% elif visit.primary_service == "Procedure" %}
-                                        <a href="#" data-toggle="modal" data-target="#addProcedureModal{{ visit.id }}" data-toggle="tooltip" title="Open Procedure Modal">
-                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-plus-square text-dark"></i> Procedure</button>
-                                        </a>
-                                    {% elif visit.primary_service == "Physiotherapy" %}
-                                        <a href="#" data-toggle="modal" data-target="#physiotherapyModal{{ visit.id }}" data-toggle="tooltip" title="Open Physiotherapy Modal">
-                                            <button type="button" class="btn btn-danger btn-sm"><i class="fa fa-plus-circle text-dark"></i> Physiotherapy</button>
-                                        </a>
-                                    {% elif visit.primary_service == "Ambulance" %}
-                                        <a href="#" data-toggle="modal" data-target="#ambulanceModal{{ visit.id }}" data-toggle="tooltip" title="Open Ambulance Modal">
-                                            <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-plus text-dark"></i> Ambulance</button>
-                                        </a>
-                                    {% endif %}
-                                            
+                                        </a>                                    
                                         </td>                                
-                                     </tr>  
-                                     
-                                     <!-- HTML structure for the Bootstrap modal form -->
-                            <div class="modal fade" id="addProcedureModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="addProcedureModalLabel{{ visit.id }}" aria-hidden="true">
-                                <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                    <h5 class="modal-title" id="addProcedureModalLabel{{ visit.id }}">Add Procedure</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form id="addProcedureForm" method="post">
-                                            {% csrf_token %}
-                                            <!-- Bootstrap grid system for form layout -->
-                                            <div class="row">                                               
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="procedureName">Name:</label>
-                                                        <input type="text" class="form-control" id="procedureName" name="name" placeholder="Enter procedure name">
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="procedureDescription">Description:</label>
-                                                        <textarea class="form-control" id="procedureDescription" name="description" placeholder="Enter procedure description"></textarea>
-                                                    </div>
-                                                </div>
-                                                
-                                            </div>
-                                            
-                                                 <!-- Hidden fields -->
-                                                 <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
-                                                 <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
-                                                 <input type="hidden" class="form-control" id="procedure_id" name="procedure_id" value="{{ procedure_id.id }}">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="startTime">Start Time:</label>
-                                                        <input type="time" class="form-control" id="startTime" name="start_time">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <label for="endTime">End Time:</label>
-                                                        <input type="time" class="form-control" id="endTime" name="end_time">
-                                                    </div>
-                                                </div>
-                                            </div>                                           
-                                            <div class="form-group">
-                                                <label for="procedureEquipments">Equipments used:</label>
-                                                <input type="text" class="form-control" id="procedureEquipments" name="equipments_used" placeholder="Enter equipments used">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="procedureCost">Cost:</label>
-                                                <input type="text" class="form-control" id="procedureCost" name="cost" placeholder="Enter procedure cost">
-                                            </div>    
-                                            <div class="form-row">
-                                                <div class="col-md-12">
-                                                    <div id="ProcedureResponse"></div>  
-                                                </div>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="col-md-12">
-                                                    <button type="button" class="btn btn-primary btn-block" onclick="submitProcedure()">Add Procedure</button> 
-                                                </div>
-                                            </div>
-                                           
-                                        </form>
-                                </div>
-                                
-                                </div>
-                                </div>
-                            </div>
-                            
-
-                            
-                            <!-- JavaScript to handle AJAX request and form validation -->
-                            <script>
-                                function submitProcedure() {
-                                    var startTimeStr = document.getElementById('startTime').value;
-                                    var endTimeStr = document.getElementById('endTime').value;
-                                
-                                    // Convert time strings to Date objects
-                                    var startTime = new Date('2000-01-01T' + startTimeStr);
-                                    var endTime = new Date('2000-01-01T' + endTimeStr);
-                                
-                                    // Validate start and end times
-                                    if (startTime >= endTime) {
-                                        alert('Start time must be greater than end time.');
-                                        return;
-                                    }
-                                
-                                    // Get form data
-                                    var formData = new FormData(document.getElementById('addProcedureForm'));
-                                
-                                    // Make AJAX request
-                                    $.ajax({
-                                        url: '{% url "save_procedure" %}',  // Replace with your server endpoint
-                                        type: 'POST',
-                                        data: formData,
-                                        contentType: false,
-                                        processData: false,
-                                        success: function(response) {
-                                            if (response.success) {  
-                                                $('#ProcedureResponse').html('<div class="alert alert-success">' + response.message + '</div>'); 
-                                                location.reload(true);                                              
-                                        
-                                            } else {
-                                                // Handle other message cases if needed
-                                                $('#ProcedureResponse').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
-                                            }
-                                        },
-                                        error: function(xhr, status, error) {
-                                            // Log any errors to the console
-                                            console.error(xhr, status, error);
-                                            // Handle error response
-                                            $('#ProcedureResponse').html('<div class="alert alert-danger">An error occurred while processing your request. Please try again later.</div>');                                               
-                                        }
-                                    });
-                                }
-                                
-                                </script>
-   
+                                     </tr> 
+                          
                        {% endfor %}
                             </tbody>
                         </table>

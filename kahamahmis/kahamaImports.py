@@ -45,7 +45,7 @@ def import_insurance_company_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:manage_insurance'))
+                return HttpResponseRedirect(reverse('kahama_manage_insurance'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -91,7 +91,7 @@ def import_disease_recode_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:manage_disease'))
+                return HttpResponseRedirect(reverse('kahama_manage_disease'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -151,7 +151,7 @@ def import_remote_medicine_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:remotemedicine_list'))
+                return HttpResponseRedirect(reverse('kahama_remotemedicine_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -199,7 +199,7 @@ def import_health_record_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:health_record_list'))
+                return HttpResponseRedirect(reverse('kahama_health_record_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -258,7 +258,7 @@ def import_remote_company_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:manage_company'))
+                return HttpResponseRedirect(reverse('kahama_manage_company'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -309,7 +309,7 @@ def import_pathodology_record_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:manage_pathodology'))
+                return HttpResponseRedirect(reverse('kahama_manage_pathodology'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -354,7 +354,7 @@ def import_remote_service_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:remoteservice_list'))
+                return HttpResponseRedirect(reverse('kahama_remoteservice_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -397,7 +397,7 @@ def import_country_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:manage_country'))
+                return HttpResponseRedirect(reverse('kahama_manage_country'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -444,7 +444,7 @@ def import_remote_reagent_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:reagent_list'))
+                return HttpResponseRedirect(reverse('kahama_reagent_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -497,7 +497,7 @@ def import_remote_equipment_data(request):
                         messages.error(request, f"Failed to import row data: {str(e)}")
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:remote_equipment_list'))
+                return HttpResponseRedirect(reverse('kahama_remote_equipment_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")
@@ -542,7 +542,7 @@ def import_diagnosis_data(request):
                         # Skip duplicate entries and continue
                         continue
 
-                return HttpResponseRedirect(reverse('kahamahmis:diagnosis_list'))
+                return HttpResponseRedirect(reverse('kahama_diagnosis_list'))
 
             except Exception as e:
                 messages.error(request, f"Failed to import data: {str(e)}")

@@ -383,10 +383,12 @@ class PatientVital(models.Model):
     visit = models.ForeignKey('PatientVisits', on_delete=models.CASCADE,blank=True, null=True) 
     recorded_by = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     recorded_at = models.DateTimeField(auto_now_add=True)
-    respiratory_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Respiratory rate in breaths per minute")
+    respiratory_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Respiratory rate in breaths per minute")
     pulse_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Pulse rate in beats per minute")
     blood_pressure = models.CharField(max_length=20, null=True, blank=True, help_text="Blood pressure measurement")
-    spo2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="SPO2 measurement in percentage")
+    sbp = models.PositiveIntegerField(null=True, blank=True, help_text="Systolic Blood Pressure (mmHg)")
+    dbp = models.PositiveIntegerField(null=True, blank=True, help_text="Diastolic Blood Pressure (mmHg)")
+    spo2 = models.PositiveIntegerField(null=True, blank=True, help_text="SPO2 measurement in percentage")
     temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Temperature measurement in Celsius")
     gcs = models.PositiveIntegerField(null=True, blank=True, help_text="Glasgow Coma Scale measurement")
     avpu = models.CharField(max_length=20, null=True, blank=True, help_text="AVPU scale measurement")
@@ -465,33 +467,20 @@ def generate_vst():
 class ConsultationNotes(models.Model):
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True) 
-    chief_complaints = models.TextField(null=True, blank=True)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE, null=True, blank=True)  
     history_of_presenting_illness = models.TextField(null=True, blank=True)
-    consultation_number = models.CharField(max_length=20, unique=True)
-    physical_examination = models.TextField(null=True, blank=True)
-    allergy_to_medications = models.CharField(max_length=255, null=True, blank=True)
-    provisional_diagnosis = models.ManyToManyField('Diagnosis', related_name='provisional_diagnosis_notes', blank=True)
-    final_diagnosis = models.ManyToManyField('Diagnosis', related_name='final_diagnosis_notes', blank=True)
+    type_of_illness = models.CharField(max_length=200, null=True, blank=True)  
+    nature_of_current_illness = models.CharField(max_length=200, null=True, blank=True) 
     pathology = models.ManyToManyField(PathodologyRecord, blank=True)
     doctor_plan = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
-
     def __str__(self):
-        return f"Consultation for {self.patient} by Dr. {self.doctor}"
+        return f"Consultation for {self.patient} by Dr. {self.doctor}"    
+   
     
-    def save(self, *args, **kwargs):
-        if not self.consultation_number:
-            self.consultation_number = generate_consultation_number()
-        super().save(*args, **kwargs)   
-    
-def generate_consultation_number():
-    last_consultation_notes = ConsultationNotes.objects.last()
-    last_sample_number = int(last_consultation_notes.consultation_number.split('-')[-1]) if last_consultation_notes else 0
-    new_consultation_number = last_sample_number + 1
-    return f"CTN-{new_consultation_number:07d}"    
+
    
 class ImagingRecord(models.Model):
     patient = models.ForeignKey('Patients', on_delete=models.CASCADE)
@@ -795,94 +784,21 @@ class Consultation(models.Model):
             self.appointment_number = f"APT-{new_number:07}"  # Format the appointment number
         super().save(*args, **kwargs)  # Call the original save method
         
+      
 
-class ConsultationNotification(models.Model):
-    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        verbose_name = 'Consultation Notification'
-        verbose_name_plural = 'Consultation Notifications'
-
-    def __str__(self):
-        return f'Notification for Consultation ID: {self.consultation.id} - Doctor: {self.doctor.username}'        
-class Notification(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    message = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)    
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    
-class Referral(models.Model):
-    # Patient who is being referred
+class Counseling(models.Model):    
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
+    counselling_notes = CKEditor5Field(config_name='extends',blank=True, null=True)
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True) 
-    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
-    # Information about the referral
-    source_location  = models.CharField(max_length=255, help_text='Source location of the patient',default="resa medical hospital")
-    destination_location = models.CharField(max_length=255, help_text='Destination location for MedEvac')
-    reason = models.TextField()
-    # Additional details
-    referral_date = models.DateField(auto_now_add=True, help_text='Date when the referral was made')
-    # Status of the referral (e.g., pending, accepted, rejected)
-    REFERRAL_STATUS_CHOICES = (
-        ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
-        ('rejected', 'Rejected'),
-    )
-    status = models.CharField(max_length=20, choices=REFERRAL_STATUS_CHOICES, default='pending')
-    # Additional fields as needed
-    notes = models.TextField(blank=True, null=True, help_text='Additional notes about the referral')
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return f"Referral for {self.patient} to {self.destination_location} at {self.source_location} on {self.referral_date}"   
-    
-    def get_status_class(self):
-        if self.status == 'pending':
-            return 'text-warning'
-        elif self.status == 'accepted':
-            return 'text-success'
-        elif self.status == 'rejected':
-            return 'text-danger'
-        return ''
-
-    def get_status_color(self):
-        if self.status == 'pending':
-            return 'warning'
-        elif self.status == 'accepted':
-            return 'success'
-        elif self.status == 'rejected':
-            return 'danger'
-        return '' 
-  
-class Counseling(models.Model):
-    topic = models.CharField(max_length=100)
-    description = models.TextField()
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True) 
-    counselor = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    objects = models.Manager()   
     def __str__(self):
-        return self.topic    
+        return self.patient    
 
-class NotificationMedicine(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    message = models.TextField()
-    created_at = models.DateTimeField(default=timezone.now)
-    is_read = models.BooleanField(default=False)    
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    def __str__(self):
-        return f"{self.user.username} - {self.message}"   
+
 
 MEDICINE_TYPES = [
     ('Tablet', 'Tablet'),
@@ -960,37 +876,7 @@ class RemoteMedicine(models.Model):
     
 
 
-class MedicineInventory(models.Model):
-    medicine = models.ForeignKey('Medicine', on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
-    remain_quantity = models.PositiveIntegerField(default=0)
-    purchase_date = models.DateField()
-    total_payment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
 
-    def __str__(self):
-        return f"{self.medicine.name} - Quantity: {self.quantity}"
-
-    @classmethod
-    def update_or_create_inventory(cls, medicine_id, quantity, purchase_date):
-        existing_record = cls.objects.filter(medicine_id=medicine_id).first()
-
-        if existing_record:
-            # Update the existing record's quantity
-            existing_record.quantity += quantity
-            existing_record.remain_quantity += quantity
-            existing_record.save()
-        else:
-            # Create a new record
-            cls.objects.create(
-                medicine_id=medicine_id,
-                quantity=quantity,
-                remain_quantity=quantity, 
-                purchase_date=purchase_date
-            )
-    
 class Prescription(models.Model):
     VERIFICATION_CHOICES = (
         ('verified', 'Verified'),
@@ -1106,6 +992,35 @@ def save_user_profile(sender, instance, **kwargs):
     elif instance.user_type == 2:
         instance.staff.save()
 
+
+class ClinicCompany(models.Model):
+    # Company name
+    name = models.CharField(max_length=255, help_text='Name of the company')
+    
+    # Unique registration number for the company
+    registration_number = models.CharField(max_length=100, unique=True, help_text='Company registration number')
+    
+    # Address details
+    address = models.TextField(help_text='Address of the company')
+    city = models.CharField(max_length=100, help_text='City where the company is located')
+    state = models.CharField(max_length=100, help_text='State where the company is located')
+    country = models.CharField(max_length=100, help_text='Country where the company is located')
+    postal_code = models.CharField(max_length=20, help_text='Postal code of the company')
+
+    # Contact details
+    phone_number = models.CharField(max_length=20, help_text='Contact phone number of the company')
+    email = models.EmailField(unique=True, help_text='Email address of the company')
+    website = models.URLField(blank=True, null=True, help_text='Website URL of the company')
+
+    # Company logo
+    logo = models.ImageField(upload_to='company_logos/', blank=True, null=True, help_text='Company logo image')
+
+    # Timestamp for record creation and update
+    created_at = models.DateTimeField(auto_now_add=True, help_text='Timestamp when the record was created')
+    updated_at = models.DateTimeField(auto_now=True, help_text='Timestamp when the record was last updated')
+
+    def __str__(self):
+        return self.name
 
 
 class Company(models.Model):
@@ -1328,6 +1243,16 @@ class RemotePatientDiagnosisRecord(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
     
+class PatientDiagnosisRecord(models.Model):
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE) 
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE) 
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
+    provisional_diagnosis = models.ManyToManyField(Diagnosis, related_name='provisional_diagnosis_record')
+    final_diagnosis = models.ManyToManyField(Diagnosis, related_name='final_diagnosis_record')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+    
 class RemoteConsultationNotes(models.Model):
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
@@ -1406,6 +1331,17 @@ class RemoteObservationRecord(models.Model):
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)    
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_data_recorder') 
+    observation_notes = CKEditor5Field(config_name='extends',blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+    def __str__(self):
+        return f"Record for {self.patient} - ({self.data_recorder})"
+    
+class ObservationRecord(models.Model):
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE)    
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     observation_notes = CKEditor5Field(config_name='extends',blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1652,15 +1588,8 @@ class RemoteConsultation(models.Model):
     objects = models.Manager()    
     
     def __str__(self):
-        return f"Appointment with {self.doctor.admin.first_name} {self.doctor.middle_name} {self.doctor.admin.last_name} for {self.patient.fullname} on {self.appointment_date} from {self.start_time} to {self.end_time}"
-    
-    def save(self, *args, **kwargs):
-        # Set a default pathodology record if none is provided
-        if not self.pathodology_record:
-            default_pathodology = PathodologyRecord.objects.get_or_create(name="Default Pathodology")[0]
-            self.pathodology_record = default_pathodology
-
-        super().save(*args, **kwargs)
+        return f"Appointment with {self.doctor.admin.first_name} {self.doctor.middle_name} {self.doctor.admin.last_name} for {self.patient} on {self.appointment_date} from {self.start_time} to {self.end_time}"
+   
 
 
 class RemoteCounseling(models.Model):    
@@ -1672,13 +1601,26 @@ class RemoteCounseling(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()   
     def __str__(self):
-        return self.patient   
+        return self.patient  
+     
 class RemoteDischargesNotes(models.Model):    
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     discharge_condition  = models.CharField(max_length=255)
     discharge_notes = CKEditor5Field(config_name='extends',blank=True, null=True)
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True) 
+    discharge_date = models.DateTimeField(auto_now_add=True)    
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()   
+    def __str__(self):
+        return self.patient 
+      
+class DischargesNotes(models.Model):    
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
+    discharge_condition  = models.CharField(max_length=255)
+    discharge_notes = CKEditor5Field(config_name='extends',blank=True, null=True)
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True) 
     discharge_date = models.DateTimeField(auto_now_add=True)    
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()   
@@ -1758,10 +1700,66 @@ class RemoteReferral(models.Model):
 
 
 
+class Referral(models.Model):
+    # Patient who is being referred
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)   
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
+    source_location  = models.CharField(max_length=255, help_text='Source location of the patient',default="resa medical hospital")
+    destination_location = models.CharField(max_length=255, help_text='Destination location for MedEvac')    
+    notes =  CKEditor5Field(config_name='extends',blank=True, null=True) 
+    nature_of_referral = models.CharField(max_length=20, choices=NATURE_OF_REFERRAL_CHOICES, default='Referred')
+    transport_model = models.CharField(max_length=50, choices=TRANSPORT_MODEL_CHOICES, default='Ground Ambulance',blank=True, null=True)
+    
+    # Status of the referral (e.g., pending, accepted, rejected)
+    REFERRAL_STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    )
+    status = models.CharField(max_length=20, choices=REFERRAL_STATUS_CHOICES, default='pending')    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()   
+    
+
+    def __str__(self):
+        return f"Referral for {self.patient} to {self.destination_location} at {self.source_location} on {self.created_at}"   
+    
+    def get_status_class(self):
+        if self.status == 'pending':
+            return 'text-warning'
+        elif self.status == 'accepted':
+            return 'text-success'
+        elif self.status == 'rejected':
+            return 'text-danger'
+        return ''
+
+    def get_status_color(self):
+        if self.status == 'pending':
+            return 'warning'
+        elif self.status == 'accepted':
+            return 'success'
+        elif self.status == 'rejected':
+            return 'danger'
+        return ''
 
 class ChiefComplaint(models.Model):    
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
+    health_record = models.ForeignKey(HealthRecord, on_delete=models.CASCADE,blank=True, null=True)
+    other_complaint = models.CharField(max_length=100)
+    duration = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+    # Other fields for Chief Complaint
+    def __str__(self):
+        return f"{self.health_record.name} - {self.duration}"   
+     
+class ClinicChiefComplaint(models.Model):    
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     health_record = models.ForeignKey(HealthRecord, on_delete=models.CASCADE,blank=True, null=True)
     other_complaint = models.CharField(max_length=100)
     duration = models.CharField(max_length=100)
@@ -1799,9 +1797,64 @@ class PrimaryPhysicalExamination(models.Model):
     def __str__(self):
         return f"Physical Examination - {self.pk}"
     
+class ClinicPrimaryPhysicalExamination(models.Model):
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
+    airway = models.CharField(max_length=200,blank=True, null=True)
+    patent_airway = models.CharField(max_length=200,blank=True, null=True)
+    notpatient_explanation = models.TextField(blank=True, null=True)
+    breathing = models.CharField(max_length=200,blank=True, null=True)
+    normal_breathing = models.TextField(blank=True, null=True)
+    abnormal_breathing = models.CharField(max_length=200,blank=True, null=True)
+    circulating = models.CharField(max_length=200,blank=True, null=True)
+    normal_circulating = models.TextField(blank=True, null=True)
+    abnormal_circulating = models.CharField(max_length=200,blank=True, null=True)    
+    gcs = models.CharField(max_length=200,blank=True, null=True)
+    rbg = models.CharField(max_length=200,blank=True, null=True)
+    pupil = models.CharField(max_length=200,blank=True, null=True)
+    pain_score = models.CharField(max_length=200,blank=True, null=True)
+    avpu = models.CharField(max_length=200,blank=True, null=True)
+    exposure = models.CharField(max_length=200,blank=True, null=True)
+    normal_exposure = models.CharField(max_length=200,blank=True, null=True)
+    abnormal_exposure = models.CharField(max_length=200,blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    def __str__(self):
+        return f"Physical Examination - {self.pk}"
+    
 class SecondaryPhysicalExamination(models.Model):
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
+    heent = models.CharField(max_length=50, blank=True, null=True)
+    cns = models.CharField(max_length=50, blank=True, null=True)
+    normal_cns = models.CharField(max_length=50, blank=True, null=True)
+    abnormal_cns = models.CharField(max_length=50, blank=True, null=True)
+    cvs = models.CharField(max_length=50, blank=True, null=True)
+    normal_cvs = models.CharField(max_length=50, blank=True, null=True)
+    abnormal_cvs = models.CharField(max_length=50, blank=True, null=True)
+    rs = models.CharField(max_length=50, blank=True, null=True)
+    normal_rs = models.CharField(max_length=50, blank=True, null=True)
+    abnormal_rs = models.CharField(max_length=50, blank=True, null=True)
+    pa = models.CharField(max_length=50, blank=True, null=True)
+    normal_pa = models.CharField(max_length=50, blank=True, null=True)
+    abnormal_pa = models.CharField(max_length=50, blank=True, null=True)
+    gu = models.CharField(max_length=100, blank=True, null=True)
+    normal_gu = models.CharField(max_length=100, blank=True, null=True)
+    abnormal_gu = models.CharField(max_length=100, blank=True, null=True)
+    mss = models.CharField(max_length=100, blank=True, null=True)    
+    normal_mss = models.CharField(max_length=100, blank=True, null=True)    
+    abnormal_mss = models.CharField(max_length=100, blank=True, null=True)    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+    
+    def __str__(self):
+        return self.pk
+class ClinicSecondaryPhysicalExamination(models.Model):
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     heent = models.CharField(max_length=50, blank=True, null=True)
     cns = models.CharField(max_length=50, blank=True, null=True)
     normal_cns = models.CharField(max_length=50, blank=True, null=True)

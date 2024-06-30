@@ -5,7 +5,7 @@
 {% endblock title %}
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
-<a class="btn btn-success float-right mr-2" href="{% url 'kahamahmis:remote_medicine_template_download' %}">
+<a class="btn btn-success float-right mr-2" href="{% url 'kahama_remote_medicine_template_download' %}">
     <i class="fas fa-download"></i> download excel template 
   </a>
 <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addDrugModal">
@@ -13,7 +13,7 @@
 </a>
 
 <!-- Add Import Staff link and modal trigger -->
-<a class="btn btn-success float-right mr-2" href="{% url 'kahamahmis:import_remote_medicine_data' %}">
+<a class="btn btn-success float-right mr-2" href="{% url 'kahama_import_remote_medicine_data' %}">
     <i class="fas fa-file-import"></i> Import Drugs
 </a>
 
@@ -102,6 +102,7 @@
             <div class="modal-body">
                 <!-- Bootstrap Card -->
                 <div class="card">
+                    <div id="addMedicineContainers" class="alert" role="alert"></div>
                     <form id="addDrugForm" method="post">
                         <div class="card-body">
                             <div class="row">
@@ -195,16 +196,10 @@
                                     </div>
                                 </div>
                                 <!-- Add other form fields in a similar manner -->
-                            </div>
+                            </div>                            
                             <div class="row">
                                 <div class="col-md-12">
-                                    <div id="responseMessage">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-primary btn-block">Save and continue</button>
+                                    <button type="button" class="btn btn-primary btn-block" id="addMedicine">Save and continue</button>
                                 </div>
                             </div>
                         </div>
@@ -214,60 +209,40 @@
         </div>
     </div>
 </div>
-
 <script>
-    $(document).ready(function() {
-        // Function to handle form submission
-        $('#addDrugModal').on('shown.bs.modal', function () {
-            $('#addDrugForm').on('submit', function(e) {
-                e.preventDefault(); // Prevent default form submission
+    $(document).ready(function () {
+        $('#addMedicine').click(function (event) {
+            var form = document.getElementById('addDrugForm');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#addDrugForm').serialize();
 
-                // Check if all required fields are provided
-                var formValid = true;
-                $(this).find('[required]').each(function() {
-                    if (!$(this).val()) {
-                        $(this).addClass('is-invalid');
-                        formValid = false;
-                    } else {
-                        $(this).removeClass('is-invalid');
-                    }
-                });
-
-                // If any required field is missing, do not submit the form
-                if (!formValid) return;
-
-                // Serialize form data
-                var formData = $(this).serialize();
-
-                // Send POST request to server
                 $.ajax({
-                    type: "POST",
-                    url: "{% url "kahamahmis:add_remote_medicine" %}", // Replace with your server endpoint
+                    url: '{% url "kahama_add_remote_medicine" %}', // Update with your actual URL
+                    type: 'POST',
                     data: formData,
-                    success: function(response) {
-                        // Display success message if response is true
+                    success: function (response) {
                         if (response.success) {
-                            $('#responseMessage').html('<div class="alert alert-success" role="alert">Success: ' + response.message + '</div>');
+                            $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
                             location.reload(true);
                         } else {
-                            // Display error message if response is false
-                            $('#responseMessage').html('<div class="alert alert-danger" role="alert">Error: ' + response.message + '</div>');
+                            $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
                         }
                     },
-                    error: function(xhr, status, error) {
-                        // Display error message if request fails
-                        $('#responseMessage').html('<div class="alert alert-danger" role="alert">Error: ' + error + '</div>');
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#addMedicineContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
                     }
                 });
-            });
-        });
+            }
 
-        // Clear response message when modal is closed
-        $('#addDrugModal').on('hidden.bs.modal', function () {
-            $('#responseMessage').empty();
+            form.classList.add('was-validated');
         });
     });
 </script>
+
 
   {% for medicine in medicines %}
     <!-- Bootstrap Modal -->
@@ -283,6 +258,7 @@
             <div class="modal-body">
                 <!-- Bootstrap Card -->
                 <div class="card">
+                    <div id="editMedicineContainers{{ medicine.id }}" class="alert" role="alert"></div>
                     <form id="editDrugForm{{ medicine.id }}" method="post">
                         {% csrf_token %}
                         <div class="card-body">
@@ -328,20 +304,20 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="manufacturer">Manufacturer</label> <span class="error">*</span>
-                                        <input type="text" class="form-control" id="manufacturer" name="manufacturer" value="{{ medicine.manufacturer }}" required>
+                                        <label for="manufacturer{{ medicine.id }}">Manufacturer</label> <span class="error">*</span>
+                                        <input type="text" class="form-control" id="manufacturer{{ medicine.id }}" name="manufacturer" value="{{ medicine.manufacturer }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="quantity">Quantity</label> <span class="error">*</span>
-                                        <input type="number" class="form-control" id="quantity" name="quantity" value="{{ medicine.quantity }}" required>
+                                        <label for="quantity{{ medicine.id }}">Quantity</label> <span class="error">*</span>
+                                        <input type="number" class="form-control" id="quantity{{ medicine.id }}" name="quantity" value="{{ medicine.quantity }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="batch_number">Batch Number</label> <span class="error">*</span>
-                                        <input type="text" class="form-control" id="batch_number" name="batch_number" value="{{ medicine.batch_number }}" required>
+                                        <label for="batch_number{{ medicine.id }}">Batch Number</label> <span class="error">*</span>
+                                        <input type="text" class="form-control" id="batch_number{{ medicine.id }}" name="batch_number" value="{{ medicine.batch_number }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -358,34 +334,29 @@
                                 </div>                               
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="expiration_date">Expiration Date</label> <span class="error">*</span>
-                                        <input type="date" class="form-control" id="expiration_date" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
+                                        <label for="expiration_date{{ medicine.id }}">Expiration Date</label> <span class="error">*</span>
+                                        <input type="date" class="form-control" id="expiration_date{{ medicine.id }}" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="unit_cost">Unit Cost</label> <span class="error">*</span>
-                                        <input type="number" class="form-control" id="unit_cost" name="unit_cost" value="{{ medicine.unit_cost }}" required>
+                                        <label for="unit_cost{{ medicine.id }}">Unit Cost</label> <span class="error">*</span>
+                                        <input type="number" class="form-control" id="unit_cost{{ medicine.id }}" name="unit_cost" value="{{ medicine.unit_cost }}" required>
                                     </div>
                                 </div>
                             </div>
                             <div class="row">                               
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="buying_price">Buying Price</label> <span class="error">*</span>
-                                        <input type="number" class="form-control" id="buying_price" name="buying_price" value="{{ medicine.buying_price }}" required>
+                                        <label for="buying_price{{ medicine.id }}">Buying Price</label> <span class="error">*</span>
+                                        <input type="number" class="form-control" id="buying_price{{ medicine.id }}" name="buying_price" value="{{ medicine.buying_price }}" required>
                                     </div>
                                 </div>
                                 <!-- Add other form fields in similar manner -->
-                            </div>
+                            </div>                         
                             <div class="row">
                                 <div class="col-md-12">
-                                   <div id="responseMessage{{ medicine.id }}"></div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-primary btn-block">Save changes</button>
+                                    <button type="button" class="btn btn-primary btn-block" id="editDrug{{ medicine.id }}">Edit Remote Medicine</button>
                                 </div>
                             </div>
                         </div>
@@ -395,37 +366,41 @@
         </div>
     </div>
 </div>
-<!-- JavaScript/jQuery -->
-<script>
-    $(document).ready(function() {
-        $('form[id^="editDrugForm"]').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            var medicineId = form.attr('id').replace('editDrugForm', ''); // Extract medicine ID from form ID
-            var formData = form.serialize();
 
-            $.ajax({
-                url: "{% url 'kahamahmis:add_remote_medicine' %}",
-                method: 'POST',
-                data: formData,
-                success: function(response) {
-                    // Display success message if response is true
-                    if (response.success) {
-                      $('#responseMessage{{ medicine.id }}').html('<div class="alert alert-success" role="alert">Success: ' + response.message + '</div>');
-                          location.reload(true);
-                    } else {
-                      // Display error message if response is false
-                      $('#responseMessage{{ medicine.id }}').html('<div class="alert alert-danger" role="alert">Error: ' + response.message + '</div>');
+<script>
+    $(document).ready(function () {
+        $('#editDrug{{ medicine.id }}').click(function (event) {
+            var form = document.getElementById('editDrugForm{{ medicine.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editDrugForm{{ medicine.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "kahama_add_remote_medicine" %}', // Update with your actual URL
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            location.reload(true);
+                        } else {
+                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
                     }
-                  },
-                  error: function(xhr, status, error) {
-                    // Display error message if request fails
-                    $('#responseMessage{{ medicine.id }}').html('<div class="alert alert-danger" role="alert">Error: ' + error + '</div>');
-                  }
-            });
+                });
+            }
+
+            form.classList.add('was-validated');
         });
     });
 </script>
+
   {% endfor %}
   
 <style>
@@ -463,7 +438,7 @@
     function confirmDelete(medicineId) {
         // Send AJAX request to delete the drug
         $.ajax({
-            url: '{% url "kahamahmis:delete_drug" %}',
+            url: '{% url "kahama_delete_drug" %}',
             type: 'POST',
             data: {
                 'medicine_id': medicineId,

@@ -1,6 +1,7 @@
 {% extends 'labtechnician_template/base_template.html' %}
+{% load customfilter %}
 {% block title %}
-{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }} prescription   
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} prescription   
 {% endblock title %}
 
 {% block page_title %}
@@ -20,10 +21,13 @@ Patient prescription
     <div class="row">
         <div class="col-md-12">
             <div class="card">
+                <div class="card-header bg-primary-600">
+                    <h6 class="card-title text-center text-uppercase">{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} [ AGE: {{ patient.age }} ] - Prescription</h6>
+                </div>
                 <div class="card-body">
                     <div class="row" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
-                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                        <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
+                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
                             <script>
                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                 var now = new Date();
@@ -35,14 +39,15 @@ Patient prescription
                             {% else %}
                             {{ patient.age }}
                             {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
+                        <div class="col-md-3 text-uppercase">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
                     </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
-                    </div>
-                </div>    
-            </div>
+                        <div class="row mt-3">
+                            <div class="col-md-3 text-uppercase">Visit number: <b>{{ visit.vst }}</b></div>
+                            <div class="col-md-3 text-uppercase">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                        </div>
+                </div>       
+             </div>
         </div>
     </div>
 
@@ -50,7 +55,7 @@ Patient prescription
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Prescription </h4>
+                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase">Add Prescription</h4>
                 </div>
                 <div class="card-body">
                     <form id="addPrescriptionForm{{ visit.id }}" method="post">
@@ -60,6 +65,7 @@ Patient prescription
                                 <thead>
                                     <tr>
                                         <th>Drug</th>
+                                        <th>Unit/Formulation</th>
                                         <th>Dose</th>
                                         <th>Frequency</th>
                                         <th>Duration</th>
@@ -71,31 +77,34 @@ Patient prescription
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td> 
+                                        <td>
                                             <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
-                                            <option value="">Select Medicine</option>
-                                            {% for medicine in medicines %}
-                                              <option value="{{ medicine.id }}" {% if medicine.id == prescription.medicine.id  %} selected {% endif %}>{{ medicine.name }}</option>
-                                            {% endfor %}
-                                          </select>
+                                                <option value="">Select Medicine</option>
+                                                {% for medicine in medicines %}
+                                                    <option value="{{ medicine.id }}" {% if medicine.id == prescription.medicine.id %} selected {% endif %}>{{ medicine.drug_name }}</option>
+                                                {% endfor %}
+                                            </select>
                                         </td>
-                                        <td><input type="text" class="form-control dose-input" name="dose[]" value="0"></td>
-                                        <td><select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">                                
-                                                <option value="PRN">PRN</option>
-                                                <option value="QID">QID</option>
-                                                <option value="TID">TID</option>
-                                                <option value="BID">BID</option>
-                                                <option value="STAT">STAT</option>
-                                                <option value="OD">OD</option>                                    
-                                        </select></td></td>
-                                        <td> <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
-                                            {% for rate in range_31 %}
-                                                <option value="{{ rate }}">{{ rate }}</option>
-                                            {% endfor %}
-                                        </select></td>
+                                        <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
+                                        <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
+                                        <td>
+                                            <select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">
+                                                <option value="">Select Frequency</option>
+                                                {% for frequency in frequencies %}
+                                                    <option value="{{ frequency.id }}" {% if frequency.id == prescription.frequency.id %} selected {% endif %}>{{ frequency }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
+                                                {% for rate in range_31 %}
+                                                    <option value="{{ rate }}">{{ rate }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
                                         <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                                        <td><input type="text" class="form-control unit-price-input"  value=""></td>
-                                        <td><input type="text" class="form-control total-price-input"  value=""></td>
+                                        <td><input type="text" class="form-control unit-price-input" value=""></td>
+                                        <td><input type="text" class="form-control total-price-input" value="" name="total_price[]"></td>
                                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                                     </tr>
                                 </tbody>
@@ -131,14 +140,27 @@ Patient prescription
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Prescription</button>
-                                </div>    
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate{{ visit.id }}">
+                                    <script>
+                                        // Set the current date for the order date input
+                                        const currentDate = new Date().toISOString().split('T')[0];
+                                        document.getElementById('orderDate{{ visit.id }}').value = currentDate;
+                                    </script>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-12">
-                                <div class="form-group">                                
-                                    <button type="button" class="btn btn-primary" onclick="addPrescription{{ visit.id }}()">Save Prescriptions</button>
-                                </div>    
+                                <div class="form-group">
+                                    <button type="button" class="btn btn-primary btn-block" onclick="addPrescription{{ visit.id }}()">Save Prescriptions</button>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -146,114 +168,268 @@ Patient prescription
             </div>
         </div>
     </div>
+    
     <script>
         $(document).ready(function() {
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                // Add a new row to the prescription table
-                var newRow = `
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 medicine-select" style="width: 100%;"  id="medicine" name="medicine[]"  required>
-                                                <option value="">Select Medicine</option>
-                                                {% for medicine in medicines %}
-                                                    <option value="{{ medicine.id }}">{{ medicine.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control dose-input"  name="dose[]"  value="0"></td>
-                                        <td>
-                                            <select class="form-control select2bs4 frequency-select" style="width: 100%;"  id="frequency" name="frequency[]" required>
-                                                <option value="PRN">PRN</option>
-                                                <option value="QID">QID</option>
-                                                <option value="TID">TID</option>
-                                                <option value="BID">BID</option>
-                                                <option value="STAT">STAT</option>
-                                                <option value="OD">OD</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="form-control select2bs4 duration-select" id="duration" name="duration[]" style="width: 100%;">
-                                                {% for rate in range_31 %}
-                                                    <option value="{{ rate }}">{{ rate }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control quantity-input"  name="quantity[]"  value="1"></td>
-                                        <td><input type="text" class="form-control unit-price-input" value=""></td>
-                                        <td><input type="text" class="form-control total-price-input" value=""></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>`;
-
-                $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
-            });
+            // Event listeners
+            $('#addRow{{ visit.id }}').click(addRow);
+            $(document).on('click', '.delete-row', deleteRow);
+            $(document).on('change', '.medicine-select', updateUnitPrice);
+            $(document).on('change', '.frequency-select', updateTotalPrice);
+            $(document).on('change', '.duration-select', updateTotalPrice);
+            $(document).on('input', '.quantity-input', updateTotalPrice);
+            $(document).on('input', '.dose-input', updateTotalPrice);
     
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                // Remove the selected row from the prescription table
-                $(this).closest('tr').remove();
-                updateTotalPrice{{ visit.id }}();
-            });
-    
-            // Fetch unit price and calculate total price when medicine is selected
-            $(document).on('change', '.medicine-select', function() {
-                // Handle the change event for medicine selection
-                var selectedMedicineId = $(this).val();
-                var row = $(this).closest('tr');
-                $.ajax({
-                    // AJAX request to fetch unit price based on selected medicine
-                    url: '{% url "receptionist_get_unit_price" %}',
-                    method: 'GET',
-                    data: { medicine_id: selectedMedicineId },
-                    success: function(response) {
-                        // Update unit price and total price
-                        row.find('.unit-price-input').val(response.unit_price);
-                        updateTotalPrice{{ visit.id }}();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(xhr.responseText);
-                    }
-                });
-            });
-    
-            // Calculate total price when quantity is changed
-            $(document).on('input', '.quantity-input', function() {
-                updateTotalPrice{{ visit.id }}();
-            });
-    
-            // Function to update total price
-            function updateTotalPrice{{ visit.id }}() {
-                var totalPrice = 0;
-                $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
-                    var quantity = parseInt($(this).find('.quantity-input').val());
-                    var unitPrice = parseFloat($(this).find('.unit-price-input').val());
-                    var rowTotalPrice = quantity * unitPrice;
-                    $(this).find('.total-price-input').val(rowTotalPrice.toFixed(2));
-                    totalPrice += rowTotalPrice;
-                });
-                $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
-            }
+            // Initial setup
+            updateTotalPrice();
         });
     
-        // Handle form submission using AJAX
+        // Function to add a new row to the prescription table
+        function addRow() {
+            var newRow = `
+                <tr>
+                    <td>
+                        <select class="form-control select2bs4 medicine-select" style="width: 100%;" name="medicine[]" required>
+                            <option value="">Select Medicine</option>
+                            {% for medicine in medicines %}
+                                <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
+                    <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
+                    <td>
+                        <select class="form-control select2bs4 frequency-select" style="width: 100%;" name="frequency[]" required>
+                            <option value="">Select Frequency</option>
+                            {% for frequency in frequencies %}
+                                <option value="{{ frequency.id }}">{{ frequency }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-control select2bs4 duration-select" name="duration[]" style="width: 100%;">
+                            {% for rate in range_31 %}
+                                <option value="{{ rate }}">{{ rate }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
+                    <td><input type="text" class="form-control unit-price-input" value=""></td>
+                    <td><input type="text" class="form-control total-price-input" name="total_price[]" value=""></td>
+                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                </tr>`;
+            
+            $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
+        }
+    
+        // Function to delete a row from the prescription table
+        function deleteRow() {
+            $(this).closest('tr').remove();
+            updateTotalPrice();
+        }
+    
+        // Function to update unit price and total price when medicine is selected
+        function updateUnitPrice() {
+            var selectedMedicineId = $(this).val();
+            var patientId = $('#patient_id{{ visit.id }}').val();
+            var row = $(this).closest('tr');
+    
+            $.ajax({
+                url: '{% url "lab_get_unit_price" %}',
+                method: 'POST',
+                data: {
+                    medicine_id: selectedMedicineId,
+                    patient_id: patientId
+                },
+                success: function(response) {
+                    row.find('.unit-price-input').val(response.unit_price);
+                    updateTotalPrice();
+                },
+                error: function(xhr) {
+                    console.error(xhr.responseText);
+                }
+            });
+        }
+    
+        // Function to update total price
+        function updateTotalPrice() {
+            var totalPrice = 0;
+            $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
+                var row = $(this);
+                var selectedMedicineId = row.find('.medicine-select').val();
+                var selectedFrequencyId = row.find('.frequency-select').val();
+                var selectedDuration = parseInt(row.find('.duration-select').val());
+                var enteredDose = parseInt(row.find('.dose-input').val());
+                var isDividable = IsDrugDividable(selectedMedicineId);
+                var frequencyName = getFrequencyName(selectedFrequencyId);
+                var quantity;
+    
+                // Check if quantity is manually entered for PRN frequency or non-dividable medicine
+                if (frequencyName === 'PRN' || isDividable === 'False') {
+                    quantity = parseInt(row.find('.quantity-input').val()) || 0;
+                } else {
+                    var formulationUnit = getFormulationUnit(selectedMedicineId);
+                    var adjustedDose = enteredDose / formulationUnit;
+                    quantity = calculateTabletQuantity(frequencyName, selectedDuration, adjustedDose);
+                }
+    
+                row.find('.quantity-input').val(quantity);
+    
+                var unitPrice = parseFloat(row.find('.unit-price-input').val());
+                var rowTotalPrice = quantity * unitPrice;
+                row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
+                totalPrice += rowTotalPrice;
+            });
+    
+            $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
+        }
+    
+        // Function to check if a drug is dividable
+        function IsDrugDividable(medicineId) {
+            var dividable = '';
+            $.ajax({
+                url: '{% url "lab_get_drug_division_status" %}',
+                method: 'GET',
+                data: { medicine_id: medicineId },
+                async: false,
+                success: function(response) {
+                    if ('dividable' in response) {
+                        dividable = response.dividable;
+                    } else {
+                        console.error('Drug type not found');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error fetching drug type:', xhr.responseText);
+                }
+            });
+            return dividable;
+        }
+    
+        // Function to get the frequency name
+        function getFrequencyName(frequencyId) {
+            var frequencyName = '';
+            $.ajax({
+                url: '{% url "lab_get_frequency_name" %}',
+                method: 'GET',
+                data: { frequency_id: frequencyId },
+                async: false,
+                success: function(response) {
+                    if ('frequency_name' in response) {
+                        frequencyName = response.frequency_name;
+                    } else {
+                        console.error('Frequency name not found');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error fetching frequency name:', xhr.responseText);
+                }
+            });
+            return frequencyName;
+        }
+    
+        // Function to calculate quantity for tablet type medication
+        function calculateTabletQuantity(frequency, duration, dose) {
+            var quantity = 0;
+            switch (frequency) {
+                case 'OD':
+                case 'I.C':
+                case 'STAT':
+                    quantity = duration * dose;
+                    break;
+                case 'QID':
+                    quantity = duration * 4 * dose;
+                    break;
+                case 'TID':
+                    quantity = duration * 3 * dose;
+                    break;
+                case 'BID':
+                    quantity = duration * 2 * dose;
+                    break;
+                case 'PRN':
+                    quantity = '';
+                    break;
+                default:
+                    quantity = 1;
+                    break;
+            }
+            return quantity;
+        }
+    
+        // Function to get the formulation unit
+        function getFormulationUnit(medicineId) {
+            var formulationUnit = 1;
+            $.ajax({
+                url: '{% url "lab_get_formulation_unit" %}',
+                method: 'GET',
+                data: { medicine_id: medicineId },
+                async: false,
+                success: function(response) {
+                    if (response && response.formulation_unit) {
+                        formulationUnit = parseFloat(response.formulation_unit);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error fetching formulation unit:', xhr.responseText);
+                }
+            });
+            return formulationUnit;
+        }
+    
+        // Function to handle form submission using AJAX
         function addPrescription{{ visit.id }}() {
             $.ajax({
                 type: 'POST',
-                url: '{% url "receptionist_add_remoteprescription" %}',
+                url: '{% url "lab_add_remoteprescription" %}',
                 data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
                 success: function(response) {
                     if (response.status === 'success') {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                        location.reload(true);
+                        var redirectUrl = '{% url "lab_prescription_list" %}';
+                        window.location.href = redirectUrl;
                     } else {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function(xhr) {
                     $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
                 }
             });
         }
+    </script>
+    
+
+    <script>
+        $(document).ready(function() {
+            // Add event listener for medicine selection change
+            $(document).on('change', '.medicine-select', function() {
+                var medicineId = $(this).val();
+                var formulationField = $(this).closest('tr').find('.formulation_unit');
+    
+                // Make an AJAX request to fetch the formulation dosage information for the selected medicine
+                $.ajax({
+                    url: '{% url "lab_get_medicine_formulation" %}', // Update this URL to match your endpoint
+                    method: 'GET',
+                    data: { 'medicine_id': medicineId },
+                    success: function(response) {
+                        // Check if the formulation dosage information is available in the response
+                        if ('formulation' in response) {
+                            // Populate the formulation dosage information in the input field
+                            formulationField.val(response.formulation);
+                        } else {
+                            // Clear the formulation dosage information if not available
+                            formulationField.val('');
+                            console.error('Formulation dosage information not found in response.');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle error if AJAX request fails
+                        formulationField.val('');
+                        console.error('Error fetching medicine formulation dosage:', error);
+                    }
+                });
+            });
+        });
     </script>
 
 
@@ -292,12 +468,12 @@ Patient prescription
                                     {% for prescription in prescriptions %}
                                     <tr>
                                         <td>{{ prescription.id }}</td>
-                                        <td>{{ prescription.medicine.name }}</td>
+                                        <td>{{ prescription.medicine.drug_name }}</td>
                                         <td>{{ prescription.dose }}</td>
                                         <td>{{ prescription.frequency }}</td>
                                         <td>{{ prescription.duration }}</td>
                                         <td>{{ prescription.quantity_used }}</td>
-                                        <td>{{ prescription.medicine.unit_price }}</td>
+                                        <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
                                         <td>{{ prescription.total_price }}</td>
                                     </tr>
                                     {% endfor %}

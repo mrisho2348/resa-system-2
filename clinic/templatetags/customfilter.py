@@ -30,3 +30,15 @@ def total_cost(orders):
 @register.filter
 def total_cost_of_prescription(prescriptions):
     return sum(prescription.total_price for prescription in prescriptions)
+
+@register.filter
+def total_cost_of_procedure(procedures):
+    return sum(procedure.cost for procedure in procedures)
+
+@register.filter
+def total_cost_of_lab(lab_tests):
+    return sum(lab_test.cost for lab_test in lab_tests)
+
+@register.filter
+def total_cost_of_image(imaging_records):
+    return sum(imaging_record.cost for imaging_record in imaging_records)

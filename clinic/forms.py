@@ -1,7 +1,7 @@
 from django import forms
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.widgets import CKEditor5Widget
-from clinic.models import BankAccount, Clients, DeductionOrganization, Employee, Expense, ExpenseCategory, GovernmentProgram, Grant, ImagingRecord, Investment, LaboratoryOrder, Payment, PaymentMethod, Payroll, Procedure, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral, SalaryPayment, Staffs
+from clinic.models import BankAccount, Clients, Counseling, DeductionOrganization, DischargesNotes, Employee, Expense, ExpenseCategory, GovernmentProgram, Grant, ImagingRecord, Investment, LaboratoryOrder, ObservationRecord, Payment, PaymentMethod, Payroll, Procedure, Referral, RemoteCounseling, RemoteDischargesNotes, RemoteObservationRecord, RemoteReferral, SalaryPayment, Staffs
 class ImportStaffForm(forms.Form):
     staff_file = forms.FileField(
         label='Choose an Excel file',
@@ -225,6 +225,22 @@ class RemoteObservationRecordForm(forms.ModelForm):
             )
         }
         
+class ObservationRecordForm(forms.ModelForm):
+    """Form for observation notes."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["observation_notes"].required = False
+
+    class Meta:
+        model = ObservationRecord
+        fields = ("observation_notes",)
+        widgets = {
+            "observation_notes": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5"}, config_name="extends"
+            )
+        }
+        
         
 class RemoteCounselingForm(forms.ModelForm):
     """Form for counseling notes."""
@@ -240,6 +256,22 @@ class RemoteCounselingForm(forms.ModelForm):
             "counselling_notes": CKEditor5Widget(
                 attrs={"class": "django_ckeditor_5"}, config_name="extends"
             )
+        } 
+          
+class CounselingForm(forms.ModelForm):
+    """Form for counseling notes."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["counselling_notes"].required = False
+
+    class Meta:
+        model = Counseling
+        fields = ("counselling_notes",)
+        widgets = {
+            "counselling_notes": CKEditor5Widget(
+                attrs={"class": "django_ckeditor_5"}, config_name="extends"
+            )
         }   
         
 
@@ -249,6 +281,8 @@ class RemoteReferralForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["notes"].required = False
+        self.fields["transport_model"].required = False
+        self.fields["source_location"].required = False
 
         # Add Bootstrap classes to specific form fields
         self.fields["source_location"].widget.attrs['class'] = 'form-control'
@@ -275,6 +309,43 @@ class RemoteReferralForm(forms.ModelForm):
             'destination_location': 'Destination Location',
         }
         
+        
+class ReferralForm(forms.ModelForm):
+    """Form for remote referrals."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["notes"].required = False
+        self.fields["transport_model"].required = False
+        self.fields["source_location"].required = False
+
+        # Add Bootstrap classes to specific form fields
+        self.fields["source_location"].widget.attrs['class'] = 'form-control'
+        self.fields["destination_location"].widget.attrs['class'] = 'form-control'
+        self.fields["nature_of_referral"].widget.attrs['class'] = 'form-control select2bs4'
+        self.fields["transport_model"].widget.attrs['class'] = 'form-control select2bs4'
+        
+        self.fields["source_location"].widget.attrs['disabled'] = 'disabled'
+        self.fields["source_location"].initial = "Default Source Location"
+
+        # Ensure transport_model has the correct initial value
+        if 'transport_model' not in self.initial:
+            self.initial['transport_model'] = Referral._meta.get_field('transport_model').default
+
+    class Meta:
+        model = Referral
+        fields = ['notes', 'destination_location', 'nature_of_referral', 'transport_model', 'source_location']
+        widgets = {
+            'notes': CKEditor5Widget(attrs={'class': 'django_ckeditor_5'}, config_name='extends'),
+        }
+        labels = {
+            'notes': 'Referral Reason',
+            'source_location': 'Source Location',
+            'destination_location': 'Patient Destination',
+            'nature_of_referral': 'Nature of Referral',
+            'transport_model': 'Transport Model',
+        }
+        
 class RemoteDischargesNotesForm(forms.ModelForm):
     """Form for remote discharge notes."""
     
@@ -295,6 +366,31 @@ class RemoteDischargesNotesForm(forms.ModelForm):
 
     class Meta:
         model = RemoteDischargesNotes
+        fields = ['discharge_condition', 'discharge_notes']
+        widgets = {
+            'discharge_notes': CKEditor5Widget(attrs={'class': 'django_ckeditor_5'}, config_name='extends'),
+        }
+        
+class DischargesNotesForm(forms.ModelForm):
+    """Form for remote discharge notes."""
+    
+    DISCHARGE_CONDITION_CHOICES = [
+        ('stable', 'Stable'),
+        ('unstable', 'Unstable'),
+    ]
+    
+    discharge_condition = forms.ChoiceField(
+        choices=DISCHARGE_CONDITION_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["discharge_notes"].required = False
+        self.fields["discharge_condition"].widget.attrs.update({'class': 'form-control select2bs4'})
+
+    class Meta:
+        model = DischargesNotes
         fields = ['discharge_condition', 'discharge_notes']
         widgets = {
             'discharge_notes': CKEditor5Widget(attrs={'class': 'django_ckeditor_5'}, config_name='extends'),
