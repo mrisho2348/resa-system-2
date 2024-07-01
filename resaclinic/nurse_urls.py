@@ -1,12 +1,93 @@
 
-from django.urls import include, path
+from django.urls import path, re_path
 
-from clinic import NurseView
+from clinic import  NurseView, editView
 
 
 
 urlpatterns = [
-           # NurseView
-        path('nurse_dashboard/', NurseView.nurse_dashboard, name='nurse_dashboard'),
-        
+        path('save_prescription/<int:patient_id>/<int:visit_id>/', NurseView.save_prescription, name='nurse_save_prescription'),
+        path('save_laboratory/<int:patient_id>/<int:visit_id>/', NurseView.save_laboratory, name='nurse_save_laboratory'),
+        path('save_remotereferral/<int:patient_id>/<int:visit_id>/', NurseView.save_remotereferral, name='nurse_save_remotereferral'),
+        path('save_remoteprocedure/<int:patient_id>/<int:visit_id>/', NurseView.save_remoteprocedure, name='nurse_save_remoteprocedure'),
+        path('save_observation/<int:patient_id>/<int:visit_id>/', NurseView.save_observation, name='nurse_save_observation'),
+        path('verify_prescriptions/', NurseView.verify_prescriptions, name='nurse_verify_prescriptions'),
+        path('unverify_prescriptions/', NurseView.unverify_prescriptions, name='nurse_unverify_prescriptions'),
+        path('issue_prescriptions/', NurseView.issue_prescriptions, name='nurse_issue_prescriptions'),
+        path('unissue_prescriptions/', NurseView.unissue_prescriptions, name='nurse_unissue_prescriptions'),        
+        path('update_payment_status/', NurseView.update_payment_status, name='nurse_pay_prescriptions'),
+        path('unpay_prescriptions/', NurseView.unpay_prescriptions, name='nurse_unpay_prescriptions'),
+        path('add_investigation/', NurseView.add_investigation, name='nurse_add_investigation'),
+        path('receptionist/get-gender-yearly-data/', NurseView.get_gender_yearly_data, name="nurse_get_gender_yearly_data"),
+        path('receptionist/get-gender-monthly-data/', NurseView.get_gender_monthly_data, name="nurse_get_gender_monthly_data"),
+        path('add_imaging/', NurseView.add_imaging, name='nurse_add_imaging'),
+        path('ambulance_order/', NurseView.ambulance_order_create_or_update, name='nurse_ambulance_order_create_or_update'),
+        path('ambulance_order/<int:order_id>/', NurseView.ambulance_order_create_or_update, name='nurse_ambulance_order_edit'),
+        path('update_orderpayment_status/', NurseView.update_orderpayment_status, name='nurse_update_orderpayment_status'),
+        path('invoice/<int:patient_id>/<int:visit_id>/', NurseView.generate_invoice_bill, name='nurse_generate_invoice_bill'),
+        path('prescriptions/<str:visit_number>/<int:patient_id>/', NurseView.prescription_detail, name='nurse_prescription_detail'),
+        path('prescription-billing/<str:visit_number>/<int:patient_id>/', NurseView.prescription_billing, name='nurse_prescription_billing'),
+        path('prescription-notes/<str:visit_number>/<int:patient_id>/', NurseView.prescription_notes, name='nurse_prescription_notes'),
+        path('patients/<int:patient_id>/visits/<int:visit_id>/ambulance_order/', NurseView.save_ambulance_order, name='save_ambulance_order'),
+        path('patients/<int:patient_id>/visits/<int:visit_id>/ambulance_order/<int:ambulance_id>/', NurseView.save_ambulance_order, name='edit_ambulance_order'),
+        path('add_consultation/', NurseView.add_consultation, name='nurse_add_consultation'),
+        path('add_procedure/', NurseView.add_procedure, name='nurse_add_procedure'),
+        path('get-procedure-cost/', NurseView.get_procedure_cost, name='nurse_get_procedure_cost'),   
+        path('nurse_dashboard/', NurseView.nurse_dashboard, name='nurse_dashboard'),    
+        path('add_patient/', NurseView.add_patient, name='nurse_add_patient'),
+        path('delete_ambulancecardorder/', NurseView.delete_ambulancecardorder, name='nurse_delete_ambulancecardorder'),
+        path('delete_ambulancedorder/', NurseView.delete_ambulancedorder, name='delete_ambulancedorder'),
+        path('vehicle_detail/<int:order_id>/', NurseView.vehicle_detail, name='nurse_vehicle_detail'),    
+        path('vehicle_ambulance_view/',NurseView.vehicle_ambulance_view, name="nurse_vehicle_ambulance_view"),        
+        path('ambulance_order_detail/<int:order_id>/', NurseView.ambulance_order_detail, name='nurse_ambulance_order_detail'),        
+        path('get_unit_price/',NurseView.get_unit_price, name="nurse_get_unit_price"),
+        path('ambulance_order_view/',NurseView.ambulance_order_view, name="nurse_ambulance_order_view"),     
+        path('add_remoteprescription/',NurseView.add_remoteprescription, name="nurse_add_remoteprescription"),
+        path('save_patient_vital/',NurseView.save_patient_vital, name="nurse_save_patient_vital"),
+        path('add_prescription/',NurseView.add_prescription, name="nurse_add_prescription"),
+        path('save_edited_patient/',NurseView.save_edited_patient, name="nurse_save_edited_patient"),
+        path('add_patient_visit/',NurseView.add_patient_visit, name="nurse_add_patient_visit"),      
+        re_path(r'^receptionist/manage-pathodology/$', NurseView.manage_pathodology, name='nurse_manage_pathodology'),
+        re_path(r'^receptionist/health-record-list/$', NurseView.health_record_list, name='nurse_health_record_list'),
+        re_path(r'^receptionist/medicine-list/$', NurseView.medicine_list, name='nurse_medicine_list'),
+        re_path(r'^receptionist/reagent-list/$', NurseView.reagent_list, name='nurse_reagent_list'),
+        re_path(r'^receptionist/diagnosis-list/$', NurseView.diagnosis_list, name='nurse_diagnosis_list'),
+        re_path(r'^receptionist/manage-disease/$', NurseView.manage_disease, name='nurse_manage_disease'),
+        re_path(r'^receptionist/update-profile-picture/$', NurseView.update_profile_picture, name='nurse_update_profile_picture'),      
+        path('staff_detail/<int:staff_id>/', NurseView.single_staff_detail, name='nurse_single_staff_detail'),
+        path('patient/<int:patient_id>/', NurseView.patient_detail, name='nurse_patient_detail'),
+        path('view-patient/<int:patient_id>/', NurseView.view_patient, name='nurse_view_patient'),  
+        path('save_service_data/',NurseView.save_service_data, name="nurse_save_service_data"),      
+        path('get_item_quantity/',NurseView.get_item_quantity, name="nurse_get_item_quantity"),  
+        path('resa/patient_vital_all_listt/', NurseView.patient_vital_all_list, name='nurse_patient_vital_all_list'),
+        path('patient_consultation_detail/<int:patient_id>/<int:visit_id>/', NurseView.patient_consultation_detail, name='nurse_patient_consultation_detail'),
+        path('patient/<int:patient_id>/visit/<int:visit_id>/', NurseView.patient_visit_details_view, name='nurse_patient_visit_details_view'),
+        path('patient_health_record/<int:patient_id>/<int:visit_id>/', NurseView.patient_health_record, name='nurse_patient_health_record'),
+        path('patient_vital_visit_list/<int:patient_id>/<int:visit_id>/', NurseView.patient_vital_visit_list, name='nurse_patient_vital_visit_list'),
+        path('patient_visit_history/<int:patient_id>/', NurseView.patient_visit_history_view, name='nurse_patient_visit_history_view'),       
+        path('prescriptions/', NurseView.prescription_list, name='nurse_prescription_list'),       
+        path('resa/manage-referral/', NurseView.manage_referral, name='nurse_manage_referral'),
+        path('resa/patient-procedure-view/', NurseView.patient_procedure_view, name='nurse_patient_procedure_view'),      
+        path('resa/all-patients',NurseView.manage_patients, name="nurse_manage_patients"),
+        path('resa/save/remotepatient/vital',NurseView.save_remotepatient_vital, name="nurse_save_remotepatient_vital"),
+        path('resa/consultation-queue',NurseView.manage_consultation, name="nurse_manage_consultation"),
+        path('resa/manage-service',NurseView.manage_service, name="nurse_manage_service"),
+        path('employee/', NurseView.employee_detail, name='nurse_employee_detail'),
+        path('resa/appointments/', NurseView.appointment_list_view, name='nurse_appointment_list'),       
+        path('generate-bill/<int:procedure_id>/', NurseView.generate_billing, name='nurse_generate_billing'),
+        path('save_procedure/', NurseView.save_procedure, name='nurse_save_procedure'),
+        path('save_referral/', NurseView.save_referral, name='nurse_save_referral'),
+        path('all_orders_view/', NurseView.all_orders_view, name='nurse_all_orders_view'),
+        path('change_referral_status/', NurseView.change_referral_status, name='nurse_change_referral_status'),       
+        # imports urls 
+                    
+        # edit urls        
+        path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='nurse_update_consultation_data'), 
+        path('Patient/<int:patient_id>/edit/', editView.edit_patient, name='nurse_edit_patient'),
+        path('edit_procedure/', editView.edit_procedure, name='nurse_edit_procedure'), 
+        path('edit_referral/', editView.edit_referral, name='nurse_edit_referral'), 
+        path('appointment_view/', NurseView.appointment_view, name='nurse_appointment_view'), 
+        path('patient-procedure-history/<str:mrn>/view/', NurseView.patient_procedure_history_view, name='nurse_patient_procedure_history_view_mrn'), 
+
+              
 ]

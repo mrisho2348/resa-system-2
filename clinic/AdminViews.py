@@ -16,7 +16,7 @@ from clinic.models import Consultation,  CustomUser, DiseaseRecode, InsuranceCom
 from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
-from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral, SalaryPayment,  Service, Supplier, UsageHistory
+from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral, SalaryChangeRecord, SalaryPayment,  Service, Supplier, UsageHistory
 from django.db.models import Sum
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models.functions import TruncMonth, ExtractYear
@@ -2701,59 +2701,79 @@ def delete_medicine_unit_measure(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})  
 
-def financial_analysis_view(request):
-    year = datetime.now().year
-    monthly_income = calculate_monthly_income(year)
-    yearly_expenditure = calculate_yearly_expenditure()
-    highest_income_entity, highest_income_amount = highest_income_entity(year)
+@login_required
+def employee_detail(request):
+    try:
+        # Get the logged-in staff member
+        staff_member = request.user.staff        
+        # Get the employee record for the logged-in staff member
+        employee = get_object_or_404(Employee, name=staff_member)       
+        # Fetch the related employee deductions and salary change records
+        employee_deductions = EmployeeDeduction.objects.filter(employee=employee)
+        salary_change_records = SalaryChangeRecord.objects.filter(employee=employee)
+
+        # Context data to pass to the template
+        context = {
+            'staff_member': staff_member,
+            'employee': employee,
+            'employee_deductions': employee_deductions,
+            'salary_change_records': salary_change_records,
+        }
+    except Staffs.DoesNotExist:
+        context = {
+            'error': "Staff member not found."
+        }
+    except Employee.DoesNotExist:
+        context = {
+            'error': "Employee record not found."
+        }
+    except Exception as e:
+        context = {
+            'error': str(e)
+        }
     
-    context = {
-        'year': year,
-        'monthly_income': monthly_income,
-        'yearly_expenditure': yearly_expenditure,
-        'highest_income_entity': highest_income_entity,
-        'highest_income_amount': highest_income_amount,
-    }
-    return render(request, 'hod_template/financial_analysis.html', context)
+    return render(request, 'hod_template/employee_detail.html', context)
 
-def calculate_monthly_income(year):
-    income_models = [ImagingRecord, ConsultationOrder, Procedure, LaboratoryOrder, AmbulanceOrder, AmbulanceVehicleOrder]
-    monthly_income = {}
+@login_required
+def update_profile_picture(request):
+    if request.method == 'POST':
+        try:
+            # Get the user's profile
+            user_profile = request.user  # Use request.user to get the CustomUser instance
+            # Accessing the uploaded picture from the form
+            new_picture = request.FILES.get('profile_picture')  
+            
+            if new_picture:
+                # Check if the uploaded file is an image
+                if not new_picture.content_type.startswith('image'):
+                    raise ValidationError("Invalid image file type. Please upload a valid image.")
 
-    for model in income_models:
-        income = model.objects.filter(order_date__year=year).annotate(month=TruncMonth('order_date')).values('month').annotate(total=Sum('cost')).order_by('month')
-        for entry in income:
-            month = entry['month'].strftime('%B')
-            if month not in monthly_income:
-                monthly_income[month] = 0
-            monthly_income[month] += entry['total']
-
-    return monthly_income
-
-def calculate_yearly_expenditure():
-    expenditure_models = [Medicine, EquipmentMaintenance, Reagent, SalaryPayment]
-    yearly_expenditure = {}
-
-    for model in expenditure_models:
-        expenditure = model.objects.annotate(year=ExtractYear('created_at')).values('year').annotate(total=Sum('cost')).order_by('year')
-        for entry in expenditure:
-            year = entry['year']
-            if year not in yearly_expenditure:
-                yearly_expenditure[year] = 0
-            yearly_expenditure[year] += entry['total']
-
-    return yearly_expenditure
-
-def highest_income_entity(year):
-    income_models = [ImagingRecord, ConsultationOrder, Procedure, LaboratoryOrder, AmbulanceOrder, AmbulanceVehicleOrder, Prescription]
-    highest_income = {}
-    highest_entity = None
-    highest_amount = 0
-
-    for model in income_models:
-        total_income = model.objects.filter(order_date__year=year).aggregate(total=Sum('cost'))['total'] or 0
-        if total_income > highest_amount:
-            highest_amount = total_income
-            highest_entity = model.__name__
-
-    return highest_entity, highest_amount
+                # Check if the file size is within limit (2MB)
+                if new_picture.size > 2 * 1024 * 1024:  # 2MB in bytes
+                    raise ValidationError("File size exceeds the limit. Please upload a file smaller than 2MB.")
+                
+                # Get the staff object associated with the user profile
+                staff = user_profile.staff
+                
+                if staff:
+                    # Update the profile picture
+                    staff.profile_picture = new_picture
+                    
+                    # Save the changes
+                    staff.save()
+                    
+                    # Redirect to a success page or back to the profile page
+                    return render(request, 'hod_template/update_profile_picture.html')
+                else:
+                    raise ValidationError("User profile does not exist.")
+            else:
+                raise ValidationError("No profile picture uploaded.")
+        except ValidationError as e:
+            # Handle validation errors (e.g., invalid file type or size)
+            messages.error(request, str(e))
+        except Exception as e:
+            # Handle any other unexpected errors
+            messages.error(request, str(e))
+            # You may want to log this error for debugging purposes
+            
+    return render(request, 'hod_template/update_profile_picture.html')

@@ -106,6 +106,20 @@ class LoginCheckMiddleWare(MiddlewareMixin):
                                         "django.views.static",
                                                      ]
                                     dashboard_url = "doctor_dashboard"
+                                    
+                                elif role == "admin":
+                                    allowed_views = [
+                                            "clinic.views",
+                                            "clinic.AdminViews",
+                                            "clinic.HodViews",
+                                            "clinic.ExcelTemplate",
+                                            "clinic.delete",
+                                            "clinic.editView",                         
+                                            "clinic.imports",                         
+                                            "clinic.FinancialViews",                         
+                                            "django.views.static",
+                                        ]
+                                    dashboard_url = "admin_dashboard"
                                 elif role == "nurse":
                                     allowed_views = [
                                         "clinic.NurseView",

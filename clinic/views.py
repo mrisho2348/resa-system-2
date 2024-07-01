@@ -57,6 +57,8 @@ def DoLogin(request):
                         return redirect("doctor_dashboard")
                     elif role == "nurse":
                         return redirect("nurse_dashboard")
+                    elif role == "admin":
+                        return redirect("admin_dashboard")
                     elif role == "physiotherapist":
                         return redirect("physiotherapist_dashboard")
                     elif role == "labtechnician":

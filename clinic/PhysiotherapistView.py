@@ -16,4 +16,4 @@ def physiotherapist_dashboard(request):
         'doctors': doctors,
         # 'gender_based_monthly_counts': gender_based_monthly_counts,
     }
-    return render(request,"receptionist_template/home_content.html",context)
+    return render(request,"physiotherapist_template/home_content.html",context)
