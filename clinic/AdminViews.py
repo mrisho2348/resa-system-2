@@ -16,9 +16,10 @@ from clinic.models import Consultation,  CustomUser, DiseaseRecode, InsuranceCom
 from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
-from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral,  Service, Supplier, UsageHistory
+from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral, SalaryPayment,  Service, Supplier, UsageHistory
 from django.db.models import Sum
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db.models.functions import TruncMonth, ExtractYear
 
 
 @login_required
@@ -2700,3 +2701,59 @@ def delete_medicine_unit_measure(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})  
 
+def financial_analysis_view(request):
+    year = datetime.now().year
+    monthly_income = calculate_monthly_income(year)
+    yearly_expenditure = calculate_yearly_expenditure()
+    highest_income_entity, highest_income_amount = highest_income_entity(year)
+    
+    context = {
+        'year': year,
+        'monthly_income': monthly_income,
+        'yearly_expenditure': yearly_expenditure,
+        'highest_income_entity': highest_income_entity,
+        'highest_income_amount': highest_income_amount,
+    }
+    return render(request, 'hod_template/financial_analysis.html', context)
+
+def calculate_monthly_income(year):
+    income_models = [ImagingRecord, ConsultationOrder, Procedure, LaboratoryOrder, AmbulanceOrder, AmbulanceVehicleOrder]
+    monthly_income = {}
+
+    for model in income_models:
+        income = model.objects.filter(order_date__year=year).annotate(month=TruncMonth('order_date')).values('month').annotate(total=Sum('cost')).order_by('month')
+        for entry in income:
+            month = entry['month'].strftime('%B')
+            if month not in monthly_income:
+                monthly_income[month] = 0
+            monthly_income[month] += entry['total']
+
+    return monthly_income
+
+def calculate_yearly_expenditure():
+    expenditure_models = [Medicine, EquipmentMaintenance, Reagent, SalaryPayment]
+    yearly_expenditure = {}
+
+    for model in expenditure_models:
+        expenditure = model.objects.annotate(year=ExtractYear('created_at')).values('year').annotate(total=Sum('cost')).order_by('year')
+        for entry in expenditure:
+            year = entry['year']
+            if year not in yearly_expenditure:
+                yearly_expenditure[year] = 0
+            yearly_expenditure[year] += entry['total']
+
+    return yearly_expenditure
+
+def highest_income_entity(year):
+    income_models = [ImagingRecord, ConsultationOrder, Procedure, LaboratoryOrder, AmbulanceOrder, AmbulanceVehicleOrder, Prescription]
+    highest_income = {}
+    highest_entity = None
+    highest_amount = 0
+
+    for model in income_models:
+        total_income = model.objects.filter(order_date__year=year).aggregate(total=Sum('cost'))['total'] or 0
+        if total_income > highest_amount:
+            highest_amount = total_income
+            highest_entity = model.__name__
+
+    return highest_entity, highest_amount

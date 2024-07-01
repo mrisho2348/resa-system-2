@@ -26,6 +26,7 @@ urlpatterns = [
     path('admin-imports/', include('resaclinic.imports_urls')),
     path('admin-delete/', include('resaclinic.admin_delete_urls')),
     path('admin-edit/', include('resaclinic.admin_edit_urls')),
+    path('admin-panel/', include('resaclinic.financial_urls')),
     
     # Doctor paths
     path('doctor/', include('resaclinic.doctor_urls')),

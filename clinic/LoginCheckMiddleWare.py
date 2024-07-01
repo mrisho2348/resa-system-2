@@ -43,6 +43,7 @@ class LoginCheckMiddleWare(MiddlewareMixin):
                             "clinic.delete",
                             "clinic.editView",                         
                             "clinic.imports",                         
+                            "clinic.FinancialViews",                         
                             "django.views.static",
                         ]
                         if modulename in allowed_views or request.path == reverse("admin_dashboard"):
@@ -96,22 +97,38 @@ class LoginCheckMiddleWare(MiddlewareMixin):
                                     allowed_views = [
                                         "clinic.ReceptionistView",
                                         "clinic.delete",
+                                         "django.views.static",
                                     ]
                                     dashboard_url = "receptionist_dashboard"
                                 elif role == "doctor":
-                                    allowed_views = ["clinic.DoctorView"]
+                                    allowed_views = [
+                                        "clinic.DoctorView",
+                                        "django.views.static",
+                                                     ]
                                     dashboard_url = "doctor_dashboard"
                                 elif role == "nurse":
-                                    allowed_views = ["clinic.NurseView"]
+                                    allowed_views = [
+                                        "clinic.NurseView",
+                                         "django.views.static",
+                                        ]
                                     dashboard_url = "nurse_dashboard"
                                 elif role == "physiotherapist":
-                                    allowed_views = ["clinic.PhysiotherapistView"]
+                                    allowed_views = [
+                                        "clinic.PhysiotherapistView",
+                                         "django.views.static",
+                                        ]
                                     dashboard_url = "physiotherapist_dashboard"
                                 elif role == "labtechnician":
-                                    allowed_views = ["clinic.LabTechnicianView"]
+                                    allowed_views = [
+                                        "clinic.LabTechnicianView",
+                                         "django.views.static",
+                                        ]
                                     dashboard_url = "labtechnician_dashboard"
                                 elif role == "pharmacist":
-                                    allowed_views = ["clinic.PharmacistView"]
+                                    allowed_views = [
+                                        "clinic.PharmacistView",
+                                         "django.views.static",
+                                        ]
                                     dashboard_url = "pharmacist_dashboard"
                                 else:
                                     allowed_views = []  # For unrecognized roles

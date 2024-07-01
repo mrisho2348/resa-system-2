@@ -1,0 +1,222 @@
+
+{% extends 'hod_template/base_template.html' %}
+{% load static %}
+{% block title %}
+Financial Analysis
+{% endblock title %}
+{% block main_content %}
+{% include "hod_template/modal_form.html" %}
+<section class="content">
+    <div class="container-fluid">      
+        <div class="row">
+            <div class="col-md-7">
+                <div class="container-fluid">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="card-title">Financial Analysis Survey</h5>
+                                </div>
+                                <div class="col-md-6">
+                                    <!-- Form with Select Fields -->
+                                    <form>
+                                        <div class="form-group">
+                                            <label for="yearSelect">Select Year:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="yearSelect">
+                                                <option value="2022">2022</option>
+                                                <option value="2023">2023</option>
+                                                <option value="2024">2024</option>
+                                                <!-- Add more options as needed -->
+                                            </select>
+                                        </div>                                   
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">                         
+                            <canvas id="financialChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="text-uppercase text-muted mt-2 m-0 font-11">Financial Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="apexchart-wrapper">
+                            <!-- The chart will be dynamically generated here -->
+                        </div>
+                        <span class="h4 fw-bold" id="totalAmount">0</span>
+            
+                        <div class="progress mt-3 rounded" id="amountProgress">
+                            <!-- Progress bars will be dynamically generated here -->
+                        </div>
+                        <ul class="list-unstyled mb-0">
+                            <li class="list-item mt-3 fw-semibold d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-circle font-10 text-primary me-2"></i>Income
+                                </span>
+                                <p class="align-self-center mb-0 fw-semibold" id="incomeAmount">0</p>
+                            </li>
+                            <li class="list-item mt-2 fw-semibold d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-circle font-10 text-info me-2"></i>Expenditure
+                                </span>
+                                <p class="align-self-center mb-0 fw-semibold" id="expenditureAmount">0</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        // Function to update card content based on the selected year
+                        function updateCardContent(selectedYear) {
+                            $.ajax({
+                                url: '{% url "admin_get_financial_data" %}',
+                                method: 'GET',
+                                data: { 'year': selectedYear },
+                                success: function (data) {
+                                    var incomeAmount = parseFloat(data['income']);  // Convert income to float
+                                    var expenditureAmount = parseFloat(data['expenditure']);  // Convert expenditure to float
+                                    var totalAmount = incomeAmount + expenditureAmount;
+                
+                                    // Update the total amount with currency symbol
+                                    document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+                
+                                    // Update the progress bars
+                                    var amountProgress = document.getElementById('amountProgress');
+                                    amountProgress.innerHTML = `
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${incomeAmount / totalAmount * 100}%" aria-valuenow="${incomeAmount}" aria-valuemin="0" aria-valuemax="${totalAmount}"></div>
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: ${expenditureAmount / totalAmount * 100}%" aria-valuenow="${expenditureAmount}" aria-valuemin="0" aria-valuemax="${totalAmount}"></div>
+                                    `;
+                
+                                    // Update the income amount with currency symbol
+                                    document.getElementById('incomeAmount').textContent = formatCurrency(incomeAmount);
+                
+                                    // Update the expenditure amount with currency symbol
+                                    document.getElementById('expenditureAmount').textContent = formatCurrency(expenditureAmount);
+                                },
+                                error: function (xhr, status, error) {
+                                    console.error('Error fetching data:', error);
+                                }
+                            });
+                        }
+                
+                        // Event listener for the year select input
+                        document.getElementById('yearSelect').addEventListener('change', function (event) {
+                            var selectedYear = event.target.value;
+                            updateCardContent(selectedYear);
+                        });
+                
+                        // Initial update based on the default year (e.g., 2022)
+                        updateCardContent('2022');
+                
+                        // Function to format amount with currency symbol
+                        function formatCurrency(amount) {
+                            // Assuming "Tsh" is Tanzanian Shilling symbol
+                            return new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS' }).format(amount);
+                        }
+                    });
+                </script>
+                
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+{% include 'hod_template/datatable.html' %}
+{% endblock main_content %}
+
+{% block customer_js %}
+{% comment %} <script>
+    // Define a variable to store the Chart.js instance
+    var financialChart;
+    
+    // Function to fetch financial data from the server
+    function fetchFinancialData(year) {
+        $.ajax({
+            url: '{% url "admin_get_financial_data" %}',
+            method: 'GET',
+            data: { 'year': year },
+            success: function(data) {             
+                createFinancialChart(data);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching data:', error);
+            }
+        });
+    }
+    
+    // Function to create or update the chart using Chart.js
+    function createFinancialChart(data) {
+        var ctx = document.getElementById('financialChart').getContext('2d');
+    
+        if (financialChart) {
+            // If the chart instance exists, update its data
+            financialChart.data.labels = Object.keys(data);
+            financialChart.data.datasets[0].data = Object.values(data).map(monthData => monthData['Income']);
+            financialChart.data.datasets[1].data = Object.values(data).map(monthData => monthData['Expenditure']);
+            financialChart.update();
+        } else {
+            // If the chart instance doesn't exist, create a new chart
+            financialChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Income',
+                        data: Object.values(data).map(monthData => monthData['Income']),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }, {
+                        label: 'Expenditure',
+                        data: Object.values(data).map(monthData => monthData['Expenditure']),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
+                    },
+                    hover: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+    }
+    
+    // Example usage: Fetch data for the selected year and create or update the chart
+    var selectedYear = $('#yearSelect').val();
+    fetchFinancialData(selectedYear);
+    
+    // Event listener to fetch data and update the chart when the year is changed
+    $('#yearSelect').on('change', function() {
+        var selectedYear = $(this).val();        
+        fetchFinancialData(selectedYear);
+    });
+    
+</script> {% endcomment %}
+
+{% endblock customer_js %}
+
