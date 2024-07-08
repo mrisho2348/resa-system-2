@@ -11,7 +11,10 @@ urlpatterns = [
     path('manage_country/', kahamaAdmin.manage_country, name="kahama_manage_country"),
     path('add_remote_consultation/', kahamaAdmin.add_remote_consultation, name="kahama_add_remote_consultation"),
     path('save_remote_service/', kahamaAdmin.save_remote_service, name="kahama_save_remote_service"),
-    path('save_patient_visit_save/<int:patient_id>/', kahamaAdmin.save_patient_visit_save, name="kahama_save_patient_visit_save"),
+      # URL for adding a new visit (no visit_id)
+    path('save_patient_visit/<int:patient_id>/', kahamaAdmin.save_patient_visit_save, name='kahama_save_patient_visit_save'),
+    # URL for editing an existing visit (with visit_id)
+    path('save_patient_visit/<int:patient_id>/<int:visit_id>/', kahamaAdmin.save_patient_visit_save, name='kahama_save_patient_visit_edit'),    
     path('individual_visit/<int:patient_id>/', kahamaAdmin.individual_visit, name="kahama_individual_visit"),
     path('patient_info_form_edit/<int:patient_id>/', kahamaAdmin.patient_info_form_edit, name="kahama_patient_info_form_edit"),
     path('health_info_edit/<int:patient_id>/', kahamaAdmin.health_info_edit, name="kahama_health_info_edit"),
@@ -79,7 +82,7 @@ urlpatterns = [
     path('patient_visit_history/<int:patient_id>/', kahamaAdmin.patient_visit_history_view, name='kahama_patient_visit_history_view'),
     path('prescriptions/<str:visit_number>/<int:patient_id>/', kahamaAdmin.prescription_detail, name='kahama_prescription_detail'),
     path('prescription-billing/<str:visit_number>/<int:patient_id>/', kahamaAdmin.prescription_billing, name='kahama_prescription_billing'),
-    path('prescription-notes/<str:visit_number>/<int:patient_id>/', kahamaAdmin.prescription_notes, name='kahama_prescription_notes'),
+    path('prescription-notes/<str:visit_id>/<int:patient_id>/', kahamaAdmin.prescription_notes, name='kahama_prescription_notes'),
     path('prescriptions/', kahamaAdmin.prescription_list, name='kahama_prescription_list'),
     path('counseling/', kahamaAdmin.counseling_list_view, name='kahama_counseling_list'),
     path('discharge_notes/', kahamaAdmin.discharge_notes_list_view, name='kahama_discharge_notes_list'),

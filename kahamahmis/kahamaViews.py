@@ -969,8 +969,7 @@ def add_remoteprescription(request):
         doses = request.POST.getlist('dose[]')
         frequencies = request.POST.getlist('frequency[]')
         durations = request.POST.getlist('duration[]')
-        quantities = request.POST.getlist('quantity[]')
-        total_price = request.POST.getlist('total_price[]')
+        quantities = request.POST.getlist('quantity[]')        
         entered_by = request.user.staff
         # Retrieve the corresponding patient and visit
         patient = RemotePatient.objects.get(id=patient_id)
@@ -1012,8 +1011,7 @@ def add_remoteprescription(request):
                 dose=doses[i],
                 frequency=PrescriptionFrequency.objects.get(id=frequencies[i]),
                 duration=durations[i],
-                quantity_used=quantity_used,
-                total_price=total_price[i]
+                quantity_used=quantity_used,               
             )
 
         return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
@@ -1342,7 +1340,7 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
 @csrf_exempt
 def appointment_view(request):
     try:
-        if request.method == 'POST':
+        if request.method == 'POST' and request.is_ajax():
             # Extract data from the request
             doctor_id = request.POST.get('doctor')
             patient_id = request.POST.get('patient_id')
@@ -1351,12 +1349,16 @@ def appointment_view(request):
             start_time = request.POST.get('start_time')
             end_time = request.POST.get('end_time')
             description = request.POST.get('description')
+
             # Get the currently logged-in staff member
             created_by = request.user.staff
-            # Create a Consultation instance
+
+            # Retrieve objects from database
             visit = get_object_or_404(RemotePatientVisits, id=visit_id)
             doctor = get_object_or_404(Staffs, id=doctor_id)
             patient = get_object_or_404(RemotePatient, id=patient_id)
+
+            # Create a Consultation instance
             consultation = RemoteConsultation(
                 doctor=doctor,
                 visit=visit,
@@ -1368,15 +1370,20 @@ def appointment_view(request):
                 created_by=created_by  # Set the created_by field
             )
             consultation.save()
-            return JsonResponse({'status': 'success', 'message': 'Appointment successfully created'})          
 
-    
-        return JsonResponse({'status': 'error', 'message': 'Method not allowed'})
+            # Return JSON response indicating success
+            return JsonResponse({'success': True, 'message': 'Appointment successfully created'})
 
-    except IntegrityError as e:      
-        return JsonResponse({'status': 'error', 'message': str(e)})
-    except Exception as e:    
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        # Handle invalid requests
+        return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+    except IntegrityError as e:
+        # Handle integrity errors (e.g., duplicate key)
+        return JsonResponse({'success': False, 'message': str(e)})
+
+    except Exception as e:
+        # Handle any other unexpected exceptions
+        return JsonResponse({'success': False, 'message': str(e)})
     
   
 @csrf_exempt      

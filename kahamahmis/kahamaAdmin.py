@@ -976,30 +976,53 @@ def patient_visit_details_view(request, patient_id, visit_id):
     
 
 @login_required
-def prescription_list(request):  
+def prescription_list(request):
     # Retrieve all prescriptions with related patient and visit
-    prescriptions = RemotePrescription.objects.select_related('patient', 'visit')
-    # Group prescriptions by visit and calculate total price for each visit
-    visit_total_prices = prescriptions.values(
-    'visit__vst', 
-    'visit__patient__first_name',
-    'visit__created_at', 
-    'visit__patient__id', 
-    'visit__patient__middle_name', 
-    'visit__patient__last_name'
-).annotate(
-    total_price=Sum('total_price'),
-    verified=F('verified'), 
-    issued=F('issued'),   
-    status=F('status'),      
-)
-   
-    # Calculate total price of all prescriptions
-    total_price = sum(prescription.total_price for prescription in prescriptions)     
-    return render(request, 'kahama_template/manage_prescription_list.html', { 
-        'total_price': total_price,
-        'visit_total_prices': visit_total_prices,
+    prescriptions = RemotePrescription.objects.select_related('visit__patient').all()
+
+    # Initialize a dictionary to store visit-wise data
+    visit_data = {}
+
+    # Iterate through prescriptions to group by visit
+    for prescription in prescriptions:
+        visit_id = prescription.visit_id
+
+        # Check if visit_id already exists in visit_data
+        if visit_id in visit_data:
+            visit_data[visit_id]['prescriptions'].append({
+                'medicine_name': prescription.medicine.drug_name,
+                'frequency_name': prescription.frequency.name,
+                'duration': prescription.duration,
+                'quantity': prescription.quantity_used,
+                'dose': prescription.dose,
+            })
+        else:
+            # Add new entry for the visit_id
+            visit_data[visit_id] = {
+                'visit_id': visit_id,
+                'visit_number': prescription.visit.vst,  # Include visit number
+                'patient_name': f"{prescription.visit.patient.first_name} {prescription.visit.patient.last_name}",
+                'created_at': prescription.visit.created_at,
+                'patient_id': prescription.visit.patient_id,
+                'middle_name': prescription.visit.patient.middle_name,
+                'prescriptions': [{
+                    'medicine_name': prescription.medicine.drug_name,
+                    'frequency_name': prescription.frequency.name,
+                    'duration': prescription.duration,
+                    'quantity': prescription.quantity_used,
+                    'dose': prescription.dose,
+                }],
+            }
+
+    # Convert dictionary values to list for template rendering
+    visit_data_list = list(visit_data.values())
+
+    return render(request, 'kahama_template/manage_prescription_list.html', {
+        'visit_data': visit_data_list,
     })
+
+
+
     
     
 @login_required
@@ -1048,20 +1071,20 @@ def prescription_billing(request, visit_number, patient_id):
     return render(request, "kahama_template/prescription_bill.html", context)
 
 @login_required
-def prescription_notes(request, visit_number, patient_id):
+def prescription_notes(request, visit_id, patient_id):
     patient = RemotePatient.objects.get(id=patient_id)
-    visit = RemotePatientVisits.objects.get(vst=visit_number)
-    prescriptions = RemotePrescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
+    visit = RemotePatientVisits.objects.get(id=visit_id)
+    prescriptions = RemotePrescription.objects.filter(visit__id=visit_id, visit__patient__id=patient_id)
     prescriber = None
     if prescriptions.exists():
         prescriber = prescriptions.first().entered_by
     context = {
-        'patient': patient, 
+        'patient': patient,
         'prescriptions': prescriptions,
         'prescriber': prescriber,
-        'visit_number': visit_number,
+        'visit_number': visit.vst,
         'visit': visit,
-        }
+    }
     return render(request, "kahama_template/prescription_notes.html", context)
 
 
@@ -1809,55 +1832,49 @@ def patients_list(request):
                       })
 
 @login_required
-def save_patient_visit_save(request, patient_id):
-    try:
-        # Attempt to retrieve the patient object
-        patient = RemotePatient.objects.get(pk=patient_id) 
-    except RemotePatient.DoesNotExist:
-        # If the patient does not exist, handle the error appropriately
-        messages.error(request, 'Patient does not exist.')
-        return redirect(reverse('kahama_patient_info_form', args=[patient_id]))
-
-    # Initialize latest_visit as None
-    latest_visit = None
-
-    try:
-        # Attempt to retrieve the latest patient visit
-        latest_visit = RemotePatientVisits.objects.filter(patient=patient).order_by("-created_at").first()
-    except ObjectDoesNotExist:
-        # If the visit does not exist, handle the error or notify the user
-        messages.warning(request, 'No visit records found for this patient.')
-
+def save_patient_visit_save(request, patient_id, visit_id=None):
+    # Retrieve the patient object or handle the error if it does not exist
+    patient = get_object_or_404(RemotePatient, pk=patient_id)
+    
     if request.method == 'POST':
         try:
             # Retrieve form data
             visit_type = request.POST.get('visit_type')
             primary_service = request.POST.get('primary_service')
 
-            # Create or update the patient visit object
-            if latest_visit:
-                latest_visit.visit_type = visit_type
-                latest_visit.primary_service = primary_service
-                latest_visit.save()
+            # Check if we are editing an existing visit or adding a new one
+            if visit_id:
+                # Editing an existing visit
+                visit = get_object_or_404(RemotePatientVisits, pk=visit_id)
+                visit.visit_type = visit_type
+                visit.primary_service = primary_service
+                visit.save()
                 messages.success(request, 'Patient visit records updated successfully.')
             else:
-                patient_visit = RemotePatientVisits.objects.create(
+                # Adding a new visit
+                visit = RemotePatientVisits.objects.create(
                     patient=patient,
                     visit_type=visit_type,
                     primary_service=primary_service
                 )
                 messages.success(request, 'Patient visit records added successfully.')
 
-            return redirect(reverse('kahama_save_remotepatient_vitals', args=[patient_id, latest_visit.id if latest_visit else patient_visit.id]))
+            return redirect(reverse('kahama_save_remotepatient_vitals', args=[patient_id, visit.id]))
 
         except Exception as e:
-            # Handle the exception, you can log it or render an error message
+            # Handle the exception, log it or render an error message
             messages.error(request, f'Error adding/updating patient visit records: {str(e)}')
-            # Optionally, you can render an error message in the template
-            return render(request, 'kahama_template/add_patient_visit.html', {'patient': patient, 'latest_visit': latest_visit})
+            return render(request, 'kahama_template/add_patient_visit.html', {'patient': patient, 'visit': None})
 
-    # If the request method is not POST, render the form template
-    return render(request, 'kahama_template/add_patient_visit.html', {'patient': patient, 'latest_visit': latest_visit})
+    else:
+        if visit_id:
+            # Editing an existing visit
+            visit = get_object_or_404(RemotePatientVisits, pk=visit_id)
+        else:
+            # Adding a new visit, ensure no pre-population
+            visit = None
+
+        return render(request, 'kahama_template/add_patient_visit.html', {'patient': patient, 'visit': visit})
 
 
 @login_required
