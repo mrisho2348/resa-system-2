@@ -1205,25 +1205,31 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
     try:
         # Retrieve the current logged-in user (presumably a doctor)
         doctor = request.user.staff
-        
+
         # Check if a vital record already exists for this patient and visit
         existing_vital = RemotePatientVital.objects.filter(patient=patient, visit=visit).last()
-        
+
         if existing_vital:
             # Include existing vital in the context if it exists
             context['existing_vital'] = existing_vital
 
         if request.method == 'POST':
-            # Retrieve form data
-            respiratory_rate = request.POST.get('respiratory_rate')
-            pulse_rate = request.POST.get('pulse_rate')
-            sbp = request.POST.get('sbp')
-            dbp = request.POST.get('dbp')
+            # Define a helper function to decode safely
+            def safe_decode(value):
+                if value is None:
+                    return ''
+                return value.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+
+            # Retrieve form data using safe_decode
+            respiratory_rate = safe_decode(request.POST.get('respiratory_rate'))
+            pulse_rate = safe_decode(request.POST.get('pulse_rate'))
+            sbp = safe_decode(request.POST.get('sbp'))
+            dbp = safe_decode(request.POST.get('dbp'))
             blood_pressure = f"{sbp}/{dbp}"
-            spo2 = request.POST.get('spo2')
-            temperature = request.POST.get('temperature')
-            gcs = request.POST.get('gcs')
-            avpu = request.POST.get('avpu')
+            spo2 = safe_decode(request.POST.get('spo2'))
+            temperature = safe_decode(request.POST.get('temperature'))
+            gcs = safe_decode(request.POST.get('gcs'))
+            avpu = safe_decode(request.POST.get('avpu'))
 
             if existing_vital:  # If a record exists, update it
                 existing_vital.respiratory_rate = respiratory_rate
@@ -1263,6 +1269,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
         # Handle any other exceptions
         messages.error(request, f'Error adding/editing remote patient vital information: {str(e)}')
         return render(request, 'kahama_template/add_remotepatient_vital.html', context)
+
     
 
 

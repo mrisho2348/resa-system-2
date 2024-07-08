@@ -208,8 +208,11 @@ def save_chief_complaint(request):
             patient_id = request.POST.get('patient_id')
             visit_id = request.POST.get('visit_id')
             health_record_id = request.POST.get('chief_complain_name')
-            other_chief_complaint = request.POST.get('other_chief_complaint')
-            duration = request.POST.get('chief_complain_duration')        
+            other_chief_complaint = request.POST.get('other_chief_complaint')          
+            if request.POST.get('chief_complain_duration'):
+                duration = request.POST.get('chief_complain_duration')  
+            else:
+                duration = request.POST.get('other_complain_duration')       
 
             # Create a new ChiefComplaint object
             chief_complaint = ChiefComplaint(
@@ -222,7 +225,7 @@ def save_chief_complaint(request):
             if health_record_id == "other":
                 # Check if a ChiefComplaint with the same other_complaint already exists for the given visit_id
                 if ChiefComplaint.objects.filter(visit_id=visit_id, other_complaint=other_chief_complaint).exists():
-                    return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name already exists for this patient'})
+                    return JsonResponse({'status': False, 'message': 'A Other ChiefComplaint with the same name already exists for this patient'})
                 chief_complaint.other_complaint = other_chief_complaint
             else:
                 # Check if a ChiefComplaint with the same health_record_id already exists for the given visit_id
@@ -401,7 +404,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
         health_records = None  
         patient_surgeries = None  
         behaviors = None  
-       
+    
     provisional_diagnoses = Diagnosis.objects.all()
     consultation_note = RemoteConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
     provisional_record, created = RemotePatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
@@ -414,7 +417,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     previous_prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit=visit)
     previous_referrals = RemoteReferral.objects.filter(patient=patient_id, visit=visit)
     previous_procedures = RemoteProcedure.objects.filter(patient=patient_id, visit=visit)
-    secondary_examination = SecondaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()    
+    secondary_examination = SecondaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
     pathology_records = PathodologyRecord.objects.all()   
     range_51 = range(51)
     range_301 = range(301)
@@ -422,7 +425,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     range_15 = range(3, 16)
     integer_range = np.arange(start=0, stop=510, step=1)
     temps = integer_range / 10
-    
+
     context = {
         'secondary_examination': secondary_examination,
         'previous_counselings': previous_counselings,
@@ -457,52 +460,52 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     if request.method == 'POST':
         try:
             # Retrieve form fields for consultation note      
-            type_of_illness = request.POST.get('type_of_illness')        
-            nature_of_current_illness = request.POST.get('nature_of_current_illness')        
-            history_of_presenting_illness = request.POST.get('history_of_presenting_illness')        
-            doctor_plan = request.POST.get('doctor_plan')       
+            type_of_illness = request.POST.get('type_of_illness', '').encode('utf-8').decode('utf-8')      
+            nature_of_current_illness = request.POST.get('nature_of_current_illness', '').encode('utf-8').decode('utf-8')        
+            history_of_presenting_illness = request.POST.get('history_of_presenting_illness', '').encode('utf-8').decode('utf-8')      
+            doctor_plan = request.POST.get('doctor_plan', '').encode('utf-8').decode('utf-8')      
             pathology = request.POST.getlist('pathology[]')
-            
-               # Retrieve form fields for secondary examination
-            heent = request.POST.get('heent')
-            cns = request.POST.get('cns')
-            normal_cns = request.POST.get('normal_cns')
-            abnormal_cns = request.POST.get('abnormal_cns')
-            cvs = request.POST.get('cvs')
-            normal_cvs = request.POST.get('normal_cvs')
-            abnormal_cvs = request.POST.get('abnormal_cvs')
-            rs = request.POST.get('rs')
-            normal_rs = request.POST.get('normal_rs')
-            abnormal_rs = request.POST.get('abnormal_rs')
-            pa = request.POST.get('pa')
-            normal_pa = request.POST.get('normal_pa')
-            abnormal_pa = request.POST.get('abnormal_pa')
-            gu = request.POST.get('gu')
-            normal_gu = request.POST.get('normal_gu')
-            abnormal_gu = request.POST.get('abnormal_gu')
-            mss = request.POST.get('mss')
-            normal_mss = request.POST.get('normal_mss')
-            abnormal_mss = request.POST.get('abnormal_mss')
+
+            # Retrieve form fields for secondary examination
+            heent = request.POST.get('heent', '').encode('utf-8').decode('utf-8')
+            cns = request.POST.get('cns', '').encode('utf-8').decode('utf-8')
+            normal_cns = request.POST.get('normal_cns', '').encode('utf-8').decode('utf-8')
+            abnormal_cns = request.POST.get('abnormal_cns', '').encode('utf-8').decode('utf-8')
+            cvs = request.POST.get('cvs', '').encode('utf-8').decode('utf-8')
+            normal_cvs = request.POST.get('normal_cvs', '').encode('utf-8').decode('utf-8')
+            abnormal_cvs = request.POST.get('abnormal_cvs', '').encode('utf-8').decode('utf-8')
+            rs = request.POST.get('rs', '').encode('utf-8').decode('utf-8')
+            normal_rs = request.POST.get('normal_rs', '').encode('utf-8').decode('utf-8')
+            abnormal_rs = request.POST.get('abnormal_rs', '').encode('utf-8').decode('utf-8')
+            pa = request.POST.get('pa', '').encode('utf-8').decode('utf-8')
+            normal_pa = request.POST.get('normal_pa', '').encode('utf-8').decode('utf-8')
+            abnormal_pa = request.POST.get('abnormal_pa', '').encode('utf-8').decode('utf-8')
+            gu = request.POST.get('gu', '').encode('utf-8').decode('utf-8')
+            normal_gu = request.POST.get('normal_gu', '').encode('utf-8').decode('utf-8')
+            abnormal_gu = request.POST.get('abnormal_gu', '').encode('utf-8').decode('utf-8')
+            mss = request.POST.get('mss', '').encode('utf-8').decode('utf-8')
+            normal_mss = request.POST.get('normal_mss', '').encode('utf-8').decode('utf-8')
+            abnormal_mss = request.POST.get('abnormal_mss', '').encode('utf-8').decode('utf-8')
 
             # Retrieve form fields for primary examination
-            airway = request.POST.get('airway')
-            explanation = request.POST.get('explanation')
-            breathing = request.POST.get('breathing')
-            normal_breathing = request.POST.getlist('normalBreathing[]')
-            abnormal_breathing = request.POST.get('abnormalBreathing')
-            circulating = request.POST.get('circulating')
-            normal_circulating = request.POST.getlist('normalCirculating[]')
-            abnormal_circulating = request.POST.get('abnormalCirculating')
-            gcs = request.POST.get('gcs')
-            rbg = request.POST.get('rbg')
-            pupil = request.POST.get('pupil')
-            pain_score = request.POST.get('painScore')
-            avpu = request.POST.get('avpu')
-            exposure = request.POST.get('exposure')
-            normal_exposure = request.POST.getlist('normal_exposure[]')
-            abnormal_exposure = request.POST.get('abnormalities')           
+            airway = request.POST.get('airway', '').encode('utf-8').decode('utf-8')
+            explanation = request.POST.get('explanation', '').encode('utf-8').decode('utf-8')
+            breathing = request.POST.get('breathing', '').encode('utf-8').decode('utf-8')
+            normal_breathing = [item.encode('utf-8').decode('utf-8') for item in request.POST.getlist('normalBreathing[]')]
+            abnormal_breathing = request.POST.get('abnormalBreathing', '').encode('utf-8').decode('utf-8')
+            circulating = request.POST.get('circulating', '').encode('utf-8').decode('utf-8')
+            normal_circulating = [item.encode('utf-8').decode('utf-8') for item in request.POST.getlist('normalCirculating[]')]
+            abnormal_circulating = request.POST.get('abnormalCirculating', '').encode('utf-8').decode('utf-8')
+            gcs = request.POST.get('gcs', '').encode('utf-8').decode('utf-8')
+            rbg = request.POST.get('rbg', '').encode('utf-8').decode('utf-8')
+            pupil = request.POST.get('pupil', '').encode('utf-8').decode('utf-8')
+            pain_score = request.POST.get('painScore', '').encode('utf-8').decode('utf-8')
+            avpu = request.POST.get('avpu', '').encode('utf-8').decode('utf-8')
+            exposure = request.POST.get('exposure', '').encode('utf-8').decode('utf-8')
+            normal_exposure = [item.encode('utf-8').decode('utf-8') for item in request.POST.getlist('normal_exposure[]')]
+            abnormal_exposure = request.POST.get('abnormalities', '').encode('utf-8').decode('utf-8')          
         
-            provisional_diagnosis = request.POST.getlist('provisional_diagnosis[]')       
+            provisional_diagnosis = [item.encode('utf-8').decode('utf-8') for item in request.POST.getlist('provisional_diagnosis[]')]
             if not provisional_diagnosis:
                 provisional_record = RemotePatientDiagnosisRecord.objects.create(patient=patient, visit=visit)
                 provisional_record.data_recorder = request.user.staff
@@ -604,9 +607,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                     normal_mss=normal_mss,
                     abnormal_mss=abnormal_mss
                 )             
-            
 
-           
             if consultation_note:
                 consultation_note.nature_of_current_illness = nature_of_current_illness                
                 consultation_note.type_of_illness = type_of_illness                
@@ -634,17 +635,15 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                 consultation_note.save()             
                 consultation_note.pathology.set(pathology)
                 consultation_note.save()
-            messages.success(request, 'record added   successfully.')    
+            messages.success(request, 'Record added successfully.')    
             return redirect(reverse('kahama_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
-            # Add similar logic for other plans
             
         except Exception as e:
             messages.error(request, f'Error: {str(e)}')
-            # Return an appropriate response or render a template with an error message
             return render(request, 'kahama_template/add_consultation_notes.html', context)
     else:
-        # If GET request, render the template for adding consultation notes
         return render(request, 'kahama_template/add_consultation_notes.html', context)
+
     
 
 @login_required    
