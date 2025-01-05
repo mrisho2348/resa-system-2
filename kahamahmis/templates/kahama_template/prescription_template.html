@@ -1,13 +1,23 @@
  {% extends 'kahama_template/base_template.html' %}
+ {% load static %}
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} prescription   
 {% endblock title %}
+{% block page_title %}
+<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% if prescriptions %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
+{% endblock page_title %}
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
 
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#prescriptionModal">
-    <i class="fas fa-eye-slash"></i> view prescription
-</a>
+
 {% endblock breadcrumb %}
 {% block main_content %}
 
@@ -18,7 +28,7 @@
                 <div class="card-header bg-primary-600">
                     <h6 class="card-title text-center text-uppercase">Patient Prescription</h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body  text-uppercase">
                     <div class="row">
                         <div class="col-md-3">
                             PATIENT:  <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
@@ -37,7 +47,7 @@
                             {{ patient.age }}
                             {% endif %}]</b>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3  text-uppercase">
                             SEX:  <b>{{ patient.gender }}</b>
                         </div>
                         <div class="col-md-3">
@@ -47,7 +57,7 @@
                     <br />
                     <div class="row">
                         <div class="col-md-3">
-                            Payment Mode:   <b>{{ patient.payment_form }}</b>
+                            Company:   <b>{{ patient.company }}</b>
                         </div>
                         <div class="col-md-3">
                             Visit number:    <b>{{ visit.vst }}</b>
@@ -103,7 +113,18 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Prescription </h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="header-title  mt-0 mb-1 text-uppercase"> Add Prescription </h6>
+                           
+                        </div>
+                        <div class="col-md-6">
+                            <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#organizationModal">
+                                <i class="fas fa-eye-slash"></i> view prescription
+                            </a>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="card-body">
                     <form id="addPrescriptionForm{{ visit.id }}" method="post">
@@ -113,45 +134,48 @@
                                 <thead>
                                     <tr>
                                         <th>Drug</th>
-                                        <th>unit/formulation</th>
+                                        <th>Unit/Formulation</th>
                                         <th>Dose</th>
                                         <th>Frequency</th>
                                         <th>Duration</th>
-                                        <th>Quantity</th>                                   
+                                        <th>Quantity</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td> 
+                                        <td>
                                             <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
-                                            <option value="">Select Medicine</option>
-                                            {% for medicine in medicines %}
-                                              <option value="{{ medicine.id }}" {% if medicine.id == prescription.medicine.id  %} selected {% endif %}>{{ medicine.drug_name }}</option>
-                                            {% endfor %}
-                                        
-                                          </select>                                         
-                                       </td>                                                                           
+                                                <option value="">Select Medicine</option>
+                                                {% for medicine in medicines %}
+                                                    <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
                                         <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
                                         <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
-                                        <td><select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">                                
-                                            <option value="">Select frequency</option>
-                                            {% for frequency in frequencies %}
-                                              <option value="{{ frequency.id }}" {% if frequency.id == prescription.frequency.id  %} selected {% endif %}>{{ frequency }}</option>
-                                            {% endfor %}                                  
-                                        </select></td></td>
-                                        <td> <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
-                                            {% for rate in range_31 %}
-                                                <option value="{{ rate }}">{{ rate }}</option>
-                                            {% endfor %}
-                                        </select></td>
-                                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>                              
+                                        <td>
+                                            <select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">
+                                                <option value="">Select Frequency</option>
+                                                {% for frequency in frequencies %}
+                                                    <option value="{{ frequency.id }}">{{ frequency.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
+                                                {% for rate in range_31 %}
+                                                    <option value="{{ rate }}">{{ rate }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
                                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>                   
-                      
+                        </div>
+                
                         <div class="row">
                             <div class="col-md-12">
                                 <div id="PrescriptionResponse{{ visit.id }}"></div>
@@ -160,12 +184,13 @@
                         <!-- Hidden inputs for visit and patient IDs -->
                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                
                         <!-- Add Row and Save Prescription buttons -->
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Prescription</button>
-                                </div>    
+                                </div>
                             </div>
                         </div>
                         <div class="row">
@@ -175,397 +200,431 @@
                                     <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
                                 </div>
                                 <script>
-                                    // Get the current date in the format yyyy-mm-dd
+                                    // Set the input field to today's date
                                     const currentDate = new Date().toISOString().split('T')[0];
-                                    
-                                    // Set the value of the input field to the current date
                                     document.getElementById('orderDate').value = currentDate;
                                 </script>
-                            </div>                            
-                           </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-12">
-                                <div class="form-group">                                
-                                    <button type="button" class="btn btn-primary btn-block" onclick="validateAndSubmit{{ visit.id }}()">Save Prescriptions</button>
-                                </div>    
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary btn-block">Save Prescriptions</button>
+                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
+                
             </div>
         </div>
     </div>
     <script>
-        $(document).ready(function() {
-            // Event listeners for dynamic table rows
-            $('#addRow{{ visit.id }}').click(addRow);
+        $(document).ready(function () {
+            // Cache preloaded data for medicines and frequencies to avoid redundant AJAX calls
+            let medicineData = {};
+            let frequencyData = {};
+        
+            // Preload medicine and frequency data
+            preloadData();
+        
+            // Add event listeners for dynamic table rows
+            $('#addRow{{ visit.id }}').click(() => addRow('#prescriptionTable{{ visit.id }} tbody'));
             $(document).on('click', '.delete-row', deleteRow);
-            $(document).on('change', '.medicine-select', updateQuantity);
-            $(document).on('change', '.frequency-select', function() {
-                updateQuantity();
+            $(document).on('change', '.medicine-select, .frequency-select, .duration-select, .dose-input', function () {
+                updateRowQuantity($(this).closest('tr'));
             });
-            $(document).on('change', '.duration-select', function() {
-                updateQuantity();
-            });
-            $(document).on('input', '.quantity-input', updateQuantity);
-            $(document).on('input', '.dose-input', updateQuantity);
-    
-            // Initial setup
-            updateQuantity();
-        });
-    
-        // Function to add a new row to the prescription table
-        function addRow() {
-            var newRow = `
-                <tr>
-                    <td>
-                        <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
-                            <option value="">Select Medicine</option>
-                            {% for medicine in medicines %}
-                            <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
-                            {% endfor %}
-                            <p class="medicine-dosage"></p>
-                        </select>
-                    </td>
-                    <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
-                    <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
-                    <td>
-                        <select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]" required>
-                            <option value="">Select frequency</option>
-                            {% for frequency in frequencies %}
-                            <option value="{{ frequency.id }}" {% if frequency.id == prescription.frequency.id %} selected {% endif %}>{{ frequency }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-control select2bs4 duration-select" id="duration" name="duration[]" style="width: 100%;">
-                            {% for rate in range_31 %}
-                            <option value="{{ rate }}">{{ rate }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                </tr>`;
-    
-            $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
-        }
-    
-        // Function to delete a row from the prescription table
-        function deleteRow() {
-            $(this).closest('tr').remove();
-            updateQuantity(); // Update quantities after deletion
-        }
-    
-        // Function to update quantity based on drug type, frequency, and duration
-        function updateQuantity() {
-            $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
-                var row = $(this);
-                var selectedMedicineId = row.find('.medicine-select').val();
-                var selectedFrequencyId = row.find('.frequency-select').val();
-                var selectedDuration = parseInt(row.find('.duration-select').val());
-                var interedDose = parseInt(row.find('.dose-input').val());
-                var dividable = IsDrugDividable(selectedMedicineId);
-                var frequencyName = getFrequencyName(selectedFrequencyId);
-                var quantity;
-    
-                // Check if quantity is manually entered for PRN frequency or non-dividable medicine
-                if (frequencyName === 'PRN' || dividable === 'false') {
-                    quantity = parseInt(row.find('.quantity-input').val()) || 0; // Use entered quantity or default to 0
-                } else {
-                    var formulationUnit = getFormulationUnit(selectedMedicineId);
-                    var adjustedDose = interedDose / formulationUnit; // Adjusted dose based on formulation unit
-                    quantity = calculateTabletQuantity(frequencyName, selectedDuration, adjustedDose);
-                }
-    
-                // Set calculated or entered quantity
-                row.find('.quantity-input').val(quantity);
-            });
-        }
-    
-        // Function to get the drug dividability based on medicine ID
-        function IsDrugDividable(medicineId) {
-            var dividable = '';
-            $.ajax({
-                url: '{% url "kahama_get_drug_division_status" %}',
-                method: 'GET',
-                data: { medicine_id: medicineId },
-                async: false,
-                success: function(response) {
-                    if ('dividable' in response) {
-                        dividable = response.dividable;
-                    } else {
-                        console.error('Drug type not found');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching drug type:', error);
-                }
-            });
-            return dividable;
-        }
-    
-        // Function to get the frequency name based on frequency ID
-        function getFrequencyName(frequencyId) {
-            var frequencyName = '';
-            $.ajax({
-                url: '{% url "kahama_get_frequency_name" %}',
-                method: 'GET',
-                data: { frequency_id: frequencyId },
-                async: false,
-                success: function(response) {
-                    if ('frequency_name' in response) {
-                        frequencyName = response.frequency_name;
-                    } else {
-                        console.error('Frequency name not found');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching frequency name:', error);
-                }
-            });
-            return frequencyName;
-        }
-    
-        // Function to calculate quantity for tablet type medication based on frequency, duration, and adjusted dose
-        function calculateTabletQuantity(frequency, duration, dose) {
-            var quantity = 0;
-            switch (frequency) {
-                case 'OD':
-                case 'I.C':
-                case 'STAT':
-                    quantity = duration * dose;
-                    break;
-                case 'QID':
-                    quantity = duration * 4 * dose; // 4 times a day
-                    break;
-                case 'TID':
-                    quantity = duration * 3 * dose; // 3 times a day
-                    break;
-                case 'BID':
-                    quantity = duration * 2 * dose; // 2 times a day
-                    break;
-                case 'PRN':
-                    // For PRN frequency, let the user input the quantity manually
-                    quantity = ''; // Empty string indicates manual input
-                    break;
-                default:
-                    // For other frequencies or non-tablet drug types, default quantity is 1
-                    quantity = 1;
-                    break;
-            }
-            return quantity;
-        }
-    
-        // Function to get the formulation unit based on medicine ID
-        function getFormulationUnit(medicineId) {
-            var formulationUnit = 1; // Default formulation unit is 1
-            $.ajax({
-                url: '{% url "kahama_get_formulation_unit" %}',
-                method: 'GET',
-                data: { medicine_id: medicineId },
-                async: false, // Synchronous request
-                success: function(response) {
-                    if (response && response.formulation_unit) {
-                        formulationUnit = parseFloat(response.formulation_unit);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching formulation unit:', error);
-                }
-            });
-            return formulationUnit;
-        }
-    
-        // Validate form before submission
-        function validateAndSubmit{{ visit.id }}() {
-            var isValid = true;
-            var errorMessage = "";
-    
-            $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
-                var medicine = $(this).find('select[name="medicine[]"]').val();
-                var frequency = $(this).find('select[name="frequency[]"]').val();
-    
-                if (!medicine) {
-                    isValid = false;
-                    errorMessage = "Please select a medicine in all rows.";
-                    return false;
-                }
-                if (!frequency) {
-                    isValid = false;
-                    errorMessage = "Please select a frequency in all rows.";
-                    return false;
-                }
-            });
-    
-            if (isValid) {
-                addPrescription{{ visit.id }}();
-            } else {
-                $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + errorMessage + '</div>');
-            }
-        }
-    
-        // Handle form submission using AJAX
-        function addPrescription{{ visit.id }}() {
-            $.ajax({
-                type: 'POST',
-                url: '{% url "kahama_add_remoteprescription" %}',
-                data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-    
-                        var redirectUrl = '{% url "kahama_save_remotesconsultation_notes" patient.id visit.id %}'; // Replace 'patient_id' and 'visit_id' with actual parameters
-                        window.location.href = redirectUrl;
-                    } else {
-                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
-                }
-            });
-        }
-    </script>
-    
-
-    <script>
-        $(document).ready(function() {
-            // Add event listener for medicine selection change
-            $(document).on('change', '.medicine-select', function() {
+        
+            // Add event listener for medicine selection change to update formulation unit
+            $(document).on('change', '.medicine-select', function () {
                 var medicineId = $(this).val();
                 var formulationField = $(this).closest('tr').find('.formulation_unit');
-    
-                // Make an AJAX request to fetch the formulation dosage information for the selected medicine
+        
+                if (medicineData[medicineId]) {
+                    formulationField.val(medicineData[medicineId].formulation_unit || '');
+                }
+            });
+        
+            // Preload medicine and frequency data
+            function preloadData() {
+                // Preload medicine data
                 $.ajax({
-                    url: '{% url "kahama_get_medicine_formulation" %}', // Update this URL to match your endpoint
+                    url: '{% url "kahama_get_all_medicine_data" %}',
                     method: 'GET',
-                    data: { 'medicine_id': medicineId },
-                    success: function(response) {
-                        // Check if the formulation dosage information is available in the response
-                        if ('formulation' in response) {
-                            // Populate the formulation dosage information in the input field
-                            formulationField.val(response.formulation);
-                        } else {
-                            // Clear the formulation dosage information if not available
-                            formulationField.val('');
-                            console.error('Formulation dosage information not found in response.');
-                        }
+                    success: function (response) {
+                        medicineData = response;
                     },
-                    error: function(xhr, status, error) {
-                        // Handle error if AJAX request fails
-                        formulationField.val('');
-                        console.error('Error fetching medicine formulation dosage:', error);
+                    error: function () {
+                        console.error('Error fetching medicine data');
+                    },
+                });
+        
+                // Preload frequency data
+                $.ajax({
+                    url: '{% url "kahama_get_all_frequency_data" %}',
+                    method: 'GET',
+                    success: function (response) {
+                        frequencyData = response;
+                    },
+                    error: function () {
+                        console.error('Error fetching frequency data');
+                    },
+                });
+            }
+        
+            // Add a new row to the prescription table
+            function addRow(tbodySelector) {
+                const newRow = `
+                    <tr>
+                        <td>
+                            <select class="form-control select2bs4 medicine-select" name="medicine[]" required>
+                                <option value="">Select Medicine</option>
+                                ${Object.entries(medicineData).map(([id, data]) => `<option value="${id}">${data.drug_name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
+                        <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
+                        <td>
+                            <select class="form-control select2bs4 frequency-select" name="frequency[]" required>
+                                <option value="">Select Frequency</option>
+                                ${Object.entries(frequencyData).map(([id, data]) => `<option value="${id}">${data.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-control select2bs4 duration-select" name="duration[]">
+                                ${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
+                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                    </tr>`;
+        
+                $(tbodySelector).append(newRow);
+        
+                // Re-initialize Select2 for dynamically added elements
+                $('.select2bs4').select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
+        
+            // Delete a row
+            function deleteRow() {
+                $(this).closest('tr').remove();
+            }
+        
+            // Update quantity for a specific row
+            function updateRowQuantity(row) {
+                const medicineId = row.find('.medicine-select').val();
+                const frequencyId = row.find('.frequency-select').val();
+                const duration = parseInt(row.find('.duration-select').val()) || 0;
+                const dose = parseFloat(row.find('.dose-input').val()) || 1;
+        
+                let quantity = 1;
+        
+                if (frequencyData[frequencyId] && medicineData[medicineId]) {
+                    const frequencyName = frequencyData[frequencyId].name;
+                    const dividable = medicineData[medicineId].dividable;
+                    const formulationUnit = parseFloat(medicineData[medicineId].formulation_unit) || 1;
+        
+                    if (frequencyName === 'PRN' || dividable === 'false') {
+                        quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+                    } else {
+                        const adjustedDose = dose / formulationUnit;
+                        quantity = Math.ceil(calculateTabletQuantity(frequencyName, duration, adjustedDose));
+                    }
+                }
+        
+                row.find('.quantity-input').val(quantity);
+            }
+        
+            // Calculate tablet quantity
+            function calculateTabletQuantity(frequency, duration, dose) {
+                const frequencyMap = {
+                    'OD': 1,
+                    'I.C': 1,
+                    'STAT': 1,
+                    'QID': 4,
+                    'TID': 3,
+                    'BID': 2,
+                };
+        
+                return frequencyMap[frequency] ? duration * frequencyMap[frequency] * dose : dose;
+            }
+        
+            // Validate and submit the prescription form
+            $('#addPrescriptionForm{{ visit.id }}').submit(function (event) {
+                event.preventDefault();
+        
+                let isValid = true;
+                let errorMessage = '';
+        
+                $('#prescriptionTable{{ visit.id }} tbody tr').each(function () {
+                    const row = $(this);
+                    const medicine = row.find('.medicine-select').val();
+                    const frequency = row.find('.frequency-select').val();
+                    const quantity = row.find('.quantity-input').val();
+        
+                    if (!medicine) {
+                        isValid = false;
+                        errorMessage = 'Please select a medicine for each row.';
+                        return false;
+                    }
+        
+                    if (!frequency) {
+                        isValid = false;
+                        errorMessage = 'Please select a frequency for each row.';
+                        return false;
+                    }
+        
+                    if (!Number.isInteger(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
+                        isValid = false;
+                        errorMessage = 'Quantity must be a positive whole number.';
+                        return false;
                     }
                 });
+        
+                if (!isValid) {
+                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + errorMessage + '</div>');
+                } else {
+                    savePrescriptions();
+                }
             });
+        
+            // Save prescriptions via AJAX
+            function savePrescriptions() {
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "kahama_add_remoteprescription" %}',
+                    data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            window.location.href = '{% url "kahama_save_remotesconsultation_notes" patient.id visit.id %}';
+                        } else {
+                            $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+                    },
+                });
+            }
         });
-    </script>
-    
+        
+        
+    </script>   
+
     
 
 </div>
 
 
 
-<div class="modal fade" id="prescriptionModal" tabindex="-1" role="dialog" aria-labelledby="prescriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="prescriptionModalLabel">Prescription and Total Amount: <span style="background-color: red;">{{ total_price }}</span></h5>
+                <h5 class="modal-title" id="organizationModalLabel">RESA Medical Centre Details</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-bordered table-striped" id="example">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Day</th>
-                                        <th>Drug</th>
-                                        <th>Dose</th>
-                                        <th>Frequency</th>
-                                        <th>Duration</th>
-                                        <th>Quantity</th>                                       
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for prescription in prescriptions %}
-                                    <tr>
-                                        <td>{{ prescription.id }}</td>
-                                          <!-- Display data for each field -->
-                                        <td>{{ prescription.created_at.date|date:"d/m/Y"  }}</td>
-                                        <td>{{ prescription.created_at.time }}</td>
-                                        <td>{{ prescription.created_at|date:"l" }}</td>
-                                        <td>{{ prescription.medicine.drug_name }}</td>
-                                        <td>{{ prescription.dose }}</td>
-                                        <td>{{ prescription.frequency }}</td>
-                                        <td>{{ prescription.duration }}</td>
-                                        <td>{{ prescription.quantity_used }}</td>                         
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td class="mx-3">
+                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                                            </td>
+                                            <td class="text-white">
+                                                <h1>RESA MEDICAL CENTRE</h1>
+                                                <p>Polyclinic and EMS Care</p>
+                                                <p>P.O.BOX 54235</p>
+                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
+                                                <p>info@resahmis.co.tz</p>
+                                                <p>Tel: 255 657 008 008</p>
+                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
+                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </header>
+                </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
+                <!-- Previous Prescription Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Prescription Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>                                   
+                                                    <th>Drug name</th>
+                                                    <th>Dose</th>
+                                                    <th>Frequency</th>
+                                                    <th>Duration</th>
+                                                    <th>Quantity Used</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for prescription in prescriptions %}
+                                                    <tr>
+                                                        <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ prescription.created_at.time }}</td>
+                                                        <td>{{ prescription.created_at|date:"l" }}</td>                                       
+                                                        <td>{{ prescription.medicine }}</td>
+                                                        <td>{{ prescription.dose }}</td>
+                                                        <td>{{ prescription.frequency }}</td>
+                                                        <td>{{ prescription.duration }}</td>
+                                                        <td>{{ prescription.quantity_used }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>   
+                  <!-- Prescribing Doctor Section -->
+                  <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Name of Dr. Prescribing</h2>
+                                </div>
+                                <div class="card-body">
+                                    <p>Dr. {{ prescriptions.first.entered_by }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>      
+           
+           </div>
         </div>
     </div>
 </div>
 
 
 <style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
+    body {
+          font-family: Arial, sans-serif;
+      }
+    /* CSS for the company logo */
+.company-logo {
+  max-width: 120px;
+  height: 120px;
+  border-radius: 50%;
 }
 
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+/* Additional styling for the header */
+.header {
+  background-color: #344; /* Adjust background color to match the logo */
+  color: #fff;
+  padding: 20px;
 }
 
-/* Add styles for the table */
-.table {
-    width: 100%;
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #fff; /* Set text color for consistency */
 }
 
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
+.header p {
+  margin-bottom: 0;
 }
 
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
+.header a {
+  color: #fff;
 }
 
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
+.header-info {
+  font-size: 14px; /* Adjust font size for header info */
+  margin-bottom: 5px; /* Add some bottom margin for spacing */
 }
+       /* Specific Styles for Cards */
+  .patient-details-card {
+      margin-bottom: 20px;
+  }
 
-/* Add more styles as needed */
+  .clinical-notes-card {
+      margin-bottom: 20px;
+  }
 
+  .prescription-details-card {
+      margin-bottom: 20px;
+  }
+
+  .assessment-data-card {
+      margin-bottom: 20px;
+  }
 </style>
+
+
+
  
 
 {% include 'kahama_template/datatable.html' %}

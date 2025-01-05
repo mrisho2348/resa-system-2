@@ -1,13 +1,24 @@
 {% extends 'kahama_template/base_template.html' %}
+{% load static %}
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Lab Result 
 {% endblock title %}
+{% block page_title %}
+<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% if previous_results %}
+<a class="btn btn-success" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-right"></i> Forward
+</a>
+{% endif %}
+
+{% endblock page_title %}
+
 
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#previousResultsModal">
-    <i class="fas fa-eye"></i>  View Previous Lab result
-</a>
+Patient Lab Result
 {% endblock breadcrumb %}
 {% block main_content %}
 
@@ -121,7 +132,17 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Lab Results </h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="header-title mt-0 mb-1 text-uppercase"> Add Lab Results </h4>
+                        </div>
+                        <div class="col-md-6">
+                            <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#previousResultsModal">
+                                <i class="fas fa-eye"></i>  View Previous Lab result
+                            </a>
+                        </div>
+                    </div>
+                    
                 </div>
                 <div class="card-body">
                     <form method="post"  action="{% url "kahama_save_laboratory" patient.id visit.id %}">
@@ -199,64 +220,157 @@
                         </td>
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
+                // Append the new row to the table body
                 $('#investigationTable{{ visit.id }} tbody').append(newRow);
+                
+                // Re-initialize Select2 for the new dynamically added select elements
+                $('.select2bs4').select2({
+                    theme: 'bootstrap4',
+                    width: '100%'
+                });
             });
-    
+        
             // Delete row button functionality
             $(document).on('click', '.delete-row', function() {
+                // Remove the closest <tr> element (the row that contains the clicked delete button)
                 $(this).closest('tr').remove();
-            });  
+            });
         });
-    </script>    
+    </script>
+    
 </div>
 
-<!-- Bootstrap modal for displaying previous results -->
-<div class="modal fade" id="previousResultsModal" tabindex="-1" role="dialog" aria-labelledby="previousResultsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="previousResultsModal" tabindex="-1" role="dialog" aria-labelledby="previousLaboratoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousResultsModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Previous Results</h5>
+                <h5 class="modal-title" id="previousLaboratoryModalLabel">RESA Medical Centre Details</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>  
-                                <th>Investigation Name</th>
-                                <th>Description result</th>
-                        
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Loop through previous results and populate the table -->
-                            {% for result in previous_results %}
-                            <tr>
-                                 <!-- Display laboratory order data in table rows -->
-                                 <td>{{ result.created_at.date|date:"d/m/Y"  }}</td>
-                                 <td>{{ result.created_at.time }}</td>
-                                 <td>{{ result.created_at|date:"l" }}</td>
-                                <td>{{ result.name }}</td>
-                                <td>{{ result.result }}</td>
-                               
-                            </tr>                           
-
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td class="mx-3">
+                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                                            </td>
+                                            <td class="text-white">
+                                                <h1>RESA MEDICAL CENTRE</h1>
+                                                <p>Polyclinic and EMS Care</p>
+                                                <p>P.O.BOX 54235</p>
+                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
+                                                <p>info@resahmis.co.tz</p>
+                                                <p>Tel: 255 657 008 008</p>
+                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
+                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </header>
                 </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previous Laboratory Orders Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Previous Laboratory Orders</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example2">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>
+                                                    <th>Data Recorder</th>
+                                                    <th>Service Name</th>
+                                                    <th>Test Result</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for lab_order in previous_results %}
+                                                    <tr>
+                                                        <td>{{ lab_order.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ lab_order.created_at.time }}</td>
+                                                        <td>{{ lab_order.created_at|date:"l" }}</td>
+                                                        <td>{{ lab_order.data_recorder }}</td>
+                                                        <td>{{ lab_order.name }}</td>
+                                                        <td>{{ lab_order.result }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>           
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
+
 
 {% include 'kahama_template/datatable.html' %}    
 

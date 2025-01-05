@@ -188,7 +188,7 @@ def edit_medicine(request, medicine_id):
             medicine.save()
 
         # Log a success message
-        messages.success(request, 'Medicine details updated successfully!')
+        messages.success(request, '')
         return redirect('medicine_list') 
     except Exception as e:
         # Log an error message
@@ -214,7 +214,7 @@ def edit_disease_record(request, disease_id):
             # Save the changes
             disease.save()
 
-            messages.success(request, 'Disease details updated successfully!')
+            messages.success(request, '')
             return redirect('kahama_manage_disease')  # Replace 'your_redirect_url' with the appropriate URL name
 
         except Exception as e:
@@ -247,7 +247,7 @@ def edit_company(request, company_id):
             # Save the changes
             company.save()
 
-            messages.success(request, 'Company details updated successfully!')
+            messages.success(request, '')
             return redirect('manage_company')  # Replace 'your_redirect_url' with the appropriate URL name
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
@@ -282,7 +282,7 @@ def edit_pathodology(request, pathodology_id):
             # Save the changes
             pathodology.save()
 
-            messages.success(request, 'Pathodology details updated successfully!')
+            messages.success(request, '')
             return redirect('kahama_manage_pathodology')  # Replace 'your_redirect_url' with the appropriate URL name
 
         except Exception as e:

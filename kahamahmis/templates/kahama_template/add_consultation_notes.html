@@ -1,8 +1,50 @@
 {% extends 'kahama_template/base_template.html' %}
-
+{% load static %}
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Consultation notes
 {% endblock title %}
+
+{% block page_title %}
+    <!-- Forward Button -->
+    {% if final_provisional_diagnosis %}
+        <a class="btn btn-primary breadcrumb-link" type="button" 
+           href="
+           {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Prescription' %}
+               {% url 'kahama_save_prescription' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+               {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Referral' %}
+               {% url 'kahama_save_remotereferral' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Counselling' %}
+               {% url 'kahama_save_remote_counseling' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Procedure' %}
+               {% url 'kahama_save_remoteprocedure' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Observation' %}
+               {% url 'kahama_save_observation' patient.id visit.id %}
+           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Discharge' %}
+               {% url 'kahama_save_remote_discharges_notes' patient.id visit.id %}
+           {% endif %}
+           ">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>       
+      {% endif %}
+      <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'kahama_save_remotepatient_vitals' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back to vitals
+    </a>   
+    <!-- Back Button -->
+    {% if consultation_note %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="
+    {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+        {% url 'kahama_save_laboratory' patient.id visit.id %}
+    {% else %}
+        {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
+    {% endif %}
+    ">
+     <i class="fas fa-arrow-right"></i> Forward
+ </a>
+    {% endif %}
+{% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
@@ -271,7 +313,7 @@ Add  Consultation notes
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md">
+                            <div class="col-md-12">
                                 <div class="card">
                                     <div class="card-header">
                                          <label for="chief_complaints">Chief Complaints</label>
@@ -284,41 +326,236 @@ Add  Consultation notes
                         </div>
                         <form id="chiefComplaintForm" method="post">
                             <div id="popupContainer" class="popup-container"></div>
-
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                       
                                         <div id="chiefComplaintsContainer">
-                                            <!-- Chief Complaints will be dynamically added here -->
                                             <table class="table table-borderless" id="chiefComplaintsTable">
                                                 <thead>
                                                     <tr>
-                                                        <!-- Add table headers here if needed -->
+                                                        <th>Chief Complaint</th>
+                                                        <th>Duration</th>
+                                                        <th>Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr id="chiefComplaintRow1">
-                                                        <!-- Add initial row content here if needed -->
-                                                    </tr>
+                                                    <!-- Rows for chief complaints will be dynamically added here -->
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-info" onclick="addChiefComplaint()">
-                                            <i class="fa fa-plus-square" aria-hidden="true"></i>  Add chief complaint
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-secondary" onclick="editChiefComplaint()">
-                                            <i class="fa fa-edit" aria-hidden="true"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-secondary" onclick="ViewChiefComplaint()">
-                                            <i class="fa fa-eye" aria-hidden="true"></i>
+                                        <button type="button" id="addChiefComplaintButton" class="btn btn-sm btn-info">
+                                            <i class="fa fa-plus-square" aria-hidden="true"></i> Add Chief Complaint
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            
-                         
                         </form>
+                        
+                        <script>
+                            $(document).ready(function () {
+                                const patientId = $('#patient_id').val();
+                                const visitId = $('#visit_id').val();
+                        
+                                // Function to initialize Select2 dynamically
+                                function initializeSelect2(selector) {
+                                    $(selector).select2({
+                                        theme: 'bootstrap4',
+                                        width: '100%',
+                                    });
+                                }
+                        
+                                // Add a new row for chief complaint
+                                function addChiefComplaintRow() {
+                                    const container = $('#chiefComplaintsTable tbody');
+                                    const rowCount = container.find('tr').length + 1;
+                        
+                                    const newRow = `
+                                        <tr id="chiefComplaintRow${rowCount}">
+                                            <td>
+                                                <select class="form-control select2bs4" name="chief_complain_name" required onchange="handleOtherOption(this.value, 'chiefComplaintRow${rowCount}')">
+                                                    {% for health_record in health_records %}
+                                                        <option value="{{ health_record.id }}">{{ health_record.name }}</option>
+                                                    {% endfor %}
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control" name="chief_complain_duration" placeholder="Duration (days)" required>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+                                                <button type="button" class="btn btn-success btn-sm save-row">Save</button>
+                                            </td>
+                                        </tr>`;
+                        
+                                    container.append(newRow);
+                                    initializeSelect2('.select2bs4');
+                        
+                                    // Re-bind event listeners after row is appended
+                                    bindEventListeners(rowCount);
+                                }
+                        
+                                // Bind event listeners to the dynamically created "Save", "Delete", and "Other" options
+                                function bindEventListeners(rowCount) {
+                                    // Save button event handler
+                                    $(`#chiefComplaintRow${rowCount} .save-row`).on('click', function () {
+                                        saveChiefComplaint(`chiefComplaintRow${rowCount}`);
+                                    });
+                        
+                                    // Delete button event handler
+                                    $(`#chiefComplaintRow${rowCount} .delete-row`).on('click', function () {
+                                        deleteChiefComplaintRow(`chiefComplaintRow${rowCount}`);
+                                    });                       
+                                  
+                        
+                                    // Delete chief complaint handler for dynamically added complaints
+                                    $(`#chiefComplaintRow${rowCount} .delete-chief-complaint`).on('click', function () {
+                                        const id = $(this).data('id');
+                                        deleteChiefComplaint(id);
+                                    });
+                                }
+                        
+                                // Fetch and display existing chief complaints
+                                function fetchAndDisplayChiefComplaints() {
+                                    const url = `{% url 'kahama_endpoint_to_fetch_existing_data' %}`;
+                        
+                                    $.getJSON(url, { patient_id: patientId, visit_id: visitId }, function (data) {
+                                        populateChiefComplaintsTable(data);
+                                    }).fail(function () {
+                                        displayPopupMessage('Error fetching chief complaints.', 'alert-danger');
+                                    });
+                                }
+                        
+                                // Populate the table with chief complaints
+                                function populateChiefComplaintsTable(data) {
+                                    const container = $('#chiefComplaintsTable tbody');
+                                    container.empty();
+                        
+                                    data.forEach(item => {
+                                        const row = `
+                                            <tr id="chiefComplaintRow${item.id}">
+                                                <td>${item.health_record || item.other_complaint}</td>
+                                                <td>${item.duration}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm delete-chief-complaint" data-id="${item.id}">Delete</button>
+                                                </td>
+                                            </tr>`;
+                                        container.append(row);
+                                    });
+                        
+                                    // Bind event listeners for newly populated rows
+                                    data.forEach(item => {
+                                        bindEventListeners(item.id);
+                                    });
+                                }
+                        
+                                // Delete a chief complaint
+                                function deleteChiefComplaint(id) {
+                                    const url = `{% url 'kahama_delete_chief_complaint' chief_complaint_id=0 %}`.replace('0', id);
+                        
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        success: function () {
+                                            fetchAndDisplayChiefComplaints();
+                                        },
+                                        error: function () {
+                                            displayPopupMessage('Error deleting chief complaint.', 'alert-danger');
+                                        },
+                                    });
+                                }
+                        
+                                // Handle "Other" option in the dropdown
+                                function handleOtherOption(value, rowId) {
+                                    const row = $(`#${rowId}`);
+                                    const otherInputCell = row.find('[name="other_complaint"]').closest('td');
+                        
+                                    if (value === 'other') {
+                                        if (otherInputCell.length === 0) {
+                                            row.find('td:last').before(`
+                                                <td>
+                                                    <input type="text" class="form-control" name="other_complaint" placeholder="Other Chief Complaint" required>
+                                                </td>`);
+                                        }
+                                    } else {
+                                        otherInputCell.remove();
+                                    }
+                                }
+                        
+                                // Save a chief complaint
+                                function saveChiefComplaint(rowId) {
+                                    const row = $(`#${rowId}`);
+                                    const formData = {
+                                        patient_id: patientId,
+                                        visit_id: visitId,
+                                        chief_complain_name: row.find('[name="chief_complain_name"]').val(),
+                                        chief_complain_duration: row.find('[name="chief_complain_duration"]').val(),
+                                        other_complaint: row.find('[name="other_complaint"]').val() || null,
+                                    };
+                        
+                                    if (!formData.chief_complain_name || !formData.chief_complain_duration) {
+                                        displayPopupMessage('Please complete all required fields.', 'alert-danger');
+                                        return;
+                                    }
+                        
+                                    console.log('Submitting data:', formData); // Debugging
+                        
+                                    const url = "{% url 'kahama_save_chief_complaint' %}";
+                        
+                                    $.post(url, formData, function (response) {
+                                        console.log('Response received:', response); // Debugging
+                        
+                                        if (response.status) {
+                                            row.remove(); // Remove the saved row from the form
+                                            fetchAndDisplayChiefComplaints(); // Refresh the table to display the saved data
+                                        } else {
+                                            displayPopupMessage(response.message || 'Failed to save chief complaint.', 'alert-danger');
+                                        }
+                                    }).fail(function (xhr, status, error) {
+                                        console.error('Error saving chief complaint:', status, error); // Debugging
+                                        displayPopupMessage('Error saving chief complaint.', 'alert-danger');
+                                    });
+                                }
+                        
+                                // Display popup messages
+                                function displayPopupMessage(message, alertType) {
+                                    const popup = `<div class="alert ${alertType}">${message}</div>`;
+                                    $('#popupContainer').html(popup);
+                                }
+                        
+                                // Delete a row in the form
+                                function deleteChiefComplaintRow(rowId) {
+                                    $(`#${rowId}`).remove();
+                                }
+                        
+                                // Event bindings
+                                $('#addChiefComplaintButton').click(addChiefComplaintRow);
+                        
+                                // Fetch data on page load
+                                fetchAndDisplayChiefComplaints();
+                            });
+
+                            // Function to handle "Other" option
+                            function handleOtherOption(value, rowId) {
+                                const row = $(`#${rowId}`);
+                                const otherInputCell = row.find('[name="other_complaint"]').closest('td');
+
+                                if (value === 'other') {
+                                    if (otherInputCell.length === 0) {
+                                        row.find('td:last').before(`
+                                            <td>
+                                                <input type="text" class="form-control" name="other_complaint" placeholder="Other Chief Complaint" required>
+                                            </td>`);
+                                    }
+                                } else {
+                                    otherInputCell.remove();
+                                }
+                            }
+
+                        </script>
+                        
+                        
+                                        
                         
                      
         <div class="row justify-content-center">
@@ -502,74 +739,136 @@ Add  Consultation notes
                                                 </div>                                        
                                         </div>                                          
                                      <!-- Secondary Survey -->                                    
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <div class="card">
-                                                        <div class="card-header">
-                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Secondary physical examination</h6>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <!-- Additional fields for secondary survey -->
-                                                            <div class="form-group">
-                                                                <label for="heent">HEENT:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="heent" name="heent">
-                                                                    <option value=""></option>
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.heent %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.heent %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="cns">CNS:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="cns" name="cns">
-                                                                    <option value=""></option>
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.cns %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.cns %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="cvs">CVS:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="cvs" name="cvs">
-                                                                    <option value=""></option>
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.cvs %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.cvs %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="rs">RS:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="rs" name="rs">
-                                                                    <option value=""></option>
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.rs %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.rs %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="pa">PA:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="pa" name="pa">
-                                                                    <option value=""></option>
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.pa %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.pa %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="gu">GU:</label>                                                                
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="gu" name="gu">  
-                                                                    <option value=""></option>                                                               
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.gu %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.gu %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label for="mss">MSS:</label>                                                                
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="mss" name="mss">     
-                                                                    <option value=""></option>                                                               
-                                                                    <option value="Normal" {% if "Normal" == secondary_examination.mss %} selected {% endif %}>Normal</option>
-                                                                    <option value="Abnormal" {% if "Abnormal" == secondary_examination.mss %} selected {% endif %}>Abnormal</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>                                                      
+                                     <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Secondary Physical Examination</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- HEENT -->
+                                                    <div class="form-group">
+                                                        <label for="heent">HEENT:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="heent" name="heent" onchange="toggleHeentFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.heent == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.heent == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
                                                     </div>
-                                                </div>                                                
-                                            </div>                                            
+                                                    <!-- HEENT Abnormal Field -->
+                                                    <div id="heentField" {% if secondary_examination.heent == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="heentDetails">HEENT Abnormal Details:</label>
+                                                            <textarea class="form-control" id="heentDetails" name="abnormal_heent" rows="3">{{ secondary_examination.abnormal_heent }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- CNS -->
+                                                    <div class="form-group">
+                                                        <label for="cns">CNS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="cns" name="cns" onchange="toggleCnsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.cns == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.cns == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- CNS Abnormal Field -->
+                                                    <div id="cnsField" {% if secondary_examination.cns == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="cnsDetails">CNS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="cnsDetails" name="abnormal_cns" rows="3">{{ secondary_examination.abnormal_cns }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- CVS -->
+                                                    <div class="form-group">
+                                                        <label for="cvs">CVS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="cvs" name="cvs" onchange="toggleCvsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.cvs == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.cvs == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- CVS Abnormal Field -->
+                                                    <div id="cvsField" {% if secondary_examination.cvs == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="cvsDetails">CVS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="cvsDetails" name="abnormal_cvs" rows="3">{{ secondary_examination.abnormal_cvs }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- RS -->
+                                                    <div class="form-group">
+                                                        <label for="rs">RS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="rs" name="rs" onchange="toggleRsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.rs == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.rs == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- RS Abnormal Field -->
+                                                    <div id="rsField" {% if secondary_examination.rs == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="rsDetails">RS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="rsDetails" name="abnormal_rs" rows="3">{{ secondary_examination.abnormal_rs }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- PA -->
+                                                    <div class="form-group">
+                                                        <label for="pa">PA:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="pa" name="pa" onchange="togglePaFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.pa == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.pa == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- PA Abnormal Field -->
+                                                    <div id="paField" {% if secondary_examination.pa == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="paDetails">PA Abnormal Details:</label>
+                                                            <textarea class="form-control" id="paDetails" name="abnormal_pa" rows="3">{{ secondary_examination.abnormal_pa }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- GU -->
+                                                    <div class="form-group">
+                                                        <label for="gu">GU:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="gu" name="gu" onchange="toggleGuFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.gu == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.gu == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- GU Abnormal Field -->
+                                                    <div id="guField" {% if secondary_examination.gu == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="guDetails">GU Abnormal Details:</label>
+                                                            <textarea class="form-control" id="guDetails" name="abnormal_gu" rows="3">{{ secondary_examination.abnormal_gu }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- MSS -->
+                                                    <div class="form-group">
+                                                        <label for="mss">MSS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="mss" name="mss" onchange="toggleMssFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.mss == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.mss == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- MSS Abnormal Field -->
+                                                    <div id="mssField" {% if secondary_examination.mss == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="mssDetails">MSS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="mssDetails" name="abnormal_mss" rows="3">{{ secondary_examination.abnormal_mss }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                                                             
                                         </div>
                                  
                                         <div class="col-md-6">
@@ -833,8 +1132,15 @@ Add  Consultation notes
                                         
                                         {% if previous_prescriptions %}
                                         <div class="col-md-4 mb-3">
-                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousPrescriptionModal">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#organizationModal">
                                                 View Previous Prescriptions
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        {% if previous_procedures %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousProceduresModal">
+                                                View Previous Procedures
                                             </button>
                                         </div>
                                         {% endif %}
@@ -872,48 +1178,134 @@ Add  Consultation notes
 
 
     <div class="modal fade" id="previousProceduresModal" tabindex="-1" role="dialog" aria-labelledby="previousProceduresModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="previousProceduresModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Previous Procedures</h5>
+                    <h5 class="modal-title" id="previousProceduresModalLabel">RESA Medical Centre Details</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example">
-                            <thead>
-                                <tr>                            
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Day</th>
-                                    <th>Procedure Name</th>
-                                    <th>Description</th>
-                                    <th>Image</th> <!-- New column for procedure image -->
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Loop through previous procedures and populate the table -->
-                                {% for procedure in previous_procedures %}
-                                <tr>                           
-                                    <td>{{ procedure.created_at.date|date:"d/m/Y" }}</td>
-                                    <td>{{ procedure.created_at.time }}</td>
-                                    <td>{{ procedure.created_at|date:"l" }}</td>
-                                    <td>{{ procedure.name }}</td>
-                                    <td style="word-wrap: break-word;">{{ procedure.description }}</td>
-                                    <td>
-                                        {% if procedure.image %}
-                                            <img class="procedure-image" src="{{ procedure.image.url }}" alt="Procedure Image" style="max-width: 100px;">
-                                        {% else %}
-                                            No Image Available
-                                        {% endif %}
-                                    </td>
-                                </tr>                            
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <!-- Header Section -->
+                    <div class="container-fluid">
+                        <header class="header">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tbody>
+                                            <tr>
+                                                <td class="mx-3">
+                                                    <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                                                </td>
+                                                <td class="text-white">
+                                                    <h1>RESA MEDICAL CENTRE</h1>
+                                                    <p>Polyclinic and EMS Care</p>
+                                                    <p>P.O.BOX 54235</p>
+                                                    <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
+                                                    <p>info@resahmis.co.tz</p>
+                                                    <p>Tel: 255 657 008 008</p>
+                                                    <p><a href="" class="text-white">resahmis.co.tz/</a></p>
+                                                    <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </header>
                     </div>
+    
+                    <!-- Patient Details Section -->
+                    <div class="container-fluid py-5">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card patient-details-card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h2 class="card-title">Patient Details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Patient:</th>
+                                                    <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                    <th>MRN:</th>
+                                                    <td>{{ patient.mrn }}</td>
+                                                    <th>Visit Number:</th>
+                                                    <td>{{ visit.vst }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Age:</th>
+                                                    <td>{{ patient.age }}</td>
+                                                    <th>Gender:</th>
+                                                    <td>{{ patient.gender }}</td>
+                                                    <th>Company:</th>
+                                                    <td>{{ patient.company }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Phone:</th>
+                                                    <td>{{ patient.phone }}</td>
+                                                    <th>Visit Date:</th>
+                                                    <td>{{ visit.created_at }}</td>
+                                                    <th>Visit Day:</th>
+                                                    <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Previous Procedures Section -->
+                    <div class="container-fluid py-5">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card patient-details-card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h2 class="card-title">Procedures details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Time</th>
+                                                        <th>Day</th>
+                                                        <th>Procedure Name</th>
+                                                        <th>Description</th>
+                                                        <th>Image</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for procedure in previous_procedures %}
+                                                        <tr>
+                                                            <td>{{ procedure.created_at.date|date:"d/m/Y" }}</td>
+                                                            <td>{{ procedure.created_at.time }}</td>
+                                                            <td>{{ procedure.created_at|date:"l" }}</td>
+                                                            <td>{{ procedure.name }}</td>
+                                                            <td style="word-wrap: break-word;">{{ procedure.description }}</td>
+                                                            <td>
+                                                                {% if procedure.image %}
+                                                                    <img class="procedure-image" src="{{ procedure.image.url }}" alt="Procedure Image" style="max-width: 100px;">
+                                                                {% else %}
+                                                                    No Image Available
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -921,6 +1313,8 @@ Add  Consultation notes
             </div>
         </div>
     </div>
+    
+    
     
 <!-- Referral Modal -->
 <div class="modal fade" id="previousReferralModal" tabindex="-1" aria-labelledby="previousReferralModalLabel" aria-hidden="true">
@@ -979,51 +1373,137 @@ Add  Consultation notes
 </div>
 
 
-<!-- Previous Laboratory Modal -->
-<div class="modal fade" id="previousLaboratoryModal" tabindex="-1" aria-labelledby="previousLaboratoryModalLabel" aria-hidden="true">
+<div class="modal fade" id="previousLaboratoryModal" tabindex="-1" role="dialog" aria-labelledby="previousLaboratoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousLaboratoryModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Previous Laboratory Orders</h5>
+                <h5 class="modal-title" id="previousLaboratoryModalLabel">RESA Medical Centre Details</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Table to display laboratory orders -->
-                <div class="table-responsive">
-                    <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example2">
-                        <thead>
-                            <tr>
-                                <!-- Table headers -->
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>                              
-                               <th>Data Recorder</th>
-                                <th>Service Name</th>
-                                <th>Test Result</th>                    
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Loop through previous laboratory orders -->
-                            {% for lab_order in previous_lab_orders %}
-                                <tr>
-                                    <!-- Display laboratory order data in table rows -->
-                                    <td>{{ lab_order.created_at.date|date:"d/m/Y"  }}</td>
-                                    <td>{{ lab_order.created_at.time }}</td>
-                                    <td>{{ lab_order.created_at|date:"l" }}</td>
-                                    <td>{{ lab_order.data_recorder }}</td>
-                                    <td>{{ lab_order.name }}</td>
-                                    <td>{{ lab_order.result }}</td>                          
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td class="mx-3">
+                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                                            </td>
+                                            <td class="text-white">
+                                                <h1>RESA MEDICAL CENTRE</h1>
+                                                <p>Polyclinic and EMS Care</p>
+                                                <p>P.O.BOX 54235</p>
+                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
+                                                <p>info@resahmis.co.tz</p>
+                                                <p>Tel: 255 657 008 008</p>
+                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
+                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </header>
                 </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previous Laboratory Orders Section -->
+                <div class="container-fluid py-5">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Previous Laboratory Orders</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example2">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>
+                                                    <th>Data Recorder</th>
+                                                    <th>Service Name</th>
+                                                    <th>Test Result</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for lab_order in previous_lab_orders %}
+                                                    <tr>
+                                                        <td>{{ lab_order.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ lab_order.created_at.time }}</td>
+                                                        <td>{{ lab_order.created_at|date:"l" }}</td>
+                                                        <td>{{ lab_order.data_recorder }}</td>
+                                                        <td>{{ lab_order.name }}</td>
+                                                        <td>{{ lab_order.result }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
+
 
 
 <!-- Previous Counseling Modal -->
@@ -1163,67 +1643,207 @@ Add  Consultation notes
     </div>
 </div>
 
+
+<style>
+    body {
+          font-family: Arial, sans-serif;
+      }
+    /* CSS for the company logo */
+.company-logo {
+  max-width: 120px;
+  height: 120px;
+  border-radius: 50%;
+}
+
+/* Additional styling for the header */
+.header {
+  background-color: #344; /* Adjust background color to match the logo */
+  color: #fff;
+  padding: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #fff; /* Set text color for consistency */
+}
+
+.header p {
+  margin-bottom: 0;
+}
+
+.header a {
+  color: #fff;
+}
+
+.header-info {
+  font-size: 14px; /* Adjust font size for header info */
+  margin-bottom: 5px; /* Add some bottom margin for spacing */
+}
+       /* Specific Styles for Cards */
+  .patient-details-card {
+      margin-bottom: 20px;
+  }
+
+  .clinical-notes-card {
+      margin-bottom: 20px;
+  }
+
+  .prescription-details-card {
+      margin-bottom: 20px;
+  }
+
+  .assessment-data-card {
+      margin-bottom: 20px;
+  }
+</style>
 <!-- Prescription Modal -->
-<div class="modal fade" id="previousPrescriptionModal" tabindex="-1" aria-labelledby="previousPrescriptionModalLabel" aria-hidden="true">
+<div class="modal fade" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousPrescriptionModalLabel">Previous Prescription Records</h5>
+                <h5 class="modal-title" id="organizationModalLabel">RESA Medical Centre Details</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Table to display prescription records -->
-                <div class="table-responsive">
-                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example6">
-                        <thead>
-                            <tr>
-                                <!-- Table headers -->
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>                               
-                                <th>Entered By</th>
-                                <th>Drug name</th>
-                                 <th>Dose</th>
-                                <th>Frequency</th>
-                                <th>Duration</th>
-                                <th>Quantity Used</th>
-                                <th>Verified</th>
-                                <th>Issued</th>
-                                <th>Status</th>
-                                <th>Total Price</th>
-                                <!-- Add more columns as needed -->
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Loop through previous prescription records -->
-                            {% for prescription in previous_prescriptions %}
-                                <tr>
-                                    <!-- Display data for each field -->
-                                    <td>{{ prescription.created_at.date|date:"d/m/Y"  }}</td>
-                                    <td>{{ prescription.created_at.time }}</td>
-                                    <td>{{ prescription.created_at|date:"l" }}</td>                                  
-                                    <td>{{ prescription.entered_by }}</td>
-                                    <td>{{ prescription.medicine }}</td>                              
-                                    <td>{{ prescription.dose }}</td>
-                                    <td>{{ prescription.frequency }}</td>
-                                    <td>{{ prescription.duration }}</td>
-                                    <td>{{ prescription.quantity_used }}</td>
-                                    <td>{{ prescription.verified }}</td>
-                                    <td>{{ prescription.issued }}</td>
-                                    <td>{{ prescription.status }}</td>
-                                    <td>{{ prescription.total_price }}</td>
-                                    <!-- Add more fields as needed -->
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td class="mx-3">
+                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
+                                            </td>
+                                            <td class="text-white">
+                                                <h1>RESA MEDICAL CENTRE</h1>
+                                                <p>Polyclinic and EMS Care</p>
+                                                <p>P.O.BOX 54235</p>
+                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
+                                                <p>info@resahmis.co.tz</p>
+                                                <p>Tel: 255 657 008 008</p>
+                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
+                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </header>
                 </div>
-            </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-2">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Previous Prescription Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Prescription Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>                                    
+                                                    <th>Drug name</th>
+                                                    <th>Dose</th>
+                                                    <th>Frequency</th>
+                                                    <th>Duration</th>
+                                                    <th>Quantity Used</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for prescription in previous_prescriptions %}
+                                                    <tr>
+                                                        <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ prescription.created_at.time }}</td>
+                                                        <td>{{ prescription.created_at|date:"l" }}</td>                                        
+                                                        <td>{{ prescription.medicine }}</td>
+                                                        <td>{{ prescription.dose }}</td>
+                                                        <td>{{ prescription.frequency }}</td>
+                                                        <td>{{ prescription.duration }}</td>
+                                                        <td>{{ prescription.quantity_used }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>        
+                      <!-- Prescribing Doctor Section -->
+                      <div class="container-fluid py-1">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card patient-details-card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h2 class="card-title">Name of Dr. Prescribing</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Dr. {{ previous_prescriptions.first.entered_by }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+           </div>
         </div>
     </div>
 </div>
+
 
 
     <!-- Modal -->
@@ -1480,368 +2100,61 @@ Add  Consultation notes
         
     </script>
     
-    <script>
-                        // Function to add a new row for chief complaint
-                function addChiefComplaint() {
-                var container = document.getElementById('chiefComplaintsContainer');
-                var rowCount = container.getElementsByTagName('tr').length + 1;
+    <script>       
 
-                var newRow = document.createElement('tr');
-                newRow.id = 'chiefComplaintRow' + rowCount;
+                 // Toggle HEENT Field
+    function toggleHeentFields() {
+        const heentField = document.getElementById("heentField");
+        const heentSelect = document.getElementById("heent").value;
+        heentField.style.display = heentSelect === "Abnormal" ? "block" : "none";
+    }
 
-                newRow.innerHTML = `
-                <td>
-                <select class="form-control select2bs4" style="width: 100%;" name="chief_complain_name" required onchange="handleOtherOption(this.value, 'chiefComplaintRow${rowCount}')">
-                {% for health_record in health_records %}
-                <option value="{{health_record.id}}">{{health_record.name}}</option>
-                {% endfor %}
-                <option value="other">Other</option>
-                </select>
-                </td>
-                <td>
-                <input type="text" class="form-control duration-cell" name="chief_complain_duration" required placeholder ="durations">
-                <input type="hidden" name="patient_id" id="patient_id" value="{{ patient.id }}">                                     
-                <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
-                </td>
-                <td>
-                <button type="button" class="btn btn-danger btn-sm delete-row" onclick="deleteChiefComplaint('chiefComplaintRow${rowCount}')">Delete</button>
-                <button type="button" class="btn btn-success btn-sm save-row" onclick="saveChiefComplaint('chiefComplaintRow${rowCount}')">Save</button>
-                </td>
-                `;
+    // Toggle CNS Field
+    function toggleCnsFields() {
+        const cnsField = document.getElementById("cnsField");
+        const cnsSelect = document.getElementById("cns").value;
+        cnsField.style.display = cnsSelect === "Abnormal" ? "block" : "none";
+    }
 
-                container.querySelector('tbody').appendChild(newRow);
-                }
+    // Toggle CVS Field
+    function toggleCvsFields() {
+        const cvsField = document.getElementById("cvsField");
+        const cvsSelect = document.getElementById("cvs").value;
+        cvsField.style.display = cvsSelect === "Abnormal" ? "block" : "none";
+    }
 
+    // Toggle RS Field
+    function toggleRsFields() {
+        const rsField = document.getElementById("rsField");
+        const rsSelect = document.getElementById("rs").value;
+        rsField.style.display = rsSelect === "Abnormal" ? "block" : "none";
+    }
 
+    // Toggle PA Field
+    function togglePaFields() {
+        const paField = document.getElementById("paField");
+        const paSelect = document.getElementById("pa").value;
+        paField.style.display = paSelect === "Abnormal" ? "block" : "none";
+    }
 
+    // Toggle GU Field
+    function toggleGuFields() {
+        const guField = document.getElementById("guField");
+        const guSelect = document.getElementById("gu").value;
+        guField.style.display = guSelect === "Abnormal" ? "block" : "none";
+    }
 
-                // Function to handle editing chief complaints and toggle visibility
-                function editChiefComplaint() {
-                // Get the container element for chief complaints
-                var chiefComplaintsContainer = document.getElementById('savedChiefComplaints');
+    // Toggle MSS Field
+    function toggleMssFields() {
+        const mssField = document.getElementById("mssField");
+        const mssSelect = document.getElementById("mss").value;
+        mssField.style.display = mssSelect === "Abnormal" ? "block" : "none";
+    }
 
-                // Toggle visibility of the container
-                if (chiefComplaintsContainer.style.display === 'none') {
-                // If the container is hidden, fetch and display existing chief complaints
-                fetchAndDisplayChiefComplaints();
-                chiefComplaintsContainer.style.display = 'block';
-                } else {
-                // If the container is visible, hide it
-                chiefComplaintsContainer.style.display = 'none';
-                }
-                }
-
-                // Function to fetch and display existing chief complaints
-                function fetchAndDisplayChiefComplaints() {
-                // Get the patient ID and visit ID
-                var patientId = document.getElementById('patient_id').value;
-                var visitId = document.getElementById('visit_id').value;
-
-                // Generate the URL for fetching existing chief complaints
-                var url = `{% url 'kahama_endpoint_to_fetch_existing_data' %}?patient_id=${patientId}&visit_id=${visitId}`;
-
-                // Fetch existing chief complaints from the server
-                fetch(url)
-                .then(response => {
-                if (!response.ok) {
-                throw new Error('Network response was not ok');
-                }
-                return response.json();
-                })
-                .then(data => {
-                // Populate the form with existing chief complaints
-                populateEditForm(data);
-                })
-                .catch(error => {
-                console.error('Error fetching existing chief complaints:', error);
-                });
-                }
-
-                var deleteChiefComplaintUrl = "{% url 'kahama_delete_chief_complaint' chief_complaint_id=0 %}";
-                // Function to populate the edit form with existing chief complaints
-                function populateEditForm(existingData) {
-                // Get the container where the edit form will be displayed
-                var editFormContainer = document.getElementById('savedChiefComplaints');
-
-                // Clear existing data in the container
-                editFormContainer.innerHTML = '';
-
-                // Iterate through existing chief complaints and create rows for each
-                existingData.forEach(function(data) {
-                // Create a row element
-                var row = document.createElement('div');
-                row.classList.add('row');
-
-                // Create columns for displaying health record, duration, and delete button
-                var healthRecordColumn = document.createElement('div');
-                healthRecordColumn.classList.add('col');
-                healthRecordColumn.textContent = data.health_record;
-
-                var durationColumn = document.createElement('div');
-                durationColumn.classList.add('col');
-                durationColumn.textContent = data.duration;
-
-                var deleteColumn = document.createElement('div');
-                deleteColumn.classList.add('col');
-
-                // Create the delete button with Font Awesome icon
-                var deleteButton = document.createElement('button');
-                deleteButton.type = 'button';
-                deleteButton.classList.add('btn', 'btn-sm', 'btn-danger','m-2');
-                deleteButton.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
-
-                // Add event listener to handle deleting this chief complaint
-                deleteButton.addEventListener('click', function() {
-                deleteRow(data.id, row); // Pass the chief complaint ID and the row element to the delete function
-                });
-
-                // Append delete button to the delete column
-                deleteColumn.appendChild(deleteButton);
-
-                // Append columns to the row
-                row.appendChild(healthRecordColumn);
-                row.appendChild(durationColumn);
-                row.appendChild(deleteColumn);
-
-                // Append the row to the edit form container
-                editFormContainer.appendChild(row);
-                });
-                }
-
-                // Function to handle deleting a specific chief complaint row
-                function deleteRow(chiefComplaintId, row) {
-                // Construct the URL dynamically using the global variable
-                var deleteUrl = deleteChiefComplaintUrl.replace('0', chiefComplaintId);
-
-                // Send an AJAX request to delete the chief complaint with the given ID
-                fetch(deleteUrl, {
-                method: 'DELETE',
-                headers: {
-                'Content-Type': 'application/json',
-                // Add any additional headers if needed
-                },
-                })
-                .then(response => {
-                if (!response.ok) {
-                throw new Error('Failed to delete chief complaint');
-                }
-                // Return the response data as JSON
-                return response.json();
-                })
-                .then(data => {
-                // If the data is successfully deleted, remove the corresponding row from the edit form container
-                row.remove();
-                })
-                .catch(error => {
-                console.error('Error deleting chief complaint:', error);
-                });
-                }
-
-
-
-                // Function to handle "Other" option
-                function handleOtherOption(selectValue, rowId) {
-                var row = document.getElementById(rowId);
-
-                if (selectValue === 'other') {
-                // Remove the previous duration input, if any
-                var durationCell = row.querySelector('.duration-cell');
-                if (durationCell) {
-                durationCell.parentNode.removeChild(durationCell);
-                }
-
-                // Create input fields for other complaint and duration
-                var otherInput = document.createElement('input');
-                otherInput.type = 'text';
-                otherInput.classList.add('form-control');
-                otherInput.placeholder = 'Other Chief Complaint';
-                otherInput.name = 'other_chief_complaint'; // Set the name attribute
-
-                var durationInput = document.createElement('input');
-                durationInput.type = 'text';
-                durationInput.classList.add('form-control', 'duration-input');
-                durationInput.placeholder = 'Duration (days)';
-                durationInput.name = 'other_complain_duration'; // Set the name attribute
-
-                // Get the last cell in the row to ensure proper placement
-                var lastCellIndex = row.cells.length - 1;
-                var lastCell = row.cells[lastCellIndex];
-
-                // Insert new input fields to the existing row before the last cell
-                lastCell.insertAdjacentHTML('beforebegin', `<td>${otherInput.outerHTML}</td>`);
-                lastCell.insertAdjacentHTML('beforebegin', `<td class="duration-cell">${durationInput.outerHTML}</td>`);
-
-                // Include the other complaint and duration inputs in the form data
-                var formData = new FormData();
-                formData.append('other_chief_complaint', otherInput.value);
-                formData.append('other_complain_duration', durationInput.value);
-                }
-                }
-
-                function fetchAndPopulateTable(patientId, visitId) {
-                    // Generate the URL using the URL name and parameters
-                    var url = `{% url 'kahama_endpoint_to_fetch_existing_data' %}`;
-                
-                    // Make an AJAX request using jQuery
-                    $.ajax({
-                        url: url,
-                        method: 'GET',
-                        data: {
-                            patient_id: patientId,
-                            visit_id: visitId
-                        },
-                        dataType: 'json',
-                        success: function(data) {
-                            // Populate the table with existing data
-                            populateTable(data);
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('Error fetching existing data:', error);
-                        }
-                    });
-                }
-                
-
-
-                function populateTable(savedData) {
-                var savedChiefComplaints = document.getElementById('savedChiefComplaints');
-                savedChiefComplaints.innerHTML = ''; // Clear existing data
-
-                // Create table element
-                var table = document.createElement('table');
-                table.classList.add('list-item');
-
-                // Create table header
-                var headerRow = document.createElement('tr');
-                headerRow.innerHTML = '';
-                table.appendChild(headerRow);
-
-                // Iterate through saved data and create table rows
-                savedData.forEach(function(data) {
-                var newRow = document.createElement('ul');
-                newRow.innerHTML = `          
-                <li>${data.health_record}-${data.duration}</li>       
-
-                `;
-                table.appendChild(newRow);
-                });
-
-                // Append table to the container
-                savedChiefComplaints.appendChild(table);
-                }
-
-                // Function to delete a row for chief complaint
-                function deleteChiefComplaint(rowId) {
-                var row = document.getElementById(rowId);
-                row.parentNode.removeChild(row);
-                }
-
-
-                // Function to fetch existing data and populate the table when the page loads or a new row is added
-                document.addEventListener('DOMContentLoaded', function() {
-                fetchAndPopulateTable(document.getElementById('patient_id').value, document.getElementById('visit_id').value);
-                });
-
-
-                function saveChiefComplaint(rowId) {
-                    // Get the row and initialize form data and popup container
-                    var row = $('#' + rowId);
-                    var formData = new FormData();
-                    var popupContainer = $('#popupContainer');
-                
-                    // Clear previous content in the popup container
-                    popupContainer.html('');
-                
-                    // Get the selected chief complaint value
-                    var selectedValue = row.find('[name="chief_complain_name"]').val();
-                
-                    // Get other input fields
-                    var otherInput = row.find('[name="other_chief_complaint"]');
-                    var durationInput = row.find('[name="other_complain_duration"]');
-                
-                    // Check if all required fields are filled
-                    if (!selectedValue) {
-                        displayPopupMessage('Please select a chief complaint.', 'alert-info');
-                        return; // Stop further execution if required fields are not filled
-                    }
-                
-                    // Include other chief complaint and duration if the selected value is "other"
-                    if (selectedValue === 'other') {
-                        if (!otherInput.val() || !durationInput.val()) {
-                            displayPopupMessage('Please fill in all fields for other chief complaint.', 'alert-danger');
-                            return; // Stop further execution if required fields are not filled
-                        }
-                        formData.append('other_chief_complaint', otherInput.val());
-                        formData.append('other_complain_duration', durationInput.val());
-                        formData.append('chief_complain_name', selectedValue);
-                    } else {
-                        // Include the selected chief complaint
-                        formData.append('chief_complain_name', selectedValue);
-                
-                        // Check if duration is filled for the selected chief complaint
-                        if (!row.find('[name="chief_complain_duration"]').val()) {
-                            displayPopupMessage('Please fill in duration for the selected chief complaint.', 'alert-danger');
-                            return; // Stop further execution if required fields are not filled
-                        }
-                        formData.append('chief_complain_duration', row.find('[name="chief_complain_duration"]').val());
-                    }
-                
-                    // Include patient and visit IDs
-                    formData.append('patient_id', $('#patient_id').val());
-                    formData.append('visit_id', $('#visit_id').val());
-                
-                    // Generate the URL using the URL name
-                    var url = "{% url 'kahama_save_chief_complaint' %}";
-                
-                    // Send the data to the server to save
-                    $.ajax({
-                        url: url,
-                        method: 'POST',
-                        processData: false,
-                        contentType: false,
-                        data: formData,
-                        success: function(data) {
-                            if (data.status) {
-                                // Display the saved data above the form
-                                populateTable([data]); // Add the saved data to the table
-                
-                                // Fetch and populate the table with existing data only when the data is successfully saved
-                                fetchAndPopulateTable($('#patient_id').val(), $('#visit_id').val());
-                            } else {
-                                // Display error message returned from the server
-                                displayPopupMessage(data.message, 'alert-danger');
-                            }
-                        },
-                        error: function(xhr, error) {
-                            // Display generic error message
-                            displayPopupMessage('Error saving chief complaint: ' + error, 'alert-danger');
-                        }
-                    });
-                }
-                
-                // Function to display popup message
-                function displayPopupMessage(message, alertType) {
-                    var popupContainer = $('#popupContainer');
-                    popupContainer.html('<div class="popup-message alert ' + alertType + '">' +
-                        message +
-                        '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
-                        '<span aria-hidden="true">&times;</span></button></div>');
-                }
-                
-                
-
-
-
-
-                function ViewChiefComplaint() {
-                var chiefComplaintsContainer = document.getElementById('savedChiefComplaints');
-                chiefComplaintsContainer.style.display = 'block';
-                fetchAndPopulateTable(
-                document.getElementById('patient_id').value,
-                document.getElementById('visit_id').value
-                );
-                }
-
+               
          </script>
+
+
+         
     {% include 'kahama_template/datatable.html' %}     
 {% endblock main_content %}

@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-e5o9&!5%5@2_@j2r3a5t88ytnph2p9%or&gedz=vjitwsg**&*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['3.92.136.150','127.0.0.1','resa.mujtabahschool.ac.tz','www.resa.mujtabahschool.ac.tz']
+ALLOWED_HOSTS = []
 
 
 # Application definition

@@ -113,4 +113,6 @@ urlpatterns = [
 
     # API paths
     path('api/out-of-stock-medicines/', kahamaAdmin.out_of_stock_medicines, name='kahama_out_of_stock_medicines'),
+    path('get_all_medicine_data/', kahamaAdmin.get_all_medicine_data, name='kahama_get_all_medicine_data'),
+    path('get_all_frequency_data/', kahamaAdmin.get_all_frequency_data, name='kahama_get_all_frequency_data'),
 ]

@@ -1828,6 +1828,8 @@ class SecondaryPhysicalExamination(models.Model):
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     heent = models.CharField(max_length=50, blank=True, null=True)
+    normal_heent = models.CharField(max_length=50, blank=True, null=True)
+    abnormal_heent = models.CharField(max_length=50, blank=True, null=True)
     cns = models.CharField(max_length=50, blank=True, null=True)
     normal_cns = models.CharField(max_length=50, blank=True, null=True)
     abnormal_cns = models.CharField(max_length=50, blank=True, null=True)

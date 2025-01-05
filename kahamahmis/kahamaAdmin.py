@@ -316,7 +316,7 @@ def update_staff_status(request):
                 return redirect('manage_staff')  # Make sure 'manage_staffs' is the name of your staff list URL
 
             staff.save()
-            messages.success(request, 'Status updated successfully')
+            messages.success(request, '')
         else:
             messages.error(request, 'Invalid request method')
     except Exception as e:
@@ -381,7 +381,7 @@ def edit_staff_save(request):
             staff.save()
 
        
-            messages.success(request, "Staff details updated successfully.")
+            messages.success(request, "")
             return redirect("manage_staff")
         except Exception as e:
             messages.error(request, f"Error updating staff details: {str(e)}")
@@ -1173,14 +1173,14 @@ def save_remotepatient_vital(request):
                 # Editing existing vital
                 vital = RemotePatientVital.objects.get(pk=vital_id)
                 vital.blood_pressure = blood_pressure if sbp and dbp else vital.blood_pressure  # Use existing SBP/DBP if not provided
-                message = 'Patient vital updated successfully'
+                message = ''
             except RemotePatientVital.DoesNotExist:
                 return JsonResponse({'status': False, 'message': 'Vital record does not exist'})
         else:
             # Creating new vital
             vital = RemotePatientVital()
             vital.blood_pressure = blood_pressure
-            message = 'Patient vital created successfully'
+            message = ''
 
         # Update or set values for other fields
         vital.visit = visit
@@ -1265,7 +1265,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
                 existing_vital.gcs = gcs
                 existing_vital.avpu = avpu
                 existing_vital.save()
-                messages.success(request, 'Remote patient vital information updated successfully.')
+                messages.success(request, '')
             else:  # If no record exists, create a new one
                 RemotePatientVital.objects.create(
                     patient=patient,
@@ -1281,7 +1281,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
                     gcs=gcs,
                     avpu=avpu
                 )
-                messages.success(request, 'Remote patient vital information saved successfully.')
+                messages.success(request, '')
 
             # Redirect to a success page or any other page as needed
             return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
@@ -1398,7 +1398,7 @@ def save_nextlaboratory(request, patient_id, visit_id):
                     laboratory_order.name_id = name         
                     laboratory_order.result = description
                     laboratory_order.save()
-                    messages.success(request, 'Laboratory order updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no laboratory order exists, create a new one
                     RemoteLaboratoryOrder.objects.create(
@@ -1408,7 +1408,7 @@ def save_nextlaboratory(request, patient_id, visit_id):
                         name_id=name,
                         result=description
                     )
-                    messages.success(request, 'Laboratory order saved successfully.')
+                    messages.success(request, '')
             # Redirect to a success page or another view
             return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
         except Exception as e:
@@ -1440,14 +1440,14 @@ def save_nextremotereferral(request, patient_id, visit_id):
                     referral.visit = visit
                     referral.data_recorder = data_recorder
                     referral.save()
-                    messages.success(request, 'Remote referral updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no referral record exists, create a new one
                     form.instance.patient = patient
                     form.instance.visit = visit
                     form.instance.data_recorder = data_recorder
                     form.save()
-                    messages.success(request, 'Remote referral saved successfully.')
+                    messages.success(request, '')
                 
                 # Redirect to a success page or another view
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
@@ -1493,7 +1493,7 @@ def save_nextcounsel(request, patient_id, visit_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling updated successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -1506,7 +1506,7 @@ def save_nextcounsel(request, patient_id, visit_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling saved successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -1554,7 +1554,7 @@ def save_nextremoteprocedure(request, patient_id, visit_id):
                     # If a procedure exists, update it
                     existing_procedure.description = description                  
                     existing_procedure.save()
-                    messages.success(request, 'Remote procedure updated successfully.')
+                    messages.success(request, '')
                 else:
                     RemoteProcedure.objects.create(
                         patient_id=patient_id,
@@ -1562,7 +1562,7 @@ def save_nextremoteprocedure(request, patient_id, visit_id):
                         name_id=name,
                         description=description,
                     )                    
-            messages.success(request, 'Remote procedure saved successfully.')
+            messages.success(request, '')
             return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Change 'success_page' to your success page URL name
         else:
             # If request method is not POST, render the corresponding template
@@ -1591,7 +1591,7 @@ def save_nextobservation(request, patient_id, visit_id):
                     observation_record.observation_notes = description
                     observation_record.data_recorder = data_recorder
                     observation_record.save()
-                    messages.success(request, 'Remote observation record updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no record exists, create a new one
                     RemoteObservationRecord.objects.create(
@@ -1600,7 +1600,7 @@ def save_nextobservation(request, patient_id, visit_id):
                         data_recorder=data_recorder,
                         observation_notes=description,
                     )
-                    messages.success(request, 'Remote observation record saved successfully.')
+                    messages.success(request, '')
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
             except Exception as e:
                 messages.error(request, f'Error: {str(e)}')
@@ -1635,7 +1635,7 @@ def save_nextremote_discharges_notes(request, patient_id, visit_id):
                 remote_discharges_notes.visit = visit
                 remote_discharges_notes.data_recorder = data_recorder
                 remote_discharges_notes.save()
-                messages.success(request, 'Remote discharge notes saved successfully.')
+                messages.success(request, '')
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Redirect to the next view
             else:
                 messages.error(request, 'Please correct the errors in the form.')
@@ -1849,7 +1849,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
                 visit.visit_type = visit_type
                 visit.primary_service = primary_service
                 visit.save()
-                messages.success(request, 'Patient visit records updated successfully.')
+                messages.success(request, '')
             else:
                 # Adding a new visit
                 visit = RemotePatientVisits.objects.create(
@@ -1857,7 +1857,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
                     visit_type=visit_type,
                     primary_service=primary_service
                 )
-                messages.success(request, 'Patient visit records added successfully.')
+                messages.success(request, '')
 
             return redirect(reverse('kahama_save_remotepatient_vitals', args=[patient_id, visit.id]))
 
@@ -2159,7 +2159,7 @@ def health_info_edit(request, patient_id):
                     new_record = PatientHealthCondition(patient=patient, health_condition=condition, health_condition_notes=notes)
                     new_record.save()
                 
-                messages.success(request, f'{len(new_health_conditions)} new health records added successfully.')
+                messages.success(request, '')
                 
             # Handle chronic illness option for patient health conditions
             if request.POST.get('chronic_illness') == 'no':
@@ -2324,3 +2324,63 @@ def observation_record_list_view(request):
 def discharge_notes_list_view(request):
     discharge_notes = RemoteDischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'kahama_template/manage_discharge.html', {'discharge_notes': discharge_notes})
+
+
+def get_all_medicine_data(request):
+    """
+    Returns all medicine data in JSON format for preloading on the frontend.
+    """
+    try:
+        # Query all RemoteMedicine objects
+        medicines = RemoteMedicine.objects.all()
+
+        # Prepare data to be returned as JSON
+        medicine_data = {
+            medicine.id: {
+                "drug_name": medicine.drug_name,
+                "drug_type": medicine.drug_type,
+                "formulation_unit": medicine.formulation_unit,
+                "manufacturer": medicine.manufacturer,
+                "remain_quantity": medicine.remain_quantity,
+                "quantity": medicine.quantity,
+                "dividable": medicine.dividable,
+                "batch_number": medicine.batch_number,
+                "expiration_date": medicine.expiration_date.strftime("%Y-%m-%d"),  # Convert date to string
+                "unit_cost": float(medicine.unit_cost) if medicine.unit_cost else None,
+                "buying_price": float(medicine.buying_price) if medicine.buying_price else None,
+                "total_buying_price": float(medicine.total_buying_price) if medicine.total_buying_price else None,
+            }
+            for medicine in medicines
+        }
+
+        # Return data as JSON response
+        return JsonResponse(medicine_data, safe=False, status=200)
+
+    except Exception as e:
+        # Handle errors and return error response
+        return JsonResponse({"error": str(e)}, status=500)
+    
+def get_all_frequency_data(request):
+    """
+    Returns all frequency data in JSON format for preloading on the frontend.
+    """
+    try:
+        # Query all PrescriptionFrequency objects
+        frequencies = PrescriptionFrequency.objects.all()
+
+        # Prepare data to be returned as JSON
+        frequency_data = {
+            frequency.id: {
+                "name": frequency.name,
+                "interval": frequency.interval,
+                "description": frequency.description,
+            }
+            for frequency in frequencies
+        }
+
+        # Return data as JSON response
+        return JsonResponse(frequency_data, safe=False, status=200)
+
+    except Exception as e:
+        # Handle errors and return error response
+        return JsonResponse({"error": str(e)}, status=500)    

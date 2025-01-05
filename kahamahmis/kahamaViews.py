@@ -6,7 +6,7 @@ from django.http import  JsonResponse
 from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.contrib import messages
 from clinic.forms import RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm
-from clinic.models import ChiefComplaint, ClinicCompany, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
+from clinic.models import ChiefComplaint, ClinicCompany, Company, Diagnosis, FamilyMedicalHistory, HealthRecord, PathodologyRecord, PatientDiagnosisRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service, Staffs
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.exceptions import ObjectDoesNotExist
@@ -208,7 +208,7 @@ def save_chief_complaint(request):
             patient_id = request.POST.get('patient_id')
             visit_id = request.POST.get('visit_id')
             health_record_id = request.POST.get('chief_complain_name')
-            other_chief_complaint = request.POST.get('other_chief_complaint')          
+            other_chief_complaint = request.POST.get('other_complaint')          
             if request.POST.get('chief_complain_duration'):
                 duration = request.POST.get('chief_complain_duration')  
             else:
@@ -409,6 +409,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     consultation_note = RemoteConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
     provisional_record, created = RemotePatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
     provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
+    final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
     primary_examination = PrimaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit).first()
     previous_counselings = RemoteCounseling.objects.filter(patient=patient_id, visit=visit)
     previous_discharges = RemoteDischargesNotes.objects.filter(patient=patient_id, visit=visit)
@@ -436,11 +437,13 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
         'previous_referrals': previous_referrals,
         'previous_procedures': previous_procedures,
         'primary_examination': primary_examination,
+        'provisional_record': provisional_record,
         'health_records': health_records,
         'pathology_records': pathology_records,     
         'health_conditions': health_conditions,
         'surgery_info': surgery_info,
         'provisional_diagnoses': provisional_diagnoses,
+        'final_provisional_diagnosis': final_provisional_diagnosis,
         'provisional_diagnosis_ids': provisional_diagnosis_ids,
         'family_history': family_history,
         'behaviors': behaviors,
@@ -468,6 +471,8 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
 
             # Retrieve form fields for secondary examination
             heent = request.POST.get('heent', '').encode('utf-8').decode('utf-8')
+            normal_heent = request.POST.get('normal_heent', '').encode('utf-8').decode('utf-8')
+            abnormal_heent = request.POST.get('abnormal_heent', '').encode('utf-8').decode('utf-8')
             cns = request.POST.get('cns', '').encode('utf-8').decode('utf-8')
             normal_cns = request.POST.get('normal_cns', '').encode('utf-8').decode('utf-8')
             abnormal_cns = request.POST.get('abnormal_cns', '').encode('utf-8').decode('utf-8')
@@ -559,6 +564,8 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
 
             if secondary_examination:  # If record exists, update it
                 secondary_examination.heent = heent
+                secondary_examination.normal_heent = normal_heent
+                secondary_examination.abnormal_heent = abnormal_heent
                 secondary_examination.cns = cns
                 secondary_examination.normal_cns = normal_cns
                 secondary_examination.abnormal_cns = abnormal_cns
@@ -588,6 +595,8 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                     patient_id=patient_id,
                     visit_id=visit_id,
                     heent=heent,
+                    abnormal_heent=abnormal_heent,
+                    normal_heent=normal_heent,
                     cns=cns,
                     normal_cns=normal_cns,
                     abnormal_cns=abnormal_cns,
@@ -635,8 +644,13 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                 consultation_note.save()             
                 consultation_note.pathology.set(pathology)
                 consultation_note.save()
-            messages.success(request, 'Record added successfully.')    
-            return redirect(reverse('kahama_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
+            messages.success(request, '')   
+            
+            if doctor_plan == "Laboratory":
+                return redirect(reverse('kahama_save_laboratory', args=[patient_id, visit_id]))
+            else:
+                return redirect(reverse('kahama_save_remotesconsultation_notes_next', args=[patient_id, visit_id])) 
+            
             
         except Exception as e:
             messages.error(request, f'Error: {str(e)}')
@@ -673,7 +687,7 @@ def save_counsel(request, patient_id, visit_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling updated successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -686,7 +700,7 @@ def save_counsel(request, patient_id, visit_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling saved successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -724,14 +738,14 @@ def save_remotereferral(request, patient_id, visit_id):
                     referral.visit = visit
                     referral.data_recorder = data_recorder
                     referral.save()
-                    messages.success(request, 'Remote referral updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no referral record exists, create a new one
                     form.instance.patient = patient
                     form.instance.visit = visit
                     form.instance.data_recorder = data_recorder
                     form.save()
-                    messages.success(request, 'Remote referral saved successfully.')
+                    messages.success(request, '')
                 
                 # Redirect to a success page or another view
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
@@ -784,7 +798,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
                     existing_procedure.description = description                  
                     existing_procedure.image = image  # Update image field
                     existing_procedure.save()
-                    messages.success(request, 'Remote procedure updated successfully.')
+                    messages.success(request, '')
                 else:
                     RemoteProcedure.objects.create(
                         patient_id=patient_id,
@@ -793,7 +807,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
                         description=description,
                         image=image,  # Add image field
                     )                    
-            messages.success(request, 'Remote procedure saved successfully.')
+            messages.success(request, '')
             return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Change 'success_page' to your success page URL name
         else:
             # If request method is not POST, render the corresponding template
@@ -827,7 +841,7 @@ def save_observation(request, patient_id, visit_id):
                     observation_record.observation_notes = description
                     observation_record.data_recorder = data_recorder
                     observation_record.save()
-                    messages.success(request, 'Remote observation record updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no record exists, create a new one
                     RemoteObservationRecord.objects.create(
@@ -836,7 +850,7 @@ def save_observation(request, patient_id, visit_id):
                         data_recorder=data_recorder,
                         observation_notes=description,
                     )
-                    messages.success(request, 'Remote observation record saved successfully.')
+                    messages.success(request, '')
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
             except Exception as e:
                 messages.error(request, f'Error: {str(e)}')
@@ -878,7 +892,7 @@ def save_laboratory(request, patient_id, visit_id):
                     laboratory_order.name_id = name         
                     laboratory_order.result = description
                     laboratory_order.save()
-                    messages.success(request, 'Laboratory order updated successfully.')
+                    messages.success(request, '')
                 else:
                     # If no laboratory order exists, create a new one
                     RemoteLaboratoryOrder.objects.create(
@@ -888,9 +902,9 @@ def save_laboratory(request, patient_id, visit_id):
                         name_id=name,
                         result=description
                     )
-                    messages.success(request, 'Laboratory order saved successfully.')
+                    messages.success(request, '')
             # Redirect to a success page or another view
-            return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
+            return redirect(reverse('kahama_save_remotesconsultation_notes_next', args=[patient_id, visit_id])) 
         except Exception as e:
             messages.error(request, f'Error: {str(e)}')
 
@@ -1271,7 +1285,7 @@ def add_service(request):
 @login_required
 def save_remotesconsultation_notes_next(request, patient_id, visit_id):
     try:
-    # Retrieve the patient and visit objects
+        # Retrieve the patient and visit objects
         patient = get_object_or_404(RemotePatient, pk=patient_id)
         visit = get_object_or_404(RemotePatientVisits, patient=patient_id, id=visit_id)
         doctor_plan_note = RemoteConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
@@ -1288,8 +1302,11 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
         provisional_diagnosis_ids = consultation_note.provisional_diagnosis.values_list('id', flat=True)
         final_diagnosis_ids = consultation_note.final_diagnosis.values_list('id', flat=True)
 
+        # Initialize doctor_plan to None to avoid UnboundLocalError
+        doctor_plan = None
+
         # Retrieve the doctor plan from the query string
-        if request.method == 'POST':          
+        if request.method == 'POST':
             final_diagnosis = request.POST.getlist('final_diagnosis[]')
             doctor_plan = request.POST.get('doctor_plan')
             print("Doctor Plan:", doctor_plan)  # Debugging
@@ -1300,13 +1317,13 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
             consultation_note.save()
 
             # Add success message
-            messages.success(request, 'Consultation notes saved successfully.')
+            messages.success(request, '')
 
             # Redirect based on the doctor's plan
             if doctor_plan == 'Prescription':
                 return redirect(reverse('kahama_save_prescription', args=[patient_id, visit_id]))
             elif doctor_plan == 'Laboratory':
-                return redirect(reverse('kahama_save_laboratory', args=[patient_id, visit_id]))
+                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
             elif doctor_plan == 'Referral':
                 return redirect(reverse('kahama_save_remotereferral', args=[patient_id, visit_id]))
             elif doctor_plan == 'Counselling':
@@ -1318,21 +1335,37 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
             elif doctor_plan == 'Discharge':
                 return redirect(reverse('kahama_save_remote_discharges_notes', args=[patient_id, visit_id]))
 
+        # Update doctor_plan in context if request is POST
+        context = {
+            'provisional_diagnoses': provisional_diagnoses,
+            'final_diagnoses': final_diagnoses,
+            'patient': patient,
+            'visit': visit,
+            'consultation_note': consultation_note,
+            'provisional_diagnosis_ids': provisional_diagnosis_ids,
+            'final_diagnosis_ids': final_diagnosis_ids,
+            'doctor_plan_note': doctor_plan_note,
+            'doctor_plan': doctor_plan,  # Include the value of doctor_plan
+        }
+        return render(request, 'kahama_template/add_patientprovisional_diagnosis.html', context)
+
     except Exception as e:
         messages.error(request, f'Error: {str(e)}')
 
-    # If an exception occurs or if the request method is not POST, render the form again
-    context = {
-        'provisional_diagnoses': provisional_diagnoses,
-        'final_diagnoses': final_diagnoses,
-        'patient': patient,
-        'visit': visit,
-        'consultation_note': consultation_note,
-        'provisional_diagnosis_ids': provisional_diagnosis_ids,
-        'final_diagnosis_ids': final_diagnosis_ids,
-        'doctor_plan_note': doctor_plan_note,
-    }
-    return render(request, 'kahama_template/add_patientprovisional_diagnosis.html', context)
+        # Context for exception cases
+        context = {
+            'provisional_diagnoses': provisional_diagnoses,
+            'final_diagnoses': final_diagnoses,
+            'patient': patient,
+            'visit': visit,
+            'consultation_note': consultation_note,
+            'provisional_diagnosis_ids': provisional_diagnosis_ids,
+            'final_diagnosis_ids': final_diagnosis_ids,
+            'doctor_plan_note': doctor_plan_note,
+            
+        }
+        return render(request, 'kahama_template/add_patientprovisional_diagnosis.html', context)
+
     
 
 
@@ -1421,7 +1454,7 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
                 remote_discharges_notes.visit = visit
                 remote_discharges_notes.data_recorder = data_recorder
                 remote_discharges_notes.save()
-                messages.success(request, 'Remote discharge notes saved successfully.')
+                messages.success(request, '')
                 return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Redirect to the next view
             else:
                 messages.error(request, 'Please correct the errors in the form.')
@@ -1686,7 +1719,7 @@ def patient_health_info_edit_record(request, patient_id):
                     new_allergy = PatientMedicationAllergy(patient=patient, medicine_name=medicine_name, reaction=reaction)
                     new_allergy.save()
                 
-                messages.success(request, f'{len(new_medicine_names)} new medication allergies added successfully.')
+                messages.success(request, '')
             
             
                # Handle chronic illness option
@@ -1737,7 +1770,7 @@ def patient_health_info_edit_record(request, patient_id):
                     new_record = FamilyMedicalHistory(patient=patient, condition=condition, relationship=relationship, comments=comments)
                     new_record.save()
                 
-                messages.success(request, f'{len(new_conditions)} new family medical records added successfully.')
+                messages.success(request, '')
                 
                 
               # Handle chronic illness option
@@ -1773,7 +1806,7 @@ def patient_health_info_edit_record(request, patient_id):
                     new_surgery = PatientSurgery(patient=patient, surgery_name=name, surgery_date=date)
                     new_surgery.save()
                 
-                messages.success(request, f'{len(new_surgery_names)} new surgery records added successfully.')
+                messages.success(request, '')
             
             # Handle surgery history option
             surgery_history = request.POST.get('surgery_history')
@@ -1808,7 +1841,7 @@ def patient_health_info_edit_record(request, patient_id):
                     new_record = PatientHealthCondition(patient=patient, health_condition=condition, health_condition_notes=notes)
                     new_record.save()
                 
-                messages.success(request, f'{len(new_health_conditions)} new health records added successfully.')
+                messages.success(request, '')
             
             # Handle chronic illness option
             chronic_illness = request.POST.get('chronic_illness')
@@ -1977,7 +2010,7 @@ def company_registration_view(request):
                 if logo:
                     company.logo = logo
                 company.save()
-                messages.success(request, 'Company details updated successfully.')
+                messages.success(request, '')
             else:  # Adding new record
                 new_company = ClinicCompany(
                     name=name,
@@ -1993,7 +2026,7 @@ def company_registration_view(request):
                     logo=logo
                 )
                 new_company.save()
-                messages.success(request, 'Company added successfully.')
+                messages.success(request, '')
 
             return redirect('kahama_add_clinic_company')  # Redirect to success page
 
@@ -2029,7 +2062,7 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote Lab result updated successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -2041,7 +2074,7 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote Lab result saved successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -2082,7 +2115,7 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling updated successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
@@ -2094,7 +2127,7 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
             if form.is_valid():
                 try:
                     form.save()
-                    messages.success(request, 'Remote counseling saved successfully.')
+                    messages.success(request, '')
                 except ValidationError as e:
                     messages.error(request, f'Validation Error: {e}')
             else:
