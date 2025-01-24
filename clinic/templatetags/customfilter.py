@@ -42,3 +42,17 @@ def total_cost_of_lab(lab_tests):
 @register.filter
 def total_cost_of_image(imaging_records):
     return sum(imaging_record.cost for imaging_record in imaging_records)
+
+
+@register.filter(name='attr')
+def attr(value, arg):
+    """
+    Adds an attribute to the field.
+    Usage: {{ form.field_name|attr:"class=some-class" }}
+    """
+    try:
+        key, val = arg.split('=')
+        value.attrs[key] = val
+    except ValueError:
+        pass
+    return value

@@ -36,12 +36,15 @@ urlpatterns = [
     
     # Kahama paths
     path('kahama/admin/', include('resaclinic.kahamaadmin_urls')),
-    path('kahama/delete/', include('resaclinic.kahamadelete_urls')),
+    path('kahama/divine_admin/', include('resaclinic.divine_admin_urls')),
+    path('kahama/divine_delete/', include('resaclinic.divine_delete_urls')),
+    path('kahama/divine_excel/', include('resaclinic.divine_excel_urls')),
+    path('kahama/divine_report/', include('resaclinic.divine_report_urls')),
+    path('kahama/divine_import/', include('resaclinic.divine_import_urls')),
     path('kahama/edit/', include('resaclinic.kahamaedit_urls')),
     path('kahama/report/', include('resaclinic.kahamareport_urls')),
-    path('kahama/view/', include('resaclinic.kahamaview_urls')),
-    path('kahama/imports/', include('resaclinic.kahamaimports_urls')),
-    path('kahama/excel/', include('resaclinic.kahamaexcel_urls')),
+    path('kahama/view/', include('resaclinic.kahamaview_urls')),  
+
     path('kahama/hmis/', include(('kahamahmis.urls', 'kahamahmis'), namespace='kahamahmis')),
 
     # Authentication paths

@@ -1,0 +1,711 @@
+{% extends 'divine_admin_template/download_base.html' %}
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} details
+{% endblock title %}
+{% block main_content %}
+{% load static %}
+
+<style>
+      body {
+            font-family: Arial, sans-serif;
+        }
+      /* CSS for the company logo */
+.company-logo {
+    max-width: 120px;
+    height: 120px;
+    border-radius: 50%;
+}
+
+/* Additional styling for the header */
+.header {
+    background-color: #344; /* Adjust background color to match the logo */
+    color: #fff;
+    padding: 20px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #fff; /* Set text color for consistency */
+}
+
+.header p {
+    margin-bottom: 0;
+}
+
+.header a {
+    color: #fff;
+}
+
+.header-info {
+    font-size: 14px; /* Adjust font size for header info */
+    margin-bottom: 5px; /* Add some bottom margin for spacing */
+}
+         /* Specific Styles for Cards */
+    .patient-details-card {
+        margin-bottom: 20px;
+    }
+
+    .clinical-notes-card {
+        margin-bottom: 20px;
+    }
+
+    .prescription-details-card {
+        margin-bottom: 20px;
+    }
+
+    .assessment-data-card {
+        margin-bottom: 20px;
+    }
+</style>
+
+
+<div id="invoice">
+    <div class="container-fluid">
+        <header class="header">
+            <div class="container-fluid p-0">
+                <div class="row">
+                    <div class="col-12">
+                        <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                    </div>                   
+                </div>
+            </div>
+        </header>
+    </div>
+    <main class="container-fluid py-1">        
+        <div class="row">
+            <div class="col-12">
+                <div class="card patient-details-card">
+                    <div class="card-header bg-dark text-white">
+                        <h2 class="card-title">Patient Details</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th>Patient:</th>
+                                    <td> {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</td>
+                                    <th>MRN:</th>
+                                    <td> {{ patient.mrn }}</td>
+                                    <th>Visit Number:</th>
+                                    <td> {{ visit.vst }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Age:</th>
+                                    <td> {{ patient.age }}</td>
+                                    <th>Gender:</th>
+                                    <td> {{ patient.gender }}</td>
+                                    <th>Company:</th>
+                                    <td> {{ patient.company }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Phone:</th>
+                                    <td> {{ patient.phone }}</td>
+                                    <th>Visit Date:</th>
+                                    <td> {{ visit.created_at }}</td>
+                                    <th>Visit Day:</th>
+                                    <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+      </div>
+    
+      {% if consultation_notes %}
+      <div class="row py-1">
+        <div class="col-12">
+            <div class="card clinical-notes-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Clinical Notes</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <tbody>
+                            {% if chief_complaints %}
+                            <tr>
+                                <th>Chief Complaints:</th>
+                                <td>
+                                    <ul>
+                                        {% for complaint in chief_complaints %}
+                                            {% if complaint.health_record  %}
+                                            <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
+                                            {% else %}
+                                            <li>{{ complaint.other_complaint }} - Duration: {{ complaint.duration }}</li>
+                                            {% endif %}
+                                            
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if consultation_notes.type_of_illness %}
+                            <tr>
+                                <th>Type of  Illness:</th>
+                                <td>{{ consultation_notes.type_of_illness }}</td>
+                            </tr>
+                            {% endif %}
+
+                            {% if consultation_notes.nature_of_current_illness %}
+                            <tr>
+                                <th>Nature of current Illness:</th>
+                                <td>{{ consultation_notes.nature_of_current_illness }}</td>
+                            </tr>
+                            {% endif %}
+
+                            {% if consultation_notes.history_of_presenting_illness %}
+                            <tr>
+                                <th>History Presenting Illness:</th>
+                                <td>{{ consultation_notes.history_of_presenting_illness }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if consultation_notes.pathology.all %}
+                            <tr>
+                                <th>Pathology:</th>
+                                <td> <ul class="list-group">
+                                    {% for pathologies in consultation_notes.pathology.all %}
+                                        <li class="list-group-item">{{ pathologies.name }}</li>
+                                    {% endfor %}
+                                </ul></td>
+                            </tr>
+                            {% endif %} 
+                           {% if primary_physical_examination %}
+                           <tr>
+                            <th>Primary Physical Examination:</th>
+                            <td>
+                                <ul>
+                                    {% if primary_physical_examination %}
+                                        {% if primary_physical_examination.airway %}
+                                            <li><strong>Airway:</strong> {{ primary_physical_examination.airway }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.patent_airway %}
+                                            <li><strong>Patent Airway:</strong> {{ primary_physical_examination.patent_airway }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.notpatient_explanation %}
+                                            <li><strong>Explanation (if not patent airway):</strong> {{ primary_physical_examination.notpatient_explanation }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.breathing %}
+                                            <li><strong>Breathing:</strong> {{ primary_physical_examination.breathing }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.normal_breathing %}
+                                            <li><strong>Normal Breathing:</strong> {{ primary_physical_examination.normal_breathing }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.abnormal_breathing %}
+                                            <li><strong>Abnormal Breathing:</strong> {{ primary_physical_examination.abnormal_breathing }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.circulating %}
+                                            <li><strong>Circulating:</strong> {{ primary_physical_examination.circulating }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.normal_circulating %}
+                                            <li><strong>Normal Circulating:</strong> {{ primary_physical_examination.normal_circulating }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.abnormal_circulating %}
+                                            <li><strong>Abnormal Circulating:</strong> {{ primary_physical_examination.abnormal_circulating }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.gcs %}
+                                            <li><strong>GCS:</strong> {{ primary_physical_examination.gcs }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.rbg %}
+                                            <li><strong>RBG:</strong> {{ primary_physical_examination.rbg }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.pupil %}
+                                            <li><strong>Pupil:</strong> {{ primary_physical_examination.pupil }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.pain_score %}
+                                            <li><strong>Pain Score:</strong> {{ primary_physical_examination.pain_score }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.avpu %}
+                                            <li><strong>AVPU:</strong> {{ primary_physical_examination.avpu }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.exposure %}
+                                            <li><strong>Exposure:</strong> {{ primary_physical_examination.exposure }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.normal_exposure %}
+                                            <li><strong>Normal Exposure:</strong> {{ primary_physical_examination.normal_exposure }}</li>
+                                        {% endif %}
+                                        {% if primary_physical_examination.abnormal_exposure %}
+                                            <li><strong>Abnormal Exposure:</strong> {{ primary_physical_examination.abnormal_exposure }}</li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li>No primary physical examination recorded.</li>
+                                    {% endif %}
+                                </ul>
+                            </td>
+                        </tr>  
+                           {% endif %}
+                            
+                            {% if secondary_physical_examination.heent %}
+                            <tr>
+                                <th>Secondary Physical Examination:</th>
+                                <td>
+                                    <ul>
+                                        {% if secondary_physical_examination %}
+                                                {% if secondary_physical_examination.heent %}
+                                                    <li><strong>HEENT:</strong> {{ secondary_physical_examination.heent }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_heent %}
+                                                    <li><strong>Normal HEENT:</strong> {{ secondary_physical_examination.normal_heent }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_heent %}
+                                                    <li><strong>Abnormal HEENT:</strong> {{ secondary_physical_examination.abnormal_heent }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.cns %}
+                                                    <li><strong>CNS:</strong> {{ secondary_physical_examination.cns }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_cns %}
+                                                    <li><strong>Normal CNS:</strong> {{ secondary_physical_examination.normal_cns }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_cns %}
+                                                    <li><strong>Abnormal CNS:</strong> {{ secondary_physical_examination.abnormal_cns }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.cvs %}
+                                                    <li><strong>CVS:</strong> {{ secondary_physical_examination.cvs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_cvs %}
+                                                    <li><strong>Normal CVS:</strong> {{ secondary_physical_examination.normal_cvs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_cvs %}
+                                                    <li><strong>Abnormal CVS:</strong> {{ secondary_physical_examination.abnormal_cvs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.rs %}
+                                                    <li><strong>RS:</strong> {{ secondary_physical_examination.rs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_rs %}
+                                                    <li><strong>Normal RS:</strong> {{ secondary_physical_examination.normal_rs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_rs %}
+                                                    <li><strong>Abnormal RS:</strong> {{ secondary_physical_examination.abnormal_rs }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.pa %}
+                                                    <li><strong>PA:</strong> {{ secondary_physical_examination.pa }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_pa %}
+                                                    <li><strong>Normal PA:</strong> {{ secondary_physical_examination.normal_pa }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_pa %}
+                                                    <li><strong>Abnormal PA:</strong> {{ secondary_physical_examination.abnormal_pa }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.gu %}
+                                                    <li><strong>GU:</strong> {{ secondary_physical_examination.gu }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_gu %}
+                                                    <li><strong>Normal GU:</strong> {{ secondary_physical_examination.normal_gu }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_gu %}
+                                                    <li><strong>Abnormal GU:</strong> {{ secondary_physical_examination.abnormal_gu }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.mss %}
+                                                    <li><strong>MSS:</strong> {{ secondary_physical_examination.mss }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.normal_mss %}
+                                                    <li><strong>Normal MSS:</strong> {{ secondary_physical_examination.normal_mss }}</li>
+                                                {% endif %}
+                                                {% if secondary_physical_examination.abnormal_mss %}
+                                                    <li><strong>Abnormal MSS:</strong> {{ secondary_physical_examination.abnormal_mss }}</li>
+                                                {% endif %}
+                                    {% else %}
+                                        <li>No secondary physical examination recorded.</li>
+                                    {% endif %}
+                                    </ul>
+                                </td>
+                            </tr>     
+                            {% endif %}     
+                            {% if diagnosis_record.provisional_diagnosis.all %}
+                            <tr>
+                                <th>Provisional Diagnosis:</th>
+                                <td> <ul class="list-group">
+                                    {% for provisional_diagnosis in diagnosis_record.provisional_diagnosis.all %}
+                                        <li class="list-group-item">{{ provisional_diagnosis.diagnosis_name }}</li>
+                                    {% endfor %}
+                                </ul></td>
+                            </tr>
+                            {% endif %}                     
+                                                 
+                          {% if diagnosis_record.final_diagnosis.all %}
+                          <tr>
+                            <th>Final Diagnosis:</th>
+                            <td>  <ul class="list-group">
+                                {% for final_diagnosis in diagnosis_record.final_diagnosis.all %}
+                                    <li class="list-group-item">{{ final_diagnosis.diagnosis_name }}</li>
+                                {% endfor %}
+                            </ul></td>
+                        </tr>
+                          {% endif %}
+                           
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+      {% endif %}
+
+
+     {% if prescriptions %}
+           <!-- Prescription Details Section -->
+           <div class="row py-1">
+            <div class="col-12">
+                <div class="card prescription-details-card">
+                    <div class="card-header bg-dark text-white">
+                        <h2 class="card-title">Prescription Details</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Prescription Details Table -->
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Drug</th>
+                                    <th>Dose</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Quantity</th>                                   
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in prescriptions %}
+                                    <tr>
+                                        <td>{{ prescription.id }}</td>
+                                        <td>{{ prescription.medicine.drug_name }}</td>
+                                        <td>{{ prescription.dose }}</td>                                                       
+                                        <td>{{ prescription.frequency }}</td>
+                                        <td>{{ prescription.duration }}</td>
+                                        <td>{{ prescription.quantity_used }}</td>                                      
+                                    </tr>
+                                {% endfor %}                         
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+     {% endif %}
+    
+
+     
+     {% if vitals %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Assessment Data</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example6" style="width:100%">
+                            <thead>
+                                <tr>                                 
+                                    <th>Respiratory Rate</th>
+                                    <th>Pulse Rate</th>
+                                    <th>Blood Pressure</th>
+                                    <th>AVPU</th>
+                                    <th>SPO2</th>
+                                    <th>Temperature</th>
+                                    <th>GCS</th>                           
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>                                                           
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vital in vitals %}
+                                <tr>                                    
+                                    <td>{{ vital.respiratory_rate }}</td>
+                                    <td>{{ vital.pulse_rate }}</td>
+                                    <td>{{ vital.blood_pressure }}</td>
+                                    <td>{{ vital.avpu }}</td>
+                                    <td>{{ vital.spo2 }}</td>
+                                    <td>{{ vital.temperature }}</td>
+                                    <td>{{ vital.gcs }}</td>                         
+                                    <td>{{ vital.recorded_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                    <td>{{ vital.recorded_at|date:"l" }}</td> <!-- Display day of the week -->
+                                    <td>{{ vital.recorded_at|time:"H:i:s" }}</td><!-- Display time -->
+                                    
+                                </tr>
+                               
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                       </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+
+
+     
+     {% if procedures %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Procedure Data</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-bordered table-striped" id="example">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>    
+                                    <th>Result</th>                           
+                                    <th>Image</th>                           
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>  
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for procedure in procedures %}
+                                <tr>
+                                    <td>{{ procedure.name }}</td>
+                                    <td>{{ procedure.description }}</td>   
+                                    <td>{{ procedure.result|safe }}</td>                       
+                                    <td>
+                                        {% if procedure.image %}
+                                            <img class="procedure-image" src="{{ procedure.image.url }}" alt="Procedure Image" style="max-width: 100px;">
+                                        {% else %}
+                                            No Image Available
+                                        {% endif %}
+                                    </td>                      
+                                    <td>{{ procedure.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                    <td>{{ procedure.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                    <td>{{ procedure.created_at|time:"H:i:s" }}</td><!-- Display time -->
+                                    <td>{{ procedure.updated_at }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                       </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+
+
+     {% if lab_tests %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Lab Result Data</h2>
+                </div>
+                <div class="card-body">
+                    <div  class="table-responsive">
+                        <table  class="table table-hover text-nowrap table-bordered table-striped" id="example1">
+                            <thead>
+                                <tr>                                  
+                                    <th>Name</th>
+                                    <th>Description</th>                                 
+                                    <th>Result</th>                                 
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>  
+                                    <th>Updated At</th>                          
+                          
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lab_test in lab_tests %}
+                                <tr>                               
+                                    <td>{{ lab_test.name }}</td>
+                                    <td>{{ lab_test.description }}</td>                                  
+                                    <td>{{ lab_test.result|safe }}</td>                                  
+                                    <td>{{ lab_test.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                    <td>{{ lab_test.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                    <td>{{ lab_test.created_at|time:"H:i:s" }}</td><!-- Display time -->
+                                    <td>{{ lab_test.updated_at }}</td>
+                         
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+
+     {% if observation_records %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Observation Records</h2>
+                </div>
+                <div class="card-body">
+                    <div  class="table-responsive">
+                        <table  class="table table-hover text-nowrap table-bordered table-striped" id="example1">
+                            <thead>
+                                <tr>                                   
+                                   
+                                    <th>Observation Notes</th>
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>  
+                                    <th>Updated At</th>                         
+                          
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in observation_records %}
+                                    <tr>                                    
+                     
+                                        <td>{{ record.observation_notes|safe }}</td>
+                                        <td>{{ record.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                        <td>{{ record.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ record.created_at|time:"H:i:s" }}</td><!-- Display time -->
+                                        <td>{{ record.updated_at }}</td>
+                                    </tr>                               
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+     
+     {% if referral_records  %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Referral Records</h2>
+                </div>
+                <div class="card-body">
+                    <div  class="table-responsive">
+                        <table  class="table table-hover text-nowrap table-bordered table-striped" id="example1">
+                            <thead>
+                                <tr>                                
+                                    <th>Source Location</th>
+                                    <th>Destination Location</th>
+                                    <th>Notes</th>
+                                    <th>Nature of Referral</th>
+                                    <th>Transport Model</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>  
+                                    <th>Updated At</th>      
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in referral_records %}
+                                    <tr>                                       
+                                        <td>{{ record.source_location }}</td>
+                                        <td>{{ record.destination_location }}</td>
+                                        <td>{{ record.notes|safe }}</td>
+                                        <td>{{ record.get_nature_of_referral_display }}</td>
+                                        <td>{{ record.get_transport_model_display }}</td>
+                                        <td>{{ record.get_status_display }}</td>
+                                        <td>{{ record.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                        <td>{{ record.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ record.created_at|time:"H:i:s" }}</td><!-- Display time -->
+                                        <td>{{ record.updated_at }}</td>
+                                    </tr>                              
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+
+     {% if counseling_records  %}
+     <div class="row py-1">
+        <div class="col-12">
+            <div class="card assessment-data-card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="card-title">Counseling Records</h2>
+                </div>
+                <div class="card-body">
+                    <div  class="table-responsive">
+                        <table  class="table table-hover text-nowrap table-bordered table-striped" id="example1">
+                            <thead>
+                                <tr>                                 
+                                    <th>Counseling Notes</th>
+                                    <th>Date</th>
+                                    <th>Day</th> <!-- New column for the day of the week -->
+                                    <th>Time</th>  
+                                    <th>Updated At</th>  
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in counseling_records %}
+                                    <tr>                                       
+                                        <td>{{ record.counselling_notes|safe }}</td>                                                                       
+                                        <td>{{ record.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
+                                        <td>{{ record.created_at|date:"l" }}</td> <!-- Display day of the week -->
+                                        <td>{{ record.created_at|time:"H:i:s" }}</td><!-- Display time -->
+                                        <td>{{ record.updated_at }}</td>
+                                    </tr>                                
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     {% endif %}
+
+     {% if discharge_notes %}
+     <div class="row py-1">
+         <div class="col-12">
+             <div class="card assessment-data-card">
+                 <div class="card-header bg-dark text-white">
+                     <h2 class="card-title">Discharge Notes</h2>
+                 </div>
+                 <div class="card-body">
+                     <div class="table-responsive">
+                         <table class="table table-bordered table-striped">
+                             <thead>
+                                 <tr>
+                                     <th>Discharge Condition</th>
+                                     <th>Discharge Notes</th>
+                                     <th>Discharge Date</th>
+                                     <th>Day</th>
+                                     <th>Time</th>
+                                     <th>Updated At</th>
+                                 </tr>
+                             </thead>
+                             <tbody>
+                                 {% for note in discharge_notes %}
+                                     <tr>
+                                         <td>{{ note.discharge_condition }}</td>
+                                         <td>{{ note.discharge_notes|safe }}</td>
+                                         <td>{{ note.discharge_date|date:"d-m-Y" }}</td>
+                                         <td>{{ note.discharge_date|date:"l" }}</td>
+                                         <td>{{ note.discharge_date|time:"H:i:s" }}</td>
+                                         <td>{{ note.updated_at|date:"d-m-Y H:i:s" }}</td>
+                                     </tr>
+                                 {% endfor %}
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </div>
+ {% endif %}
+ 
+   
+    </main>
+</div>
+
+<div class="btn-group btn-group-sm d-print-none"> <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none"><i class="fa fa-print"></i> Print</a> 
+    </div>
+  </footer> 
+
+{% endblock main_content %}

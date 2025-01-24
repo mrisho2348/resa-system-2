@@ -6,44 +6,50 @@
 
 {% block page_title %}
     <!-- Forward Button -->
-    {% if final_provisional_diagnosis %}
-        <a class="btn btn-primary breadcrumb-link" type="button" 
-           href="
-           {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Prescription' %}
-               {% url 'kahama_save_prescription' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
-               {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Referral' %}
-               {% url 'kahama_save_remotereferral' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Counselling' %}
-               {% url 'kahama_save_remote_counseling' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Procedure' %}
-               {% url 'kahama_save_remoteprocedure' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Observation' %}
-               {% url 'kahama_save_observation' patient.id visit.id %}
-           {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Discharge' %}
-               {% url 'kahama_save_remote_discharges_notes' patient.id visit.id %}
-           {% endif %}
-           ">
-            <i class="fas fa-arrow-left"></i> Back
-        </a>       
-      {% endif %}
+     {% if consultation_note.doctor == request.user.staff %}
+                {% if final_provisional_diagnosis %}
+                <a class="btn btn-primary breadcrumb-link" type="button" 
+                    href="
+                    {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Prescription' %}
+                        {% url 'kahama_save_prescription' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+                        {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Referral' %}
+                        {% url 'kahama_save_remotereferral' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Counselling' %}
+                        {% url 'kahama_save_remote_counseling' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Procedure' %}
+                        {% url 'kahama_save_remoteprocedure' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Observation' %}
+                        {% url 'kahama_save_observation' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Discharge' %}
+                        {% url 'kahama_save_remote_discharges_notes' patient.id visit.id %}
+                    {% endif %}
+                    ">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>       
+            {% endif %}
+     {% endif %}
+    
       <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'kahama_save_remotepatient_vitals' patient.id visit.id %}">
         <i class="fas fa-arrow-left"></i> Back to vitals
     </a>   
     <!-- Back Button -->
-    {% if consultation_note %}
-    <a class="btn btn-success breadcrumb-link" type="button" 
-    href="
-    {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
-        {% url 'kahama_save_laboratory' patient.id visit.id %}
-    {% else %}
-        {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
-    {% endif %}
-    ">
-     <i class="fas fa-arrow-right"></i> Forward
- </a>
-    {% endif %}
+     {% if consultation_note.doctor == request.user.staff %}
+            {% if consultation_note %}
+            <a class="btn btn-success breadcrumb-link" type="button" 
+            href="
+            {% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+                {% url 'kahama_save_laboratory' patient.id visit.id %}
+            {% else %}
+                {% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}
+            {% endif %}
+            ">
+            <i class="fas fa-arrow-right"></i> Forward
+        </a>
+            {% endif %}
+     {% endif %}
+    
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -138,7 +144,10 @@ Add  Consultation notes
                                                         <td>{{ vital.gcs }}</td>
                                                         <td>{{ vital.avpu }}</td>
                                                         <td>
+                                                            {% if vital.doctor == request.user.staff %}
                                                             <a href="#" class="btn btn-info btn-xs btn-labeled" type="button" data-toggle="modal" data-target="#editPatientVitalModal{{ vital.id }}"><b><i class="icon-pencil"></i></b> Edit</a>
+                                                            {% endif %}
+                                                            
                                                         </td>
                                                     </tr>
                                                     <div class="modal fade" id="editPatientVitalModal{{ vital.id }}" tabindex="-1" aria-labelledby="patientVitalModalLabel{{ vital.id }}" aria-hidden="true">
@@ -370,7 +379,7 @@ Add  Consultation notes
                                     const rowCount = container.find('tr').length + 1;
                         
                                     const newRow = `
-                                        <tr id="chiefComplaintRow${rowCount}">
+                                        <tr id="chiefComplaintRow${rowCount}" class="temporary-row">
                                             <td>
                                                 <select class="form-control select2bs4" name="chief_complain_name" required onchange="handleOtherOption(this.value, 'chiefComplaintRow${rowCount}')">
                                                     {% for health_record in health_records %}
@@ -382,7 +391,7 @@ Add  Consultation notes
                                             <td>
                                                 <input type="text" class="form-control" name="chief_complain_duration" placeholder="Duration (days)" required>
                                             </td>
-                                            <td>
+                                            <td>                                         
                                                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
                                                 <button type="button" class="btn btn-success btn-sm save-row">Save</button>
                                             </td>
@@ -390,13 +399,13 @@ Add  Consultation notes
                         
                                     container.append(newRow);
                                     initializeSelect2('.select2bs4');
-                        
+                                   
                                     // Re-bind event listeners after row is appended
-                                    bindEventListeners(rowCount);
+                                    bindEventListener(rowCount);
                                 }
                         
                                 // Bind event listeners to the dynamically created "Save", "Delete", and "Other" options
-                                function bindEventListeners(rowCount) {
+                                function bindEventListener(rowCount) {
                                     // Save button event handler
                                     $(`#chiefComplaintRow${rowCount} .save-row`).on('click', function () {
                                         saveChiefComplaint(`chiefComplaintRow${rowCount}`);
@@ -405,14 +414,9 @@ Add  Consultation notes
                                     // Delete button event handler
                                     $(`#chiefComplaintRow${rowCount} .delete-row`).on('click', function () {
                                         deleteChiefComplaintRow(`chiefComplaintRow${rowCount}`);
-                                    });                       
+                                    });                      
                                   
-                        
-                                    // Delete chief complaint handler for dynamically added complaints
-                                    $(`#chiefComplaintRow${rowCount} .delete-chief-complaint`).on('click', function () {
-                                        const id = $(this).data('id');
-                                        deleteChiefComplaint(id);
-                                    });
+                                    
                                 }
                         
                                 // Fetch and display existing chief complaints
@@ -426,28 +430,166 @@ Add  Consultation notes
                                     });
                                 }
                         
-                                // Populate the table with chief complaints
+                                // Populate the table with chief complaints     
                                 function populateChiefComplaintsTable(data) {
                                     const container = $('#chiefComplaintsTable tbody');
-                                    container.empty();
-                        
+
+                                    container.empty(); // Clear the table before populating
+                             
+                                    if (!Array.isArray(data) || data.length === 0) {
+                                        container.append('<tr><td colspan="3" class="text-center">No Chief Complaints Found</td></tr>');
+                                        return;
+                                    }
+                                
                                     data.forEach(item => {
                                         const row = `
-                                            <tr id="chiefComplaintRow${item.id}">
-                                                <td>${item.health_record || item.other_complaint}</td>
-                                                <td>${item.duration}</td>
+                                            <tr id="chiefComplaintRow${item.id}" data-id="${item.id}">
                                                 <td>
-                                                    <button type="button" class="btn btn-danger btn-sm delete-chief-complaint" data-id="${item.id}">Delete</button>
+                                                    <span class="display-text">${item.health_record || item.other_complaint || 'N/A'}</span>
+                                                    <select class="form-control select2bs4 editable-field d-none" name="chief_complain_name">
+                                                        {% for health_record in health_records %}
+                                                            <option value="{{ health_record.id }}" ${item.health_record_id == "{{ health_record.id }}" ? "selected" : ""}>{{ health_record.name }}</option>
+                                                        {% endfor %}                                                     
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <span class="display-text">${item.duration || 'N/A'}</span>
+                                                    <input type="text" class="form-control editable-field d-none" name="chief_complain_duration" value="${item.duration || ''}" placeholder="Duration (days)">
+                                                </td>
+                                                <td>
+                                                   {% if item.data_recorder_id == item.staff_id %}
+                                                <button type="button" class="btn btn-danger btn-sm delete-chief-complaint" data-id="${item.id}">Delete</button>
+                                                    <button type="button" class="btn btn-primary btn-sm edit-chief-complaint" data-row-id="chiefComplaintRow${item.id}" data-id="${item.id}">Edit</button>
+                                                    <button type="button" class="btn btn-success btn-sm save-changes d-none" data-id="${item.id}"  data-row-id="chiefComplaintRow${item.id}">Save Changes</button>
+                                                    <button type="button" class="btn btn-secondary btn-sm cancel-edit d-none" data-id="${item.id}"  data-row-id="chiefComplaintRow${item.id}">Cancel</button>
+                                                   {% endif %}
+                                                    
                                                 </td>
                                             </tr>`;
                                         container.append(row);
+                                       
                                     });
-                        
-                                    // Bind event listeners for newly populated rows
+                                
                                     data.forEach(item => {
                                         bindEventListeners(item.id);
                                     });
                                 }
+                                
+
+                                // Edit button logic
+                                function bindEventListeners(rowId) {
+                                    const row = $(`#chiefComplaintRow${rowId}`);
+
+                                    // Edit button logic
+                                    row.find('.edit-chief-complaint').on('click', function () {
+                                        row.find('.display-text').addClass('d-none'); // Hide display spans
+                                        row.find('.editable-field').removeClass('d-none'); // Show editable fields
+                                        row.find('.editable-field.select2bs4').select2({
+                                            theme: 'bootstrap4',
+                                            width: '100%',
+                                        });
+                                        row.find('.edit-chief-complaint').addClass('d-none'); // Hide Edit button
+                                        row.find('.delete-chief-complaint').addClass('d-none'); // Hide Delete button
+                                        row.find('.save-changes').removeClass('d-none'); // Show Save Changes button
+                                        row.find('.cancel-edit').removeClass('d-none'); // Show Cancel button
+                                    });
+
+                                    // Cancel button logic
+                                    row.find('.cancel-edit').on('click', function () {
+                                        row.find('.display-text').removeClass('d-none'); // Show display spans
+                                        row.find('.editable-field').addClass('d-none'); // Hide editable fields
+                                        row.find('.edit-chief-complaint').removeClass('d-none'); // Show Edit button
+                                        row.find('.delete-chief-complaint').removeClass('d-none'); // Show Delete button
+                                        row.find('.save-changes').addClass('d-none'); // Hide Save Changes button
+                                        row.find('.cancel-edit').addClass('d-none'); // Hide Cancel button
+                                    });
+
+                                 // Save Changes button logic
+                                    row.find('.save-changes').on('click', function () {
+                                        const rowId = $(this).data('row-id'); // Retrieve row ID from data attribute
+                                        const id = $(this).data('id'); // Retrieve the item ID
+                                        saveChangeChiefComplaint(rowId, id);
+                                    });
+
+                                    row.find('.delete-chief-complaint').on('click', function () {                                     
+                                        const id = $(this).data('id'); // Retrieve the item ID
+                                        deleteChiefComplaint(id);
+                                    });
+                                }
+
+                                
+                             // Function to retrieve CSRF token from cookies
+                                    function getCSRFToken() {
+                                        var csrfToken = null;
+                                        document.cookie.split(';').forEach(function(cookie) {
+                                            if (cookie.trim().startsWith('csrftoken=')) {
+                                                csrfToken = cookie.trim().substring('csrftoken='.length);
+                                            }
+                                        });
+                                        return csrfToken;
+                                    }
+
+                                   // Function to save changes
+                                   function saveChangeChiefComplaint(rowId, id) {
+                                    const row = $(`#${rowId}`);
+                                
+                                    // Exit if the row doesn't exist in the DOM
+                                    if (row.length === 0) {
+                                        displayPopupMessage(`Row with ID "${rowId}" not found.`, 'alert-warning');
+                                        return;
+                                    }
+                                
+                                    // Retrieve values from the form fields
+                                    const chiefComplainField = row.find('[name="chief_complain_name"]');
+                                    const durationField = row.find('[name="chief_complain_duration"]');
+                                
+                                    const chief_complain_name = chiefComplainField.val();
+                                    const chief_complain_duration = durationField.val();
+                                
+                                    // Validate that both fields have values
+                                    if (!chief_complain_name || !chief_complain_duration) {
+                                        displayPopupMessage('Please fill in both the chief complaint name and duration.', 'alert-warning');
+                                        return;
+                                    }
+                                
+                                    // Prepare the form data
+                                    const formData = {
+                                        chief_complain_name: chief_complain_name,
+                                        chief_complain_duration: chief_complain_duration,
+                                    };
+                                
+                                    // Construct the URL with the ID for the request
+                                    const url = `{% url 'kahama_update_chief_complaint' chief_complaint_id=0 %}`.replace('0', id);
+                                
+                                    // Send the AJAX request
+                                    $.ajax({
+                                        url: url,
+                                        method: 'POST', // Use 'POST' for sending data
+                                        data: JSON.stringify(formData),
+                                        contentType: 'application/json',
+                                        headers: {
+                                            'X-CSRFToken': getCSRFToken(), // Adding CSRF token in the header
+                                        },
+                                        success: function (response) {
+                                            if (response.status) {
+                                                displayPopupMessage(response.message, 'alert-success');
+                                                fetchAndDisplayChiefComplaints(); // Reload the list to reflect the updates
+                                            } else {
+                                                displayPopupMessage(response.message, 'alert-danger');
+                                            }
+                                        },
+                                        error: function () {
+                                            displayPopupMessage('Error saving changes.', 'alert-danger');
+                                        },
+                                    });
+                                }
+                                
+                                
+                                
+                                
+
+                                
+                            
                         
                                 // Delete a chief complaint
                                 function deleteChiefComplaint(id) {
@@ -516,12 +658,19 @@ Add  Consultation notes
                                         displayPopupMessage('Error saving chief complaint.', 'alert-danger');
                                     });
                                 }
-                        
+
+                       
                                 // Display popup messages
                                 function displayPopupMessage(message, alertType) {
                                     const popup = `<div class="alert ${alertType}">${message}</div>`;
                                     $('#popupContainer').html(popup);
+
+                                    // Set timer to remove the popup after 5 seconds (5000ms)
+                                    setTimeout(function() {
+                                        $('#popupContainer').html(''); // Clears the popup
+                                    }, 5000);
                                 }
+
                         
                                 // Delete a row in the form
                                 function deleteChiefComplaintRow(rowId) {
@@ -529,9 +678,9 @@ Add  Consultation notes
                                 }
                         
                                 // Event bindings
-                                $('#addChiefComplaintButton').click(addChiefComplaintRow);
-                        
-                                // Fetch data on page load
+                                $('#addChiefComplaintButton').click(function () {
+                                    addChiefComplaintRow(); // Only add a new row
+                                });                    
                                 fetchAndDisplayChiefComplaints();
                             });
 
@@ -552,6 +701,7 @@ Add  Consultation notes
                                 }
                             }
 
+                           
                         </script>
                         
                         
@@ -1074,20 +1224,25 @@ Add  Consultation notes
                                             {% endfor %}
                                         </select>                       
                                    
-                                   <!-- Doctor plan -->
-                                    <div class="form-group">
-                                        <label for="doctor_plan">Doctor Plan:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="doctor_plan" name="doctor_plan" required>
-                                            <option value="">Select Doctor Plan</option>
-                                            <option value="Prescription" {% if consultation_note.doctor_plan == 'Prescription' %} selected {% endif %}>Prescription</option>
-                                            <option value="Laboratory" {% if consultation_note.doctor_plan == 'Laboratory' %} selected {% endif %}>Laboratory</option>                                          
-                                            <option value="Procedure" {% if consultation_note.doctor_plan == 'Procedure' %} selected {% endif %}>Procedure</option>
-                                            <option value="Observation" {% if consultation_note.doctor_plan == 'Observation' %} selected {% endif %}>Observation</option>
-                                            <option value="Referral" {% if consultation_note.doctor_plan == 'Referral' %} selected {% endif %}>Referral</option>
-                                            <option value="Counselling" {% if consultation_note.doctor_plan == 'Counselling' %} selected {% endif %}>Counselling</option>
-                                            <option value="Discharge" {% if consultation_note.doctor_plan == 'Discharge' %} selected {% endif %}>Discharge</option>
-                                        </select>
-                                    </div>
+                                        <div class="form-group">
+                                            <label for="doctor_plan">Doctor Plan:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="doctor_plan" name="doctor_plan" {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge' %} disabled {% endif %} required>
+                                                <option value="">Select Doctor Plan</option>
+                                                <option value="Prescription" {% if consultation_note.doctor_plan == 'Prescription' %} selected {% endif %}>Prescription</option>
+                                                <option value="Laboratory" {% if consultation_note.doctor_plan == 'Laboratory' %} selected {% endif %}>Laboratory</option>                                          
+                                                <option value="Procedure" {% if consultation_note.doctor_plan == 'Procedure' %} selected {% endif %}>Procedure</option>
+                                                <option value="Observation" {% if consultation_note.doctor_plan == 'Observation' %} selected {% endif %}>Observation</option>
+                                                <option value="Referral" {% if consultation_note.doctor_plan == 'Referral' %} selected {% endif %}>Referral</option>
+                                                <option value="Counselling" {% if consultation_note.doctor_plan == 'Counselling' %} selected {% endif %}>Counselling</option>
+                                                <option value="Discharge" {% if consultation_note.doctor_plan == 'Discharge' %} selected {% endif %}>Discharge</option>
+                                            </select>
+                                      
+                                        </div>
+                                        
+                                        {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge'  %}
+                                        <input type="hidden" name="doctor_plan" value="{{ consultation_note.doctor_plan }}">
+                                        {% endif %}
+                                        
 
                                     <div class="row">
                                         {% if previous_referrals %}
@@ -1165,7 +1320,14 @@ Add  Consultation notes
                             <!-- Submit button -->
                             <div class="form-row">
                                 <div class="col-md-12">
+                                    {% if consultation_note  %}
+                                    {% if consultation_note.doctor == request.user.staff %}
                                     <button type="submit" class="btn btn-primary btn-block">Save & Continue</button>
+                                    {% endif %}
+                                    {% else %}
+                                    <button type="submit" class="btn btn-primary btn-block">Save & Continue</button>
+                                    {% endif %}
+                                 
                                 </div>
                             </div>
                         </form>
@@ -1180,8 +1342,7 @@ Add  Consultation notes
     <div class="modal fade" id="previousProceduresModal" tabindex="-1" role="dialog" aria-labelledby="previousProceduresModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="previousProceduresModalLabel">RESA Medical Centre Details</h5>
+                <div class="modal-header">              
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -1190,34 +1351,18 @@ Add  Consultation notes
                     <!-- Header Section -->
                     <div class="container-fluid">
                         <header class="header">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <table class="table table-borderless">
-                                        <tbody>
-                                            <tr>
-                                                <td class="mx-3">
-                                                    <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
-                                                </td>
-                                                <td class="text-white">
-                                                    <h1>RESA MEDICAL CENTRE</h1>
-                                                    <p>Polyclinic and EMS Care</p>
-                                                    <p>P.O.BOX 54235</p>
-                                                    <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
-                                                    <p>info@resahmis.co.tz</p>
-                                                    <p>Tel: 255 657 008 008</p>
-                                                    <p><a href="" class="text-white">resahmis.co.tz/</a></p>
-                                                    <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                            <div class="container-fluid p-0">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                    </div>                   
                                 </div>
                             </div>
                         </header>
                     </div>
     
                     <!-- Patient Details Section -->
-                    <div class="container-fluid py-5">
+                    <div class="container-fluid py-1">
                         <div class="row">
                             <div class="col-12">
                                 <div class="card patient-details-card">
@@ -1260,7 +1405,7 @@ Add  Consultation notes
                     </div>
     
                     <!-- Previous Procedures Section -->
-                    <div class="container-fluid py-5">
+                    <div class="container-fluid py-1">
                         <div class="row">
                             <div class="col-12">
                                 <div class="card patient-details-card">
@@ -1321,7 +1466,7 @@ Add  Consultation notes
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousReferralModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Previous Referral Records</h5>
+                <h5 class="modal-title" id="previousReferralModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Referral Records</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1376,8 +1521,7 @@ Add  Consultation notes
 <div class="modal fade" id="previousLaboratoryModal" tabindex="-1" role="dialog" aria-labelledby="previousLaboratoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="previousLaboratoryModalLabel">RESA Medical Centre Details</h5>
+            <div class="modal-header">             
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1386,34 +1530,18 @@ Add  Consultation notes
                 <!-- Header Section -->
                 <div class="container-fluid">
                     <header class="header">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-borderless">
-                                    <tbody>
-                                        <tr>
-                                            <td class="mx-3">
-                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
-                                            </td>
-                                            <td class="text-white">
-                                                <h1>RESA MEDICAL CENTRE</h1>
-                                                <p>Polyclinic and EMS Care</p>
-                                                <p>P.O.BOX 54235</p>
-                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
-                                                <p>info@resahmis.co.tz</p>
-                                                <p>Tel: 255 657 008 008</p>
-                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
-                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-12">
+                                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                </div>                   
                             </div>
                         </div>
                     </header>
                 </div>
 
                 <!-- Patient Details Section -->
-                <div class="container-fluid py-5">
+                <div class="container-fluid py-1">
                     <div class="row">
                         <div class="col-12">
                             <div class="card patient-details-card">
@@ -1456,7 +1584,7 @@ Add  Consultation notes
                 </div>
 
                 <!-- Previous Laboratory Orders Section -->
-                <div class="container-fluid py-5">
+                <div class="container-fluid py-1">
                     <div class="row">
                         <div class="col-12">
                             <div class="card patient-details-card">
@@ -1511,7 +1639,7 @@ Add  Consultation notes
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousCounsellingModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Previous Counseling Notes</h5>
+                <h5 class="modal-title" id="previousCounsellingModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Counseling Notes</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1556,7 +1684,7 @@ Add  Consultation notes
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousObservationModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Previous Observation Records</h5>
+                <h5 class="modal-title" id="previousObservationModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Observation Records</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1601,7 +1729,7 @@ Add  Consultation notes
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previousDischargeModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Previous Discharge Records</h5>
+                <h5 class="modal-title" id="previousDischargeModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Discharge Records</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1701,8 +1829,7 @@ Add  Consultation notes
 <div class="modal fade" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="organizationModalLabel">RESA Medical Centre Details</h5>
+            <div class="modal-header">               
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -1711,27 +1838,11 @@ Add  Consultation notes
                 <!-- Header Section -->
                 <div class="container-fluid">
                     <header class="header">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-borderless">
-                                    <tbody>
-                                        <tr>
-                                            <td class="mx-3">
-                                                <img src="{% static 'dist/img/resalogo.png' %}" alt="Company Logo" class="company-logo">
-                                            </td>
-                                            <td class="text-white">
-                                                <h1>RESA MEDICAL CENTRE</h1>
-                                                <p>Polyclinic and EMS Care</p>
-                                                <p>P.O.BOX 54235</p>
-                                                <p>Silver Sands Road, Plot 45, Block A, House No. 45 Kunduchi, Kinondoni, Dar es Saalam</p>
-                                                <p>info@resahmis.co.tz</p>
-                                                <p>Tel: 255 657 008 008</p>
-                                                <p><a href="" class="text-white">resahmis.co.tz/</a></p>
-                                                <p class="mt-2" style="font-family: ;">Part of RESA Medical Group</p>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-12">
+                                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                </div>                   
                             </div>
                         </div>
                     </header>

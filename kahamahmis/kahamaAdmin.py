@@ -3,10 +3,9 @@ from datetime import  datetime
 from django.utils import timezone
 import logging
 import numpy as np
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse 
 from django.shortcuts import render
 from django.urls import reverse
 from django.db.models import F
@@ -15,10 +14,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
-from clinic.forms import  RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm
-from clinic.models import ChiefComplaint, Diagnosis,   FamilyMedicalHistory, ContactDetails, Country, CustomUser, DiseaseRecode, ImagingRecord, InsuranceCompany, Medicine, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, Patients, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
+from clinic.models import ChiefComplaint, FamilyMedicalHistory, Country, CustomUser,InsuranceCompany, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
 
-from django.db.models import Sum
+from django.db.models import Max
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
 
@@ -107,41 +105,8 @@ def get_gender_monthly_data(request):
         return JsonResponse({'error': 'Invalid request'})
     
 
-  
 
 
-@login_required
-def manage_patient(request):
-    patient_records=Patients.objects.all() 
-    return render(request,"kahama_template/manage_patients.html", {"patient_records":patient_records})
-
-@login_required
-def manage_country(request):
-    countries=Country.objects.all() 
-    return render(request,"kahama_template/manage_country.html", {"countries":countries})
-
-
-@login_required
-def manage_consultation(request):
-    patients=Patients.objects.all() 
-    pathology_records=PathodologyRecord.objects.all() 
-    doctors=Staffs.objects.filter(role='doctor', work_place = 'kahama')
-    context = {
-        'patients':patients,
-        'pathology_records':pathology_records,
-        'doctors':doctors,
-    }
-    return render(request,"kahama_template/manage_consultation.html",context)
-
-@login_required
-def manage_company(request):
-    companies=RemoteCompany.objects.all() 
-    return render(request,"kahama_template/manage_company.html",{"companies":companies})
-
-@login_required
-def manage_disease(request):
-    disease_records=DiseaseRecode.objects.all() 
-    return render(request,"kahama_template/manage_disease.html",{"disease_records":disease_records})
 
 @login_required
 def manage_staff(request):     
@@ -238,13 +203,7 @@ def individual_visit(request, patient_id):
 def product_summary(request):
     return render(request,"kahama_template/product_summary.html")
 
-@login_required
-def manage_pathodology(request):
-    pathodology_records=PathodologyRecord.objects.all()     
-    return render(request,"kahama_template/manage_pathodology.html",{
-        "pathodology_records":pathodology_records,
-   
-        })
+
 
 
 logger = logging.getLogger(__name__)
@@ -401,19 +360,6 @@ def single_staff_detail(request, staff_id):
 
     return render(request, "kahama_template/staff_details.html", context)
 
-@login_required
-def view_patient(request, patient_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    # Fetch additional staff-related data  
-    context = {
-        'patient': patient,
-     
-    }
-
-    return render(request, "kahama_template/patients_detail.html", context)
-
-
-
 
 
 def confirm_meeting(request, appointment_id):
@@ -464,41 +410,55 @@ def edit_meeting(request, appointment_id):
 
 
 
-@login_required
-def medicine_expired_list(request):
-    # Get all medicines
-    all_medicines = Medicine.objects.all()
 
-    # Filter medicines with less than or equal to 10 days remaining for expiration
-    medicines = []
-    for medicine in all_medicines:
-        days_remaining = (medicine.expiration_date - timezone.now().date()).days
-        if days_remaining <= 10:
-            medicines.append({
-                'name': medicine.name,
-                'expiration_date': medicine.expiration_date,
-                'days_remaining': days_remaining,
-            })
-
-    return render(request, 'kahama_template/manage_medicine_expired.html', {'medicines': medicines})
 
 @login_required
 def patient_procedure_view(request):
-    template_name = 'kahama_template/manage_procedure.html'    
-    # Query to retrieve the latest procedure record for each patient
-    procedures = RemoteProcedure.objects.filter(
-        patient=OuterRef('id')
-    ).order_by('-created_at')
-    # Query to retrieve patients with their corresponding procedure (excluding patients without procedures)
-    patients_with_procedures = RemotePatient.objects.annotate(
-        procedure_name=Subquery(procedures.values('name__name')[:1]),
-    ).filter(procedure_name__isnull=False)    
-  
-    data = patients_with_procedures.values(
-        'id', 'mrn', 'procedure_name'
-
+    # Retrieve distinct patient and visit combinations from RemoteProcedure
+    patient_procedures = (
+        RemoteProcedure.objects.values('patient__mrn', 'visit__vst',
+                                       'doctor__admin__first_name',
+                                          'doctor__middle_name',
+                                          'doctor__role',
+                                          'doctor__admin__first_name',
+                                       ) 
+        .annotate(
+            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
+            procedure_name=Subquery(
+                RemoteProcedure.objects.filter(
+                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
+                    visit__vst=OuterRef('visit__vst')       # Match visit number
+                )
+                .order_by('-created_at')  # Order by most recent procedure
+                .values('name__name')[:1]  # Retrieve the latest procedure name
+            )
+        )
+        .order_by('-latest_date')  # Order by the latest procedure date
     )
-    return render(request, template_name, {'data': data})
+
+    context = {
+        'patient_procedures': patient_procedures,
+    }
+    return render(request, 'kahama_template/manage_procedure.html', context)
+
+@login_required
+def patient_procedure_detail_view(request, mrn, visit_number):
+    # Retrieve the patient based on MRN
+    patient = get_object_or_404(RemotePatient, mrn=mrn)
+
+    # Retrieve the visit based on visit_number for the specific patient
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+
+    # Retrieve the corresponding procedure for the patient and visit
+    procedure =RemoteProcedure.objects.filter(patient=patient, visit = visit)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'procedure': procedure,
+    }
+
+    return render(request, 'kahama_template/manage_procedure_detail_view.html', context)
 
 
 @login_required
@@ -519,51 +479,13 @@ def patient_procedure_history_view(request, mrn):
 
 
 
-
-
-@csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
-def save_referral(request):
-    if request.method == 'POST':
-        try:
-                      
-            source_location = request.POST.get('source_location')
-            destination_location = request.POST.get('destination_location')
-            visit_id = request.POST.get('visit_id')
-            patient_id = request.POST.get('patient_id')
-            consultation_id = request.POST.get('consultation_id')
-            reason = request.POST.get('reason')
-            notes = request.POST.get('notes')       
-
-
-            # Save procedure record
-            referral_record = RemoteReferral.objects.create(
-                patient=RemotePatient.objects.get(id=patient_id),
-                visit=RemotePatientVisits.objects.get(id=visit_id),
-                consultation=RemoteConsultationNotes.objects.get(id=consultation_id),
-                source_location=source_location,
-                destination_location=destination_location,
-                reason=reason,
-                notes=notes,
-       
-            )
-
-            return JsonResponse({'success': True, 'message': f'Referral record for {referral_record} saved successfully.'})
-        except Patients.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Invalid patient ID.'})
-        except IntegrityError:
-            return JsonResponse({'success': False, 'message': 'Duplicate entry. Referral record not saved.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
-
 @csrf_exempt
 def change_referral_status(request):
     if request.method == 'POST':
         try:
             referral_id = request.POST.get('referralId')
             new_status = request.POST.get('newStatus')
-            print(new_status)
+            
             # Update referral record with new status
             referral_record = RemoteReferral.objects.get(id=referral_id)
             referral_record.status = new_status
@@ -583,15 +505,7 @@ def manage_referral(request):
     patients = RemotePatient.objects.all()
     return render(request, 'kahama_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
-@login_required
-def generate_billing(request, procedure_id):
-    procedure = get_object_or_404(RemoteProcedure, id=procedure_id) 
-    context = {
-        'procedure': procedure,
-       
-    }
 
-    return render(request, 'kahama_template/billing_template.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -605,241 +519,6 @@ def appointment_list_view(request):
     }
     return render(request, 'kahama_template/manage_appointment.html', context)
 
-
-
-@csrf_exempt
-@login_required
-def add_disease(request):
-    if request.method == 'POST':
-        try:
-            # Extract data from the request
-            disease_id = request.POST.get('disease_id')
-            disease_name = request.POST.get('Disease').strip()
-            code = request.POST.get('Code').strip()
-
-            # If disease ID is provided, it's an edit operation
-            if disease_id:
-                # Check if the disease with the given ID exists
-                disease = DiseaseRecode.objects.get(pk=disease_id)
-                if disease:
-                    # Check if updating the disease name and code will cause a duplicate entry error
-                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(disease_name=disease_name).exists():
-                        return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})                    
-                    if DiseaseRecode.objects.exclude(pk=disease_id).filter(code=code).exists():
-                        return JsonResponse({'success': False, 'message': 'Another disease with the same code already exists'})
-                    
-                    # Update disease data
-                    disease.disease_name = disease_name
-                    disease.code = code
-                    disease.save()
-                    return JsonResponse({'success': True, 'message': 'Disease updated successfully'})
-                else:
-                    return JsonResponse({'success': False, 'message': 'Disease does not exist'})
-
-            # Check if the disease already exists
-            if DiseaseRecode.objects.filter(disease_name=disease_name).exists():
-                return JsonResponse({'success': False, 'message': 'Another disease with the same name already exists'})            
-            if DiseaseRecode.objects.filter(code=code).exists():
-                return JsonResponse({'success': False, 'message': 'Another disease with the same code already exists'})
-
-            # Save data to the model for new disease
-            DiseaseRecode.objects.create(disease_name=disease_name, code=code)
-            return JsonResponse({'success': True, 'message': 'Disease added successfully'})
-
-        except IntegrityError:
-            # Handle the specific IntegrityError raised when a duplicate entry occurs
-            return JsonResponse({'success': False, 'message': 'Disease already exists'})
-
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    
- 
-@csrf_exempt
-@login_required    
-def add_insurance_company(request):
-    if request.method == 'POST':
-        try:
-            # Extract data from the request
-            company_id = request.POST.get('company_id')
-            name = request.POST.get('Name').strip()
-            phone = request.POST.get('Phone').strip()
-            short_name = request.POST.get('Short_name').strip()
-            email = request.POST.get('Email').strip()
-            address = request.POST.get('Address').strip()
-            website = request.POST.get('website').strip()
-
-            # Check if company_id is provided
-            if company_id:
-                # Get the existing insurance company object
-                insurance_company = InsuranceCompany.objects.get(pk=company_id)
-                if insurance_company:
-                    # Check if the new name conflicts with existing names
-                    if InsuranceCompany.objects.exclude(pk=company_id).filter(name=name).exists():
-                        return JsonResponse({'success': False, 'message': 'Another insurance company with the same name already exists'})
-                    
-                    # Update the insurance company details
-                    insurance_company.name = name
-                    insurance_company.phone = phone
-                    insurance_company.short_name = short_name
-                    insurance_company.email = email
-                    insurance_company.address = address
-                    insurance_company.website = website
-                    insurance_company.save()
-                    return JsonResponse({'success': True, 'message': 'Insurance company updated successfully'})
-                else:
-                    return JsonResponse({'success': False, 'message': 'Insurance company does not exist'})
-            else:
-                # Check if an insurance company with the same name already exists
-                if InsuranceCompany.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Insurance company already exists'})
-                
-                # Save data to the model for new insurance company
-                InsuranceCompany.objects.create(
-                    name=name,
-                    phone=phone,
-                    short_name=short_name,
-                    email=email,
-                    address=address,
-                    website=website,
-                )
-                
-                return JsonResponse({'success': True, 'message': 'Insurance company added successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-
- 
-@csrf_exempt
-@login_required
-def add_company(request):
-    if request.method == 'POST':
-        try:
-            # Get data from the request
-            company_id = request.POST.get('company_id')
-            name = request.POST.get('Name').strip()
-            industry = request.POST.get('industry', '')
-            sector = request.POST.get('sector', '')
-            headquarters = request.POST.get('headquarters', '')
-            Founded = request.POST.get('Founded', '')
-            Notes = request.POST.get('Notes', '')
-
-            # Check if company_id is provided
-            if company_id:
-                # Fetch the existing company object
-                company = RemoteCompany.objects.get(pk=company_id)
-
-                # Check if the new name already exists and it's not the same as the current name
-                if RemoteCompany.objects.filter(name=name).exclude(pk=company_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Company with the provided name already exists'})
-
-                # Update company data
-                company.name = name
-                company.industry = industry
-                company.sector = sector
-                company.headquarters = headquarters
-                company.Founded = Founded
-                company.Notes = Notes
-                company.save()
-
-                return JsonResponse({'success': True, 'message': 'Company updated successfully'})
-            else:
-                # Check if a company with the given name already exists
-                if RemoteCompany.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Company already exists'})
-
-                # Save new company data
-                RemoteCompany.objects.create(
-                    name=name,
-                    industry=industry,
-                    sector=sector,
-                    headquarters=headquarters,
-                    Founded=Founded,
-                    Notes=Notes,
-                )
-
-                return JsonResponse({'success': True, 'message': 'Company added successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    
-  
- 
-@csrf_exempt
-@login_required
-def add_pathodology_record(request):
-    if request.method == 'POST':
-        try:
-            # Extract data from the request
-            name = request.POST.get('Name').strip()
-            description = request.POST.get('Description')
-            pathology_record_id = request.POST.get('pathology_record_id')
-            
-            # If pathology record ID is provided, it's an edit operation
-            if pathology_record_id:             
-                
-                # Check if the provided name already exists in the database excluding the current record
-                if PathodologyRecord.objects.exclude(pk=pathology_record_id).filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message':  f'Another pathology record with the name "{name}" already exists'})
-                 # Get the existing pathology record object
-                pathology_record = PathodologyRecord.objects.get(pk=pathology_record_id)
-                # Update the existing pathology record
-                pathology_record.name = name
-                pathology_record.description = description
-                pathology_record.save()
-                return JsonResponse({'success': True, 'message': 'Patholody updated successfully'})
-            else:  # If no pathology record ID is provided, it's an add operation
-                # Check if the provided name already exists in the database
-                if PathodologyRecord.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message':  f'A pathology record with the name "{name}" already exists'})
-
-                # Save data to the model for a new pathology record
-                pathodology_record = PathodologyRecord.objects.create(
-                    name=name,
-                    description=description
-                )
-                return JsonResponse({'success': True, 'message': f'{name} added successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-
-def out_of_stock_medicines(request):
-    try:
-        # Query the database for the count of out-of-stock medicines
-        out_of_stock_count = Medicine.objects.filter(remain_quantity=0).count()
-        
-        # Return the count in JSON format
-        return JsonResponse({'count': out_of_stock_count})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return JsonResponse({'error': str(e)}, status=500)    
-
-@login_required    
-def out_of_stock_medicines_view(request):
-    try:
-        # Query the database for out-of-stock medicines
-        out_of_stock_medicines = Medicine.objects.filter(remain_quantity=0)
-        
-        # Render the template with the out-of-stock medicines data
-        return render(request, 'kahama_template/manage_out_of_stock_medicines.html', {'out_of_stock_medicines': out_of_stock_medicines})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return render(request, '404.html', {'error_message': str(e)}) 
-
-
-    
-@login_required    
-def in_stock_medicines_view(request):
-    # Retrieve medicines with inventory levels above zero
-    in_stock_medicines = Medicine.objects.filter(remain_quantity__gt=0)
-
-    return render(request, 'kahama_template/manage_in_stock_medicines.html', {'in_stock_medicines': in_stock_medicines})  
 
 
 
@@ -856,78 +535,8 @@ def patient_visit_history_view(request, patient_id):
         'doctors': doctors,
         })
 
-@login_required    
-def patient_health_record_view(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        visits = RemotePatientVisits.objects.get(id=visit_id)
-        visit_history = RemotePatientVisits.objects.filter(patient_id=patient_id)
-        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            consultation_notes = RemoteConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        except RemoteConsultationNotes.DoesNotExist:
-            consultation_notes = None
-         
-        try:
-            previous_vitals = RemotePatientVital.objects.filter(patient=patient_id,visit=visit_id).order_by('-recorded_at')
-        except RemotePatientVital.DoesNotExist:
-            previous_vitals = None   
-             
-        try:
-            consultation_notes_previous  = RemoteConsultationNotes.objects.filter(patient=patient_id).order_by('-created_at')
-        except RemoteConsultationNotes.DoesNotExist:
-            consultation_notes_previous  = None   
-             
-        try:
-            vital = RemotePatientVital.objects.filter(patient=patient_id, visit=visit_id)
-        except RemotePatientVital.DoesNotExist:
-            vital = None
-            
-        try:
-            procedures = RemoteProcedure.objects.filter(patient=patient_id, visit=visit_id)            
-        except RemoteProcedure.DoesNotExist:
-            procedures = None
-          
-       
-     
-        pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor', work_place = 'kahama')
-        provisional_diagnoses = Diagnosis.objects.all()
-        final_diagnoses = Diagnosis.objects.all()
 
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-        range_31 = range(31)
-        current_date = timezone.now().date()
-        patient = RemotePatient.objects.get(id=patient_id)
-
-        medicines = Medicine.objects.filter(
-            medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-
-        return render(request, 'kahama_template/manage_patient_health_record.html', {
-            'visit_history': visit_history,
-            'patient': patient,
-            'visits': visits,
-            'range_31': range_31,
-            'medicines': medicines,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'consultation_notes': consultation_notes,
-            'pathology_records': pathology_records,
-            'doctors': doctors,
-            'consultation_notes_previous': consultation_notes_previous,
-            'provisional_diagnoses': provisional_diagnoses,
-            'previous_vitals': previous_vitals,
-            'final_diagnoses': final_diagnoses,
-            'vital': vital,          
-            'procedures': procedures,
-      
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})
-    
+   
     
 @login_required
 def patient_visit_details_view(request, patient_id, visit_id):
@@ -937,7 +546,7 @@ def patient_visit_details_view(request, patient_id, visit_id):
         chief_complaints = ChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
         primary_physical_examination = PrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
         secondary_physical_examination = SecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = RemoteConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
+        consultation_notes = RemoteConsultationNotes.objects.get(patient_id=patient_id, visit=visit_id)  
         vitals = RemotePatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
         referral_records  = RemoteReferral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
         counseling_records = RemoteCounseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
@@ -967,7 +576,7 @@ def patient_visit_details_view(request, patient_id, visit_id):
         }
 
         return render(request, 'kahama_template/manage_patient_visit_detail_record.html', context)
-    except Patients.DoesNotExist:
+    except RemotePatient.DoesNotExist:
         raise Http404("Patient does not exist")
     except Exception as e:
         return render(request, '404.html', {'error_message': str(e)})    
@@ -1022,54 +631,6 @@ def prescription_list(request):
     })
 
 
-
-    
-    
-@login_required
-def prescription_detail(request, visit_number, patient_id):
-    patient = RemotePatient.objects.get(id=patient_id)
-    prescriptions = RemotePrescription.objects.filter(visit__vst=visit_number, patient_id=patient_id)    
-    # Get the prescriber information for the first prescription (assuming all prescriptions have the same prescriber)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by    
-    # Retrieve verification status, issued status, and payment status
-    verification_status = None
-    issued_status = None
-    payment_status = None
-    if prescriptions.exists():
-        verification_status = prescriptions.first().verified
-        issued_status = prescriptions.first().issued
-        payment_status = prescriptions.first().status
-    
-    context = {
-        'patient': patient,
-        'prescriptions': prescriptions,
-        'visit_number': visit_number,
-        'prescriber': prescriber,
-        'verification_status': verification_status,
-        'issued_status': issued_status,
-        'payment_status': payment_status,
-    }
-    return render(request, "kahama_template/prescription_detail.html", context)
-
-@login_required
-def prescription_billing(request, visit_number, patient_id):
-    patient = RemotePatient.objects.get(id=patient_id)
-    visit = RemotePatientVisits.objects.get(vst=visit_number)
-    prescriptions = RemotePrescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "kahama_template/prescription_bill.html", context)
-
 @login_required
 def prescription_notes(request, visit_id, patient_id):
     patient = RemotePatient.objects.get(id=patient_id)
@@ -1104,18 +665,36 @@ def patient_vital_list(request, patient_id,visit_id):
     
     return render(request, 'kahama_template/manage_patient_vital_list.html', context)  
 
-@login_required  
+@login_required
 def patient_vital_all_list(request):
-    # Retrieve the patient object
-    patients = Patients.objects.all()  
-    patient_vitals = RemotePatientVital.objects.all().order_by('-recorded_at')
+    # Retrieve distinct patient and visit combinations
+    patient_vitals = (
+        RemotePatientVital.objects.values('patient__mrn', 'visit__vst')
+        .annotate(
+            latest_date=Max('recorded_at')  # Get the latest record date for each patient and visit
+        )
+        .order_by('-latest_date')
+    )
     
     context = {      
-        'patients': patients, 
-        'patient_vitals': patient_vitals
+        'patient_vitals': patient_vitals,
     }
-    # Render the template with the patient's vital information
-    return render(request, 'kahama_template/manage_all_patient_vital.html', context)    
+    return render(request, 'kahama_template/manage_all_patient_vital.html', context) 
+
+@login_required
+def patient_vital_detail(request, patient_mrn, visit_number):
+    # Fetch all vitals for the specific patient and visit
+    patient = RemotePatient.objects.get(mrn=patient_mrn)
+    vitals = RemotePatientVital.objects.filter(patient__mrn=patient_mrn, visit__vst=visit_number)
+    
+    context = {
+        'vitals': vitals,
+        'patient': patient,
+        'patient_mrn': patient_mrn,
+        'visit_number': visit_number,
+    }
+    return render(request, 'kahama_template/manage_patient_vital_list.html', context)
+
 
 
 @login_required
@@ -1154,6 +733,7 @@ def save_remotepatient_vital(request):
         if not vital_id:
             duplicate_vitals = RemotePatientVital.objects.filter(
                 patient=patient,
+                doctor=doctor,
                 visit=visit,
                 respiratory_rate=respiratory_rate,
                 pulse_rate=pulse_rate,
@@ -1256,6 +836,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
 
             if existing_vital:  # If a record exists, update it
                 existing_vital.respiratory_rate = respiratory_rate
+                existing_vital.doctor = doctor
                 existing_vital.pulse_rate = pulse_rate
                 existing_vital.sbp = sbp
                 existing_vital.dbp = dbp
@@ -1304,403 +885,8 @@ def consultation_notes_view(request):
         'consultation_notes': consultation_notes,       
         })    
 
-@login_required
-def save_prescription(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        visit = RemotePatientVisits.objects.get(id=visit_id)         
-        frequencies = PrescriptionFrequency.objects.all()         
-        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit_id=visit_id)        
-        consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-        current_date = timezone.now().date()
-        patient = RemotePatient.objects.get(id=patient_id)    
-        total_price = sum(prescription.total_price for prescription in prescriptions)  
-        medicines = RemoteMedicine.objects.filter(
-            remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-        range_31 = range(1,31)
-        return render(request, 'kahama_template/prescription_template.html', {           
-            'patient': patient,
-            'visit': visit,       
-            'consultation_notes': consultation_notes,       
-            'medicines': medicines,
-            'total_price': total_price,
-            'range_31': range_31,
-            'frequencies': frequencies,
-            'prescriptions': prescriptions,
-         
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
-
-@login_required
-def save_nextprescription(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        visit = RemotePatientVisits.objects.get(id=visit_id)         
-        frequencies = PrescriptionFrequency.objects.all()         
-        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit_id=visit_id)        
-        consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-        current_date = timezone.now().date()
-        patient = RemotePatient.objects.get(id=patient_id)    
-        total_price = sum(prescription.total_price for prescription in prescriptions)  
-        medicines = RemoteMedicine.objects.filter(
-            remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-        range_31 = range(1,31)
-        return render(request, 'kahama_template/nextprescription_template.html', {           
-            'patient': patient,
-            'visit': visit,       
-            'consultation_notes': consultation_notes,       
-            'medicines': medicines,
-            'total_price': total_price,
-            'range_31': range_31,
-            'frequencies': frequencies,
-            'prescriptions': prescriptions,
-         
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
-    
-
-@login_required
-def save_nextlaboratory(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    remote_service = RemoteService.objects.filter(category='Laboratory')
-    data_recorder = request.user.staff
-    previous_results = RemoteLaboratoryOrder.objects.filter(patient=patient)
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    # Check if the laboratory order already exists for this patient on the specified visit
-    laboratory_order = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).first()
-    context = {
-                'patient': patient,
-               'visit': visit, 
-               'previous_results': previous_results,
-               'remote_service': remote_service,
-               'consultation_notes': consultation_notes,
-               } 
-
-    if request.method == 'POST':
-        # Retrieve the list of investigation names, descriptions, and results from the form data
-        investigation_names = request.POST.getlist('investigation_name[]')
-        descriptions = request.POST.getlist('description[]')
-
-        try:
-            for name, description in zip(investigation_names, descriptions):
-                # If the laboratory order already exists, update it
-                if laboratory_order:
-                    laboratory_order.data_recorder = data_recorder         
-                    laboratory_order.name_id = name         
-                    laboratory_order.result = description
-                    laboratory_order.save()
-                    messages.success(request, '')
-                else:
-                    # If no laboratory order exists, create a new one
-                    RemoteLaboratoryOrder.objects.create(
-                        data_recorder=data_recorder,
-                        patient=patient,
-                        visit=visit,
-                        name_id=name,
-                        result=description
-                    )
-                    messages.success(request, '')
-            # Redirect to a success page or another view
-            return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-        except Exception as e:
-            messages.error(request, f'Error: {str(e)}')
-
-    return render(request, 'kahama_template/nextlaboratory_template.html', context)
-    
-
-    
-@login_required
-def save_nextremotereferral(request, patient_id, visit_id):
-    try:
-        # Retrieve patient and visit objects
-        patient = get_object_or_404(RemotePatient, id=patient_id)
-        visit = get_object_or_404(RemotePatientVisits, id=visit_id)        
-        data_recorder = request.user.staff
-        referral = RemoteReferral.objects.filter(patient=patient, visit=visit).first()   
-        context = {'patient': patient, 'visit': visit, 'referral': referral}  
-
-        if request.method == 'POST':
-            # Process the form data if it's a POST request
-            form = RemoteReferralForm(request.POST, instance=referral)
-            
-            if form.is_valid():
-                # If a referral record exists, update it
-                if referral:
-                    referral = form.save(commit=False)
-                    referral.patient = patient
-                    referral.visit = visit
-                    referral.data_recorder = data_recorder
-                    referral.save()
-                    messages.success(request, '')
-                else:
-                    # If no referral record exists, create a new one
-                    form.instance.patient = patient
-                    form.instance.visit = visit
-                    form.instance.data_recorder = data_recorder
-                    form.save()
-                    messages.success(request, '')
-                
-                # Redirect to a success page or another view
-                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If it's a GET request, initialize the form with existing data (if any)
-            form = RemoteReferralForm(instance=referral)
-        
-        context['form'] = form
-        return render(request, 'kahama_template/nextsave_remotereferral.html', context)
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'kahama_template/nextsave_remotereferral.html', context)
-    
-    
-
-@login_required    
-def save_nextcounsel(request, patient_id, visit_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)   
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)             
-    data_recorder = request.user.staff
-    # Retrieve existing remote counseling record if it exists
-    remote_counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'consultation_notes': consultation_notes,
-        'remote_counseling': remote_counseling,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = RemoteCounselingForm(request.POST, instance=remote_counseling)
-        
-        # Check if a record already exists for the patient and visit
-        if remote_counseling:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient
-            form.instance.data_recorder = data_recorder
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = RemoteCounselingForm(instance=remote_counseling)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'kahama_template/nextcounsel_template.html', context)
 
 
-    
-@login_required    
-def save_nextremoteprocedure(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    procedures = RemoteService.objects.filter(category='Procedure')
-    previous_procedures = RemoteProcedure.objects.filter(patient_id=patient_id)
-    context = {
-        'patient': patient, 
-        'visit': visit, 
-        'procedures': procedures,
-        'previous_procedures': previous_procedures,
-        }   
-    try:
-        if request.method == 'POST':
-            # Get the list of procedure names and descriptions from the form
-            names = request.POST.getlist('name[]')
-            descriptions = request.POST.getlist('description[]')            
-            # Validate if all required fields are present
-            if not all(names) or not all(descriptions):
-                messages.error(request, 'Please fill out all required fields.')
-                return render(request, 'kahama_template/nextprocedure_template.html', context)            
-            # Loop through the submitted data to add or update each procedure
-            for name, description in zip(names, descriptions):
-                # Check if a RemoteProcedure record already exists for this patient on the specified visit
-                existing_procedure = RemoteProcedure.objects.filter(patient_id=patient_id, visit_id=visit_id, name_id=name).first()
-                
-                if existing_procedure:
-                    # If a procedure exists, update it
-                    existing_procedure.description = description                  
-                    existing_procedure.save()
-                    messages.success(request, '')
-                else:
-                    RemoteProcedure.objects.create(
-                        patient_id=patient_id,
-                        visit_id=visit_id,
-                        name_id=name,
-                        description=description,
-                    )                    
-            messages.success(request, '')
-            return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Change 'success_page' to your success page URL name
-        else:
-            # If request method is not POST, render the corresponding template
-            return render(request, 'kahama_template/nextprocedure_template.html', context)
-    except Exception as e:
-        messages.error(request, f'Error: {str(e)}')        
-        return render(request, 'kahama_template/nextprocedure_template.html', context)   
-    
-
-    
-@login_required
-def save_nextobservation(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    data_recorder = request.user.staff
-    record_exists = RemoteObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    context = {'patient': patient, 'visit': visit, 'record_exists': record_exists}
-    if request.method == 'POST':
-        form = RemoteObservationRecordForm(request.POST)
-        if form.is_valid():
-            description = form.cleaned_data['observation_notes']
-            try:
-                if record_exists:
-                    # If a record exists, update it
-                    observation_record = RemoteObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
-                    observation_record.observation_notes = description
-                    observation_record.data_recorder = data_recorder
-                    observation_record.save()
-                    messages.success(request, '')
-                else:
-                    # If no record exists, create a new one
-                    RemoteObservationRecord.objects.create(
-                        patient=patient,
-                        visit=visit,
-                        data_recorder=data_recorder,
-                        observation_notes=description,
-                    )
-                    messages.success(request, '')
-                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-            except Exception as e:
-                messages.error(request, f'Error: {str(e)}')
-        else:
-            messages.error(request, 'Please fill out all required fields.')
-    else:
-        form = RemoteObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
-
-    context['form'] = form
-    return render(request, 'kahama_template/nextobservation_template.html', context)
-
-@login_required    
-def save_nextremote_discharges_notes(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    remote_discharges_notes = RemoteDischargesNotes.objects.filter(patient=patient, visit=visit).first()  
-    context = {
-            'patient': patient,
-            'visit': visit,
-            'remote_discharges_notes': remote_discharges_notes,         
-        }
-        
-    try:      
-        # Check if the request user is staff
-        data_recorder = request.user.staff      
-        # Handle form submission
-        if request.method == 'POST':
-            form = RemoteDischargesNotesForm(request.POST, instance=remote_discharges_notes)
-            if form.is_valid():
-                remote_discharges_notes = form.save(commit=False)
-                remote_discharges_notes.patient = patient
-                remote_discharges_notes.visit = visit
-                remote_discharges_notes.data_recorder = data_recorder
-                remote_discharges_notes.save()
-                messages.success(request, '')
-                return redirect(reverse('kahama_save_remotesconsultation_notes', args=[patient_id, visit_id]))  # Redirect to the next view
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            form = RemoteDischargesNotesForm(instance=remote_discharges_notes)        
-        # Prepare context for rendering the template
-        context['form'] = form
-        return render(request, 'kahama_template/next_discharge_template.html', context)    
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'kahama_template/next_discharge_template.html', context)
-    
-
-
-def diagnosis_list(request):
-    diagnoses = Diagnosis.objects.all().order_by('-created_at')    
-    return render(request, 'kahama_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
-
-
-@login_required
-@csrf_exempt
-@require_POST
-def save_diagnosis(request):
-    try:
-        # Extract and trim data from the request
-        diagnosis_name = request.POST.get('diagnosis_name', '').strip()
-        diagnosis_code = request.POST.get('diagnosis_code', '').strip()
-        diagnosis_id = request.POST.get('diagnosis_id', '')
-
-        if diagnosis_id:
-            # Editing existing diagnosis
-            try:
-                diagnosis = Diagnosis.objects.get(pk=diagnosis_id)
-            except Diagnosis.DoesNotExist:
-                return JsonResponse({'success': False, 'message': 'Diagnosis not found.'})
-
-            # Check for uniqueness excluding the current diagnosis
-            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_name=diagnosis_name).exists():
-                return JsonResponse({'success': False, 'message': 'Diagnosis with this name already exists.'})
-            
-            if Diagnosis.objects.exclude(pk=diagnosis_id).filter(diagnosis_code=diagnosis_code).exists():
-                return JsonResponse({'success': False, 'message': 'Diagnosis with this code already exists.'})
-
-            # Update fields
-            diagnosis.diagnosis_name = diagnosis_name
-            diagnosis.diagnosis_code = diagnosis_code
-            diagnosis.save()
-            return JsonResponse({'success': True, 'message': 'Diagnosis updated successfully.'})
-        else:
-            # Adding new diagnosis
-            # Check for uniqueness
-            if Diagnosis.objects.filter(diagnosis_name=diagnosis_name).exists():
-                return JsonResponse({'success': False, 'message': 'Diagnosis with this name already exists.'})
-            if Diagnosis.objects.filter(diagnosis_code=diagnosis_code).exists():
-                return JsonResponse({'success': False, 'message': 'Diagnosis with this code already exists.'})
-
-            # Create new diagnosis
-            diagnosis = Diagnosis.objects.create(diagnosis_name=diagnosis_name, diagnosis_code=diagnosis_code)
-            return JsonResponse({'success': True, 'message': 'Diagnosis added successfully.'})
-
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-  
-    
     
 @login_required    
 def patient_info_form(request):  
@@ -1776,6 +962,7 @@ def patient_info_form(request):
                 middle_name=middle_name,
                 last_name=last_name,
                 gender=gender,
+                data_recorder=request.user.staff ,
                 occupation=occupation,
                 other_occupation=other_occupation,
                 phone=phone,
@@ -1835,7 +1022,7 @@ def patients_list(request):
 def save_patient_visit_save(request, patient_id, visit_id=None):
     # Retrieve the patient object or handle the error if it does not exist
     patient = get_object_or_404(RemotePatient, pk=patient_id)
-    
+    data_recorder=request.user.staff 
     if request.method == 'POST':
         try:
             # Retrieve form data
@@ -1846,6 +1033,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
             if visit_id:
                 # Editing an existing visit
                 visit = get_object_or_404(RemotePatientVisits, pk=visit_id)
+                visit.data_recorder = data_recorder
                 visit.visit_type = visit_type
                 visit.primary_service = primary_service
                 visit.save()
@@ -1854,6 +1042,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
                 # Adding a new visit
                 visit = RemotePatientVisits.objects.create(
                     patient=patient,
+                    data_recorder=data_recorder,
                     visit_type=visit_type,
                     primary_service=primary_service
                 )
@@ -1945,6 +1134,7 @@ def patient_info_form_edit(request, patient_id):
             patient.gender = gender
             patient.age = age
             patient.dob = dob            
+            patient.data_recorder=request.user.staff          
             patient.nationality_id = Country.objects.get(id=nationality_id)
             patient.phone = phone
             patient.osha_certificate = osha_certificate
@@ -2182,137 +1372,45 @@ def health_info_edit(request, patient_id):
         return render(request, 'kahama_template/edit_patient_health_condition_form.html', context)
 
 
-
-
 @login_required
-def remoteservice_list(request):
-    # Retrieve all services from the database
-    services = RemoteService.objects.all()
-    return render(request, 'kahama_template/service_list.html', {'services': services})
-
-
-@login_required
-@csrf_exempt
-@require_POST
-def save_remote_service(request):
+def save_prescription(request, patient_id, visit_id):
     try:
-        # Extract data from the request
-        service_id = request.POST.get('service_id')
-        name = request.POST.get('name').strip()
-        description = request.POST.get('description')
-        category = request.POST.get('category')
-
-        if service_id:
-            # Editing existing remote service
-            service = RemoteService.objects.get(pk=service_id)
-            
-            # Check for duplicate name excluding the current record
-            if RemoteService.objects.exclude(pk=service_id).filter(name=name).exists():
-                return JsonResponse({'success': False, 'message': f'A service with the name "{name}" already exists.'})
-            
-            # Update the existing service
-            service.name = name
-            service.description = description
-            service.category = category
-            service.save()
-            
-            return JsonResponse({'success': True, 'message': 'Updated successfully'})
-        else:
-            # Creating new remote service
-            # Check for duplicate name
-            if RemoteService.objects.filter(name=name).exists():
-                return JsonResponse({'success': False, 'message': f'A service with the name "{name}" already exists.'})
-            
-            # Create a new service
-            service = RemoteService(name=name, description=description, category=category)
-            service.save()
-            
-            return JsonResponse({'success': True, 'message': 'Added successfully'})
-    except RemoteService.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Service not found.'})
+        # Retrieve visit history for the specified patient
+        visit = RemotePatientVisits.objects.get(id=visit_id)         
+        frequencies = PrescriptionFrequency.objects.all()         
+        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit_id=visit_id)        
+        consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+        current_date = timezone.now().date()
+        patient = RemotePatient.objects.get(id=patient_id)    
+        total_price = sum(prescription.total_price for prescription in prescriptions)  
+        medicines = RemoteMedicine.objects.filter(
+            remain_quantity__gt=0,  # Inventory level greater than zero
+            expiration_date__gt=current_date  # Not expired
+        ).distinct()
+        range_31 = range(1,31)
+        return render(request, 'kahama_template/prescription_template.html', {           
+            'patient': patient,
+            'visit': visit,       
+            'consultation_notes': consultation_notes,       
+            'medicines': medicines,
+            'total_price': total_price,
+            'range_31': range_31,
+            'frequencies': frequencies,
+            'prescriptions': prescriptions,
+         
+        })
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-   
+        # Handle other exceptions if necessary
+        return render(request, '404.html', {'error_message': str(e)}) 
 
-    
-@require_POST
-def add_remote_consultation(request):
-    if request.method == 'POST':
-        try:
-            # Retrieve data from the POST request
-            doctor_id = request.POST.get('doctor')
-            patient_id = request.POST.get('patient_id')
-            description = request.POST.get('description')
-            date_of_consultation = request.POST.get('date_of_consultation')
-            start_time = request.POST.get('start_time')
-            end_time = request.POST.get('end_time')
 
-            # Ensure date_of_consultation is greater than the current date
-            if timezone.now().date() >= timezone.datetime.strptime(date_of_consultation, "%Y-%m-%d").date():
-                return JsonResponse({'status': 'error', 'message': 'Consultation date must be greater than the current date'})
 
-            patient = RemotePatient.objects.get(id=patient_id)
-            doctor = Staffs.objects.get(id=doctor_id)
-
-            # Validate the time inputs
-            if not validate_time(start_time, end_time):
-                return JsonResponse({'status': 'error', 'message': 'End time must be greater than start time'})
-
-            # Create a new consultation object in the database
-            consultation = RemoteConsultation(
-                doctor=doctor,
-                patient=patient,
-                description=description,
-                appointment_date=date_of_consultation,
-                start_time=start_time,
-                end_time=end_time
-            )
-            consultation.save()
-
-            # Return a JSON response indicating success
-            return JsonResponse({'status': 'success', 'message': 'Consultation added successfully'})
-        except Exception as e:
-            # If an exception occurs, return a JSON response with an error message
-            return JsonResponse({'status': 'error', 'message': str(e)})
-    else:
-        # If the request method is not POST, return a JSON response with an error message
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-
-def validate_time(start_time, end_time):
-    # Validate that end time is greater than start time
-    return start_time < end_time
 
 @login_required
 def generatePDF(request, patient_id, visit_id):
     pass
 
 
-@require_POST
-def save_consultation_data(request):
-    try:
-        # Retrieve data from the form
-        doctor_id = request.POST.get('doctor')
-        patient_id = request.POST.get('patient')
-        appointment_date = request.POST.get('appointmentDate')
-        start_time = request.POST.get('startTime')
-        end_time = request.POST.get('endTime')
-        description = request.POST.get('description')        
-        pathodology_record_id = request.POST.get('pathodologyRecord')        
-        # Create or update Consultation object
-        consultation, created = RemoteConsultation.objects.update_or_create(
-            doctor=Staffs.objects.get(id=doctor_id),
-            patient=RemotePatient.objects.get(id=patient_id),
-            appointment_date=appointment_date,
-            start_time=start_time,
-            end_time=end_time,
-            description=description,
-            pathodology_record= PathodologyRecord.objects.get(id=pathodology_record_id),
-            
-        )
-        return redirect('kahama_appointment_list')
-    except Exception as e:
-        return HttpResponseBadRequest(f"Error: {str(e)}")
-    
 def counseling_list_view(request):
     counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_counselling.html', {'counselings': counselings})    

@@ -1,0 +1,121 @@
+{% extends 'divine_admin_template/base_template.html' %}
+
+{% block title %}
+    Patient Reports
+{% endblock title %}
+
+{% block breadcrumb %}
+    {% include "divine_admin_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="container-fluid mt-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Report Selection Form -->
+                                <form id="reports_form" method="post">
+                                    {% csrf_token %}
+                                    <div class="row">
+                                        <!-- Report Type Selection -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="report_type">Report Type:</label>
+                                                <select class="form-control select2bs4" name="report_type" id="report_type">
+                                                    <option value="patient_type_reports">Patient Type Report</option>
+                                                    <option value="patient_company_wise_reports">Consult. Per Status Report</option>
+                                                    <option value="patient_lab_result_reports">Laboratory Tests Report</option>
+                                                    <option value="patient_procedure_reports">Nursing Procedure Report</option>
+                                                    <option value="patient_referral_reports">Referral & MedEvac Report</option>
+                                                    <option value="patient_pathology_reports">Consult. Per Pathology</option>
+                                                    <!-- Add more options for other report types here -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <!-- Year Selection -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="year">Year:</label>
+                                                <select class="form-control select2bs4" id="year" name="year">
+                                                    {% for year in year_range %}
+                                                        <option value="{{ year }}">{{ year }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <!-- Search Button -->
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>&nbsp;</label>
+                                                <button type="submit" class="btn btn-primary btn-block">Search</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Table Section -->
+    <div class="container-fluid mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 id="report_heading" class="header-title text-center mt-0 mb-1 text-uppercase"></h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="report_table"></div> <!-- This is where the server response will be displayed -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function(){
+        // Form submission handler
+        $('#reports_form').on('submit', function(e){
+            e.preventDefault(); // Prevent the form from submitting normally
+            
+            // Serialize form data
+            var formData = $(this).serialize();
+            
+            // AJAX request to fetch the report
+            $.ajax({
+                type: 'POST',
+                url: '{% url "divine_search_report" %}',
+                data: formData,
+                success: function(response){
+                    // Update the table content with the response HTML
+                    $('#report_table').html(response.html_result); 
+                    updateHeading(); // Update the report heading dynamically
+                },
+                error: function(xhr, status, error){
+                    console.error(xhr.responseText); // Log any errors to the console
+                }
+            });
+        });
+    });
+
+    // Function to dynamically update the report heading
+    function updateHeading() {
+        var reportType = $('#report_type option:selected').text();
+        var year = $('#year option:selected').text();       
+        var title = reportType + ' - ' + year;
+        $('#report_heading').text(title); // Update the heading in the card
+        $('title').text('SITE NAME: | ' + title); // Update the browser title
+    }
+</script>
+
+{% include 'divine_admin_template/datatable.html' %}
+{% endblock main_content %}

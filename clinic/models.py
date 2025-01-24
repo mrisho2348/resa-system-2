@@ -133,6 +133,7 @@ class Staffs(models.Model):
         return f"{self.admin.first_name} {self.middle_name} {self.admin.last_name}"
 
 class InsuranceCompany(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='insurance_companies') 
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=15)
     short_name = models.CharField(max_length=50)
@@ -185,6 +186,7 @@ COVERAGE_CHOICES = [
 ]
     
 class Service(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='services') 
     name = models.CharField(max_length=255)
     type_service = models.CharField(max_length=200, choices=TYPE_CHOICES, blank=True, null=True)  
     coverage = models.CharField(max_length=200, choices=COVERAGE_CHOICES, blank=True, null=True)         
@@ -202,6 +204,7 @@ class Service(models.Model):
     
 
 class MedicineUnitMeasure(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='medicine_unit_measures') 
     name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=20,default="")  
     application_user = models.CharField(max_length=100,default="")  
@@ -213,6 +216,7 @@ class MedicineUnitMeasure(models.Model):
         return self.name      
 
 class InventoryItem(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='inventory_items') 
     name = models.CharField(max_length=100)
     quantity = models.PositiveIntegerField()
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True)
@@ -240,6 +244,7 @@ class InventoryItem(models.Model):
 
    
 class UsageHistory(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='usage_histories') 
     inventory_item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
     usage_date = models.DateField()
     quantity_used = models.PositiveIntegerField()
@@ -251,6 +256,7 @@ class UsageHistory(models.Model):
     def __str__(self):
         return f"{self.usage_date} - {self.quantity_used} units"    
 class Category(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='categories') 
     name = models.CharField(max_length=255, unique=True)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -260,6 +266,7 @@ class Category(models.Model):
         return self.name    
         
 class Supplier(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='suppliers') 
     name = models.CharField(max_length=255, unique=True)  
     address = models.CharField(max_length=100,default="")
     contact_information = models.CharField(max_length=100,default="")
@@ -272,6 +279,7 @@ class Supplier(models.Model):
         return self.name    
         
 class PathodologyRecord(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='pathology_records') 
     name = models.CharField(max_length=255, unique=True)    
     description = models.TextField(default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -282,6 +290,7 @@ class PathodologyRecord(models.Model):
     
     
 class DiseaseRecode(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='disease_records') 
     disease_name = models.CharField(max_length=255, unique=True)  
     code = models.CharField(max_length=25,unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -308,7 +317,7 @@ class ContactDetails(models.Model):
 
 class Patients(models.Model):
     # Auto-incremented primary key (ID)
-    # The unique constraint for MRN is maintained separately
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patients') 
     mrn = models.CharField(max_length=20, unique=True, editable=False)
     first_name = models.CharField(max_length=100, default="")
     middle_name = models.CharField(max_length=100,default="")
@@ -369,13 +378,14 @@ def generate_mrn():
 
  
 class Country(models.Model):
-        name = models.CharField(max_length=100,unique=True)
-        created_at = models.DateTimeField(auto_now_add=True)
-        updated_at = models.DateTimeField(auto_now=True)
-        objects = models.Manager()        
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='countries') 
+    name = models.CharField(max_length=100,unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()        
     
-        def __str__(self):
-            return f"{self.name}"    
+    def __str__(self):
+        return f"{self.name}"    
     
 
 class PatientVital(models.Model):
@@ -420,7 +430,7 @@ class PatientVisits(models.Model):
         ('Referral', _('Referral')),
         ('Follow up', _('Follow up')),
     )
-
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_visits') 
     patient = models.ForeignKey('Patients', on_delete=models.CASCADE)
     vst = models.CharField(max_length=20, unique=True, editable=False)
     visit_type = models.CharField( max_length=15, choices=VISIT_TYPES)
@@ -486,7 +496,7 @@ class ImagingRecord(models.Model):
     patient = models.ForeignKey('Patients', on_delete=models.CASCADE)
     visit = models.ForeignKey('PatientVisits', on_delete=models.CASCADE)
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='data_recorder') 
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='imaging_records') 
     imaging= models.ForeignKey(Service, on_delete=models.CASCADE,blank=True, null=True) 
     order_date = models.DateField(null=True, blank=True)
     description = models.TextField(blank=True, null=True)
@@ -580,6 +590,7 @@ class LaboratoryOrder(models.Model):
    
 
 class HospitalVehicle(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='hospital_vehicles') 
     number = models.CharField(max_length=50)
     plate_number = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
@@ -592,6 +603,7 @@ class HospitalVehicle(models.Model):
         return self.number   
     
 class AmbulanceRoute(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='ambulance_routes') 
     from_location = models.CharField(max_length=100)
     to_location = models.CharField(max_length=100)
     distance = models.FloatField()
@@ -618,6 +630,7 @@ class AmbulanceRoute(models.Model):
     
     
 class AmbulanceActivity(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='ambulance_activities') 
     name = models.CharField(max_length=100)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     profit = models.DecimalField(max_digits=10, decimal_places=2)
@@ -677,6 +690,7 @@ class AmbulanceOrder(models.Model):
         super().save(*args, **kwargs)
            
 class AmbulanceVehicleOrder(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='ambulance_vehicle_orders') 
     vehicle_type = models.CharField(max_length=100,blank=True, null=True)
     activities = models.CharField(max_length=255,blank=True, null=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -699,6 +713,7 @@ class AmbulanceVehicleOrder(models.Model):
 
 
 class PrescriptionFrequency(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='prescription_frequencies') 
     name = models.CharField(max_length=100)
     interval = models.CharField(max_length=50)
     description = models.TextField()
@@ -821,6 +836,7 @@ MEDICINE_TYPES = [
 ]
 
 class Medicine(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='medicines') 
     drug_name = models.CharField(max_length=100)
     drug_type = models.CharField(max_length=20, blank=True, null=True) 
     formulation_unit = models.CharField(max_length=50)    
@@ -848,6 +864,7 @@ class Medicine(models.Model):
         return self.drug_name  
     
 class RemoteMedicine(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_medicines') 
     drug_name = models.CharField(max_length=100)
     drug_type = models.CharField(max_length=20, blank=True, null=True) 
     formulation_unit = models.CharField(max_length=50)    
@@ -907,6 +924,7 @@ class Prescription(models.Model):
         return f"{self.patient.first_name} - {self.medicine.name}"  # Accessing drug's name   
     
 class Equipment(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='equipment') 
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)  # Description of the equipment
     manufacturer = models.CharField(max_length=100, blank=True)  # Manufacturer of the equipment
@@ -923,6 +941,7 @@ class Equipment(models.Model):
         return self.name
     
 class EquipmentMaintenance(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='equipment_maintenance') 
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE)
     maintenance_date = models.DateField()
     technician = models.CharField(max_length=100)  # Technician who performed the maintenance
@@ -937,6 +956,7 @@ class EquipmentMaintenance(models.Model):
         return f"{self.equipment.name} - Maintenance on {self.maintenance_date}" 
     
 class Reagent(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='reagents') 
     name = models.CharField(max_length=100)
     expiration_date = models.DateField(blank=True, null=True)
     manufacturer = models.CharField(max_length=100)
@@ -959,6 +979,7 @@ class Reagent(models.Model):
         return 0
     
 class ReagentUsage(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='reagent_usages') 
     reagent = models.ForeignKey(Reagent, on_delete=models.CASCADE)
     usage_date = models.DateField()
     quantity_used = models.PositiveIntegerField() 
@@ -968,6 +989,7 @@ class ReagentUsage(models.Model):
     objects = models.Manager()  
     
 class QualityControl(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='quality_controls') 
     lab_technician = models.ForeignKey('Staffs', on_delete=models.CASCADE)
     control_date = models.DateField()
     # Add other quality control-related information
@@ -996,7 +1018,7 @@ def save_user_profile(sender, instance, **kwargs):
 class ClinicCompany(models.Model):
     # Company name
     name = models.CharField(max_length=255, help_text='Name of the company')
-    
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_companies') 
     # Unique registration number for the company
     registration_number = models.CharField(max_length=100, unique=True, help_text='Company registration number')
     
@@ -1024,6 +1046,7 @@ class ClinicCompany(models.Model):
 
 
 class Company(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='companies') 
     name =  models.CharField(max_length=255, unique=True)
     industry = models.CharField(max_length=50, default="")
     sector = models.CharField(max_length=50, default="")
@@ -1042,6 +1065,7 @@ class Company(models.Model):
    
 
 class RemoteCompany(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_companies') 
     name =  models.CharField(max_length=255, unique=True)
     industry = models.CharField(max_length=50, default="")
     sector = models.CharField(max_length=50, default="")
@@ -1056,6 +1080,7 @@ class RemoteCompany(models.Model):
         return self.name
 
 class PatientMedicationAllergy(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_medication_allergies') 
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE, related_name='remote_medication_allergies')
     medicine_name =models.ForeignKey(RemoteMedicine, on_delete=models.CASCADE, related_name='remote_medicine')
     reaction = models.CharField(max_length=200)
@@ -1066,6 +1091,7 @@ class PatientMedicationAllergy(models.Model):
         return f"{self.medicine_name} - {self.reaction}"    
     
 class PatientSurgery(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_surgeries') 
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE,related_name='remote_patient_surgery')
     surgery_name = models.CharField(max_length=100,blank=True, null=True)
     surgery_date = models.TextField(blank=True, null=True)   
@@ -1075,7 +1101,8 @@ class PatientSurgery(models.Model):
     def __str__(self):
         return f"{self.surgery_name} - {self.surgery_date}"  
  
-class HealthRecord(models.Model):    
+class HealthRecord(models.Model):   
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='health_records')  
     name = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1086,6 +1113,7 @@ class HealthRecord(models.Model):
         return f"{self.name}"  
     
 class PatientLifestyleBehavior(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_lifestyle_behaviors') 
     patient = models.OneToOneField('RemotePatient', on_delete=models.CASCADE)
     weekly_exercise_frequency =models.CharField(max_length=10, blank=True, null=True)   
     smoking = models.CharField(max_length=10, blank=True, null=True)
@@ -1098,6 +1126,7 @@ class PatientLifestyleBehavior(models.Model):
         return f"{self.patient}"
 
 class MedicineRoute(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='medicine_routes') 
     name = models.CharField(max_length=100)
     explanation = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1127,6 +1156,7 @@ def generate_for_remote_mrn():
 
 class RemotePatient(models.Model):
     mrn = models.CharField(max_length=20, unique=True, editable=False, verbose_name='MRN')
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_recorder') 
     first_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100, default="")
     last_name = models.CharField(max_length=100)
@@ -1167,7 +1197,8 @@ class RemotePatient(models.Model):
 
     
 class PatientHealthCondition(models.Model):
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE, related_name='remote_health_conditions', verbose_name='Patient')    
+    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE, related_name='remote_health_conditions', verbose_name='Patient')  
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patient_health_conditions')   
     health_condition = models.CharField(max_length=200, blank=True, null=True, verbose_name='Health Condition')
     health_condition_notes = models.CharField(max_length=200, blank=True, null=True, verbose_name='Health Condition Notes')  
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Created At')
@@ -1177,6 +1208,7 @@ class PatientHealthCondition(models.Model):
 
 class FamilyMedicalHistory(models.Model):
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE, related_name='remote_family_medical_history', verbose_name='Patient')
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='family_medical_histories') 
     condition = models.CharField(max_length=100, verbose_name='Condition')
     relationship = models.CharField(max_length=100, blank=True, null=True, verbose_name='Relationship')
     comments = models.CharField(max_length=100, blank=True, null=True, verbose_name='Comments')
@@ -1190,6 +1222,7 @@ class FamilyMedicalHistory(models.Model):
             
 class RemoteService(models.Model):
     name = models.CharField(max_length=225,unique=True)  
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_services') 
     description = models.TextField(default="")
     category = models.CharField(max_length=50, null=True, blank=True,)   
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1203,7 +1236,7 @@ class RemoteService(models.Model):
 class RemotePatientVital(models.Model):
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)  
-    doctor = models.ForeignKey('Staffs', on_delete=models.CASCADE, blank=True, null=True)
+    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE, blank=True, null=True)
     recorded_at = models.DateTimeField(auto_now_add=True)
     respiratory_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Respiratory rate in breaths per minute")
     pulse_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Pulse rate in beats per minute")
@@ -1225,6 +1258,7 @@ class RemotePatientVital(models.Model):
 
 class Diagnosis(models.Model):
     diagnosis_name= models.CharField(max_length=255,unique=True)
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
     diagnosis_code= models.CharField(max_length=20,unique=True,default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1288,7 +1322,7 @@ class RemotePatientVisits(models.Model):
         ('Referral', _('Referral')),
         ('Follow up', _('Follow up')),
     )
-
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_patient_visits') 
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     vst = models.CharField(max_length=20, unique=True, editable=False)
     visit_type = models.CharField( max_length=15, choices=VISIT_TYPES)     
@@ -1392,6 +1426,7 @@ class RemoteLaboratoryOrder(models.Model):
    
 
 class RemoteHospitalVehicle(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_hospital_vehicles') 
     number = models.CharField(max_length=50)
     plate_number = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
@@ -1404,6 +1439,7 @@ class RemoteHospitalVehicle(models.Model):
         return self.number   
     
 class RemoteAmbulanceRoute(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_routes') 
     from_location = models.CharField(max_length=100)
     to_location = models.CharField(max_length=100)
     distance = models.FloatField()
@@ -1430,6 +1466,7 @@ class RemoteAmbulanceRoute(models.Model):
     
     
 class RemoteAmbulanceActivity(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_activities') 
     name = models.CharField(max_length=100)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     profit = models.DecimalField(max_digits=10, decimal_places=2)
@@ -1489,6 +1526,7 @@ class RemoteAmbulanceOrder(models.Model):
         super().save(*args, **kwargs)
            
 class RemoteAmbulanceVehicleOrder(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_vehicle_orders') 
     vehicle_type = models.CharField(max_length=100,blank=True, null=True)
     activities = models.CharField(max_length=255,blank=True, null=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
@@ -1564,6 +1602,7 @@ class RemoteOrder(models.Model):
 
      
 class RemoteConsultation(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_consultations') 
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
@@ -1705,7 +1744,7 @@ class Referral(models.Model):
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)   
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
-    source_location  = models.CharField(max_length=255, help_text='Source location of the patient',default="resa medical hospital")
+    source_location  = models.CharField(max_length=255, help_text='Source location of the patient',default="DIVINE TIS Mobile medical clinic")
     destination_location = models.CharField(max_length=255, help_text='Destination location for MedEvac')    
     notes =  CKEditor5Field(config_name='extends',blank=True, null=True) 
     nature_of_referral = models.CharField(max_length=20, choices=NATURE_OF_REFERRAL_CHOICES, default='Referred')
@@ -1745,6 +1784,7 @@ class Referral(models.Model):
         return ''
 
 class ChiefComplaint(models.Model):    
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='chief_complaints') 
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     health_record = models.ForeignKey(HealthRecord, on_delete=models.CASCADE,blank=True, null=True)
@@ -1757,7 +1797,8 @@ class ChiefComplaint(models.Model):
     def __str__(self):
         return f"{self.health_record.name} - {self.duration}"   
      
-class ClinicChiefComplaint(models.Model):    
+class ClinicChiefComplaint(models.Model):   
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_chief_complaints')  
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     health_record = models.ForeignKey(HealthRecord, on_delete=models.CASCADE,blank=True, null=True)
@@ -1771,6 +1812,7 @@ class ClinicChiefComplaint(models.Model):
         return f"{self.health_record.name} - {self.duration}"    
     
 class PrimaryPhysicalExamination(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='primary_physical_examinations') 
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     airway = models.CharField(max_length=200,blank=True, null=True)
@@ -1798,6 +1840,7 @@ class PrimaryPhysicalExamination(models.Model):
         return f"Physical Examination - {self.pk}"
     
 class ClinicPrimaryPhysicalExamination(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_primary_examinations') 
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     airway = models.CharField(max_length=200,blank=True, null=True)
@@ -1825,6 +1868,7 @@ class ClinicPrimaryPhysicalExamination(models.Model):
         return f"Physical Examination - {self.pk}"
     
 class SecondaryPhysicalExamination(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='secondary_physical_examinations') 
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     heent = models.CharField(max_length=50, blank=True, null=True)
@@ -1855,6 +1899,7 @@ class SecondaryPhysicalExamination(models.Model):
     def __str__(self):
         return self.pk
 class ClinicSecondaryPhysicalExamination(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_secondary_examinations') 
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
     heent = models.CharField(max_length=50, blank=True, null=True)
@@ -1885,6 +1930,7 @@ class ClinicSecondaryPhysicalExamination(models.Model):
 
   
 class RemoteReagent(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_reagents') 
     name = models.CharField(max_length=255, unique=True)
     supplier = models.CharField(max_length=255, blank=True, null=True)
     quantity = models.PositiveIntegerField()
@@ -1896,6 +1942,7 @@ class RemoteReagent(models.Model):
         return self.name  
     
 class RemoteEquipment(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_equipments') 
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
     serial_number = models.CharField(max_length=255, unique=True)
@@ -1960,7 +2007,7 @@ class Payroll(models.Model):
         ('pending', 'Pending'),
         ('canceled', 'Canceled'),
     ]
-
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='payrolls') 
     payroll_date = models.DateField()
     total_salary = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -1973,7 +2020,8 @@ class Payroll(models.Model):
         return f"Payroll for {self.payroll_date}"
   
 
-class BankAccount(models.Model):   
+class BankAccount(models.Model): 
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='bank_accounts')   
     bank_name = models.CharField(max_length=100, unique=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1988,7 +2036,7 @@ class SalaryPayment(models.Model):
         ('pending', 'Pending'),
         ('failed', 'Failed'),
     ]
-
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='salary_payments') 
     employee = models.ForeignKey('Employee', on_delete=models.CASCADE)
     payroll = models.ForeignKey('Payroll', on_delete=models.CASCADE)    
     payment_date = models.DateField()
@@ -2004,6 +2052,7 @@ class SalaryPayment(models.Model):
         verbose_name = " Salary Payment"   
 
 class Employee(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='employees') 
     name =  models.OneToOneField(Staffs, on_delete=models.CASCADE,blank=True, null=True) 
     employee_id = models.CharField(max_length=20, unique=True)    
     department = models.CharField(max_length=100)
@@ -2065,6 +2114,7 @@ def generate_employee_id():
     return new_number    
     
 class DeductionOrganization(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='deduction_organizations') 
     name = models.CharField(max_length=100)
     rate = models.DecimalField(max_digits=5, decimal_places=2)
     description = models.TextField(blank=True)
@@ -2075,6 +2125,7 @@ class DeductionOrganization(models.Model):
         return self.name
     
 class EmployeeDeduction(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='employee_deductions') 
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE)
     organization = models.ForeignKey(DeductionOrganization, on_delete=models.CASCADE)
@@ -2089,6 +2140,7 @@ class EmployeeDeduction(models.Model):
     
     
 class SalaryChangeRecord(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='salary_change_records') 
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE)
     previous_salary = models.DecimalField(max_digits=10, decimal_places=2)
@@ -2101,6 +2153,7 @@ class SalaryChangeRecord(models.Model):
         return f"Salary change for {self.employee} on {self.change_date}"        
     
 class PaymentMethod(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='payment_methods') 
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2110,6 +2163,7 @@ class PaymentMethod(models.Model):
         return self.name    
     
 class ExpenseCategory(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='expense_categories') 
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2121,6 +2175,7 @@ class ExpenseCategory(models.Model):
     
 class Expense(models.Model):
     date = models.DateField()
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='expenses') 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
@@ -2133,6 +2188,7 @@ class Expense(models.Model):
         return f"Expense of {self.amount} on {self.date}"
 
 class Investment(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='investments') 
     investment_type = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
@@ -2144,6 +2200,7 @@ class Investment(models.Model):
         return f"{self.investment_type} - {self.amount} - {self.date}"
     
 class Grant(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='grants') 
     grant_name = models.CharField(max_length=100)
     funding_amount = models.DecimalField(max_digits=10, decimal_places=2)
     donor_name = models.CharField(max_length=100)
@@ -2156,6 +2213,7 @@ class Grant(models.Model):
         return f"{self.grant_name} - {self.funding_amount} - {self.grant_date}"
 
 class GovernmentProgram(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='government_programs') 
     program_name = models.CharField(max_length=100)
     funding_amount = models.DecimalField(max_digits=10, decimal_places=2)
     eligibility_criteria = models.TextField()
@@ -2172,7 +2230,7 @@ class Invoice(models.Model):
         ('pending', 'Pending'),
         ('overdue', 'Overdue'),
     ]
-
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='invoices') 
     number = models.CharField(max_length=50, unique=True)  # Ensure uniqueness
     date = models.DateField()
     due_date = models.DateField()
@@ -2198,6 +2256,7 @@ class Invoice(models.Model):
 
 class Payment(models.Model):
     date = models.DateField()
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='payments') 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE, blank=True, null=True)
     invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, blank=True, null=True)
@@ -2211,6 +2270,7 @@ class Payment(models.Model):
 
 
 class Clients(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clients') 
     name = models.CharField(max_length=100)
     email = models.EmailField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)

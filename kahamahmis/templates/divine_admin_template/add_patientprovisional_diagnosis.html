@@ -1,0 +1,154 @@
+{% extends 'divine_admin_template/base_template.html' %}
+
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Final Diagnosis
+{% endblock title %}
+{% block page_title %}
+
+<a class="btn btn-primary" type="button"  href="{% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+{% url 'divine_save_laboratory' patient.id visit.id %}
+{% else %}
+{% url 'divine_save_remotesconsultation_notes' patient.id visit.id %}
+{% endif %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% if final_diagnosis_ids %}
+<a class="btn btn-success" type="button" href="{% if patient.remoteconsultationnotes_set.last.doctor_plan == 'Prescription' %}
+        {% url 'divine_save_prescription' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Laboratory' %}
+        {% url 'divine_save_remotesconsultation_notes' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Referral' %}
+        {% url 'divine_save_remotereferral' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Counselling' %}
+        {% url 'divine_save_remote_counseling' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Procedure' %}
+        {% url 'divine_save_remoteprocedure' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Observation' %}
+        {% url 'divine_save_observation' patient.id visit.id %}
+    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Discharge' %}
+        {% url 'divine_save_remote_discharges_notes' patient.id visit.id %}
+    {% endif %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-right"></i> Forward
+</a>
+{% endif %}
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "divine_admin_template/modal_form.html" %}
+Final Diagnosis for {{ patient.remoteconsultationnotes_set.last.doctor_plan }}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Patient Information Card -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">               
+                <div class="card-body">
+                    <div class="card">
+                        <div class="card-header">
+                            <label for="chief_complaints">Patient Information</label>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    Patient: <b>{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b>
+                                </div>
+                                <div class="col-md-3">
+                                    DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                    <script>
+                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var ageMilliseconds = now - dob;
+                                        var ageSeconds = ageMilliseconds / 1000;
+                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                        document.write(ageYears + ' years');
+                                    </script>
+                                    {% else %}
+                                    {{ patient.age }}
+                                    {% endif %}]</b>
+                                </div>
+                                <div class="col-md-3">
+                                    SEX: <b>{{ patient.gender }}</b>
+                                </div>
+                                <div class="col-md-3">
+                                    FILE NO: <b>{{ patient.mrn }}</b>
+                                </div>
+                            </div>
+                            <br />
+                            <div class="row">
+                                <div class="col-md-3">
+                                    Company: <b>{{ patient.company }}</b>
+                                </div>
+                                <div class="col-md-3">
+                                    Visit Number: <b>{{ visit.vst }}</b>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">Add Final Diagnosis</div>
+                <div class="card-body">
+                    <form id="addConsultationForm" action="{% url 'divine_save_remotesconsultation_notes_next' patient.id visit.id %}" method="post">
+                        {% csrf_token %}
+                        <div class="container-fluid">    
+                            <div class="row">
+                                <!-- Provisional diagnosis as a list -->
+                                <div class="col-md-6 form-group">
+                                    <label for="provisional_diagnosis{{ consultation_note.id }}">Provisional Diagnosis:</label>
+                                    <ol>
+                                        {% for diagnosis in provisional_diagnoses %}
+                                            {% if diagnosis.id in provisional_diagnosis_ids %}
+                                                <li>{{ diagnosis }}</li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ol>
+                                </div>
+                                <!-- Final diagnosis as a field -->
+                                <div class="col-md-6 form-group">
+                                    <label for="final_diagnosis{{ consultation_note.id }}">Final Diagnosis:</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="final_diagnosis{{ consultation_note.id }}" name="final_diagnosis[]" required multiple>
+                                        {% for diagnosis in final_diagnoses %}
+                                            <option value="{{ diagnosis.id }}" {% if diagnosis.id in final_diagnosis_ids %} selected {% endif %}>{{ diagnosis.diagnosis_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="doctor_plan" value="{{ doctor_plan_note.doctor_plan }}">
+                                </div>
+                            </div>                   
+                        </div>
+                        <div class="card-footer">
+                            {% if messages %}
+                                <div class="row">
+                                    <div class="col-12">
+                                        {% for message in messages %}
+                                            {% if message.tags == 'error' %}
+                                                <div class="alert alert-danger">{{ message }}</div>
+                                            {% elif message.tags == 'success' %}
+                                                <div class="alert alert-primary">{{ message }}</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <!-- Submit button -->
+                        <div class="form-row">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary btn-block">Save & Continue</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'divine_admin_template/datatable.html' %}
+{% endblock main_content %}

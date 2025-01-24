@@ -45,6 +45,11 @@ def DoLoginKahama(request):
                 if staff.work_place == 'kahama':
                     if role == "doctor":
                       return HttpResponseRedirect(reverse("kahama_dashboard"))                    
+                    elif role == "admin":
+                      return HttpResponseRedirect(reverse("divine_dashboard"))                    
+                    else :
+                      messages.error(request, f"for this clinic were currently dont have {role} role . Please contact the administrator for support.")  
+                      return HttpResponseRedirect(reverse("kahamahmis:kahama"))                    
                 else :
                     messages.error(request, "You are not a staff for this hospital or clinic. Please contact the administrator for support.")
                     return HttpResponseRedirect(reverse("kahamahmis:kahama"))            

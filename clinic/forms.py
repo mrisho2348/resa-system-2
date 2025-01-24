@@ -1,3 +1,4 @@
+from datetime import datetime
 from django import forms
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.widgets import CKEditor5Widget
@@ -444,11 +445,42 @@ class LaboratoryOrderForm(forms.ModelForm):
             )
         }
         
-class YearSelectionForm(forms.Form):
-    year = forms.IntegerField(label='Year', widget=forms.TextInput(attrs={'class': 'form-control'}))       
-#------------------------------
-#   Editing existing data
-
+class YearMonthSelectionForm(forms.Form):
+    # Generate a list of years: last ten years and future ten years from the current year
+    current_year = datetime.now().year
+    year_choices = [(year, str(year)) for year in range(current_year - 10, current_year + 1)]
+    
+    # Months dropdown choices (including 'All months' option)
+    month_choices = [
+        (0, 'All months'),  # 'None' to represent "All months"
+        (1, 'January'), 
+        (2, 'February'), 
+        (3, 'March'), 
+        (4, 'April'),
+        (5, 'May'), 
+        (6, 'June'), 
+        (7, 'July'), 
+        (8, 'August'),
+        (9, 'September'), 
+        (10, 'October'), 
+        (11, 'November'), 
+        (12, 'December')
+    ]
+    
+    # Year dropdown field
+    year = forms.ChoiceField(
+        label='Year',
+        choices=year_choices,
+        widget=forms.Select(attrs={'class': 'form-control select2bs4'})
+    )
+    
+    # Month dropdown field
+    month = forms.ChoiceField(
+        label='Month',
+        choices=month_choices,
+        widget=forms.Select(attrs={'class': 'form-control select2bs4'})
+    )
+    
 class BankAccountForm(forms.ModelForm):
     class Meta:
         model = BankAccount

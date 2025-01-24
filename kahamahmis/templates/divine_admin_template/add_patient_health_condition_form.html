@@ -1,0 +1,560 @@
+{% extends 'divine_admin_template/base_template.html' %}
+
+{% block title %}
+{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }} Health info
+{% endblock title %}
+{% block page_title %}
+    <!-- Breadcrumb content can be added here if needed -->
+    <a class="btn btn-primary" type="button"  href="{% url 'divine_patient_info_form_edit' patient.id %}" class="breadcrumb-link">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+
+{% endblock page_title %}
+
+{% block breadcrumb %}
+Add Patient Health Record  
+
+{% endblock breadcrumb %}
+
+{% block main_content %}
+    {% load static %}             
+
+<div class="container-fluid">
+                    <!-- Patient Information Card -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row" style="font-size:13px;">
+                                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
+                                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                            <script>
+                                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                var now = new Date();
+                                                var ageMilliseconds = now - dob;
+                                                var ageSeconds = ageMilliseconds / 1000;
+                                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                document.write(ageYears + ' years');
+                                            </script>
+                                            {% else %}
+                                            {{ patient.age }}
+                                            {% endif %}]</b></div>
+                                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                                    </div>
+                                </div>    
+                            </div>
+                        </div>
+                    </div>
+        
+        <!-- Health Condition Entry Form -->
+        <form method="post" action="{% url 'divine_save_patient_health_information' patient.id %}">
+            {% csrf_token %}
+                        <div class="row justify-content-center">
+                            <div class="col-md-12">
+                                <div class="card">                    
+                                    <div class="card-body">
+                                        <input type="hidden" name="patient_id" value="{{ patient.id }}">
+                                        <div class="form-group">
+                                            <label for="chronic_illness">Does the patient have any chronic illness?</label>
+                                            <select class="form-control" id="chronic_illness" name="chronic_illness" required>  
+                                                <option value=""></option>                                
+                                                <option value="no" >No</option>
+                                                <option value="yes" >Yes</option>
+                                            </select>
+                                        </div>
+                                        <!-- Health Condition Table -->
+                                        <div class="table-responsive" id="health_condition_form_container">
+                                            <table class="table table-bordered" id="health_condition_table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Chronic Illness</th>
+                                                        <th>Details of Chronic Illness (Diagnosis, Medications, etc.)</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <select class="form-control select2bs4" style="width: 100%;" name="health_condition[]">
+                                                                <option value="" selected>Select Health Condition</option>                                                  
+                                                                <option value="Eye Condition">Eye Condition</option>
+                                                                <option value="Ear, Nose, Throat">Ear, Nose, Throat</option>
+                                                                <option value="Respiratory Conditions">Respiratory Conditions</option>
+                                                                <option value="Cardiovascular Conditions">Cardiovascular Conditions</option>
+                                                                <option value="Urinary, Kidney, or Prostate Conditions">Urinary, Kidney, or Prostate Conditions</option>
+                                                                <option value="Stomach or Bowel Conditions">Stomach or Bowel Conditions</option>
+                                                                <option value="Musculoskeletal Conditions">Musculoskeletal Conditions</option>
+                                                                <option value="Neurological/Psychiatric Conditions">Neurological/Psychiatric Conditions</option>
+                                                                <option value="Others">Others</option>
+                                                            </select>
+                                                        </td>
+                                                        <td><textarea class="form-control" name="health_condition_notes[]" cols="30" rows="2"></textarea></td>
+                                                        <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <!-- Add More Health Record Button -->
+                                            <div class="form-group">
+                                                <button type="button" class="btn btn-primary btn-block" id="add_health_record">Add another chronic illness</button>
+                                            </div>
+                                        </div>                       
+                                    </div>                   
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="row justify-content-center">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">                               
+                                        <div class="form-group">
+                                            <label for="medication_allergy">Does the patient have any allergies to medication?</label>
+                                            <select class="form-control" id="medication_allergy" name="medication_allergy" required>
+                                                <option value=""></option> 
+                                                <option value="no">No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                        <!-- Medication Allergy Table -->
+                                        <div class="table-responsive" id="medication_allergy_form_container" style="display: none;">
+                                            <table class="table table-bordered" id="medication_allergy_table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Drug name</th>
+                                                        <th>Provide details (if any)</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <select class="form-control select2bs4" style="width: 100%;" name="medicine_name[]">
+                                                                {% for medicine in all_medicines %}
+                                                                    <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </td>
+                                                        <td><input type="text" class="form-control" name="reaction[]" ></td>
+                                                        <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <!-- Add More Medication Allergy Button -->
+                                            <div class="form-group">
+                                                <button type="button" class="btn btn-primary btn-block" id="add_medication_allergy">Add another drug</button>
+                                            </div>
+                                        </div>                                  
+                                    </div>                           
+                                </div>
+                            </div>
+                        </div>
+                                            <!-- Surgery History Entry Form -->
+                        <div class="row justify-content-center">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">               
+                                            <div class="form-group">
+                                                <label for="surgery_history">Does the patient have any history of surgery ?</label>
+                                                <select class="form-control" id="surgery_history" name="surgery_history" required>
+                                                    <option value=""></option> 
+                                                    <option value="no" >No</option>
+                                                    <option value="yes" >Yes</option>
+                                                </select>
+                                            </div>
+                                            <!-- Surgery History Table -->
+                                            <div class="table-responsive" id="surgery_history_form_container" {% if patient.has_surgery_history %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                <table class="table table-bordered" id="surgery_history_table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Name of surgery</th>                                          
+                                                            <th>Provide details (if any)</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td><input type="text" class="form-control" name="surgery_name[]" ></td>                                        
+                                                            <td><input type="text" class="form-control" name="date_of_surgery[]" ></td>
+                                                            <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                <!-- Add More Surgery History Button -->
+                                                <div class="form-group">
+                                                    <button type="button" class="btn btn-primary btn-block" id="add_surgery_history">Add another surgical history</button>
+                                                </div>
+                                            </div>                        
+                                       </div>                   
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row justify-content-center">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">                                  
+                                        <div class="form-group">
+                                            <label for="lifestyle_behavior">Does the patient have any of the following lifestyle behaviors?</label>                                            
+                                        </div>
+                                        <div id="lifestyle_behavior_container">                          
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-check-label" for="smoking">Tobacco use</label>                                           
+                                                    </div>
+                                                    <div class="col-md-6">                                      
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="smoking" name="smoking" required>
+                                                            <option value=""></option>
+                                                            <option value="no">No</option>
+                                                            <option value="yes" >Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <br>
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-check-label" for="alcohol_consumption">Excessive alcohol use</label>                                            
+                                                    </div>
+                                                    <div class="col-md-6">                                      
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="alcohol_consumption" name="alcohol_consumption" required>
+                                                            <option value=""></option>
+                                                            <option value="no">No</option>
+                                                            <option value="yes" >Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <br>
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label for="weekly_exercise_frequency" class="form-check-label">Lack of physical activities</label>
+                                                    </div>
+                                                    <div class="col-md-6">  
+                                                          <select class="form-control select2bs4" style="width: 100%;" id="weekly_exercise_frequency" name="weekly_exercise_frequency" required>
+                                                            <option value=""></option> 
+                                                            <option value="no" >No</option>
+                                                            <option value="yes" >Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <br>
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-check-label" for="healthy_diet">Poor nutrition (junk feeding/under nutrition)</label>
+                                                    </div>
+                                                    <div class="col-md-6">  
+                                                         <select class="form-control select2bs4" style="width: 100%;" id="healthy_diet" name="healthy_diet" required>
+                                                            <option value=""></option> 
+                                                            <option value="no">No</option>
+                                                            <option value="yes">Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <br>
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-check-label" for="stress_management">Excessive stress</label>
+                                                    </div>
+                                                    <div class="col-md-6">   
+                                                         <select class="form-control select2bs4" style="width: 100%;" id="stress_management" name="stress_management" required>
+                                                            <option value=""></option> 
+                                                            <option value="no">No</option>
+                                                            <option value="yes" >Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>  
+                                            <hr>
+                                            <br>                           
+                                            <div class="form-group form-check">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-check-label" for="sufficient_sleep">Deprived sleeping (less than 5 hours)</label>
+                                                    </div>
+                                                    <div class="col-md-6">  
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="sufficient_sleep" name="sufficient_sleep" required>
+                                                            <option value=""></option> 
+                                                            <option value="no" >No</option>
+                                                            <option value="yes" >Yes</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>                      
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row justify-content-center">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <!-- Family Medical History Question -->
+                                        <div class="form-group">
+                                            <label for="family_medical_history">Does the patient have significant family medical history?</label>
+                                            <select class="form-control" id="family_medical_history" name="family_medical_history" required>
+                                                <option value=""></option> 
+                                                <option value="no">No</option>
+                                                <option value="yes">Yes</option>
+                                                <option value="unknown">Unknown</option>
+                                            </select>
+                                        </div>
+                                        <!-- Medical Condition Information Table -->
+                                        <div class="table-responsive" id="family_medical_history_form_container" style="display: none;">
+                                            <table class="table table-bordered" id="family_medical_history_table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Condition</th>
+                                                        <th>Relationship</th>
+                                                        <th>Provide details (if any)</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <select class="form-control select2bs4" style="width: 100%;" name="condition[]">
+                                                                <option value="" selected>Select Condition</option>
+                                                                <option value="Allergies">Allergies</option>
+                                                                <option value="Asthma">Asthma</option>
+                                                                <option value="Cancer">Cancer</option>
+                                                                <option value="Diabetes">Diabetes</option>
+                                                                <option value="Hypertension">Hypertension</option>
+                                                                <option value="Heart Disease">Stroke</option>
+                                                                <option value="Heart Disease">Myocardial infarction</option>
+                                                                <option value="Heart Disease">Spondylosis</option>
+                                                                <option value="Heart Disease">Obesity</option>
+                                                                <option value="Heart Disease">Others</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-control select2bs4" style="width: 100%;" id="relationship" name="relationship[]">
+                                                                <option value="Father">Father</option>
+                                                                <option value="Mother">Mother</option>
+                                                                <option value="Brother">Brother</option>
+                                                                <option value="Sister">Sister</option>
+                                                                <option value="Relative">Uncle</option>
+                                                                <option value="Relative">Aunt</option>
+                                                                <option value="Father">Grandfather</option>
+                                                                <option value="Father">Grandmother</option>
+                                                                <option value="Other">Other</option>
+                                                            </select>
+                                                        </td>
+                                                        <td><textarea class="form-control" name="comments[]" rows="3"></textarea></td>
+                                                        <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <!-- Add More Health Record Button -->
+                                            <div class="form-group">
+                                                <button type="button" class="btn btn-primary btn-block" id="add_family_medical_record">Add another significant family medical history</button>
+                                            </div>
+                                        </div>
+                                    </div>                                
+                                    </div>                                  
+                                </div>
+                            </div>
+                        </div>
+        </form>   
+</div>
+
+  <!-- JavaScript for Showing/Hiding Family Medical History Form -->
+  <script>
+    // Initially hide the family medical history form
+    $('#family_medical_history_form_container').hide();
+
+    // Event listener for family medical history selection
+    $('#family_medical_history').change(function() {
+        if ($(this).val() === 'yes') {
+            // Show the family medical history form if the patient has family medical history
+            $('#family_medical_history_form_container').show();
+        } else {
+            // Hide the family medical history form if the patient doesn't have family medical history
+            $('#family_medical_history_form_container').hide();
+        }
+    });
+
+    // JavaScript for Adding/Deleting Rows
+    // Add Family Medical Record Row
+    $('#add_family_medical_record').click(function () {
+        var newRow = `<tr>
+                        <td>
+                            <select class="form-control select2bs4" style="width: 100%;" name="condition[]" required>
+                                <option value="" selected>Select Condition</option>
+                                <option value="Allergies">Allergies</option>
+                                <option value="Asthma">Asthma</option>
+                                <option value="Lung Disease">Lung Disease</option>
+                                <option value="Cancer">Cancer</option>
+                                <option value="Diabetes">Diabetes</option>
+                                <option value="Hypertension">Hypertension</option>
+                                <option value="Heart Disease">Heart Disease</option>
+                            </select>
+                        </td>
+                        <td><select class="form-control select2bs4" style="width: 100%;" id="condition" name="relationship[]"  >                                           
+                           <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Brother">Brother</option>
+                            <option value="Sister">Sister</option>
+                            <option value="Relative">Uncle</option>
+                            <option value="Relative">Aunt</option>
+                            <option value="Father">Grandfather</option>
+                            <option value="Father">Grandmother</option>
+                            <option value="Other">Other</option>
+                        </select></td>
+                        <td><textarea class="form-control" name="comments[]" rows="3"></textarea></td>
+                        <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                    </tr>`;
+        $('#family_medical_history_table tbody').append(newRow);
+    });
+
+    // Delete Family Medical Record Row
+    $(document).on('click', '.delete-row', function () {
+        $(this).closest('tr').remove();
+    });
+</script>
+    
+    <script>
+        // Initially hide the health condition entry form
+        $('#health_condition_form_container').hide();
+    
+        // Event listener for chronic illness selection
+        $('#chronic_illness').change(function() {
+            if($(this).val() === 'yes') {
+                // Show the health condition entry form if the patient has chronic illness
+                $('#health_condition_form_container').show();
+            } else {
+                // Hide the health condition entry form if the patient doesn't have chronic illness
+                $('#health_condition_form_container').hide();
+            }
+        });
+      // Add event listener to the form for submission
+      $('form').submit(function() {
+        // Ensure that the form is submitted even if the option selected is "No"
+        return true;
+    });
+        // JavaScript for Adding/Deleting Rows (if needed)
+    </script>
+    <!-- JavaScript for Adding/Deleting Rows -->
+
+    <script>
+        // Initially hide the medication allergy entry form
+        $('#medication_allergy_form_container').hide();
+    
+        // Event listener for medication allergy selection
+        $('#medication_allergy').change(function() {
+            if ($(this).val() === 'yes') {
+                // Show the medication allergy entry form if the patient has allergies to medication
+                $('#medication_allergy_form_container').show();
+            } else {
+                // Hide the medication allergy entry form if the patient doesn't have allergies to medication
+                $('#medication_allergy_form_container').hide();
+            }
+        });
+    
+        // JavaScript for Adding/Deleting Rows
+        $('#add_medication_allergy').click(function() {
+            var newRow = `<tr>
+                                <td>
+                                    <select class="form-control select2bs4" style="width: 100%;" name="medicine_name[]">
+                                        {% for medicine in all_medicines %}
+                                            <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="text" class="form-control" name="reaction[]" ></td>
+                                <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                            </tr>`;
+            $('#medication_allergy_table tbody').append(newRow);
+        });
+    
+        // Delete Medication Allergy Row
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+        });
+    </script>        
+
+
+
+
+    <script>
+        // Add Health Record Row
+        $('#add_health_record').click(function () {
+            var newRow = `<tr>
+                            <td>
+                                <select class="form-control select2bs4" style="width: 100%;" name="health_condition[]" required>
+                                    <option value=""  selected>Select Health Condition</option>                                  
+                                    <option value="Eye Condition">Eye Condition</option>
+                                    <option value="Ear, Nose, Throat">Ear, Nose, Throat</option>
+                                    <option value="Respiratory Conditions">Respiratory Conditions</option>
+                                    <option value="Cardiovascular Conditions">Cardiovascular Conditions</option>
+                                    <option value="Urinary, Kidney, or Prostate Conditions">Urinary, Kidney, or Prostate Conditions</option>
+                                    <option value="Stomach or Bowel Conditions">Stomach or Bowel Conditions</option>
+                                    <option value="Musculoskeletal Conditions">Musculoskeletal Conditions</option>
+                                    <option value="Neurological/Psychiatric Conditions">Neurological/Psychiatric Conditions</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </td>
+                            <td><textarea class="form-control" name="health_condition_notes[]" cols="30" rows="2"></textarea></td>
+                            <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                        </tr>`;
+            $('#health_condition_table tbody').append(newRow);
+        });
+    
+        // Delete Health Record Row
+        $(document).on('click', '.delete-row', function () {
+            $(this).closest('tr').remove();
+        });
+    </script>
+ 
+    
+    <script>
+        // Initially hide the surgery history entry form
+        $('#surgery_history_form_container').hide();
+    
+        // Event listener for surgery history selection
+        $('#surgery_history').change(function() {
+            if ($(this).val() === 'yes') {
+                // Show the surgery history entry form if the patient has surgery history
+                $('#surgery_history_form_container').show();
+            } else {
+                // Hide the surgery history entry form if the patient doesn't have surgery history
+                $('#surgery_history_form_container').hide();
+            }
+        });
+    
+        // JavaScript for Adding/Deleting Rows
+        $('#add_surgery_history').click(function() {
+            var newRow = `<tr>
+                                <td><input type="text" class="form-control" name="surgery_name[]" ></td>                             
+                                <td><input type="text" class="form-control" name="date_of_surgery[]" ></td>
+                                <td><button type="button" class="btn btn-danger btn-sm delete-row">Delete</button></td>
+                            </tr>`;
+            $('#surgery_history_table tbody').append(newRow);
+        });
+    
+        // Delete Surgery History Row
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+        });
+    </script>
+
+
+    {% include 'divine_admin_template/datatable.html' %}     
+{% endblock main_content %}

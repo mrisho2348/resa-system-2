@@ -4,6 +4,6 @@ from kahamahmis import KahamaReportsView
 
 
 urlpatterns = [  
-        path('generate_comprehensive_report/', KahamaReportsView.generate_comprehensive_report, name='kahama_generate_comprehensive_report'),
+         path('generate-year-month-report/', KahamaReportsView.generate_year_month_report, name='kahama_generate_year_month_report'),
   ]       
 

@@ -1,0 +1,1654 @@
+{% extends 'divine_admin_template/base_template.html' %}
+{% load static %}
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Consultation notes
+{% endblock title %}
+
+{% block page_title %}
+      <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'divine_save_remotepatient_vitals' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back to vitals
+    </a>   
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "divine_admin_template/modal_form.html" %}
+Add  Consultation notes
+{% endblock breadcrumb %}
+
+{% block main_content %}
+    <div class="container-fluid">
+           <!-- Patient Information Card -->
+           <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary-600">
+                        <h5 class="card-title text-center text-uppercase">Consultation</h5>
+                    </div>
+                    <div class="card-body">
+                            <div class="card">
+                                <div class="card-header">
+                                    <label for="chief_complaints">Patient information</label>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
+                                        </div>
+                                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                            <script>
+                                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                var now = new Date();
+                                                var ageMilliseconds = now - dob;
+                                                var ageSeconds = ageMilliseconds / 1000;
+                                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                document.write(ageYears + ' years');
+                                            </script>
+                                            {% else %}
+                                            {{ patient.age }}
+                                            {% endif %}]</b></div>
+                                        <div class="col-md-3">
+                                            SEX: <b>{{ patient.gender }}</b>
+                                        </div>
+                                        <div class="col-md-3">
+                                            FILE NO: <b>{{ patient.mrn }}</b>
+                                        </div>
+                                    </div>
+                                    <br />
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            company: <b>{{ patient.company }}</b>
+                                        </div>                           
+                                            <div class="col-md-3">Visit  number: <b>{{ visit.vst }}</b>
+                                            </div>                                      
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                   </div>
+            </div> 
+        </div>              
+                        <br />
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <label for="chief_complaints">Vital signs</label>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>                                          
+                                                        <th>Time</th>
+                                                        <th>BP</th>
+                                                        <th>HR</th>
+                                                        <th>RR</th>
+                                                        <th>SPO2</th>                                         
+                                                        <th>TEMP</th>
+                                                        <th>GCS</th>
+                                                        <th>AVPU</th>                                                    
+                                                 </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for vital in patient_vitals %}
+                                                        <tr>
+                                                        <td>{{ vital.updated_at|time:"H:i:s" }}</td>
+                                                        <td>{{ vital.blood_pressure }}</td>
+                                                        <td>{{ vital.pulse_rate }}</td>
+                                                        <td>{{ vital.respiratory_rate }}</td>
+                                                        <td>{{ vital.spo2 }}</td>                                            
+                                                        <td>{{ vital.temperature }}</td>
+                                                        <td>{{ vital.gcs }}</td>
+                                                        <td>{{ vital.avpu }}</td>
+                                                      
+                                                    </tr>                                                                                      
+                                                 {% endfor %}                                                                                     
+                                                 
+                                                </tbody>
+                                            </table>                                          
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                         <label for="chief_complaints">Chief Complaints</label>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="savedChiefComplaints">
+                                            <form id="chiefComplaintForm" method="post">
+                                                <div id="popupContainer" class="popup-container"></div>
+                                                <div class="row">
+                                                    <div class="col-md-12">
+                                                        <div class="form-group">
+                                                            <div id="chiefComplaintsContainer">
+                                                                <table class="table table-borderless" id="chiefComplaintsTable">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Chief Complaint</th>
+                                                                            <th>Duration</th>
+                                                                            <th>Actions</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <!-- Rows for chief complaints will be dynamically added here -->
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>                                     
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                       
+                        
+                        <script>
+                            $(document).ready(function () {
+                                const patientId = $('#patient_id').val();
+                                const visitId = $('#visit_id').val();
+                        
+                                // Function to initialize Select2 dynamically
+                                function initializeSelect2(selector) {
+                                    $(selector).select2({
+                                        theme: 'bootstrap4',
+                                        width: '100%',
+                                    });
+                                }
+                        
+                                // Fetch and display existing chief complaints
+                                function fetchAndDisplayChiefComplaints() {
+                                    const url = `{% url 'divine_endpoint_to_fetch_existing_data' %}`;
+                        
+                                    $.getJSON(url, { patient_id: patientId, visit_id: visitId }, function (data) {
+                                        populateChiefComplaintsTable(data);
+                                    }).fail(function () {
+                                        displayPopupMessage('Error fetching chief complaints.', 'alert-danger');
+                                    });
+                                }
+                        
+                                // Populate the table with chief complaints     
+                                function populateChiefComplaintsTable(data) {
+                                    const container = $('#chiefComplaintsTable tbody');
+
+                                    container.empty(); // Clear the table before populating
+                             
+                                    if (!Array.isArray(data) || data.length === 0) {
+                                        container.append('<tr><td colspan="3" class="text-center">No Chief Complaints Found</td></tr>');
+                                        return;
+                                    }
+                                
+                                    data.forEach(item => {
+                                        const row = `
+                                            <tr id="chiefComplaintRow${item.id}" data-id="${item.id}">
+                                                <td>
+                                                    <span class="display-text">${item.health_record || item.other_complaint || 'N/A'}</span>
+                                                    <select class="form-control select2bs4 editable-field d-none" name="chief_complain_name">
+                                                        {% for health_record in health_records %}
+                                                            <option value="{{ health_record.id }}" ${item.health_record_id == "{{ health_record.id }}" ? "selected" : ""}>{{ health_record.name }}</option>
+                                                        {% endfor %}                                                     
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <span class="display-text">${item.duration || 'N/A'}</span>
+                                                    <input type="text" class="form-control editable-field d-none" name="chief_complain_duration" value="${item.duration || ''}" placeholder="Duration (days)">
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm delete-chief-complaint" data-id="${item.id}">Delete</button>
+                                                    <button type="button" class="btn btn-success btn-sm save-changes d-none" data-id="${item.id}"  data-row-id="chiefComplaintRow${item.id}">Save Changes</button>
+                                                  
+                                                </td>
+                                            </tr>`;
+                                        container.append(row);
+                                       
+                                    });
+                                
+                                    data.forEach(item => {
+                                        bindEventListeners(item.id);
+                                    });
+                                }
+                                
+
+                                // Edit button logic
+                                function bindEventListeners(rowId) {
+                                    const row = $(`#chiefComplaintRow${rowId}`);                                  
+
+                                    row.find('.delete-chief-complaint').on('click', function () {                                     
+                                        const id = $(this).data('id'); // Retrieve the item ID
+                                        deleteChiefComplaint(id);
+                                    });
+                                }
+
+
+                        
+                                // Delete a chief complaint
+                                function deleteChiefComplaint(id) {
+                                    const url = `{% url 'divine_delete_chief_complaint' chief_complaint_id=0 %}`.replace('0', id);
+                        
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        success: function () {
+                                            fetchAndDisplayChiefComplaints();
+                                        },
+                                        error: function () {
+                                            displayPopupMessage('Error deleting chief complaint.', 'alert-danger');
+                                        },
+                                    });
+                                }
+                        
+                                
+                        
+                       
+                                // Display popup messages
+                                function displayPopupMessage(message, alertType) {
+                                    const popup = `<div class="alert ${alertType}">${message}</div>`;
+                                    $('#popupContainer').html(popup);
+
+                                    // Set timer to remove the popup after 5 seconds (5000ms)
+                                    setTimeout(function() {
+                                        $('#popupContainer').html(''); // Clears the popup
+                                    }, 5000);
+                                }
+    
+                                fetchAndDisplayChiefComplaints();
+                            });
+
+                            
+
+                           
+                        </script>
+                        
+                        
+                                        
+                        
+                     
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">Add  Consultation Notes</div>
+                    <div class="card-body">                     
+                    <form id="addConsultationForm"  action="{% url 'divine_save_remotesconsultation_notes' patient.id visit.id %}" method="post">       
+                            <div class="container-fluid">                            
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                 
+                                                </div>                                           
+                                            </div>
+                                        <div class="row">                                            
+                                                <div class="col-md-12">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Primary Physical Examination</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <!-- Airway -->
+                                                            <div class="form-group">
+                                                                <label for="airway">Airway:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="airway" name="airway" onchange="toggleAirwayFields()">
+                                                                    <option value=""></option>
+                                                                    <option value="Patent" {% if primary_examination.patent_airway == 'Patent' %} selected {% endif %}>Patent</option>
+                                                                    <option value="Not Patent" {% if primary_examination.patent_airway == 'Not Patent' %} selected {% endif %}>Not Patent</option>
+                                                                </select>
+                                                            </div>
+                                                            <div id="explanationField" {% if primary_examination.airway == 'Not Patent' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <div class="form-group">
+                                                                    <label for="explanation">Explain:</label>
+                                                                    <textarea class="form-control" id="explanation" name="explanation" rows="3">{{ primary_examination.notpatient_explanation }}</textarea>
+                                                                </div>
+                                                            </div>
+                                                            <input type="hidden" name="patient_id" id="patient_id" value="{{ patient.id }}">
+                                                            <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                                                            <!-- Breathing -->
+                                                            <div class="form-group">
+                                                                <label for="breathing">Breathing:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="breathing" name="breathing" onchange="toggleBreathingFields()">
+                                                                    <option value=""></option>
+                                                                    <option value="Normal" {% if primary_examination.breathing == 'Normal' %} selected {% endif %}>Normal</option>
+                                                                    <option value="Abnormal" {% if primary_examination.breathing == 'Abnormal' %} selected {% endif %}>Abnormal</option>
+                                                                </select>
+                                                            </div>
+                                                            <!-- Normal Breathing Options (hidden by default) -->
+                                                            <div class="form-group" id="normalBreathingOptions" {% if primary_examination.breathing == 'Normal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="normalBreathing">Normal Breathing:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="normalBreathing" name="normalBreathing[]" multiple>
+                                                                    <option value="">All</option>
+                                                                    <option value="Trachea Central" {% if 'Trachea Central' in primary_examination.normal_breathing %} selected {% endif %}>Trachea Central</option>
+                                                                    <option value="Normal Respiratory Effort" {% if 'Normal Respiratory Effort' in primary_examination.normal_breathing %} selected {% endif %}>Normal Respiratory Effort</option>
+                                                                    <option value="Normal Chest Symmetry and Movement" {% if 'Normal Chest Symmetry and Movement' in primary_examination.normal_breathing %} selected {% endif %}>Normal Chest Symmetry and Movement</option>
+                                                                    <option value="No Asymmetry" {% if 'No Asymmetry' in primary_examination.normal_breathing %} selected {% endif %}>No Asymmetry</option>
+                                                                    <option value="Bilateral Trachea" {% if 'Bilateral Trachea' in primary_examination.normal_breathing %} selected {% endif %}>Bilateral Trachea</option>
+                                                                    <option value="Resonant Percussion Note" {% if 'Resonant Percussion Note' in primary_examination.normal_breathing %} selected {% endif %}>Resonant Percussion Note</option>
+                                                                    <option value="No Cyanosis" {% if 'No Cyanosis' in primary_examination.normal_breathing %} selected {% endif %}>No Cyanosis</option>
+                                                                    <option value="Normal Respiratory Rate" {% if 'Normal Respiratory Rate' in primary_examination.normal_breathing %} selected {% endif %}>Normal Respiratory Rate</option>
+                                                                </select>
+                                                            </div>
+                                                            <!-- Abnormal Breathing Field (hidden by default) -->
+                                                            <div class="form-group" id="abnormalBreathingField" {% if primary_examination.breathing == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="abnormalBreathing">Abnormal Breathing Details:</label>
+                                                                <input type="text" class="form-control" id="abnormalBreathing" name="abnormalBreathing" placeholder="Enter details..." value="{{ primary_examination.abnormal_breathing }}">
+                                                            </div>
+                                                            
+                                                            <!-- Circulating -->
+                                                            <div class="form-group">
+                                                                <label for="circulating">Circulating:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="circulating" name="circulating" onchange="toggleCirculatingFields()">
+                                                                    <option value=""></option>
+                                                                    <option value="Normal" {% if primary_examination.circulating == 'Normal' %} selected {% endif %}>Normal</option>
+                                                                    <option value="Abnormal" {% if primary_examination.circulating == 'Abnormal' %} selected {% endif %}>Abnormal</option>
+                                                                </select>
+                                                            </div>
+                                                            <!-- Normal Circulating Options (hidden by default) -->
+                                                            <div class="form-group" id="normalCirculatingOptions" {% if primary_examination.circulating == 'Normal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="normalCirculating">Normal Circulating:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="normalCirculating" name="normalCirculating[]" multiple>
+                                                                    <option value="">All</option>
+                                                                    <option value="Normal capillary refil" {% if 'Normal capillary refil' in primary_examination.normal_circulating %} selected {% endif %}>Normal capillary refil</option>
+                                                                    <option value="No External Bleeding" {% if 'No External Bleeding' in primary_examination.normal_circulating %} selected {% endif %}>No External Bleeding</option>
+                                                                    <option value="Normal Pulse" {% if 'Normal Pulse' in primary_examination.normal_circulating %} selected {% endif %}>Normal Pulse</option>
+                                                                    <option value="Normal Blood Pressure" {% if 'Normal Blood Pressure' in primary_examination.normal_circulating %} selected {% endif %}>Normal Blood Pressure</option>
+                                                                </select>
+                                                            </div>
+                                                            <!-- Abnormal Circulating Field (hidden by default) -->
+                                                            <div class="form-group" id="abnormalCirculatingField" {% if primary_examination.circulating == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="abnormalCirculating">Abnormal Circulating Details:</label>
+                                                                <input type="text" class="form-control" id="abnormalCirculating" name="abnormalCirculating" placeholder="Enter details..." value="{{ primary_examination.abnormal_circulating }}">
+                                                            </div>                                                         
+                                                            <div class="card">
+                                                                <div class="card-header">
+                                                                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Disabilities</h6>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <!-- GCS Field -->
+                                                                    <div class="form-group" id="gcsField">
+                                                                        <label for="gcss">Glasgow Coma Scale</label>
+                                                                        <select  class="form-control select2bs4" style="width: 100%;" id="gcss" name="gcs">
+                                                                            <option value=""></option>
+                                                                            {% for score in range_15 %}                                                                           
+                                                                            <option value="{{ score }}" {% if score == primary_examination.gcs %} selected {% endif %}>{{ score }}</option>
+                                                                            {% endfor %}
+                                                                        </select>
+                                                                    </div>                                                                    
+                                                                    <!-- RBG Field -->
+                                                                    <div class="form-group" id="rbgField">
+                                                                        <label for="rbg">RBG Value:</label>
+                                                                        <input type="text" class="form-control" id="rbg" name="rbg" placeholder="Enter RBG Value" value="{{ primary_examination.rbg }}">
+                                                                    </div>                                                                    
+                                                                    <!-- Pupil Field -->
+                                                                    <div class="form-group" id="pupilField">
+                                                                        <label for="pupil">Pupil Size:</label>
+                                                                        <select class="form-control select2bs4" style="width: 100%;" id="pupil" name="pupil">
+                                                                            <option value=""></option>
+                                                                            <option value="Normal" {% if primary_examination.pupil == "Normal" %} selected {% endif %}>Normal</option>
+                                                                            <option value="Dilated" {% if primary_examination.pupil == "Dilated" %} selected {% endif %}>Dilated</option>
+                                                                            <option value="Constricted" {% if primary_examination.pupil == "Constricted" %} selected {% endif %}>Constricted</option>
+                                                                        </select>
+                                                                    </div>                                                                    
+                                                                    <!-- Pain Score Field -->
+                                                                    <div class="form-group" id="painScoreField">
+                                                                        <label for="painScore">Pain Score:</label>
+                                                                        <select class="form-control select2bs4" style="width: 100%;" id="painScore" name="painScore">
+                                                                            <option value=""></option>
+                                                                            <option value="0" {% if primary_examination.pain_score == "0" %} selected {% endif %}>0 - No Pain</option>
+                                                                            <option value="3-6" {% if primary_examination.pain_score == "3-6" %} selected {% endif %}>3-6 - Mild Pain</option>
+                                                                            <option value="5-7" {% if primary_examination.pain_score == "5-7" %} selected {% endif %}>5-7 - Moderate Pain</option>
+                                                                            <option value="7-9" {% if primary_examination.pain_score == "7-9" %} selected {% endif %}>7-9 - Severe Pain</option>
+                                                                            <option value="8-10" {% if primary_examination.pain_score == "8-10" %} selected {% endif %}>8-10 - Very Severe Pain</option>
+                                                                            <option value="10" {% if primary_examination.pain_score == "10" %} selected {% endif %}>10 - Worst Pain</option>
+                                                                        </select>
+                                                                    </div>                                                                    
+                                                                    <!-- AVPU Scale -->
+                                                                    <div class="form-group" id="avpuField">
+                                                                        <label for="avpus">AVPU Scale</label>
+                                                                        <select class="form-control select2bs4" style="width: 100%;" id="avpus" name="avpu">
+                                                                            <option value=""></option>
+                                                                            <option value="Alert" {% if 'Alert' == primary_examination.avpu %} selected {% endif %}>Alert</option>
+                                                                            <option value="Verbal" {% if 'Verbal' == primary_examination.avpu %} selected {% endif %}>Verbal</option>
+                                                                            <option value="Pain" {% if 'Pain' == primary_examination.avpu %} selected {% endif %}>Pain</option>
+                                                                            <option value="Unresponsive" {% if 'Unresponsive' == primary_examination.avpu %} selected {% endif %}>Unresponsive</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>                                                           
+                                                            <!-- Exposure -->
+                                                            <div class="form-group">
+                                                                <label for="exposure">Exposure:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="exposure" name="exposure" onchange="toggleExposureFields()">
+                                                                    <option value=""></option>
+                                                                    <option value="Normal" {% if primary_examination.exposure == "Normal" %} selected {% endif %}>Normal</option>
+                                                                    <option value="Abnormal" {% if primary_examination.exposure == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                                </select>
+                                                            </div>                                                            
+                                                            <!-- Temperature Field (hidden by default) -->
+                                                            <div class="form-group" id="temperatureField" {% if primary_examination.exposure == 'Normal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="normal_exposure">Normal Exposure:</label>
+                                                                <select class="form-control select2bs4" style="width: 100%;" id="normal_exposure" name="normal_exposure[]" multiple>
+                                                                    <option value="">All</option>
+                                                                    <option value="Temperature" {% if "Temperature" in primary_examination.normal_exposure %} selected {% endif %}>Temperature</option>
+                                                                    <option value="No external bleeding" {% if "No external bleeding" in primary_examination.normal_exposure %} selected {% endif %}>No external bleeding</option>
+                                                                    <option value="No external wound" {% if "No external wound" in primary_examination.normal_exposure %} selected {% endif %}>No external wound</option>
+                                                                    <option value="No hematoma" {% if "No hematoma" in primary_examination.normal_exposure %} selected {% endif %}>No hematoma</option>
+                                                                    <option value="No rashes" {% if "No rashes" in primary_examination.normal_exposure %} selected {% endif %}>No rashes</option>
+                                                                    <option value="No foreign body" {% if "No foreign body" in primary_examination.normal_exposure %} selected {% endif %}>No foreign body</option>
+                                                                </select>
+                                                            </div>                                                           
+                                                            <!-- Other Abnormalities Field (hidden by default) -->
+                                                            <div class="form-group" id="abnormalitiesField" {% if primary_examination.exposure == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                                <label for="abnormalities">Fill Abnormalities:</label>
+                                                                <input type="text" class="form-control" id="abnormalities" name="abnormalities" placeholder="Enter details..." value="{{ primary_examination.abnormal_exposure }}">
+                                                            </div>
+                                                        </div>                                                       
+                                                    </div>
+                                                </div>                                        
+                                        </div>                                          
+                                     <!-- Secondary Survey -->                                    
+                                     <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Secondary Physical Examination</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- HEENT -->
+                                                    <div class="form-group">
+                                                        <label for="heent">HEENT:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="heent" name="heent" onchange="toggleHeentFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.heent == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.heent == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- HEENT Abnormal Field -->
+                                                    <div id="heentField" {% if secondary_examination.heent == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="heentDetails">HEENT Abnormal Details:</label>
+                                                            <textarea class="form-control" id="heentDetails" name="abnormal_heent" rows="3">{{ secondary_examination.abnormal_heent }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- CNS -->
+                                                    <div class="form-group">
+                                                        <label for="cns">CNS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="cns" name="cns" onchange="toggleCnsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.cns == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.cns == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- CNS Abnormal Field -->
+                                                    <div id="cnsField" {% if secondary_examination.cns == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="cnsDetails">CNS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="cnsDetails" name="abnormal_cns" rows="3">{{ secondary_examination.abnormal_cns }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- CVS -->
+                                                    <div class="form-group">
+                                                        <label for="cvs">CVS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="cvs" name="cvs" onchange="toggleCvsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.cvs == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.cvs == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- CVS Abnormal Field -->
+                                                    <div id="cvsField" {% if secondary_examination.cvs == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="cvsDetails">CVS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="cvsDetails" name="abnormal_cvs" rows="3">{{ secondary_examination.abnormal_cvs }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- RS -->
+                                                    <div class="form-group">
+                                                        <label for="rs">RS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="rs" name="rs" onchange="toggleRsFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.rs == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.rs == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- RS Abnormal Field -->
+                                                    <div id="rsField" {% if secondary_examination.rs == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="rsDetails">RS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="rsDetails" name="abnormal_rs" rows="3">{{ secondary_examination.abnormal_rs }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- PA -->
+                                                    <div class="form-group">
+                                                        <label for="pa">PA:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="pa" name="pa" onchange="togglePaFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.pa == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.pa == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- PA Abnormal Field -->
+                                                    <div id="paField" {% if secondary_examination.pa == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="paDetails">PA Abnormal Details:</label>
+                                                            <textarea class="form-control" id="paDetails" name="abnormal_pa" rows="3">{{ secondary_examination.abnormal_pa }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- GU -->
+                                                    <div class="form-group">
+                                                        <label for="gu">GU:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="gu" name="gu" onchange="toggleGuFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.gu == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.gu == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- GU Abnormal Field -->
+                                                    <div id="guField" {% if secondary_examination.gu == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="guDetails">GU Abnormal Details:</label>
+                                                            <textarea class="form-control" id="guDetails" name="abnormal_gu" rows="3">{{ secondary_examination.abnormal_gu }}</textarea>
+                                                        </div>
+                                                    </div>
+                                    
+                                                    <!-- MSS -->
+                                                    <div class="form-group">
+                                                        <label for="mss">MSS:</label>
+                                                        <select class="form-control select2bs4" style="width: 100%;" id="mss" name="mss" onchange="toggleMssFields()">
+                                                            <option value=""></option>
+                                                            <option value="Normal" {% if secondary_examination.mss == "Normal" %} selected {% endif %}>Normal</option>
+                                                            <option value="Abnormal" {% if secondary_examination.mss == "Abnormal" %} selected {% endif %}>Abnormal</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- MSS Abnormal Field -->
+                                                    <div id="mssField" {% if secondary_examination.mss == 'Abnormal' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                                        <div class="form-group">
+                                                            <label for="mssDetails">MSS Abnormal Details:</label>
+                                                            <textarea class="form-control" id="mssDetails" name="abnormal_mss" rows="3">{{ secondary_examination.abnormal_mss }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                                                             
+                                        </div>
+                                 
+                                        <div class="col-md-6">
+                                            <label for="physical_examination">Patient Health Records</label>
+                                            <div class="row">
+                                                <div class="col-md">
+                                                    <!-- Health Condition -->
+                                                  {% if health_conditions %}
+                                                  <div class="card">
+                                                    <div class="card-header">
+                                                        <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Chronic Illness Conditions</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="health_conditions_table" style="width:100%">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Chronic Illness</th>
+                                                                        <th>Details of Chronic Illness</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for health_condition in health_conditions %}
+                                                                    <tr>
+                                                                        <td>{{ health_condition.health_condition }}</td>
+                                                                        <td>{{ health_condition.health_condition_notes }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                  {% endif %}
+                                        
+                                                    <!-- Medication Allergies -->
+                                                        {% if allergies  %}
+                                                        <div class="card">
+                                                            <div class="card-header">
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Medication Allergies</h6>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="medication_allergies_table" style="width:100%">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Drug Name</th>
+                                                                                <th>details</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for allergy in allergies %}
+                                                                            <tr>
+                                                                                <td>{{ allergy.medicine_name }}</td>
+                                                                                <td>{{ allergy.reaction }}</td>
+                                                                            </tr>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endif %}
+                                        
+                                                {% if family_history %}
+                                                             <!-- Family Medical History -->
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Family Medical History</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="family_medical_history_table" style="width:100%">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Condition</th>
+                                                                            <th>Relationship</th>
+                                                                            <th>Comments</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for history in family_history %}
+                                                                        <tr>
+                                                                            <td>{{ history.condition }}</td>
+                                                                            <td>{{ history.relationship }}</td>
+                                                                            <td>{{ history.comments }}</td>
+                                                                        </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                        {% endif %}
+
+                                                {% if patient_surgeries %}
+                                                 <!-- Patient Surgery Information-->
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Patient Surgery Information</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="family_medical_history_table" style="width:100%">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Surgery Name</th>
+                                                                            <th>Surgery Details</th>                                                                         
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for surgery in patient_surgeries %}
+                                                                        <tr>
+                                                                            <td>{{ surgery.surgery_name }}</td>
+                                                                            <td>{{ surgery.surgery_date }}</td>                                                                            
+                                                                        </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                        {% endif %}
+                                        
+                                                        {% if "yes" in behaviors.weekly_exercise_frequency or "yes" in behaviors.alcohol_consumption or "yes" in behaviors.smoking or "yes" in behaviors.healthy_diet or "yes" in behaviors.stress_management or "yes" in behaviors.sufficient_sleep %}
+                                                        <div class="card">
+                                                            <div class="card-header">
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Lifestyle Behaviors</h6>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <ul class="list-group">
+                                                                    {% if behaviors.weekly_exercise_frequency == "yes" %}
+                                                                    <li class="list-group-item">Weekly Exercise Frequency</li>
+                                                                    {% endif %}
+                                                                    {% if behaviors.smoking == "yes" %}
+                                                                    <li class="list-group-item">Smoking</li>
+                                                                    {% endif %}
+                                                                    {% if behaviors.alcohol_consumption == "yes" %}
+                                                                    <li class="list-group-item">Alcohol Consumption</li>
+                                                                    {% endif %}
+                                                                    {% if behaviors.healthy_diet == "yes" %}
+                                                                    <li class="list-group-item">Healthy Diet</li>
+                                                                    {% endif %}
+                                                                    {% if behaviors.stress_management == "yes" %}
+                                                                    <li class="list-group-item">Stress Management</li>
+                                                                    {% endif %}
+                                                                    {% if behaviors.sufficient_sleep == "yes" %}
+                                                                    <li class="list-group-item">Sufficient Sleep</li>
+                                                                    {% endif %}
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                     </div>                  
+                                             <!-- Type of illness -->
+                                             <div class="form-group">
+                                                <label for="type_of_illness{{ consultation_note.id }}">Type of illness:</label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="type_of_illness{{ consultation_note.id }}" name="type_of_illness">
+                                                    <option value="Medical" {% if consultation_note.type_of_illness == 'Medical' %} selected {% endif %}>Medical</option>
+                                                    <option value="Injury" {% if consultation_note.type_of_illness == 'Injury' %} selected {% endif %}>Injury</option>
+                                                    <option value="Surgical-non traumatic" {% if consultation_note.type_of_illness == 'Surgical-non traumatic' %} selected {% endif %}>Surgical-non traumatic</option>
+                                                </select>                        
+                                            </div>
+                       
+                                        {% csrf_token %} 
+                                        <div class="form-group">
+                                            <label for="nature_of_current_illness{{ consultation_note.id }}">Nature of current illness:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="nature_of_current_illness{{ consultation_note.id }}" name="nature_of_current_illness">
+                                                <option value="Non-occupational" {% if consultation_note.nature_of_current_illness == 'Non-occupational' %} selected {% endif %}>Non-occupational</option>
+                                                <option value="Occupational" {% if consultation_note.nature_of_current_illness == 'Occupational' %} selected {% endif %}>Occupational</option>
+                                                <option value="Unknown" {% if consultation_note.nature_of_current_illness == 'Unknown' %} selected {% endif %}>Unknown</option>
+                                            </select>
+                                        </div>   
+                                    <div class="form-group">                                        
+                                          <!-- History of presenting illness -->
+                                          <div class="form-group">
+                                            <label for="history_of_presenting_illness">History of Presenting Illness:</label>
+                                            <textarea class="form-control" rows="10" id="history_of_presenting_illness" name="history_of_presenting_illness" col="25">{{ consultation_note.history_of_presenting_illness }}</textarea>
+                                        </div>  
+                                    </div>
+                                </div>                    
+                              
+                                    <!-- Nature of current illness -->
+                                           <!-- Pathology -->
+                                           <div class="form-group">
+                                            <label for="pathology{{ consultation_note.id }}">Pathology:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="pathology{{ consultation_note.id }}" name="pathology[]" required multiple>
+                                                {% for record in pathology_records %}
+                                                <option value="{{ record.id }}" {% if record in consultation_note.pathology.all %} selected {% endif %}>{{ record.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>                                          
+                                    <!-- Provisional diagnosis -->
+                                    <div class=" form-group">
+                                        <label for="provisional_diagnosis{{ consultation_note.id }}">Provisional Diagnosis:</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="provisional_diagnosis{{ consultation_note.id }}" name="provisional_diagnosis[]" required multiple>
+                                            {% for diagnosis in provisional_diagnoses %}
+                                                <option value="{{ diagnosis.id }}" {% if diagnosis.id in provisional_diagnosis_ids %} selected {% endif %}>{{ diagnosis }}</option>
+                                            {% endfor %}
+                                        </select>                       
+                                   
+                                        <div class="form-group">
+                                            <label for="doctor_plan">Doctor Plan:</label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="doctor_plan" name="doctor_plan" {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge' %} disabled {% endif %} required>
+                                                <option value="">Select Doctor Plan</option>
+                                                <option value="Prescription" {% if consultation_note.doctor_plan == 'Prescription' %} selected {% endif %}>Prescription</option>
+                                                <option value="Laboratory" {% if consultation_note.doctor_plan == 'Laboratory' %} selected {% endif %}>Laboratory</option>                                          
+                                                <option value="Procedure" {% if consultation_note.doctor_plan == 'Procedure' %} selected {% endif %}>Procedure</option>
+                                                <option value="Observation" {% if consultation_note.doctor_plan == 'Observation' %} selected {% endif %}>Observation</option>
+                                                <option value="Referral" {% if consultation_note.doctor_plan == 'Referral' %} selected {% endif %}>Referral</option>
+                                                <option value="Counselling" {% if consultation_note.doctor_plan == 'Counselling' %} selected {% endif %}>Counselling</option>
+                                                <option value="Discharge" {% if consultation_note.doctor_plan == 'Discharge' %} selected {% endif %}>Discharge</option>
+                                            </select>
+                                      
+                                        </div>
+                                        
+                                        {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge'  %}
+                                        <input type="hidden" name="doctor_plan" value="{{ consultation_note.doctor_plan }}">
+                                        {% endif %}
+                                        
+
+                                    <div class="row">
+                                        {% if previous_referrals %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousReferralModal">
+                                                View Previous Referrals
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if previous_lab_orders %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousLaboratoryModal">
+                                                View Previous Laboratory Orders
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if previous_counselings %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousCounsellingModal">
+                                                View Previous Counselings
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if previous_observations %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousObservationModal">
+                                                View Previous Observations
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if previous_discharges %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousDischargeModal">
+                                                View Previous Discharges
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if previous_prescriptions %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#organizationModal">
+                                                View Previous Prescriptions
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        {% if previous_procedures %}
+                                        <div class="col-md-4 mb-3">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#previousProceduresModal">
+                                                View Previous Procedures
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        
+                        </form>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="previousProceduresModal" tabindex="-1" role="dialog" aria-labelledby="previousProceduresModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">              
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Header Section -->
+                    <div class="container-fluid">
+                        <header class="header">
+                            <div class="container-fluid p-0">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                    </div>                   
+                                </div>
+                            </div>
+                        </header>
+                    </div>
+    
+                    <!-- Patient Details Section -->
+                    <div class="container-fluid py-1">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card patient-details-card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h2 class="card-title">Patient Details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Patient:</th>
+                                                    <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                    <th>MRN:</th>
+                                                    <td>{{ patient.mrn }}</td>
+                                                    <th>Visit Number:</th>
+                                                    <td>{{ visit.vst }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Age:</th>
+                                                    <td>{{ patient.age }}</td>
+                                                    <th>Gender:</th>
+                                                    <td>{{ patient.gender }}</td>
+                                                    <th>Company:</th>
+                                                    <td>{{ patient.company }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Phone:</th>
+                                                    <td>{{ patient.phone }}</td>
+                                                    <th>Visit Date:</th>
+                                                    <td>{{ visit.created_at }}</td>
+                                                    <th>Visit Day:</th>
+                                                    <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Previous Procedures Section -->
+                    <div class="container-fluid py-1">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card patient-details-card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h2 class="card-title">Procedures details</h2>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Time</th>
+                                                        <th>Day</th>
+                                                        <th>Procedure Name</th>
+                                                        <th>Data recorder</th>
+                                                        <th>Description</th>
+                                                        <th>Image</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for procedure in previous_procedures %}
+                                                        <tr>
+                                                            <td>{{ procedure.created_at.date|date:"d/m/Y" }}</td>
+                                                            <td>{{ procedure.created_at.time }}</td>
+                                                            <td>{{ procedure.created_at|date:"l" }}</td>
+                                                            <td>{{ procedure.name }}</td>
+                                                            <td>
+                                                                <b style="color: blue;" class="text-uppercase">{{ procedure.data_recorder.role }}</b> 
+                                                                <span class="text-muted">{{ procedure.data_recorder }}</span>
+                                                            </td>
+                                                            <td style="word-wrap: break-word;">{{ procedure.description }}</td>
+                                                            <td>
+                                                                {% if procedure.image %}
+                                                                    <img class="procedure-image" src="{{ procedure.image.url }}" alt="Procedure Image" style="max-width: 100px;">
+                                                                {% else %}
+                                                                    No Image Available
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    
+<!-- Referral Modal -->
+<div class="modal fade" id="previousReferralModal" tabindex="-1" aria-labelledby="previousReferralModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previousReferralModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Referral Records</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Table to display referral records -->
+                <div class="table-responsive">
+                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example1">
+                        <thead>
+                            <tr>
+                                <!-- Table headers -->
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Day</th>                                                  
+                                <th>Data Recorder</th>
+                                <th>Source Location</th>
+                                <th>Destination Location</th>                        
+                                <th>Notes</th>
+                                <th>Nature of Referral</th>
+                                <th>Transport Model</th>
+                                <th>Status</th>
+                                <!-- Add more columns for referral data as needed -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loop through previous referral records -->
+                            {% for referral in previous_referrals %}
+                                <tr>
+                                    <!-- Display data for each field -->
+                                    <td>{{ referral.created_at.date|date:"d/m/Y"  }}</td>
+                                    <td>{{ referral.created_at.time }}</td>
+                                    <td>{{ referral.created_at|date:"l" }}</td>                                                             
+                                    <td>
+                                        <b style="color: blue;" class="text-uppercase">{{ referral.data_recorder.role }}</b> 
+                                        <span class="text-muted">{{ referral.data_recorder }}</span>
+                                    </td>
+                                    <td>{{ referral.source_location }}</td>
+                                    <td>{{ referral.destination_location }}</td>                                  
+                                    <td>{{ referral.notes|safe }}</td>
+                                    <td>{{ referral.nature_of_referral }}</td>
+                                    <td>{{ referral.transport_model }}</td>
+                                    <td>{{ referral.status }}</td>
+                                    <!-- Add more columns for referral data as needed -->
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="previousLaboratoryModal" tabindex="-1" role="dialog" aria-labelledby="previousLaboratoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">             
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-12">
+                                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                </div>                   
+                            </div>
+                        </div>
+                    </header>
+                </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previous Laboratory Orders Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Previous Laboratory Orders</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example2">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>
+                                                    <th>Data Recorder</th>
+                                                    <th>Service Name</th>
+                                                    <th>Test Result</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for lab_order in previous_lab_orders %}
+                                                    <tr>
+                                                        <td>{{ lab_order.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ lab_order.created_at.time }}</td>
+                                                        <td>{{ lab_order.created_at|date:"l" }}</td>
+                                                        <td>
+                                                            <b style="color: blue;" class="text-uppercase">{{ lab_order.data_recorder.role }}</b> 
+                                                            <span class="text-muted">{{ lab_order.data_recorder }}</span>
+                                                        </td>
+                                                        <td>{{ lab_order.name }}</td>
+                                                        <td>{{ lab_order.result }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Previous Counseling Modal -->
+<div class="modal fade" id="previousCounsellingModal" tabindex="-1" aria-labelledby="previousCounsellingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previousCounsellingModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Counseling Notes</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Table to display counseling notes -->
+                <div class="table-responsive">
+                    <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example3">
+                        <thead>
+                            <tr>
+                                <!-- Table headers -->
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Day</th>
+                                <th>Data Recorder</th>
+                                <th>Counseling Notes</th>
+                               </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loop through previous counseling notes -->
+                            {% for counseling in previous_counselings %}
+                                <tr>
+                                    <!-- Display counseling note data in table rows -->
+                                    <td>{{ counseling.created_at|date:"d/m/Y" }}</td>
+                                    <td>{{ counseling.created_at.time }}</td>
+                                    <td>{{ counseling.created_at|date:"l" }}</td>
+                                    <td>
+                                        <b style="color: blue;" class="text-uppercase">{{ counseling.data_recorder.role }}</b> 
+                                        <span class="text-muted">{{ counseling.data_recorder }}</span>
+                                    </td>
+                                    <td>{{ counseling.counselling_notes|safe }}</td>
+                                     </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Previous Observation Modal -->
+<div class="modal fade" id="previousObservationModal" tabindex="-1" aria-labelledby="previousObservationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previousObservationModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Observation Records</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Table to display observation records -->
+                <div class="table-responsive">
+                    <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example4">
+                        <thead>
+                            <tr>
+                                <!-- Table headers -->                  
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Day</th>
+                                <th>Data Recorder</th>
+                                <th>Observation Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loop through previous observation records -->
+                            {% for observation in previous_observations %}
+                                <tr>
+                                    <!-- Display observation record data in table rows -->
+                                    <td>{{ observation.created_at.date|date:"d/m/Y"  }}</td>
+                                    <td>{{ observation.created_at.time }}</td>
+                                    <td>{{ observation.created_at|date:"l" }}</td>
+                                    <td>
+                                        <b style="color: blue;" class="text-uppercase">{{ observation.data_recorder.role }}</b> 
+                                        <span class="text-muted">{{ observation.data_recorder }}</span>
+                                    </td>
+                                    <td>{{ observation.observation_notes|safe }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Previous Discharge Modal -->
+<div class="modal fade" id="previousDischargeModal" tabindex="-1" aria-labelledby="previousDischargeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previousDischargeModalLabel">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Discharge Records</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Table to display discharge records -->
+                <div class="table-responsive">
+                    <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example5">
+                        <thead>
+                            <tr>
+                                <!-- Table headers -->
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Day</th>
+                                <th>Data Recorder</th>
+                                <th>Discharge Condition</th>
+                                <th>Discharge Notes</th>                          
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loop through previous discharge records -->
+                            {% for discharge in previous_discharges %}
+                                <tr>
+                                    <!-- Display discharge record data in table rows -->
+                                    <td>{{ discharge.discharge_date.date|date:"d/m/Y"  }}</td>
+                                    <td>{{ discharge.discharge_date.time }}</td>
+                                    <td>{{ discharge.discharge_date|date:"l" }}</td>
+                                    <td>
+                                        <b style="color: blue;" class="text-uppercase">{{ discharge.data_recorder.role }}</b> 
+                                        <span class="text-muted">{{ discharge.data_recorder }}</span>
+                                    </td>
+                                    <td>{{ discharge.discharge_condition }}</td>
+                                    <td>{{ discharge.discharge_notes|safe }}</td>                            
+                                    <!-- Add more fields as needed -->
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    body {
+          font-family: Arial, sans-serif;
+      }
+    /* CSS for the company logo */
+.company-logo {
+  max-width: 120px;
+  height: 120px;
+  border-radius: 50%;
+}
+
+/* Additional styling for the header */
+.header {
+  background-color: #344; /* Adjust background color to match the logo */
+  color: #fff;
+  padding: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #fff; /* Set text color for consistency */
+}
+
+.header p {
+  margin-bottom: 0;
+}
+
+.header a {
+  color: #fff;
+}
+
+.header-info {
+  font-size: 14px; /* Adjust font size for header info */
+  margin-bottom: 5px; /* Add some bottom margin for spacing */
+}
+       /* Specific Styles for Cards */
+  .patient-details-card {
+      margin-bottom: 20px;
+  }
+
+  .clinical-notes-card {
+      margin-bottom: 20px;
+  }
+
+  .prescription-details-card {
+      margin-bottom: 20px;
+  }
+
+  .assessment-data-card {
+      margin-bottom: 20px;
+  }
+</style>
+<!-- Prescription Modal -->
+<div class="modal fade" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">               
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-12">
+                                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                </div>                   
+                            </div>
+                        </div>
+                    </header>
+                </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-2">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Previous Prescription Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card patient-details-card">
+                                <div class="card-header bg-dark text-white">
+                                    <h2 class="card-title">Prescription Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>                                    
+                                                    <th>Drug name</th>
+                                                    <th>Dose</th>
+                                                    <th>Frequency</th>
+                                                    <th>Duration</th>
+                                                    <th>Quantity Used</th>
+                                                    <th>Name of Dr. Prescribing</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for prescription in previous_prescriptions %}
+                                                    <tr>
+                                                        <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ prescription.created_at.time }}</td>
+                                                        <td>{{ prescription.created_at|date:"l" }}</td>                                        
+                                                        <td>{{ prescription.medicine }}</td>
+                                                        <td>{{ prescription.dose }}</td>
+                                                        <td>{{ prescription.frequency }}</td>
+                                                        <td>{{ prescription.duration }}</td>
+                                                        <td>{{ prescription.quantity_used }}</td>
+                                                        <td>
+                                                            <b style="color: blue;" class="text-uppercase">{{ prescription.data_recorder.role }}</b> 
+                                                            <span class="text-muted">{{ prescription.data_recorder }}</span>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>        
+                    
+           </div>
+        </div>
+    </div>
+</div>
+
+
+
+ 
+
+
+    <script>
+        function toggleAirwayFields() {
+            var explanationField = document.getElementById('explanationField');
+            if (document.getElementById('airway').value === 'Not Patent') {
+                explanationField.style.display = 'block';
+               
+            } else {
+                explanationField.style.display = 'none';
+            }
+        }
+    
+        function toggleBreathingFields() {
+            var normalBreathingOptions = document.getElementById('normalBreathingOptions');
+            var abnormalBreathingField = document.getElementById('abnormalBreathingField');
+            var normalBreathingSelect = document.getElementById('normalBreathing');
+        
+            if (document.getElementById('breathing').value === 'Normal') {
+                normalBreathingOptions.style.display = 'block';
+                normalBreathingOptions.querySelector('select').required = true; 
+                abnormalBreathingField.style.display = 'none';
+        
+                // Select all options in the "Normal Breathing" select
+                for (var i = 0; i < normalBreathingSelect.options.length; i++) {
+                    normalBreathingSelect.options[i].selected = true;
+                }
+            } else {
+                normalBreathingOptions.style.display = 'none';
+                normalBreathingOptions.querySelector('select').required = false; 
+                abnormalBreathingField.style.display = 'block';
+        
+                // Unselect all options in the "Normal Breathing" select
+                for (var i = 0; i < normalBreathingSelect.options.length; i++) {
+                    normalBreathingSelect.options[i].selected = false;
+                }
+            }
+        }
+    
+        function toggleCirculatingFields() {
+            var normalCirculatingOptions = document.getElementById('normalCirculatingOptions');
+            var abnormalCirculatingField = document.getElementById('abnormalCirculatingField');
+            var normalCirculatingSelect = document.getElementById('normalCirculating');
+        
+            if (document.getElementById('circulating').value === 'Normal') {
+                normalCirculatingOptions.style.display = 'block';
+                normalCirculatingOptions.querySelector('select').required = true; 
+                abnormalCirculatingField.style.display = 'none';
+        
+                // Select all options in the "Normal Circulating" select
+                for (var i = 0; i < normalCirculatingSelect.options.length; i++) {
+                    normalCirculatingSelect.options[i].selected = true;
+                }
+            } else {
+                normalCirculatingOptions.style.display = 'none';
+                normalCirculatingOptions.querySelector('select').required = false; 
+                abnormalCirculatingField.style.display = 'block';
+            }
+        }
+    
+       
+    
+        function toggleExposureFields() {
+            var exposure = document.getElementById('exposure').value;
+            var temperatureField = document.getElementById('temperatureField');
+            var abnormalitiesField = document.getElementById('abnormalitiesField');
+            var temperaturesSelect = document.getElementById('normal_exposure');
+        
+            if (exposure === 'Normal') {
+                temperatureField.style.display = 'block';
+                temperatureField.querySelector('select').required = true; 
+                abnormalitiesField.style.display = 'none';
+        
+                // Select all options in the "Normal Exposure" select
+                for (var i = 0; i < temperaturesSelect.options.length; i++) {
+                    temperaturesSelect.options[i].selected = true;
+                }
+            } else {
+                temperatureField.style.display = 'none';
+                temperatureField.querySelector('select').required = false; 
+                abnormalitiesField.style.display = 'block';
+        
+                // Unselect all options in the "Normal Exposure" select
+                for (var i = 0; i < temperaturesSelect.options.length; i++) {
+                    temperaturesSelect.options[i].selected = false;
+                }
+            }
+        }
+        
+    </script>
+    
+    <script>       
+
+                 // Toggle HEENT Field
+    function toggleHeentFields() {
+        const heentField = document.getElementById("heentField");
+        const heentSelect = document.getElementById("heent").value;
+        heentField.style.display = heentSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle CNS Field
+    function toggleCnsFields() {
+        const cnsField = document.getElementById("cnsField");
+        const cnsSelect = document.getElementById("cns").value;
+        cnsField.style.display = cnsSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle CVS Field
+    function toggleCvsFields() {
+        const cvsField = document.getElementById("cvsField");
+        const cvsSelect = document.getElementById("cvs").value;
+        cvsField.style.display = cvsSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle RS Field
+    function toggleRsFields() {
+        const rsField = document.getElementById("rsField");
+        const rsSelect = document.getElementById("rs").value;
+        rsField.style.display = rsSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle PA Field
+    function togglePaFields() {
+        const paField = document.getElementById("paField");
+        const paSelect = document.getElementById("pa").value;
+        paField.style.display = paSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle GU Field
+    function toggleGuFields() {
+        const guField = document.getElementById("guField");
+        const guSelect = document.getElementById("gu").value;
+        guField.style.display = guSelect === "Abnormal" ? "block" : "none";
+    }
+
+    // Toggle MSS Field
+    function toggleMssFields() {
+        const mssField = document.getElementById("mssField");
+        const mssSelect = document.getElementById("mss").value;
+        mssField.style.display = mssSelect === "Abnormal" ? "block" : "none";
+    }
+
+               
+         </script>
+
+
+         
+    {% include 'divine_admin_template/datatable.html' %}     
+{% endblock main_content %}
