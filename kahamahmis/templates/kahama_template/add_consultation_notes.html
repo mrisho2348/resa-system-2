@@ -594,18 +594,25 @@ Add  Consultation notes
                                 // Delete a chief complaint
                                 function deleteChiefComplaint(id) {
                                     const url = `{% url 'kahama_delete_chief_complaint' chief_complaint_id=0 %}`.replace('0', id);
-                        
+                                
                                     $.ajax({
                                         url: url,
-                                        type: 'DELETE',
-                                        success: function () {
-                                            fetchAndDisplayChiefComplaints();
+                                        type: 'POST', // Use POST to support _method simulation
+                                        data: { _method: 'DELETE' }, // Simulate DELETE request
+                                        headers: {
+                                            'X-CSRFToken': '{{ csrf_token }}', // Include CSRF token
                                         },
-                                        error: function () {
-                                            displayPopupMessage('Error deleting chief complaint.', 'alert-danger');
+                                        success: function () {
+                                            fetchAndDisplayChiefComplaints(); // Refresh the list on success
+                                        },
+                                        error: function (xhr) {
+                                            const response = JSON.parse(xhr.responseText); // Parse JSON error response
+                                            const errorMessage = response.error || 'Unknown error occurred';
+                                            displayPopupMessage(`Error: ${errorMessage}`, 'alert-danger');
                                         },
                                     });
                                 }
+                                
                         
                                 // Handle "Other" option in the dropdown
                                 function handleOtherOption(value, rowId) {

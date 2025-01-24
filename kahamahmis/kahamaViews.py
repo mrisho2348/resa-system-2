@@ -299,17 +299,20 @@ def fetch_existing_data(request):
 @csrf_exempt
 def delete_chief_complaint(request, chief_complaint_id):
     try:
-        # Fetch the ChiefComplaint object to delete
-        chief_complaint = get_object_or_404(ChiefComplaint, id=chief_complaint_id)
-        
-        # Delete the ChiefComplaint
-        chief_complaint.delete()
-        
-        # Return a success response
-        return JsonResponse({'message': 'Chief complaint deleted successfully'})
+        if request.method == 'POST' and request.POST.get('_method') == 'DELETE':
+            # Fetch the ChiefComplaint object to delete
+            chief_complaint = get_object_or_404(ChiefComplaint, id=chief_complaint_id)
+            
+            # Delete the ChiefComplaint
+            chief_complaint.delete()
+            
+            # Return a success response
+            return JsonResponse({'message': 'Chief complaint deleted successfully'})
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
     except Exception as e:
-        # If an error occurs, return an error response
-        return JsonResponse({'error': str(e)}, status=500)   
+        # Return detailed error message for client-side display
+        return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
+
     
 
      
