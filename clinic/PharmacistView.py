@@ -18,6 +18,12 @@ from .models import ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, Clin
 from django.db.models import Sum
 from django.db.models import Q
 from django.db import transaction
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout
+from django.utils.decorators import method_decorator
+from kahamahmis.forms import StaffProfileForm
+from django.views import View
 # Create your views here.
 
 @require_POST
@@ -116,49 +122,7 @@ def medicine_dosage(request):
     else:
         return JsonResponse({'error': 'Invalid request'}, status=400) 
      
-@login_required
-def update_profile_picture(request):
-    if request.method == 'POST':
-        try:
-            # Get the user's profile
-            user_profile = request.user  # Use request.user to get the CustomUser instance
-            # Accessing the uploaded picture from the form
-            new_picture = request.FILES.get('profile_picture')  
-            
-            if new_picture:
-                # Check if the uploaded file is an image
-                if not new_picture.content_type.startswith('image'):
-                    raise ValidationError("Invalid image file type. Please upload a valid image.")
 
-                # Check if the file size is within limit (2MB)
-                if new_picture.size > 2 * 1024 * 1024:  # 2MB in bytes
-                    raise ValidationError("File size exceeds the limit. Please upload a file smaller than 2MB.")
-                
-                # Get the staff object associated with the user profile
-                staff = user_profile.staff
-                
-                if staff:
-                    # Update the profile picture
-                    staff.profile_picture = new_picture
-                    
-                    # Save the changes
-                    staff.save()
-                    
-                    # Redirect to a success page or back to the profile page
-                    return render(request, 'pharmacist_template/update_profile_picture.html')
-                else:
-                    raise ValidationError("User profile does not exist.")
-            else:
-                raise ValidationError("No profile picture uploaded.")
-        except ValidationError as e:
-            # Handle validation errors (e.g., invalid file type or size)
-            messages.error(request, str(e))
-        except Exception as e:
-            # Handle any other unexpected errors
-            messages.error(request, str(e))
-            # You may want to log this error for debugging purposes
-            
-    return render(request, 'pharmacist_template/update_profile_picture.html')
 
 @login_required
 def pharmacist_dashboard(request):
@@ -199,6 +163,64 @@ def pharmacist_dashboard(request):
 
     # Render the template with the context
     return render(request, "pharmacist_template/home_content.html", context)
+
+@login_required
+def pharmacist_profile(request):
+    user = request.user
+    
+    try:
+        # Fetch the pharmacist's details from the Staffs model
+        staff = Staffs.objects.get(admin=user, role='pharmacist')
+        
+        # Pass the pharmacist details to the template
+        return render(request, 'pharmacist_template/profile.html', {'staff': staff})
+
+    except Staffs.DoesNotExist:
+        return render(request, 'pharmacist_template/profile.html', {'error': 'Pharmacist not found.'})
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Prevent user logout before redirecting
+            messages.success(request, "Your password was successfully updated! Please log in again.")
+            logout(request)  # Log out the user
+            
+            # Redirect based on workplace
+            if request.user.staff.work_place == 'kahama':
+                return redirect('kahamahmis:kahama')  # Redirect to Kahama login page
+            else:
+                return redirect('login')  # Redirect to default login page (Resa)
+
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'pharmacist_template/change_password.html', {'form': form})        
+
+@method_decorator(login_required, name='dispatch')
+class EditStaffProfileView(View):
+    template_name = 'pharmacist_template/edit_profile.html'
+
+    def get(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(instance=staff)
+        return render(request, self.template_name, {'form': form, 'staff': staff})
+
+    def post(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(request.POST, request.FILES, instance=staff)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('pharmacist_edit_staff_profile', pk=staff.id)
+
+        return render(request, self.template_name, {'form': form, 'staff': staff})      
+
 
 def get_gender_yearly_data(request):
     if request.method == 'GET':

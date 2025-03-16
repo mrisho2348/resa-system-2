@@ -1,8 +1,9 @@
 {% extends 'kahama_template/base_template.html' %}
 
 {% block title %}
-   All Referral
+   All Referrals
 {% endblock title %}
+
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
 {% endblock breadcrumb %}
@@ -15,198 +16,54 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase">   List of all referral </h6>
+                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Referrals</h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
-                          <thead>
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example" style="width:100%">
+                            <thead>
                                 <tr>
                                     <th>Patient</th>
                                     <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Day</th>                                                  
-                                    <th>Data Recorder</th>
+                                    <th>Time</th>                                                                         
+                                    <th>Recorded By</th>
                                     <th>Source Location</th>
                                     <th>Destination Location</th>                        
-                                    <th>Notes</th>
+                                    <th>Reason</th>
                                     <th>Nature of Referral</th>
-                                    <th>Transport Model</th>
+                                    <th>Transport Mode</th>
                                     <th>Status</th>                                 
-                                    <th>Action</th>               
+                                    <th>Actions</th>               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for referral in referrals %}
                                     <tr>
                                         <td>{{ referral.patient.mrn }}</td>
-                                        <td>{{ referral.created_at.date|date:"d-m-Y"  }}</td>
-                                        <td>{{ referral.created_at.time }}</td>
-                                        <td>{{ referral.created_at|date:"l" }}</td>                                                             
-                                        <td>{{ referral.data_recorder }}</td>
+                                        <td>{{ referral.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ referral.created_at|time:"H:i" }}</td>                                                                                           
+                                        <td>Dr. {{ referral.data_recorder }}</td>
                                         <td>{{ referral.source_location }}</td>
                                         <td>{{ referral.destination_location }}</td>                                  
                                         <td>{{ referral.notes|safe }}</td>
                                         <td>{{ referral.nature_of_referral }}</td>
-                                    <td>{{ referral.transport_model }}</td>
+                                        <td>{{ referral.transport_model }}</td>
                                         <td>
                                             <span class="badge badge-{{ referral.get_status_color }}">
                                                 {{ referral.get_status_display }}
                                             </span>
                                         </td>                                                   
                                         <td>
-                                            {% if referral.data_recorder == request.user.staff %}
-                                            <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editReferral{{ referral.id }}"  data-toggle="tooltip" title="Edit">
-                                                <i class="fa fa-edit text-white"></i>
-                                            </button>                                       
-                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" data-toggle="tooltip" title="Change Status">
+                                            {% if referral.data_recorder == request.user.staff %}                                                                            
+                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" title="Change Status">
                                                 <i class="fas fa-exchange-alt"></i>
                                             </button>
                                             {% endif %}
-                                         
+                                            <a href="{% url 'kahama_view_referral' referral.id %}" class="btn btn-info btn-sm" title="View Referral">
+                                                <i class="fas fa-eye"></i>View Referral
+                                            </a>
                                         </td>                  
                                     </tr>
-                    
-                                                          <!-- Modal for Editing Referral -->
-                                                          <div class="modal fade" id="editReferral{{ referral.id }}" tabindex="-1" role="dialog" aria-labelledby="editReferralModalLabel" aria-hidden="true">
-                                                            <div class="modal-dialog" role="document">
-                                                                <div class="modal-content">
-                                                                    <div class="modal-header">
-                                                                        <h5 class="modal-title" id="editReferralModalLabel">Edit Referral</h5>
-                                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                            <span aria-hidden="true">&times;</span>
-                                                                        </button>
-                                                                    </div>
-                                                                    <div class="modal-body">
-                                                                        <form id="editReferralForm{{ referral.id }}" method="post">
-                                                                            {% csrf_token %}
-                                                                            <input type="hidden" name="referral_id" value="{{ referral.id }}">
-                                                                            <div class="form-row">
-                                                                                <div class="form-group col-md-4">
-                                                                                    <label for="patient">Patient</label>
-                                                                                    <select class="form-control select2bs4" style="width: 100%;" id="patient" name="mrn">
-                                                                                        {% for patient in patients %}
-                                                                                            <option value="{{ patient.mrn }}" {% if patient.mrn == referral.patient.mrn %} selected {% endif %}>
-                                                                                                {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}
-                                                                                            </option>
-                                                                                        {% endfor %}
-                                                                                    </select>
-                                                                                </div>
-                                                                                <div class="form-group col-md-4">
-                                                                                    <label for="source_location">Source Location</label>
-                                                                                    <input type="text" class="form-control" id="source_location" name="source_location" value="{{ referral.source_location }}" required>
-                                                                                </div>
-                                                                                <div class="form-group col-md-4">
-                                                                                    <label for="destination_location">Destination Location</label>
-                                                                                    <input type="text" class="form-control" id="destination_location" name="destination_location" value="{{ referral.destination_location }}" required>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="form-row">
-                                                                                <div class="form-group col-md-6">
-                                                                                    <label for="reason">Reason</label>
-                                                                                    <textarea class="form-control" id="reason" name="reason" rows="3" required>{{ referral.reason }}</textarea>
-                                                                                </div>
-                                                                                <div class="form-group col-md-6">
-                                                                                    <label for="notes">Additional Notes</label>
-                                                                                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ referral.notes|safe }}</textarea>
-                                                                                </div>
-                                                                            </div>
-                                                                            <button type="button" class="btn btn-primary" onclick="submitEditReferral({{ referral.id }})">Edit Referral</button>
-                                                                        </form>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <!-- JavaScript to handle AJAX request for editing Referral -->
-                                                        <script>
-                                                        function submitEditReferral(ReferralId) {                 
-                                                        
-                                                            // Get form data
-                                                            var formData = new FormData(document.getElementById('editReferralForm' + ReferralId));
-                                                        
-                                                            // Make AJAX request
-                                                            $.ajax({
-                                                                url: '{% url "kahama_edit_referral" %}',  // Replace with your server edit endpoint
-                                                                type: 'POST',
-                                                                data: formData,
-                                                                contentType: false,
-                                                                processData: false,
-                                                                success: function(response) {
-                                                                    alert(response.message);  // Display success or error message to the user
-                                                                    // Close the modal after editing
-                                                                    if (response.success) {
-                                                                        $('#editReferral' + ReferralId).modal('hide'); 
-                                                                        location.reload();  // Reload the page
-                                                                    }
-                                                                },
-                                                                error: function(error) {
-                                                                    alert('An error occurred. Please try again.');  // Display a generic error message
-                                                                }
-                                                            });
-                                                        }
-                                                        </script>
-                    
-                    
-                                                   
-                    
-                                            <!-- Modal for Changing Referral Status -->
-                                            <div class="modal fade" id="changeStatus{{ referral.id }}" tabindex="-1" role="dialog" aria-labelledby="changeStatusModalLabel" aria-hidden="true">
-                                                <div class="modal-dialog" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="changeStatusModalLabel">Change Referral Status</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <div class="container">
-                                                                <form id="changeStatusForm{{ referral.id }}" method="post">
-                                                                    {% csrf_token %}
-                                                                    <div class="form-group">
-                                                                        <label for="newStatus">Select New Status</label>
-                                                                        <select class="form-control select2bs4" style="width: 100%;" id="newStatus" name="newStatus">
-                                                                            <option value="pending" {% if referral.status == "pending" %}selected{% endif %}>Pending</option>
-                                                                            <option value="accepted" {% if referral.status == "accepted" %}selected{% endif %}>Accepted</option>
-                                                                            <option value="rejected" {% if referral.status == "rejected" %}selected{% endif %}>Rejected</option>
-                                                                        </select>
-                                                                    </div>
-                                                                    <button type="button" class="btn btn-primary" onclick="submitChangeStatus({{ referral.id }})">Change Status</button>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                    
-                    
-                                                <!-- JavaScript to handle AJAX request for changing Referral Status -->
-                                            <script>
-                                                function submitChangeStatus(referralId) {
-                                                    var newStatus = $('#newStatus').val();
-                    
-                                                    $.ajax({
-                                                        url: '{% url "kahama_change_referral_status" %}',  // Replace with your server endpoint
-                                                        type: 'POST',
-                                                        data: {
-                                                            'referralId': referralId,
-                                                            'newStatus': newStatus,
-                                                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                                                        },
-                                                        success: function (response) {
-                                                            alert(response.message);  // Display success or error message to the user
-                                                            if (response.success) {
-                                                                $('#changeStatus' + referralId).modal('hide');
-                                                                location.reload();  // Reload the page
-                                                            }
-                                                        },
-                                                        error: function (error) {
-                                                            alert('An error occurred. Please try again.');  // Display a generic error message
-                                                        }
-                                                    });
-                                                }
-                                            </script>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -216,14 +73,6 @@
         </div>
     </div>
 </div>
-
-
-
-<script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
-</script>
 
 {% include 'kahama_template/datatable.html' %}
 {% endblock main_content %}

@@ -4,9 +4,7 @@ from . import views
 
 urlpatterns = [
         path('',views.index, name="home"),   
-        
-        path('add_staff', views.add_staff, name='add_staff'),       
-        path('add_staff_save', views.add_staff_save, name='add_staff_save'),       
+        path('create/account', views.add_staff, name='add_staff'),      
         path('check_email_exist', views.check_email_exist, name='check_email_exist'),       
         path('check_username_exist', views.check_username_exist, name='check_username_exist'),       
         path('login', views.ShowLogin, name='login'),       
@@ -19,7 +17,10 @@ urlpatterns = [
         path('resa/portfolio/details',views.portfolio_details, name="portfolio_details"),
         path('resa/contact',views.contact, name="contact"),
         path('resa/blog/single',views.blog_single, name="blog_single"),
-        path('resa/page/404',views.page_404, name="page_404"),        
+        path('resa/page/404',views.page_404, name="page_404"),     
+        path('check_mct_number_exist/', views.check_mct_number_exist, name='check_mct_number_exist'),   
+        path('profile/', views.profile_view, name='profile'),  # Profile view URL
+        path('change_password/', views.change_password_view, name='change_password'),  # Change password view URL
 
         
 ]

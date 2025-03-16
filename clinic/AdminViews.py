@@ -16,11 +16,16 @@ from clinic.models import Consultation,  CustomUser, DiseaseRecode, InsuranceCom
 from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
+from django.utils.decorators import method_decorator
+from kahamahmis.forms import StaffProfileForm
+from django.views import View
 from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral, SalaryChangeRecord, SalaryPayment,  Service, Supplier, UsageHistory
 from django.db.models import Sum
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.models.functions import TruncMonth, ExtractYear
-
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout
 
 @login_required
 def dashboard(request):
@@ -62,6 +67,65 @@ def dashboard(request):
     # Render the template with the context
     return render(request, "hod_template/home_content.html", context)
 
+
+@login_required
+def admin_profile(request):
+    # Get the logged-in user
+    user = request.user
+    
+    try:
+        # Fetch the admin's details from the Staffs model
+        staff = Staffs.objects.get(admin=user, role='admin')
+        
+        # Pass the admin details to the template
+        return render(request, 'hod_template/profile.html', {'staff': staff})
+
+    except Staffs.DoesNotExist:
+        # In case no admin data is found, return an error message
+        return render(request, 'hod_template/profile.html', {'error': 'Admin not found.'})
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Prevent user logout before redirecting
+            messages.success(request, "Your password was successfully updated! Please log in again.")
+            logout(request)  # Log out the user
+            
+            # Redirect based on workplace
+            if request.user.staff.work_place == 'kahama':
+                return redirect('kahamahmis:kahama')  # Redirect to Kahama login page
+            else:
+                return redirect('login')  # Redirect to default login page (Resa)
+
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'hod_template/change_password.html', {'form': form})       
+
+@method_decorator(login_required, name='dispatch')
+class EditStaffProfileView(View):
+    template_name = 'hod_template/edit_profile.html'
+
+    def get(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(instance=staff)
+        return render(request, self.template_name, {'form': form, 'staff': staff})
+
+    def post(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(request.POST, request.FILES, instance=staff)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('hod_edit_staff_profile', pk=staff.id)         
+
+    
 def get_gender_yearly_data(request):
     if request.method == 'GET':
         selected_year = request.GET.get('year')
@@ -132,8 +196,10 @@ def manage_disease(request):
 
 @login_required
 def manage_staff(request):     
-    staffs=Staffs.objects.all()  
-    return render(request,"hod_template/manage_staff.html",{"staffs":staffs})  
+    # Retrieve all staff and order by joining_date or created_at
+    staffs = Staffs.objects.all().order_by('created_at')  # Change 'joining_date' to 'created_at' if that's what you use
+
+    return render(request, "hod_template/manage_staff.html", {"staffs": staffs})
 
 @login_required
 def manage_insurance(request):
@@ -453,56 +519,91 @@ def edit_staff_save(request):
             staff_id = request.session.get('staff_id')
             if staff_id is None:
                 messages.error(request, "Staff ID not found")
-                return redirect("admin_manage_staff")
+                return redirect("admin_edit_staff")
 
             # Retrieve the staff instance from the database
             try:
                 staff = Staffs.objects.get(id=staff_id)
             except ObjectDoesNotExist:
                 messages.error(request, "Staff not found")
-                return redirect("admin_manage_staff")
+                return redirect("admin_edit_staff")
 
-            # Extract the form data
-            first_name = request.POST.get('firstName')
-            middle_name = request.POST.get('middleName')
-            last_name = request.POST.get('lastname') 
-            first_name = first_name.capitalize() if first_name else None
-            middle_name = middle_name.capitalize() if middle_name else None
-            last_name = last_name.capitalize() if last_name else None                  
+            # Extract form data
+            first_name = request.POST.get('firstName', '').capitalize()
+            middle_name = request.POST.get('middleName', '').capitalize()
+            last_name = request.POST.get('lastname', '').capitalize()
             gender = request.POST.get('gender')
             dob = request.POST.get('date_of_birth')
             phone = request.POST.get('phone')
-            profession = request.POST.get('profession')            
+            profession = request.POST.get('profession')
             marital_status = request.POST.get('maritalStatus')
-            email = request.POST.get('email')                        
-            user_role = request.POST.get('userRole')    
-            joiningDate = request.POST.get('joiningDate')    
-            Workingplace = request.POST.get('Workingplace')    
-          
+            email = request.POST.get('email')
+            username = request.POST.get('username')
+            user_role = request.POST.get('userRole')
+            joining_date = request.POST.get('joiningDate')
+            working_place = request.POST.get('Workingplace')
+            mct_number = request.POST.get('mct_number')
+
+            # Ensure unique email and username
+            if CustomUser.objects.filter(email=email).exclude(id=staff.admin.id).exists():
+                messages.error(request, "Email already exists. Try another email.")
+                return redirect("admin_edit_staff", staff_id=staff_id)
+
+            if CustomUser.objects.filter(username=username).exclude(id=staff.admin.id).exists():
+                messages.error(request, "Username already exists. Try another username.")
+                return redirect("admin_edit_staff", staff_id=staff_id)
+            
+            if Staffs.objects.filter(admin__first_name=first_name, middle_name=middle_name, admin__last_name=last_name).exclude(id=staff_id).exists():
+                messages.error(request, "A staff member with this full name already exists. Try another name or contact the administrator for support.")
+                return redirect("admin_edit_staff", staff_id=staff_id)
+
+            # Ensure unique MCT number if provided
+            if mct_number and Staffs.objects.filter(mct_number=mct_number).exclude(id=staff_id).exists():
+                messages.error(request, "MCT number already exists. Provide a unique MCT number.")
+                return redirect("admin_edit_staff", staff_id=staff_id)
+
+            # Ensure staff is above 18 years
+            if dob:
+                dob_date = datetime.strptime(dob, "%Y-%m-%d").date()
+                today = datetime.today().date()
+                age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
+                if age < 18:
+                    messages.error(request, "Staff must be at least 18 years old.")
+                    return redirect("admin_edit_staff", staff_id=staff_id)
+
+            # Ensure joining date is not in the future
+            if joining_date:
+                joining_date_obj = datetime.strptime(joining_date, "%Y-%m-%d").date()
+                if joining_date_obj > datetime.today().date():
+                    messages.error(request, "Joining date cannot be in the future.")
+                    return redirect("admin_edit_staff", staff_id=staff_id)
 
             # Save the staff details
-   
             staff.admin.first_name = first_name
             staff.admin.last_name = last_name
             staff.admin.email = email
+            staff.admin.username = username
             staff.middle_name = middle_name
-            staff.joining_date = joiningDate
-            staff.work_place = Workingplace
+            staff.joining_date = joining_date
+            staff.work_place = working_place
             staff.role = user_role
             staff.profession = profession
             staff.marital_status = marital_status
             staff.date_of_birth = dob
             staff.phone_number = phone
-            staff.gender = gender      
+            staff.gender = gender
+            staff.mct_number = mct_number
+            staff.admin.save()
             staff.save()
 
-            # Assuming the URL name for the next editing form is "qualification_form"
             messages.success(request, "Staff details updated successfully.")
             return redirect("admin_manage_staff")
+
         except Exception as e:
             messages.error(request, f"Error updating staff details: {str(e)}")
+            return redirect("admin_edit_staff", staff_id=staff_id)
 
-    return redirect("clinic:edit_staff",staff_id=staff_id)
+    return redirect("admin_manage_staff")
 
 
 
@@ -2734,46 +2835,3 @@ def employee_detail(request):
     
     return render(request, 'hod_template/employee_detail.html', context)
 
-@login_required
-def update_profile_picture(request):
-    if request.method == 'POST':
-        try:
-            # Get the user's profile
-            user_profile = request.user  # Use request.user to get the CustomUser instance
-            # Accessing the uploaded picture from the form
-            new_picture = request.FILES.get('profile_picture')  
-            
-            if new_picture:
-                # Check if the uploaded file is an image
-                if not new_picture.content_type.startswith('image'):
-                    raise ValidationError("Invalid image file type. Please upload a valid image.")
-
-                # Check if the file size is within limit (2MB)
-                if new_picture.size > 2 * 1024 * 1024:  # 2MB in bytes
-                    raise ValidationError("File size exceeds the limit. Please upload a file smaller than 2MB.")
-                
-                # Get the staff object associated with the user profile
-                staff = user_profile.staff
-                
-                if staff:
-                    # Update the profile picture
-                    staff.profile_picture = new_picture
-                    
-                    # Save the changes
-                    staff.save()
-                    
-                    # Redirect to a success page or back to the profile page
-                    return render(request, 'hod_template/update_profile_picture.html')
-                else:
-                    raise ValidationError("User profile does not exist.")
-            else:
-                raise ValidationError("No profile picture uploaded.")
-        except ValidationError as e:
-            # Handle validation errors (e.g., invalid file type or size)
-            messages.error(request, str(e))
-        except Exception as e:
-            # Handle any other unexpected errors
-            messages.error(request, str(e))
-            # You may want to log this error for debugging purposes
-            
-    return render(request, 'hod_template/update_profile_picture.html')

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from django import forms
 from django.core.validators import FileExtensionValidator
 from django_ckeditor_5.widgets import CKEditor5Widget
@@ -778,6 +779,7 @@ ROLE_CHOICES = [
     ]
 PROFESSION_CHOICES = [
         ('doctor', 'Doctor'),
+        ('specialist', 'Specialist'),
         ('nurse', 'Nurse'),
         ('pharmacist', 'Pharmacist'),
         ('developer', 'Developer'),
@@ -804,27 +806,118 @@ GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),    
     ]        
+
+
+
 class AddStaffForm(forms.Form):
-    email = forms.CharField(label='Email', max_length=50, widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "Enter Email"}))
-    password = forms.CharField(label='Password', max_length=50, widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Enter Password"}))
-    first_name = forms.CharField(label='First Name', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter First Name"}))
-    last_name = forms.CharField(label='Last Name', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Last Name"}))
-    username = forms.CharField(label='Username', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Username"}))
-    phone_number = forms.CharField(label='Phone Number', max_length=50, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Phone Number"}))
-    middle_name = forms.CharField(label='Middle Name', max_length=50, required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Middle Name"}))
-    date_of_birth = forms.DateField(label='Date of Birth', required=False, widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}))
-    gender = forms.ChoiceField(label='Gender', choices=GENDER_CHOICES, widget=forms.Select(attrs={"class": "form-control"}))    
+    email = forms.CharField(
+        label='Email',
+        max_length=50,
+        widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "Enter Email"})
+    )
+    password = forms.CharField(
+        label='Password',
+        max_length=50,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Enter Password"})
+    )
+    confirm_password = forms.CharField(  # ✅ New field for password confirmation
+        label='Confirm Password',
+        max_length=50,
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirm Password"})
+    )
+    first_name = forms.CharField(
+        label='First Name',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter First Name"})
+    )
+    last_name = forms.CharField(
+        label='Last Name',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Last Name"})
+    )
+    username = forms.CharField(
+        label='Username',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Username"})
+    )
+    phone_number = forms.CharField(
+        label='Phone Number',
+        max_length=10,       
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Phone Number"})
+    )
+    middle_name = forms.CharField(
+        label='Middle Name',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Middle Name"})
+    )
+    date_of_birth = forms.DateField(
+        label='Date of Birth',
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"})
+    )
+    gender = forms.ChoiceField(
+        label='Gender',
+        choices=GENDER_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    marital_status = forms.ChoiceField(
+        label='Marital Status',
+        choices=MARITAL_STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    profession = forms.ChoiceField(
+        label='Profession',
+        choices=PROFESSION_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    role = forms.ChoiceField(
+        label='Role',
+        choices=ROLE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    work_place = forms.ChoiceField(
+        label='Work Place',
+        choices=WORK_PLACE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
+    joining_date = forms.DateField(
+        label='Joining Date',
+        required=False,
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"})
+    )
 
-    marital_status = forms.ChoiceField(label='Marital Status', choices=MARITAL_STATUS_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))    
-  
-    profession = forms.ChoiceField(label='Profession', choices=PROFESSION_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))   
-  
-    role = forms.ChoiceField(label='Role', choices=ROLE_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))    
+    # ✅ MCT Number field
+    mct_number = forms.CharField(
+        label='MCT Number',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter MCT Number"})
+    )
 
-    work_place = forms.ChoiceField(label='Work Place', choices=WORK_PLACE_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))
-    
-    joining_date = forms.DateField(label='Joining Date', required=False, widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}))
-    profile_picture = forms.ImageField(label='Profile Picture', required=False, widget=forms.FileInput(attrs={"class": "form-control"}))
+    # ✅ Custom validation to ensure passwords match
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            raise forms.ValidationError("Passwords do not match. Please try again.")
+
+        return cleaned_data
+
+    # Custom validation for phone number (10 digits)
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get("phone_number")
+        if phone_number:
+            # Check if phone number is 10 digits long
+            if not re.match(r'^\d{10}$', phone_number):
+                raise forms.ValidationError("Phone number must be exactly 10 digits long.")
+        return phone_number
 
 
        

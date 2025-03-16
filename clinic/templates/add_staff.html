@@ -87,7 +87,7 @@
     <!-- Start Contact Us -->
     <section class="contact-us section">
         <div class="container">
-            {% url 'clinic:add_staff_save' as action_path %}
+            {% url 'clinic:add_staff' as action_path %}
             {% include 'form_templates.html' with messages=messages forms=forms action_path=action_path button_text="Create Account" %}
         </div>
     </section>
@@ -144,57 +144,124 @@
     <!-- Main JS -->
     <script src="{% static 'js/main.js' %}"></script>
 
-	<script>
-		$(document).ready(function() {
-		  $("#id_email").keyup(function() {
-			var email = $(this).val();
-		
-			$.ajax({
-			  url: "{% url 'clinic:check_email_exist' %}",
-			  type: "POST",
-			  data: { email: email }
-			})
-			.done(function(response) {
-			  console.log(response);
-			  if (response === "True") {   
-				$(".email_error").remove();
-				$("<span class='email_error' style='padding: 5px;color: red;font-weight: bold;'>Email available</span>").insertAfter("#id_email");
-			  } else {
-				$(".email_error").remove();
-				$("<span class='email_error' style='padding: 5px;color: green;font-weight: bold;'>Email not available</span>").insertAfter("#id_email");
-			  }
-			})
-			.fail(function() {
-			  console.log("Failed");
-			});
-		  });
-		
-		  $("#id_username").keyup(function() {
-			var username = $(this).val();
-		
-			$.ajax({
-			  url: "{% url 'clinic:check_username_exist' %}",
-			  type: "POST",
-			  data: { username: username }
-			})
-			.done(function(response) {
-			  console.log(response);
-			  if (response === "True") {   
-				$(".username_error").remove();
-				$("<span class='username_error' style='padding: 5px;color: red;font-weight: bold;'>Username available</span>").insertAfter("#id_username");
-			  } else {
-				$(".username_error").remove();
-				$("<span class='username_error' style='padding: 5px;color: green;font-weight: bold;'>Username not available</span>").insertAfter("#id_username");
-			  }
-			})
-			.fail(function() {
-			  console.log("Failed");
-			});
-		  });
-		});
-		
-	  </script>
-	
+    <script>
+      $(document).ready(function () {
+          function checkAvailability(fieldId, url, paramName, messageClass) {
+              $(fieldId).on("input", function () {
+                  var value = $(this).val().trim();
+  
+                  if (value === "") {
+                      $("." + messageClass).remove();
+                      return;
+                  }
+  
+                  $.ajax({
+                      url: url,
+                      type: "POST",
+                      data: { [paramName]: value },
+                      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                  })
+                  .done(function (response) {
+                      console.log(response);
+                      $("." + messageClass).remove();
+                      
+                      if (response === "True") {
+                          var message = `<span class='${messageClass}' style='padding: 5px; color: red; font-weight: bold;'>Available</span>`;
+                          $(message).insertAfter(fieldId);
+                      }
+                  })
+                  .fail(function () {
+                      console.log("Failed");
+                  });
+              });
+          }
+  
+          // Check if email and username are available
+          checkAvailability("#id_email", "{% url 'clinic:check_email_exist' %}", "email", "email_error");
+          checkAvailability("#id_username", "{% url 'clinic:check_username_exist' %}", "username", "username_error");
+  
+          // Password Matching Validation
+          $("#id_password, #id_confirm_password").on("input", function () {
+              var password = $("#id_password").val();
+              var confirmPassword = $("#id_confirm_password").val();
+              $(".password_error").remove();
+  
+              if (password !== confirmPassword) {
+                  var message = `<span class='password_error' style='color: red; font-weight: bold;'>Passwords do not match</span>`;
+                  $(message).insertAfter("#id_confirm_password");
+              }
+          });
+  
+          // Username should not be an email address validation
+          $("#id_username").on("input", function () {
+              var username = $(this).val().trim();
+              $(".username_email_error").remove();
+  
+              // Check if username contains an "@" symbol (indicating it's an email)
+              if (username.includes("@")) {
+                  var message = `<span class='username_email_error' style='color: red; font-weight: bold;'>Username should not be an email address.</span>`;
+                  $(message).insertAfter("#id_username");
+              }
+          });
+  
+          // Date of Birth Validation (Age above 18)
+          $("#id_date_of_birth").on("input", function () {
+              var dob = new Date($(this).val());
+              var today = new Date();
+              var age = today.getFullYear() - dob.getFullYear();
+              var monthDifference = today.getMonth() - dob.getMonth();
+              if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < dob.getDate())) {
+                  age--;
+              }
+  
+              $(".dob_error").remove();
+              if (age < 18) {
+                  var message = `<span class='dob_error' style='color: red; font-weight: bold;'>Any staff must be at least 18 years old.</span>`;
+                  $(message).insertAfter("#id_date_of_birth");
+              }
+          });
+  
+          // Joining Date Validation (Cannot be in the future)
+          $("#id_joining_date").on("input", function () {
+              var joiningDate = new Date($(this).val());
+              var today = new Date();
+  
+              $(".joining_date_error").remove();
+              if (joiningDate > today) {
+                  var message = `<span class='joining_date_error' style='color: red; font-weight: bold;'>Joining date cannot be in the future.</span>`;
+                  $(message).insertAfter("#id_joining_date");
+              }
+          });
+  
+          // MCT Number Unique Validation (if provided)
+          $("#id_mct_number").on("input", function () {
+              var mctNumber = $(this).val().trim();
+  
+              if (mctNumber === "") {
+                  return; // Skip if no MCT number is provided
+              }
+  
+              $.ajax({
+                  url: "{% url 'clinic:check_mct_number_exist' %}",
+                  type: "POST",
+                  data: { "mct_number": mctNumber },
+                  headers: { "X-CSRFToken": "{{ csrf_token }}" },
+              })
+              .done(function (response) {
+                  $(".mct_number_error").remove();
+                  
+                  if (response === "True") {
+                      var message = `<span class='mct_number_error' style='color: red; font-weight: bold;'>MCT number already exists. Please provide a unique MCT number.</span>`;
+                      $(message).insertAfter("#id_mct_number");
+                  }
+              })
+              .fail(function () {
+                  console.log("Failed to check MCT number.");
+              });
+          });
+      });
+  </script>
+  
 
 </body>
 </html>

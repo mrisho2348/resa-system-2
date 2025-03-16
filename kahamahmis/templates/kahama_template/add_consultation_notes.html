@@ -76,7 +76,7 @@ Add  Consultation notes
                                         <div class="col-md-3">
                                             PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
                                         </div>
-                                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                             <script>
                                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                                 var now = new Date();
@@ -135,7 +135,7 @@ Add  Consultation notes
                                                 <tbody>
                                                     {% for vital in patient_vitals %}
                                                         <tr>
-                                                        <td>{{ vital.updated_at|time:"H:i:s" }}</td>
+                                                        <td>{{ vital.updated_at|time:"H:i" }}</td>
                                                         <td>{{ vital.blood_pressure }}</td>
                                                         <td>{{ vital.pulse_rate }}</td>
                                                         <td>{{ vital.respiratory_rate }}</td>
@@ -1233,7 +1233,10 @@ Add  Consultation notes
                                    
                                         <div class="form-group">
                                             <label for="doctor_plan">Doctor Plan:</label>
-                                            <select class="form-control select2bs4" style="width: 100%;" id="doctor_plan" name="doctor_plan" {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge' %} disabled {% endif %} required>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="doctor_plan" name="doctor_plan" 
+                                                    {% if consultation_note.doctor_plan == 'Referral' and previous_referrals %} disabled 
+                                                    {% elif consultation_note.doctor_plan == 'Discharge' and previous_discharges %} disabled 
+                                            {% endif %} required>
                                                 <option value="">Select Doctor Plan</option>
                                                 <option value="Prescription" {% if consultation_note.doctor_plan == 'Prescription' %} selected {% endif %}>Prescription</option>
                                                 <option value="Laboratory" {% if consultation_note.doctor_plan == 'Laboratory' %} selected {% endif %}>Laboratory</option>                                          
@@ -1246,9 +1249,13 @@ Add  Consultation notes
                                       
                                         </div>
                                         
-                                        {% if consultation_note.doctor_plan == 'Referral' or consultation_note.doctor_plan == 'Discharge'  %}
+                                        {% if consultation_note.doctor_plan == 'Referral' and previous_referrals %}
                                         <input type="hidden" name="doctor_plan" value="{{ consultation_note.doctor_plan }}">
-                                        {% endif %}
+                                    {% elif consultation_note.doctor_plan == 'Discharge' and previous_discharges %}
+                                        <input type="hidden" name="doctor_plan" value="{{ consultation_note.doctor_plan }}">
+                                    {% endif %}
+                                    
+                                  
                                         
 
                                     <div class="row">
@@ -1399,9 +1406,9 @@ Add  Consultation notes
                                                     <th>Phone:</th>
                                                     <td>{{ patient.phone }}</td>
                                                     <th>Visit Date:</th>
-                                                    <td>{{ visit.created_at }}</td>
-                                                    <th>Visit Day:</th>
-                                                    <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                                    <td>{{ visit.created_at|date:'d-m-Y' }}</td>
+                                                    <th>Visit time:</th>
+                                                    <td>{{ visit.created_at|time:"H:i" }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1423,10 +1430,8 @@ Add  Consultation notes
                                         <div class="table-responsive">
                                             <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
                                                 <thead>
-                                                    <tr>
-                                                        <th>Date</th>
-                                                        <th>Time</th>
-                                                        <th>Day</th>
+                                                    <tr>                                                      
+                                                        <th>Time</th>                                                       
                                                         <th>Procedure Name</th>
                                                         <th>Description</th>
                                                         <th>Image</th>
@@ -1434,10 +1439,8 @@ Add  Consultation notes
                                                 </thead>
                                                 <tbody>
                                                     {% for procedure in previous_procedures %}
-                                                        <tr>
-                                                            <td>{{ procedure.created_at.date|date:"d/m/Y" }}</td>
-                                                            <td>{{ procedure.created_at.time }}</td>
-                                                            <td>{{ procedure.created_at|date:"l" }}</td>
+                                                        <tr>                                                       
+                                                            <td>{{ procedure.created_at|time:'H:i' }}</td>                                                       
                                                             <td>{{ procedure.name }}</td>
                                                             <td style="word-wrap: break-word;">{{ procedure.description }}</td>
                                                             <td>
@@ -1486,8 +1489,7 @@ Add  Consultation notes
                             <tr>
                                 <!-- Table headers -->
                                 <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>                                                  
+                                <th>Time</th>                                                                              
                                 <th>Data Recorder</th>
                                 <th>Source Location</th>
                                 <th>Destination Location</th>                        
@@ -1503,10 +1505,14 @@ Add  Consultation notes
                             {% for referral in previous_referrals %}
                                 <tr>
                                     <!-- Display data for each field -->
-                                    <td>{{ referral.created_at.date|date:"d/m/Y"  }}</td>
-                                    <td>{{ referral.created_at.time }}</td>
-                                    <td>{{ referral.created_at|date:"l" }}</td>                                                             
-                                    <td>{{ referral.data_recorder }}</td>
+                                    <td>{{ referral.created_at|date:'d-m-Y'  }}</td>
+                                    <td>{{ referral.created_at|time:'H:i' }}</td>                                                                                               
+                                    <td>
+                                        <b style="color: blue;" class="text-capitalize">
+                                            {% if referral.data_recorder.role == "doctor" %}Dr.{% else %}{{ referral.data_recorder.role }}{% endif %}
+                                        </b> 
+                                        {{ referral.data_recorder }}
+                                    </td>
                                     <td>{{ referral.source_location }}</td>
                                     <td>{{ referral.destination_location }}</td>                                  
                                     <td>{{ referral.notes|safe }}</td>
@@ -1578,9 +1584,9 @@ Add  Consultation notes
                                                 <th>Phone:</th>
                                                 <td>{{ patient.phone }}</td>
                                                 <th>Visit Date:</th>
-                                                <td>{{ visit.created_at }}</td>
-                                                <th>Visit Day:</th>
-                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                                <td>{{ visit.created_at|date:'d-m-Y' }}</td>
+                                                <th>Visit time:</th>
+                                                <td>{{ visit.created_at|time:"H:i" }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1602,10 +1608,8 @@ Add  Consultation notes
                                     <div class="table-responsive">
                                         <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example2">
                                             <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Time</th>
-                                                    <th>Day</th>
+                                                <tr>                                                    
+                                                    <th>Time</th>                                                
                                                     <th>Data Recorder</th>
                                                     <th>Service Name</th>
                                                     <th>Test Result</th>
@@ -1613,11 +1617,13 @@ Add  Consultation notes
                                             </thead>
                                             <tbody>
                                                 {% for lab_order in previous_lab_orders %}
-                                                    <tr>
-                                                        <td>{{ lab_order.created_at.date|date:"d/m/Y" }}</td>
-                                                        <td>{{ lab_order.created_at.time }}</td>
-                                                        <td>{{ lab_order.created_at|date:"l" }}</td>
-                                                        <td>{{ lab_order.data_recorder }}</td>
+                                                    <tr>                                                 
+                                                        <td>{{ lab_order.created_at|time:'H:i' }}</td>                                                      
+                                                        <td>
+                                                            <b style="color: blue;" class="text-capitalize">
+                                                                {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                                                            </b> 
+                                                            {{ lab_order.data_recorder }}</td>
                                                         <td>{{ lab_order.name }}</td>
                                                         <td>{{ lab_order.result }}</td>
                                                     </tr>
@@ -1659,8 +1665,7 @@ Add  Consultation notes
                             <tr>
                                 <!-- Table headers -->
                                 <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>
+                                <th>Time</th>                               
                                 <th>Data Recorder</th>
                                 <th>Counseling Notes</th>
                                </tr>
@@ -1670,10 +1675,14 @@ Add  Consultation notes
                             {% for counseling in previous_counselings %}
                                 <tr>
                                     <!-- Display counseling note data in table rows -->
-                                    <td>{{ counseling.created_at|date:"d/m/Y" }}</td>
-                                    <td>{{ counseling.created_at.time }}</td>
-                                    <td>{{ counseling.created_at|date:"l" }}</td>
-                                    <td>{{ counseling.data_recorder }}</td>
+                                    <td>{{ counseling.created_at|date:'d-m-Y' }}</td>
+                                    <td>{{ counseling.created_at|time:'H:i' }}</td>                                  
+                                    <td>
+                                        <b style="color: blue;" class="text-capitalize">
+                                            {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                                        </b> 
+                                        {{ counseling.data_recorder }}
+                                    </td>
                                     <td>{{ counseling.counselling_notes|safe }}</td>
                                      </tr>
                             {% endfor %}
@@ -1704,8 +1713,7 @@ Add  Consultation notes
                             <tr>
                                 <!-- Table headers -->                  
                                 <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>
+                                <th>Time</th>                                
                                 <th>Data Recorder</th>
                                 <th>Observation Notes</th>
                             </tr>
@@ -1715,10 +1723,14 @@ Add  Consultation notes
                             {% for observation in previous_observations %}
                                 <tr>
                                     <!-- Display observation record data in table rows -->
-                                    <td>{{ observation.created_at.date|date:"d/m/Y"  }}</td>
-                                    <td>{{ observation.created_at.time }}</td>
-                                    <td>{{ observation.created_at|date:"l" }}</td>
-                                    <td>{{ observation.data_recorder }}</td>
+                                    <td>{{ observation.created_at.date|date:'d-m-Y'  }}</td>
+                                    <td>{{ observation.created_at|time:'H:i' }}</td>                                    
+                                    <td>
+                                        <b style="color: blue;" class="text-capitalize">
+                                            {% if observation.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation.data_recorder.role }}{% endif %}
+                                        </b> 
+                                        {{ observation.data_recorder }}
+                                    </td>
                                     <td>{{ observation.observation_notes|safe }}</td>
                                 </tr>
                             {% endfor %}
@@ -1749,8 +1761,7 @@ Add  Consultation notes
                             <tr>
                                 <!-- Table headers -->
                                 <th>Date</th>
-                                <th>Time</th>
-                                <th>Day</th>
+                                <th>Time</th>                              
                                 <th>Data Recorder</th>
                                 <th>Discharge Condition</th>
                                 <th>Discharge Notes</th>                          
@@ -1761,10 +1772,14 @@ Add  Consultation notes
                             {% for discharge in previous_discharges %}
                                 <tr>
                                     <!-- Display discharge record data in table rows -->
-                                    <td>{{ discharge.discharge_date.date|date:"d/m/Y"  }}</td>
-                                    <td>{{ discharge.discharge_date.time }}</td>
-                                    <td>{{ discharge.discharge_date|date:"l" }}</td>
-                                    <td>{{ discharge.data_recorder }}</td>
+                                    <td>{{ discharge.discharge_date|date:"d-m-Y"  }}</td>
+                                    <td>{{ discharge.discharge_date|time:"H:i" }}</td>                            
+                                    <td>
+                                        <b style="color: blue;" class="text-capitalize">
+                                            {% if discharge.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge.data_recorder.role }}{% endif %}
+                                        </b> 
+                                        {{ discharge.data_recorder }}
+                                    </td>
                                     <td>{{ discharge.discharge_condition }}</td>
                                     <td>{{ discharge.discharge_notes|safe }}</td>                            
                                     <!-- Add more fields as needed -->
@@ -1886,9 +1901,9 @@ Add  Consultation notes
                                                 <th>Phone:</th>
                                                 <td>{{ patient.phone }}</td>
                                                 <th>Visit Date:</th>
-                                                <td>{{ visit.created_at }}</td>
-                                                <th>Visit Day:</th>
-                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                                <td>{{ visit.created_at|date:'d-m-Y' }}</td>
+                                                <th>Visit Time:</th>
+                                                <td>{{ visit.created_at|time:"H:i" }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1911,8 +1926,7 @@ Add  Consultation notes
                                             <thead>
                                                 <tr>
                                                     <th>Date</th>
-                                                    <th>Time</th>
-                                                    <th>Day</th>                                    
+                                                    <th>Time</th>                                                                                 
                                                     <th>Drug name</th>
                                                     <th>Dose</th>
                                                     <th>Frequency</th>
@@ -1923,9 +1937,8 @@ Add  Consultation notes
                                             <tbody>
                                                 {% for prescription in previous_prescriptions %}
                                                     <tr>
-                                                        <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
-                                                        <td>{{ prescription.created_at.time }}</td>
-                                                        <td>{{ prescription.created_at|date:"l" }}</td>                                        
+                                                        <td>{{ prescription.created_at.date|date:'d-m-Y' }}</td>
+                                                        <td>{{ prescription.created_at|time:'H:i' }}</td>                                                                                        
                                                         <td>{{ prescription.medicine }}</td>
                                                         <td>{{ prescription.dose }}</td>
                                                         <td>{{ prescription.frequency }}</td>

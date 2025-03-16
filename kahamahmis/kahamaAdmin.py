@@ -2,6 +2,7 @@ import calendar
 from datetime import  datetime
 from django.utils import timezone
 import logging
+from kahamahmis.forms import StaffProfileForm
 import numpy as np
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -15,13 +16,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
 from clinic.models import ChiefComplaint, FamilyMedicalHistory, Country, CustomUser,InsuranceCompany, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
-
+from django.template.loader import render_to_string
+import pdfkit
 from django.db.models import Max
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
-
-
-
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout
 
 
 @login_required
@@ -443,19 +447,23 @@ def patient_procedure_view(request):
 
 @login_required
 def patient_procedure_detail_view(request, mrn, visit_number):
-    # Retrieve the patient based on MRN
+    """ View to display procedure details for a specific patient and visit. """
+    
+    # Fetch patient and visit in one go
     patient = get_object_or_404(RemotePatient, mrn=mrn)
-
-    # Retrieve the visit based on visit_number for the specific patient
     visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+    
+    # Retrieve procedures related to this patient and visit
+    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
 
-    # Retrieve the corresponding procedure for the patient and visit
-    procedure =RemoteProcedure.objects.filter(patient=patient, visit = visit)
+    # Get the doctor who performed the first procedure (if exists)
+    procedure_done_by = procedures[0].doctor if procedures else None
 
     context = {
+        'procedure_done_by': procedure_done_by,
         'patient': patient,
         'visit': visit,
-        'procedure': procedure,
+        'procedure': procedures,
     }
 
     return render(request, 'kahama_template/manage_procedure_detail_view.html', context)
@@ -505,7 +513,12 @@ def manage_referral(request):
     patients = RemotePatient.objects.all()
     return render(request, 'kahama_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
-
+def view_referral(request, referral_id):
+    referral = get_object_or_404(RemoteReferral, id=referral_id)
+    context = {
+        'referral': referral
+    }
+    return render(request, 'kahama_template/view_referral.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -555,8 +568,7 @@ def patient_visit_details_view(request, patient_id, visit_id):
         observation_records = RemoteObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
         lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)         
         diagnosis_record = RemotePatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(RemotePatient, id=patient_id)
-
+        patient = get_object_or_404(RemotePatient, id=patient_id)        
         context = {
             'primary_physical_examination': primary_physical_examination,
             'secondary_physical_examination': secondary_physical_examination,
@@ -571,7 +583,8 @@ def patient_visit_details_view(request, patient_id, visit_id):
             'diagnosis_record': diagnosis_record,            
             'vitals': vitals,     
             'lab_tests': lab_tests,
-            'procedures': procedures,           
+            'procedures': procedures,          
+          
             'discharge_notes': discharge_notes,
         }
 
@@ -633,37 +646,29 @@ def prescription_list(request):
 
 @login_required
 def prescription_notes(request, visit_id, patient_id):
-    patient = RemotePatient.objects.get(id=patient_id)
-    visit = RemotePatientVisits.objects.get(id=visit_id)
-    prescriptions = RemotePrescription.objects.filter(visit__id=visit_id, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+
+    # Fetch prescriptions and optimize queries
+    prescriptions = RemotePrescription.objects.filter(visit_id=visit_id, visit__patient_id=patient_id).select_related('medicine', 'entered_by')
+
+    prescriber = prescriptions.first().entered_by if prescriptions.exists() else None
+
+    # Process prescriptions to extract only the unit (e.g., 'mg' from '300mg')
+    for prescription in prescriptions:
+        if prescription.medicine and prescription.medicine.formulation_unit:
+            prescription.medicine.unit_only = ''.join(filter(str.isalpha, prescription.medicine.formulation_unit))
+
     context = {
         'patient': patient,
+        'visit': visit,
         'prescriptions': prescriptions,
         'prescriber': prescriber,
         'visit_number': visit.vst,
-        'visit': visit,
-    }
-    return render(request, "kahama_template/prescription_notes.html", context)
-
-
-
-@login_required    
-def patient_vital_list(request, patient_id,visit_id):
-    # Retrieve the patient object
-    patient = RemotePatient.objects.get(pk=patient_id)
-    visit = RemotePatientVisits.objects.get(pk=visit_id)  
-    patient_vitals = RemotePatientVital.objects.filter(patient=patient).order_by('-recorded_at')
-    # Render the template with the patient's vital information
-    context = {      
-        'patient': patient, 
-        'visit': visit, 
-        'patient_vitals': patient_vitals
     }
     
-    return render(request, 'kahama_template/manage_patient_vital_list.html', context)  
+    return render(request, "kahama_template/prescription_notes.html", context)
+
 
 @login_required
 def patient_vital_all_list(request):
@@ -681,18 +686,29 @@ def patient_vital_all_list(request):
     }
     return render(request, 'kahama_template/manage_all_patient_vital.html', context) 
 
+
 @login_required
 def patient_vital_detail(request, patient_mrn, visit_number):
-    # Fetch all vitals for the specific patient and visit
-    patient = RemotePatient.objects.get(mrn=patient_mrn)
-    vitals = RemotePatientVital.objects.filter(patient__mrn=patient_mrn, visit__vst=visit_number)
-    
+    # Get the patient instance
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+
+    # Get the visit instance
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+
+    # Get vitals related to the patient and visit
+    vitals = RemotePatientVital.objects.filter(patient=patient, visit=visit).select_related('doctor')
+
+    # Ensure we retrieve the doctor correctly
+    vital_done_by = vitals.first().doctor if vitals.exists() and vitals.first().doctor else None
+
     context = {
         'vitals': vitals,
         'patient': patient,
         'patient_mrn': patient_mrn,
-        'visit_number': visit_number,
+        'vital_done_by': vital_done_by,
+        'visit': visit,
     }
+
     return render(request, 'kahama_template/manage_patient_vital_list.html', context)
 
 
@@ -1415,9 +1431,65 @@ def counseling_list_view(request):
     counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_counselling.html', {'counselings': counselings})    
 
+def view_counseling_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
+    patient = get_object_or_404(RemotePatient, id=patient_id) 
+    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+    
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling_note': counseling_note,
+    }
+    return render(request, 'kahama_template/counseling_notes_details.html', context) 
+
+def download_counseling_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
+    patient = get_object_or_404(RemotePatient, id=patient_id) 
+    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+
+    # Render HTML template with data
+    html_content = render_to_string(
+        'kahama_template/counseling_notes_details.html', 
+        {'counseling_note': counseling_note},
+        request=request  # Ensures full URL generation
+    )
+
+    # PDF Options
+    options = {
+        'enable-local-file-access': '',  # Allows static files and images
+        'page-size': 'A4',
+        'encoding': "UTF-8",
+        'quiet': '',
+    }
+
+    # PDF Generation
+    try:
+        config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")  # Windows path
+        pdf = pdfkit.from_string(html_content, False, options=options, configuration=config)
+
+        # Return PDF response
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Counseling_Notes_{patient}.pdf"'
+        return response
+
+    except OSError as e:
+        return HttpResponse(f"PDF generation error: {e}", content_type="text/plain")
+
 def observation_record_list_view(request):
     observation_records = RemoteObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_observation_record.html', {'observation_records': observation_records})
+
+def view_observation_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
+    patient = get_object_or_404(RemotePatient, id=patient_id)  
+    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)      
+    
+    return render(request, 'kahama_template/observation_notes_detail.html', {
+        'observation_record': observation_record,
+        'visit': visit,
+    })
+
 
 def discharge_notes_list_view(request):
     discharge_notes = RemoteDischargesNotes.objects.all().order_by('-discharge_date')
@@ -1482,3 +1554,62 @@ def get_all_frequency_data(request):
     except Exception as e:
         # Handle errors and return error response
         return JsonResponse({"error": str(e)}, status=500)    
+        
+
+@method_decorator(login_required, name='dispatch')
+class EditStaffProfileView(View):
+    template_name = 'kahama_template/edit_profile.html'
+
+    def get(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(instance=staff)
+        return render(request, self.template_name, {'form': form, 'staff': staff})
+
+    def post(self, request, pk):
+        staff = get_object_or_404(Staffs, id=pk, admin=request.user)
+        form = StaffProfileForm(request.POST, request.FILES, instance=staff)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('kahama_edit_staff_profile', pk=staff.id)
+
+        return render(request, self.template_name, {'form': form, 'staff': staff})
+
+
+@login_required
+def doctor_profile(request):
+    user = request.user
+    
+    try:
+        # Fetch the doctor's details from the Staffs model
+        staff = Staffs.objects.get(admin=user, role='doctor')
+        
+        # Pass the doctor details to the template
+        return render(request, 'kahama_template/profile.html', {'staff': staff})
+
+    except Staffs.DoesNotExist:
+        return render(request, 'kahama_template/profile.html', {'error': 'Doctor not found.'})
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Prevent user logout before redirecting
+            messages.success(request, "Your password was successfully updated! Please log in again.")
+            logout(request)  # Log out the user
+            
+            # Redirect based on workplace
+            if request.user.staffs.work_place == 'kahama':
+                return redirect('kahamahmis:kahama')  # Redirect to Kahama login page
+            else:
+                return redirect('login')  # Redirect to default login page (Resa)
+
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'kahama_template/change_password.html', {'form': form})           

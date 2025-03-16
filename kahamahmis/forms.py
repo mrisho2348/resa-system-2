@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import FileExtensionValidator
-from clinic.models import RemoteLaboratoryOrder, RemoteProcedure
+from clinic.models import RemoteLaboratoryOrder, RemoteProcedure, Staffs
 from django_ckeditor_5.widgets import CKEditor5Widget
 class ImportInsuranceCompanyForm(forms.Form):
     file = forms.FileField(
@@ -103,3 +103,13 @@ class RemoteLaboratoryOrderForm(forms.ModelForm):
                 config_name="extends"  # Specify the CKEditor configuration to use
             )
         }        
+
+
+class StaffProfileForm(forms.ModelForm):
+    class Meta:
+        model = Staffs
+        fields = ['profile_picture', 'signature']
+        widgets = {
+            'profile_picture': forms.FileInput(attrs={'class': 'form-control'}),
+            'signature': forms.FileInput(attrs={'class': 'form-control'}),
+        }

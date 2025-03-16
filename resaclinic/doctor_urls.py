@@ -4,6 +4,8 @@ from clinic import DoctorView, delete, editView, imports
 
 urlpatterns = [
     re_path(r'^doctor/doctor_dashboard/$', DoctorView.doctor_dashboard, name='doctor_dashboard'),
+    path('doctor/profile/', DoctorView.doctor_profile, name='doctor_profile'),
+    path('edit-profile/<int:pk>/', DoctorView.EditStaffProfileView.as_view(), name='doctor_edit_staff_profile'),
     re_path(r'^doctor/fetch_lab_order_counts_view/$', DoctorView.fetch_lab_order_counts_view, name='doctor_fetch_lab_order_counts_view'),
     path('doctor/get-gender-yearly-data/', DoctorView.get_gender_yearly_data, name="doctor_get_gender_yearly_data"),
     path('doctor/get-gender-monthly-data/', DoctorView.get_gender_monthly_data, name="doctor_get_gender_monthly_data"),
@@ -44,7 +46,6 @@ urlpatterns = [
     path('manage-disease/', DoctorView.manage_disease, name='doctor_manage_disease'),
     path('diagnosis-list/', DoctorView.diagnosis_list, name='doctor_diagnosis_list'),
     path('manage-service/', DoctorView.manage_service, name='doctor_manage_service'),
-    path('update/profile/picture/', DoctorView.update_profile_picture, name='doctor_update_profile_picture'),
     path('manage-pathodology/', DoctorView.manage_pathodology, name='doctor_manage_pathodology'),
     path('health-record-list/', DoctorView.health_record_list, name='doctor_health_record_list'),
     path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', DoctorView.save_remote_discharges_notes, name='doctor_save_remote_discharges_notes'),

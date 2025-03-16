@@ -20,8 +20,7 @@ urlpatterns = [
     # Patient Observation and Lab Result URLs
     path('patient_observation_history_view/<str:mrn>/view/', kahamaViews.patient_observation_history_view, name="kahama_patient_observation_history_view"),
     path('patient_lab_result_history_view/<str:mrn>/view/', kahamaViews.patient_lab_result_history_view, name="kahama_patient_lab_result_history_view"),
-    path('patient_laboratory_view/', kahamaViews.patient_laboratory_view, name="kahama_patient_laboratory_view"),
-
+    path('patient_laboratory_view/', kahamaViews.patient_laboratory_view, name="kahama_patient_laboratory_view"),    
     path('lab-details/<str:mrn>/<str:visit_number>/', kahamaViews.patient_lab_details_view, name='kahama_patient_lab_details_view'),
     path('patient_observation_view/', kahamaViews.patient_observation_view, name="kahama_patient_observation_view"),
     
@@ -29,7 +28,7 @@ urlpatterns = [
     path('save_chief_complaint/', kahamaViews.save_chief_complaint, name='kahama_save_chief_complaint'),
     path('chief_complaint/update/<int:chief_complaint_id>/', kahamaViews.update_chief_complaint, name='kahama_update_chief_complaint'),
     path('delete_chief_complaint/<int:chief_complaint_id>/', kahamaViews.delete_chief_complaint, name='kahama_delete_chief_complaint'),
-
+    path('discharge/details/<int:patient_id>/<int:visit_id>/', kahamaViews.discharge_details_view, name='kahama_discharge_details_view'),
     
 
     

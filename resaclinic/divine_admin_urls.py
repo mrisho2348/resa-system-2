@@ -18,7 +18,8 @@ urlpatterns = [
     path('patient_info_form_edit/<int:patient_id>/', divine_Admin.patient_info_form_edit, name="divine_patient_info_form_edit"),
     path('health_info_edit/<int:patient_id>/', divine_Admin.health_info_edit, name="divine_health_info_edit"),
     path('save_diagnosis/', divine_Admin.save_diagnosis, name="divine_save_diagnosis"),
-
+    path('admin/profile/', divine_Admin.admin_profile, name='divine_profile'),
+    path('kahama/admin/change-password/', divine_Admin.change_password, name='divine_change_password'),
 
     # Remote patient vitals
 
@@ -74,11 +75,15 @@ urlpatterns = [
     path('prescription-notes/<str:visit_id>/<int:patient_id>/', divine_Admin.prescription_notes, name='divine_prescription_notes'),
     path('prescriptions/', divine_Admin.prescription_list, name='divine_prescription_list'),
     path('counseling/', divine_Admin.counseling_list_view, name='divine_counseling_list'),
+    path('counseling_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.view_counseling_notes, name='divine_view_counseling_notes'),
     path('discharge_notes/', divine_Admin.discharge_notes_list_view, name='divine_discharge_notes_list'),
+    path('discharge/details/<int:patient_id>/<int:visit_id>/', divine_Admin.discharge_details_view, name='divine_discharge_details_view'),
     path('observation_records/', divine_Admin.observation_record_list_view, name='divine_observation_record_list'),
+    path('observation_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.view_observation_notes, name='divine_view_observation_notes'),
 
     # Referral paths
     path('resa/manage-referral/', divine_Admin.manage_referral, name='divine_manage_referral'),
+    path('referral/view/<int:referral_id>/',divine_Admin.view_referral, name='divine_view_referral'),
     path('resa/patient-procedure-view/', divine_Admin.patient_procedure_view, name='divine_patient_procedure_view'),
     path('procedure/detail/<str:mrn>/<str:visit_number>/', divine_Admin.patient_procedure_detail_view, name='divine_patient_procedure_detail_view'),
     path('out_of_stock_medicines_view/', divine_Admin.out_of_stock_medicines_view, name='divine_out_of_stock_medicines_view'),

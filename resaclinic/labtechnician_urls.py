@@ -4,6 +4,9 @@ from clinic import LabTechnicianView, editView, imports
 
 urlpatterns = [
     path('labtechnician_dashboard/', LabTechnicianView.labtechnician_dashboard, name='labtechnician_dashboard'),
+    path('lab-technician/profile/', LabTechnicianView.labTechnician_profile, name='lab_profile'),
+    path('resa/lab/change-password/', LabTechnicianView.change_password, name='lab_change_password'),
+    path('edit-profile/<int:pk>/', LabTechnicianView.EditStaffProfileView.as_view(), name='lab_edit_staff_profile'),
     path('new_procedure_order/', LabTechnicianView.new_procedure_order, name='lab_new_procedure_order'),
     path('new_radiology_order/', LabTechnicianView.new_radiology_order, name='lab_new_radiology_order'),
     path('fetch_order_counts/', LabTechnicianView.fetch_order_counts_view, name='lab_fetch_order_counts'),
@@ -13,7 +16,6 @@ urlpatterns = [
     re_path(r'^save_lab_order_result/(?P<order_id>\d+)/$', LabTechnicianView.save_lab_order_result, name='lab_save_lab_order_result'),
     path('prescriptions/<str:visit_number>/<int:patient_id>/',  LabTechnicianView.prescription_detail, name='lab_prescription_detail'),
     path('new_consultation_order/', LabTechnicianView.new_consultation_order, name='lab_new_consultation_order'),
-    path('update_profile_picture/', LabTechnicianView.update_profile_picture, name='lab_update_profile_picture'),
     path('add_consultation/', LabTechnicianView.add_consultation, name='lab_add_consultation'),
     path('all_orders_view/', LabTechnicianView.all_orders_view, name='lab_all_orders_view'),
     re_path(r'^edit_lab_result/(?P<patient_id>\d+)/(?P<visit_id>\d+)/(?P<lab_id>\d+)/$', LabTechnicianView.edit_lab_result, name='lab_edit_lab_result'),

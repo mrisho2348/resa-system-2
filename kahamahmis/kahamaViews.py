@@ -660,7 +660,12 @@ def save_remotereferral(request, patient_id, visit_id):
         visit = get_object_or_404(RemotePatientVisits, id=visit_id)        
         data_recorder = request.user.staff
         referral = RemoteReferral.objects.filter(patient=patient, visit=visit).first()   
-        context = {'patient': patient, 'visit': visit, 'referral': referral}  
+        consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+        context = {'patient': patient,
+         'visit': visit, 
+         'referral': referral,
+         'consultation_notes': consultation_notes,
+         }  
 
         if request.method == 'POST':
             # Process the form data if it's a POST request
@@ -974,16 +979,46 @@ def patient_laboratory_view(request):
 
 @login_required
 def patient_lab_details_view(request, mrn, visit_number):
-    # Fetch the patient and corresponding lab results
-    patient = get_object_or_404(RemotePatient, mrn=mrn)
-    lab_results = RemoteLaboratoryOrder.objects.filter(patient=patient, visit__vst=visit_number)
+    # Fetch the patient with a prefetch query to reduce database hits
+    patient = get_object_or_404(RemotePatient.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+    
+    # Retrieve lab results efficiently
+    lab_results = list(patient.remotelaboratoryorder_set.filter(visit__vst=visit_number))
+
+    # Get the first data recorder if lab results exist
+    lab_done_by = lab_results[0].data_recorder if lab_results else None
 
     context = {
         'patient': patient,
-        'visit_number': visit_number,
+        'visit': visit,
+        'lab_done_by': lab_done_by,
         'lab_results': lab_results,
     }
+
     return render(request, 'kahama_template/lab_details.html', context)
+
+@login_required
+def discharge_details_view(request, patient_id, visit_id):
+    # Fetch the patient
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+
+    # Fetch the visit
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    
+    # Fetch the discharge note related to this visit
+    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'consultation_notes': consultation_notes,
+        'discharge_note': discharge_note,
+    }
+
+    return render(request, 'kahama_template/discharge_details.html', context)
+
 
 @login_required
 def patient_lab_result_history_view(request, mrn):
@@ -1026,8 +1061,7 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
         # Retrieve the doctor plan from the query string
         if request.method == 'POST':
             final_diagnosis = request.POST.getlist('final_diagnosis[]')
-            doctor_plan = request.POST.get('doctor_plan')
-            print("Doctor Plan:", doctor_plan)  # Debugging
+            doctor_plan = request.POST.get('doctor_plan')            
             if not consultation_note:
                 consultation_note = RemotePatientDiagnosisRecord.objects.create(patient=patient, visit=visit)
                 consultation_note.data_recorder = data_recorder

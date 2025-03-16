@@ -9,6 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
+from django.core.exceptions import ValidationError
 from uuid import uuid4
 # Create your models here.
 class CustomUserManager(BaseUserManager):
@@ -113,6 +114,8 @@ GENDER_CHOICES = [
         ('non-binary', 'Non-Binary'),
         ('prefer-not-to-say', 'Prefer Not to Say'),
     ]
+
+
 class Staffs(models.Model):
     id = models.AutoField(primary_key=True)
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='staff')   
@@ -122,15 +125,31 @@ class Staffs(models.Model):
     phone_number = models.CharField(max_length=14, blank=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True)   
     profession = models.CharField(max_length=20, choices=PROFESSION_CHOICES, blank=True)
-    role = models.CharField(max_length=20,choices=ROLE_CHOICES,  blank=True)    
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, blank=True)    
     work_place = models.CharField(max_length=50, choices=work_place_choices, blank=True)
-    joining_date = models.DateField(blank=True, null=True)  # New field added here
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)  # Profile picture field added here
+    joining_date = models.DateField(blank=True, null=True)  # Joining date field
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)  # Profile picture field
+    
+    # ✅ New fields added below
+    mct_number = models.CharField(max_length=50, blank=True, null=True, help_text="Medical Council of Tanzania (MCT) Number")
+    signature = models.ImageField(upload_to='signatures/', blank=True, null=True, help_text="Upload digital signature")
+
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)    
+
     objects = models.Manager()
+    def clean(self):
+        """Ensure unique staff full name (first_name + middle_name + last_name)."""
+        if Staffs.objects.filter(
+            admin__first_name=self.admin.first_name,
+            middle_name=self.middle_name,
+            admin__last_name=self.admin.last_name
+        ).exclude(id=self.id).exists():
+            raise ValidationError("A staff member with this full name already exists.")
+
     def __str__(self):
         return f"{self.admin.first_name} {self.middle_name} {self.admin.last_name}"
+
 
 class InsuranceCompany(models.Model):
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='insurance_companies') 
@@ -139,12 +158,13 @@ class InsuranceCompany(models.Model):
     short_name = models.CharField(max_length=50)
     email = models.EmailField()
     address = models.TextField()
-    website = models.URLField(default='http://example.com')  # Add the new field with a default value
+    website = models.URLField(default='http://example.com')  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()    
     def __str__(self):
         return self.name
+
    
 PROCEDURE = 'Procedure'
 LABORATORY = 'Laboratory'
@@ -1270,12 +1290,17 @@ class Diagnosis(models.Model):
 class RemotePatientDiagnosisRecord(models.Model):
     visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE) 
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE) 
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE, blank=True, null=True)
     provisional_diagnosis = models.ManyToManyField(Diagnosis, related_name='provisional_diagnosis_records')
     final_diagnosis = models.ManyToManyField(Diagnosis, related_name='final_diagnosis_records')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
+
+    def __str__(self):
+        provisional = ", ".join([str(diagnosis) for diagnosis in self.provisional_diagnosis.all()])
+        final = ", ".join([str(diagnosis) for diagnosis in self.final_diagnosis.all()])
+        return f"Patient: {self.patient} | Provisional: [{provisional}] | Final: [{final}]"
     
 class PatientDiagnosisRecord(models.Model):
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE) 

@@ -3,6 +3,9 @@ from clinic import AdminViews
 
 urlpatterns = [
     path('admin/delete-medicine-route/', AdminViews.delete_medicine_route, name="admin_delete_medicine_route"),
+    path('admin/profile/', AdminViews.admin_profile, name='admin_profile'),
+    path('resa/pharmacist/change-password/', AdminViews.change_password, name='admin_change_password'),
+    path('edit-profile/<int:pk>/', AdminViews.EditStaffProfileView.as_view(), name='admin_edit_staff_profile'),
     path('admin/get-gender-yearly-data/', AdminViews.get_gender_yearly_data, name="admin_get_gender_yearly_data"),
     path('admin/get-gender-monthly-data/', AdminViews.get_gender_monthly_data, name="admin_get_gender_monthly_data"),
     path('admin/delete-medicine-unit-measure/', AdminViews.delete_medicine_unit_measure, name="admin_delete_medicine_unit_measure"),
@@ -26,7 +29,6 @@ urlpatterns = [
     path('admin/ambulance-route-list/', AdminViews.ambulance_route_list, name="admin_ambulance_route_list"),
     path('admin/dashboard/', AdminViews.dashboard, name="admin_dashboard"),
     path('admin/employee-detail/', AdminViews.employee_detail, name="admin_employee_detail"),
-    path('admin/update-profile-picture/', AdminViews.update_profile_picture, name="admin_update_profile_picture"),
     path('admin/add-disease/', AdminViews.add_disease, name="admin_add_disease"),    
     path('admin/add-insurance-company/', AdminViews.add_insurance_company, name="admin_add_insurance_company"),
     path('admin/add-pathology-record/', AdminViews.add_pathodology_record, name="admin_add_pathology_record"),

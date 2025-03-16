@@ -6,7 +6,7 @@ urlpatterns = [
     path('get_patient_data_by_company/', kahamaAdmin.get_patient_data_by_company, name="kahama_get_patient_data_by_company"),
     path('get_gender_yearly_data/', kahamaAdmin.get_gender_yearly_data, name="kahama_get_gender_yearly_data"),
     path('get_gender_monthly_data/', kahamaAdmin.get_gender_monthly_data, name="kahama_get_gender_monthly_data"),
-    
+    path('resa/doctor/change-password/', kahamaAdmin.change_password, name='kahama_change_password'),
 
       # URL for adding a new visit (no visit_id)
     path('save_patient_visit/<int:patient_id>/', kahamaAdmin.save_patient_visit_save, name='kahama_save_patient_visit_save'),
@@ -25,7 +25,7 @@ urlpatterns = [
 
     # Dashboard paths
     path('resa/dashboard/', kahamaAdmin.kahama_dashboard, name="kahama_dashboard"),
-    
+    path('admin/profile/', kahamaAdmin.doctor_profile, name='kahama_profile'),
 
 
     # Staff paths
@@ -61,7 +61,6 @@ urlpatterns = [
     path('consultation-notes/', kahamaAdmin.consultation_notes_view, name='kahama_consultation_notes'),
     path('resa/patient_vital_all_list/', kahamaAdmin.patient_vital_all_list, name='kahama_patient_vital_all_list'),
     path('details/<str:patient_mrn>/<str:visit_number>/', kahamaAdmin.patient_vital_detail, name='kahama_patient_vital_detail'),
-    path('patient_vital_list/<int:patient_id>/<int:visit_id>/', kahamaAdmin.patient_vital_list, name='kahama_patient_vital_list'),
     path('patient_visit_details_view/<int:patient_id>/<int:visit_id>/', kahamaAdmin.patient_visit_details_view, name='kahama_patient_visit_details_view'),
    
     path('patient_visit_history/<int:patient_id>/', kahamaAdmin.patient_visit_history_view, name='kahama_patient_visit_history_view'),
@@ -74,17 +73,20 @@ urlpatterns = [
 
     # Referral paths
     path('resa/manage-referral/', kahamaAdmin.manage_referral, name='kahama_manage_referral'),
+    path('referral/view/<int:referral_id>/',kahamaAdmin.view_referral, name='kahama_view_referral'),
     path('resa/patient-procedure-view/', kahamaAdmin.patient_procedure_view, name='kahama_patient_procedure_view'),
     path('procedure/detail/<str:mrn>/<str:visit_number>/', kahamaAdmin.patient_procedure_detail_view, name='kahama_patient_procedure_detail_view'),
- 
+    path('observation_notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.view_observation_notes, name='kahama_view_observation_notes'),
 
     path('resa/manage-staff/', kahamaAdmin.manage_staff, name="kahama_manage_staff"),
     path('resa/manage-insurance/', kahamaAdmin.manage_insurance, name="kahama_manage_insurance"),
     path('resa/manage-adjustment/', kahamaAdmin.manage_adjustment, name="kahama_manage_adjustment"),
-
+    path('download/counseling-notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_counseling_notes, name='kahama_download_counseling_notes'),
+    path('edit-profile/<int:pk>/', kahamaAdmin.EditStaffProfileView.as_view(), name='kahama_edit_staff_profile'),
 
     # Appointment paths
     path('resa/appointments/', kahamaAdmin.appointment_list_view, name='kahama_appointment_list'),
+    path('counseling_notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.view_counseling_notes, name='kahama_view_counseling_notes'),
 
     path('confirm_meeting/<int:appointment_id>/', kahamaAdmin.confirm_meeting, name='kahama_confirm_meeting'),
 

@@ -26,7 +26,9 @@ from django.db.models import OuterRef, Subquery
 from django.db.models.functions import ExtractMonth ,TruncDay
 from calendar import monthrange
 from datetime import date, timedelta
-
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout
 
 
 @login_required
@@ -48,6 +50,44 @@ def divine_dashboard(request):
     }
     return render(request,"divine_admin_template/home_content.html",context)
 
+@login_required
+def admin_profile(request):
+    # Get the logged-in user
+    user = request.user
+    
+    try:
+        # Fetch the admin's details from the Staffs model
+        staff = Staffs.objects.get(admin=user, role='admin')
+        
+        # Pass the admin details to the template
+        return render(request, 'divine_admin_template/profile.html', {'staff': staff})
+
+    except Staffs.DoesNotExist:
+        # In case no admin data is found, return an error message
+        return render(request, 'divine_admin_template/profile.html', {'error': 'Admin not found.'})
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Prevent user logout before redirecting
+            messages.success(request, "Your password was successfully updated! Please log in again.")
+            logout(request)  # Log out the user
+            
+            # Redirect based on workplace
+            if request.user.staff.work_place == 'kahama':
+                return redirect('kahamahmis:kahama')  # Redirect to Kahama login page
+            else:
+                return redirect('login')  # Redirect to default login page (Resa)
+
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = PasswordChangeForm(request.user)
+
+    return render(request, 'divine_admin_template/change_password.html', {'form': form})            
 
 def get_gender_yearly_data(request):
     if request.method == 'GET':
@@ -389,19 +429,23 @@ def patient_procedure_view(request):
 
 @login_required
 def patient_procedure_detail_view(request, mrn, visit_number):
-    # Retrieve the patient based on MRN
+    """ View to display procedure details for a specific patient and visit. """
+    
+    # Fetch patient and visit in one go
     patient = get_object_or_404(RemotePatient, mrn=mrn)
-
-    # Retrieve the visit based on visit_number for the specific patient
     visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+    
+    # Retrieve procedures related to this patient and visit
+    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
 
-    # Retrieve the corresponding procedure for the patient and visit
-    procedure =RemoteProcedure.objects.filter(patient=patient, visit = visit)
+    # Get the doctor who performed the first procedure (if exists)
+    procedure_done_by = procedures[0].doctor if procedures else None
 
     context = {
+        'procedure_done_by': procedure_done_by,
         'patient': patient,
         'visit': visit,
-        'procedure': procedure,
+        'procedure': procedures,
     }
 
     return render(request, 'divine_admin_template/manage_procedure_detail_view.html', context)
@@ -433,6 +477,12 @@ def manage_referral(request):
     return render(request, 'divine_admin_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
 
+def view_referral(request, referral_id):
+    referral = get_object_or_404(RemoteReferral, id=referral_id)
+    context = {
+        'referral': referral
+    }
+    return render(request, 'divine_admin_template/view_referral.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -724,8 +774,7 @@ def patient_visit_details_view(request, patient_id, visit_id):
         observation_records = RemoteObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
         lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)         
         diagnosis_record = RemotePatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(RemotePatient, id=patient_id)
-
+        patient = get_object_or_404(RemotePatient, id=patient_id)        
         context = {
             'primary_physical_examination': primary_physical_examination,
             'secondary_physical_examination': secondary_physical_examination,
@@ -740,7 +789,8 @@ def patient_visit_details_view(request, patient_id, visit_id):
             'diagnosis_record': diagnosis_record,            
             'vitals': vitals,     
             'lab_tests': lab_tests,
-            'procedures': procedures,           
+            'procedures': procedures,          
+          
             'discharge_notes': discharge_notes,
         }
 
@@ -749,7 +799,6 @@ def patient_visit_details_view(request, patient_id, visit_id):
         raise Http404("Patient does not exist")
     except Exception as e:
         return render(request, '404.html', {'error_message': str(e)})    
-    
 
     
 
@@ -842,16 +891,26 @@ def patient_vital_all_list(request):
 
 @login_required
 def patient_vital_detail(request, patient_mrn, visit_number):
-    # Fetch all vitals for the specific patient and visit
-    patient = RemotePatient.objects.get(mrn=patient_mrn)
-    vitals = RemotePatientVital.objects.filter(patient__mrn=patient_mrn, visit__vst=visit_number)
-    
+    # Get the patient instance
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+
+    # Get the visit instance
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+
+    # Get vitals related to the patient and visit
+    vitals = RemotePatientVital.objects.filter(patient=patient, visit=visit).select_related('doctor')
+
+    # Ensure we retrieve the doctor correctly
+    vital_done_by = vitals.first().doctor if vitals.exists() and vitals.first().doctor else None
+
     context = {
         'vitals': vitals,
         'patient': patient,
         'patient_mrn': patient_mrn,
-        'visit_number': visit_number,
+        'vital_done_by': vital_done_by,
+        'visit': visit,
     }
+
     return render(request, 'divine_admin_template/manage_patient_vital_list.html', context)
 
 
@@ -1131,15 +1190,56 @@ def counseling_list_view(request):
     counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'divine_admin_template/manage_counselling.html', {'counselings': counselings})    
 
+def view_counseling_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
+    patient = get_object_or_404(RemotePatient, id=patient_id) 
+    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+    
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling_note': counseling_note,
+    }
+    return render(request, 'divine_admin_template/counseling_notes_details.html', context)     
+
 def observation_record_list_view(request):
     observation_records = RemoteObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'divine_admin_template/manage_observation_record.html', {'observation_records': observation_records})
+
+def view_observation_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
+    patient = get_object_or_404(RemotePatient, id=patient_id)  
+    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)      
+    
+    return render(request, 'divine_admin_template/observation_notes_detail.html', {
+        'observation_record': observation_record,
+        'visit': visit,
+    })    
 
 def discharge_notes_list_view(request):
     discharge_notes = RemoteDischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'divine_admin_template/manage_discharge.html', {'discharge_notes': discharge_notes})
 
+@login_required
+def discharge_details_view(request, patient_id, visit_id):
+    # Fetch the patient
+    patient = get_object_or_404(RemotePatient, id=patient_id)
 
+    # Fetch the visit
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    
+    # Fetch the discharge note related to this visit
+    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'consultation_notes': consultation_notes,
+        'discharge_note': discharge_note,
+    }
+
+    return render(request, 'divine_admin_template/discharge_details.html', context)
 
 
 @login_required
@@ -1588,15 +1688,23 @@ def patient_laboratory_view(request):
 
 @login_required
 def patient_lab_details_view(request, mrn, visit_number):
-    # Fetch the patient and corresponding lab results
-    patient = get_object_or_404(RemotePatient, mrn=mrn)
-    lab_results = RemoteLaboratoryOrder.objects.filter(patient=patient, visit__vst=visit_number)
+    # Fetch the patient with a prefetch query to reduce database hits
+    patient = get_object_or_404(RemotePatient.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
+    
+    # Retrieve lab results efficiently
+    lab_results = list(patient.remotelaboratoryorder_set.filter(visit__vst=visit_number))
+
+    # Get the first data recorder if lab results exist
+    lab_done_by = lab_results[0].data_recorder if lab_results else None
 
     context = {
         'patient': patient,
-        'visit_number': visit_number,
+        'visit': visit,
+        'lab_done_by': lab_done_by,
         'lab_results': lab_results,
     }
+
     return render(request, 'divine_admin_template/lab_details.html', context)
 
 @login_required

@@ -1,13 +1,14 @@
 {% extends 'divine_admin_template/base_template.html' %}
 
-{% block title %}All Referral{% endblock title %}
+{% block title %}
+   All Referrals
+{% endblock title %}
 
 {% block breadcrumb %}
-    {% include "divine_admin_template/modal_form.html" %}
+{% include "divine_admin_template/modal_form.html" %}
 {% endblock breadcrumb %}
 
 {% load static %}
-
 {% block main_content %}
 
 <div class="container-fluid">
@@ -19,34 +20,31 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered table-striped table-sm display" id="example" style="width:100%">
+                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>Patient</th>
                                     <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Day</th>
-                                    <th>Data Recorder</th>
+                                    <th>Time</th>                                                                         
+                                    <th>Recorded By</th>
                                     <th>Source Location</th>
-                                    <th>Destination Location</th>
-                                    <th>Notes</th>
+                                    <th>Destination Location</th>                        
+                                    <th>Reason</th>
                                     <th>Nature of Referral</th>
-                                    <th>Transport Model</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
+                                    <th>Transport Mode</th>
+                                    <th>Status</th>                                 
+                                    <th>Actions</th>               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for referral in referrals %}
                                     <tr>
                                         <td>{{ referral.patient.mrn }}</td>
-                                        <td>{{ referral.created_at.date|date:"d-m-Y" }}</td>
-                                        <td>{{ referral.created_at.time }}</td>
-                                        <td>{{ referral.created_at|date:"l" }}</td>
-                                        <td><b style="color: blue;" class="text-capitalize">{{ referral.data_recorder.role }}</b> 
-                                           <span class="text-muted"> {{ referral.data_recorder }}</span></td>
+                                        <td>{{ referral.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ referral.created_at|time:"H:i" }}</td>                                                                                           
+                                        <td>Dr. {{ referral.data_recorder }}</td>
                                         <td>{{ referral.source_location }}</td>
-                                        <td>{{ referral.destination_location }}</td>
+                                        <td>{{ referral.destination_location }}</td>                                  
                                         <td>{{ referral.notes|safe }}</td>
                                         <td>{{ referral.nature_of_referral }}</td>
                                         <td>{{ referral.transport_model }}</td>
@@ -54,34 +52,18 @@
                                             <span class="badge badge-{{ referral.get_status_color }}">
                                                 {{ referral.get_status_display }}
                                             </span>
-                                        </td>
+                                        </td>                                                   
                                         <td>
-                                            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteReferral{{ referral.id }}" title="Delete">
-                                                <i class="fas fa-trash"></i>
+                                            {% if referral.data_recorder == request.user.staff %}                                                                            
+                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" title="Change Status">
+                                                <i class="fas fa-exchange-alt"></i>
                                             </button>
-                                        </td>
+                                            {% endif %}
+                                            <a href="{% url 'divine_view_referral' referral.id %}" class="btn btn-info btn-sm" title="View Referral">
+                                                <i class="fas fa-eye"></i>View Referral
+                                            </a>
+                                        </td>                  
                                     </tr>
-
-                                    <!-- Modal for Confirming Deletion -->
-                                    <div class="modal fade" id="deleteReferral{{ referral.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteReferralModalLabel" aria-hidden="true">
-                                        <div class="modal-dialog" role="document">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="deleteReferralModalLabel">Confirm Deletion</h5>
-                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>Are you sure you want to delete the referral "{{ referral }}"?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                                    <button type="button" class="btn btn-danger" onclick="deleteReferral({{ referral.id }})">Delete</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -92,28 +74,5 @@
     </div>
 </div>
 
-<script>
-    function deleteReferral(referralId) {
-        $.ajax({
-            url: '{% url "divine_delete_referral" %}',
-            type: 'POST',
-            data: {
-                referral_id: referralId
-            },
-            success: function(response) {
-                alert(response.message);
-                if (response.success) {
-                    $('#deleteReferral' + referralId).modal('hide');
-                    location.reload();
-                }
-            },
-            error: function() {
-                alert('An error occurred. Please try again.');
-            }
-        });
-    }
-</script>
-
 {% include 'divine_admin_template/datatable.html' %}
-
 {% endblock main_content %}
