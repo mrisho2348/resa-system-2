@@ -114,4 +114,6 @@ urlpatterns = [
     re_path(r'^doctor/delete_procedure/$', delete.delete_procedure, name='doctor_delete_procedure'),
     re_path(r'^doctor/delete_referral/$', delete.delete_referral, name='doctor_delete_referral'),
     re_path(r'^doctor/delete_patient_visit/(?P<patient_visit_id>\d+)/$', delete.delete_patient_visit, name='doctor_delete_patient_visit'),
+
+    path('resa/doctor/change-password/', DoctorView.change_password, name='doctor_change_password'),
 ]

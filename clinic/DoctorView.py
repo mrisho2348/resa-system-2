@@ -2537,7 +2537,7 @@ def patient_visit_details_view(request, patient_id, visit_id):
     except Exception as e:
         return render(request, '404.html', {'error_message': str(e)})
 
-
+     
 
 
 
