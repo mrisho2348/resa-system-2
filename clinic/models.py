@@ -11,6 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
 from django.core.exceptions import ValidationError
 from uuid import uuid4
+import re
+
 # Create your models here.
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, email, password=None, user_type=1, **extra_fields):
@@ -111,8 +113,7 @@ work_place_choices = [
 GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),
-        ('non-binary', 'Non-Binary'),
-        ('prefer-not-to-say', 'Prefer Not to Say'),
+      
     ]
 
 
@@ -146,6 +147,8 @@ class Staffs(models.Model):
             admin__last_name=self.admin.last_name
         ).exclude(id=self.id).exists():
             raise ValidationError("A staff member with this full name already exists.")
+    def get_full_name(self):
+        return f"{self.admin.first_name} {self.middle_name} {self.admin.last_name}"
 
     def __str__(self):
         return f"{self.admin.first_name} {self.middle_name} {self.admin.last_name}"
@@ -336,65 +339,88 @@ class ContactDetails(models.Model):
 
 
 class Patients(models.Model):
-    # Auto-incremented primary key (ID)
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='patients') 
+    data_recorder = models.ForeignKey(
+        'Staffs', on_delete=models.CASCADE, blank=True, null=True, related_name='patients'
+    )
     mrn = models.CharField(max_length=20, unique=True, editable=False)
+
     first_name = models.CharField(max_length=100, default="")
-    middle_name = models.CharField(max_length=100,default="")
+    middle_name = models.CharField(max_length=100, default="", blank=True)
     last_name = models.CharField(max_length=100, default="")
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])
+
+    gender = models.CharField(
+        max_length=10,
+        choices=[('Male', 'Male'), ('Female', 'Female')],
+    )
     age = models.IntegerField(blank=True, null=True)
-    dob = models.DateField(null=True, blank=True) 
+    dob = models.DateField(null=True, blank=True)
+
     phone = models.CharField(max_length=15)
     address = models.TextField()
-    nationality = models.ForeignKey('Country', on_delete=models.CASCADE) 
-     # New payment-related fields
+
+    nationality = models.ForeignKey('Country', on_delete=models.CASCADE)
+
     PAYMENT_CHOICES = [
         ('Cash', 'Cash'),
         ('Insurance', 'Insurance'),
     ]
     payment_form = models.CharField(max_length=255, choices=PAYMENT_CHOICES)
-    insurance_name = models.CharField(max_length=255,default="")
+    insurance_name = models.CharField(max_length=255, blank=True, null=True)
     insurance_number = models.CharField(max_length=255, blank=True, null=True)
-    emergency_contact_name = models.CharField(max_length=100, default="")
-    emergency_contact_relation = models.CharField(max_length=100,default="")    
-    emergency_contact_phone = models.CharField(max_length=20,default="0657315955")
-    marital_status = models.CharField(max_length=255)
-    patient_type = models.CharField(max_length=255)
+
+    # Optional emergency contact fields
+    emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
+    emergency_contact_relation = models.CharField(max_length=100, blank=True, null=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    # NIDA number: optional but must be 20 digits and unique if provided
+    nida_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     objects = models.Manager()
 
     def save(self, *args, **kwargs):
-        # Generate MRN only if it's not provided
         if not self.mrn:
             self.mrn = generate_mrn()
-
+        self.full_clean()  # ensure validation is triggered
         super().save(*args, **kwargs)
 
+    def clean(self):
+        # Validate NIDA number format if provided
+        if self.nida_number:
+            if not re.fullmatch(r'\d{20}', self.nida_number):
+                raise ValidationError({'nida_number': "NIDA number must be exactly 20 digits."})
+
     def __str__(self):
-    # Concatenate first name, middle name (if exists), and last name
-        full_name = self.first_name
+        return self.full_name
+
+    @property
+    def full_name(self):
+        name_parts = [self.first_name]
         if self.middle_name:
-            full_name += ' ' + self.middle_name
-        full_name += ' ' + self.last_name
-        return full_name
+            name_parts.append(self.middle_name)
+        name_parts.append(self.last_name)
+        return ' '.join(name_parts)
 
-    
+
 def generate_mrn():
-    # Retrieve the last patient's MRN from the database
-    last_patient = Patients.objects.last()
+    """
+    Generate a unique MRN in the format RES-0000001.
+    """
+    last_patient = Patients.objects.order_by('-id').first()
+    if last_patient and last_patient.mrn.startswith("RES-"):
+        try:
+            last_number = int(last_patient.mrn.split('-')[-1])
+        except ValueError:
+            last_number = 0
+    else:
+        last_number = 0
 
-    # Extract the numeric part from the last MRN, or start from 0 if there are no patients yet
-    last_mrn_number = int(last_patient.mrn.split('-')[-1]) if last_patient else 0
+    new_number = last_number + 1
+    return f"RES-{new_number:07d}"
 
-    # Increment the numeric part for the new patient
-    new_mrn_number = last_mrn_number + 1
-
-    # Format the MRN with leading zeros and concatenate with the prefix "PAT-"
-    new_mrn = f"RES-{new_mrn_number:07d}"
-
-    return new_mrn
 
  
 class Country(models.Model):
@@ -498,16 +524,23 @@ class ConsultationNotes(models.Model):
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE, null=True, blank=True)  
+
     history_of_presenting_illness = models.TextField(null=True, blank=True)
-    type_of_illness = models.CharField(max_length=200, null=True, blank=True)  
-    nature_of_current_illness = models.CharField(max_length=200, null=True, blank=True) 
-    pathology = models.ManyToManyField(PathodologyRecord, blank=True)
+    review_of_systems = models.TextField(null=True, blank=True)  # ✅ Added
+    physical_examination = models.TextField(null=True, blank=True)  # ✅ Added
     doctor_plan = models.TextField()
+    doctor_plan_note = models.TextField(null=True, blank=True)  # ✅ Added
+
+    allergy_summary = models.TextField(null=True, blank=True)  # ✅ Added
+    known_comorbidities_summary = models.TextField(null=True, blank=True)  # ✅ Added
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     objects = models.Manager()
+
     def __str__(self):
-        return f"Consultation for {self.patient} by Dr. {self.doctor}"    
+        return f"Consultation for {self.patient} by Dr. {self.doctor}"
    
     
 

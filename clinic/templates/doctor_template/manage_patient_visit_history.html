@@ -7,8 +7,14 @@
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
+
+<a href="{% url 'doctor_manage_patient' %}" class="btn btn-secondary btn-sm mb-2">
+    ← Back to Patient List
+</a>
+
 Patient Visit History
 {% endblock breadcrumb %}
+
 {% load static %}
 {% block main_content %}
 
@@ -20,7 +26,7 @@ Patient Visit History
                 <div class="card-body">
                     <div class="row" style="font-size:13px;">
                         <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                             <script>
                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                 var now = new Date();
@@ -74,17 +80,15 @@ Patient Visit History
                                         <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
                                         <td>                          
                                           <!-- Add more action links as needed -->
-                                        <a href="{% url 'doctor_patient_health_record_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open health record">
-                                            <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
+                                        <a href="{% url 'doctor_patient_health_record_view' visit.patient.id visit.id %}">
+                                            <button type="button" class="btn btn-secondary btn-sm">open health record</button>
                                         </a>   
                                                       <!-- Add more action links as needed -->
-                                        <a href="{% url 'doctor_patient_vital_list' visit.patient.id %}" data-toggle="tooltip" title="open vital">
-                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
-                                        </a>   
-                                        <a href="{% url 'doctor_patient_visit_details_view' visit.patient.id visit.id %}" data-toggle="tooltip" title="open visit details">
-                                            <button type="button" class="btn btn-light border btn-sm"><i class="fa fa-eye text-dark"></i></button>
-                                        </a> 
-                                        <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id  visit.id  %}"  class="btn btn-success btn-sm" data-toggle="tooltip" title="Open Consultation Modal">
+                                         <!-- Button to trigger modal -->
+                                        <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#vitalModal{{ visit.id }}">
+                                            Open Vital
+                                        </button> 
+                                        <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id  visit.id  %}"  class="btn btn-success btn-sm">
                                             <i class="fas fa-plus-square"></i> Consultation
                                         </a>                                    
                                         </td>                                
@@ -99,6 +103,68 @@ Patient Visit History
         </div>  
     </div>
 </div>    
+
+
+ {% for visit in visits %}
+    <!-- Modal for each patient visit -->
+<div class="modal fade" id="vitalModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="vitalModalLabel{{ visit.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="vitalModalLabel{{ visit.id }}">Vital Information for Visit #{{ visit.id }}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Vital Table -->
+        <div class="table-responsive">
+          <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display">
+            <thead>
+              <tr>
+                <th>Was Recorded By</th>
+                <th>Recorded Date</th>
+                <th>Recorded Time</th>
+                <th>RR (bpm)</th>
+                <th>PR (bpm)</th>
+                <th>BR</th>
+                <th>SPO2 (%)</th>
+                <th>Temperature (°C)</th>
+                <th>Weight (Kg)</th>
+                <th>GCS</th>
+                <th>AVPU</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for vital in visit.patientvital_set.all %}
+                <tr>
+                  <td>{{ vital.recorded_by.admin.first_name }} {{ vital.recorded_by.admin.middle_name }} {{ vital.recorded_by.admin.last_name }}</td>
+                  <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
+                  <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
+                  <td>{{ vital.respiratory_rate }}</td>
+                  <td>{{ vital.pulse_rate }}</td>
+                  <td>{{ vital.blood_pressure }}</td>
+                  <td>{{ vital.spo2 }}%</td>
+                  <td>{{ vital.temperature }}</td>
+                  <td>{{ vital.weight }}</td>
+                  <td>{{ vital.gcs }}</td>
+                  <td>{{ vital.avpu }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="11" class="text-center">No vital records available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endfor %}
+    
 
 <style>
     /* styles.css */

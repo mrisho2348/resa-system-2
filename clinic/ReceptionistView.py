@@ -28,6 +28,7 @@ from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from kahamahmis.forms import StaffProfileForm
 from django.views import View
+import re
 # Create your views here.
 
 @require_POST
@@ -323,7 +324,7 @@ def update_orderpayment_status(request):
     
 @login_required
 def manage_patients(request):
-    patient_records=Patients.objects.all().order_by('-created_at') 
+    patient_records=Patients.objects.all().order_by('created_at') 
     range_121 = range(0, 121)
     all_country = Country.objects.all()
     doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
@@ -1050,46 +1051,54 @@ def view_patient(request, patient_id):
 @login_required
 @csrf_exempt
 def appointment_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
     try:
-        if request.method == 'POST':
-            # Extract data from the request
-            doctor_id = request.POST.get('doctor')
-            patient_id = request.POST.get('patient_id')
-            visit_id = request.POST.get('visit_id')
-            date_of_consultation = request.POST.get('date_of_consultation')
-            start_time = request.POST.get('start_time')
-            end_time = request.POST.get('end_time')
-            description = request.POST.get('description')
+        # Extract POST data
+        doctor_id = request.POST.get('doctor')
+        patient_id = request.POST.get('patient_id')
+        visit_id = request.POST.get('visit_id', None)  # Optional
+        date_of_consultation = request.POST.get('date_of_consultation')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        description = request.POST.get('description')
 
-            # Get the currently logged-in staff member
-            created_by = request.user.staff
+        # Basic validation
+        if not all([doctor_id, patient_id, date_of_consultation, start_time, end_time]):
+            return JsonResponse({'status': 'error', 'message': 'Missing required fields.'}, status=400)
 
-            # Create a Consultation instance
-            visit = get_object_or_404(PatientVisits, id=visit_id)
-            doctor = get_object_or_404(Staffs, id=doctor_id)
-            patient = get_object_or_404(Patients, id=patient_id)
-            consultation = Consultation(
-                doctor=doctor,
-                visit=visit,
-                patient=patient,
-                appointment_date=date_of_consultation,
-                start_time=start_time,
-                end_time=end_time,
-                description=description,
-                created_by=created_by  # Set the created_by field
-            )
-            consultation.save()           
+        # Fetch objects
+        doctor = get_object_or_404(Staffs, id=doctor_id)
+        patient = get_object_or_404(Patients, id=patient_id)
+        created_by = request.user.staff
 
-            return JsonResponse({'status': 'success', 'message': 'Appointment successfully created'})           
+        # Optional visit object
+        visit = None
+        if visit_id:
+            try:
+                visit = PatientVisits.objects.get(id=visit_id)
+            except PatientVisits.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Visit not found for provided ID.'}, status=404)
 
-    
-        return JsonResponse({'status': 'error', 'message': 'Method not allowed'})
+        # Create consultation
+        consultation = Consultation.objects.create(
+            doctor=doctor,
+            patient=patient,
+            visit=visit,  # Will be None if not provided
+            appointment_date=date_of_consultation,
+            start_time=start_time,
+            end_time=end_time,
+            description=description,
+            created_by=created_by
+        )
 
-    except IntegrityError as e:      
-        return JsonResponse({'status': 'error', 'message': str(e)})
-    except Exception as e:    
-        return JsonResponse({'status': 'error', 'message': str(e)})
+        return JsonResponse({'status': 'success', 'message': 'Appointment successfully created'})
 
+    except IntegrityError as e:
+        return JsonResponse({'status': 'error', 'message': 'Database integrity error: ' + str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': 'Unexpected error: ' + str(e)}, status=500)
 
 
 
@@ -1327,111 +1336,166 @@ def appointment_list_view(request):
 def save_edited_patient(request):
     if request.method == 'POST':
         try:
-            # Extract the form data
             patient_id = request.POST.get('patient_id')
-            edited_patient = Patients.objects.get(id=patient_id)            
+            edited_patient = Patients.objects.get(id=patient_id)
 
-            # Extract patient details from the request
-            edited_patient.first_name = request.POST.get('edit_first_name', '').capitalize()
-            edited_patient.middle_name = request.POST.get('edit_middle_name', '').capitalize()
-            edited_patient.last_name = request.POST.get('edit_last_name', '').capitalize()
+            # Normalize and extract name fields
+            first_name = request.POST.get('edit_first_name', '').strip().capitalize()
+            middle_name = request.POST.get('edit_middle_name', '').strip().capitalize()
+            last_name = request.POST.get('edit_last_name', '').strip().capitalize()
+
+            # Check for duplicate full name (excluding self)
+            duplicate = Patients.objects.filter(
+                first_name__iexact=first_name,
+                middle_name__iexact=middle_name,
+                last_name__iexact=last_name
+            ).exclude(id=patient_id).exists()
+            if duplicate:
+                return JsonResponse({'success': False, 'message': 'Another patient with the same full name already exists.'})
+
+            # Update patient name fields
+            edited_patient.first_name = first_name
+            edited_patient.middle_name = middle_name
+            edited_patient.last_name = last_name
+
+            # Other fields
             edited_patient.gender = request.POST.get('edit_gender')
             edited_patient.phone = request.POST.get('edit_phone')
             edited_patient.address = request.POST.get('edit_Address')
             edited_patient.nationality_id = request.POST.get('edit_nationality')
             edited_patient.payment_form = request.POST.get('edit_payment_type')
-            edited_patient.emergency_contact_name = request.POST.get('edit_emergency_contact_name')
-            edited_patient.emergency_contact_relation = request.POST.get('emergency_contact_relation')
-            edited_patient.emergency_contact_phone = request.POST.get('edit_emergency_contact_phone')
-            edited_patient.marital_status = request.POST.get('marital_status')
-            edited_patient.patient_type = request.POST.get('edit_patient_type')
-            
-            # Extract dob or calculate from age
+
+            # Optional emergency contacts
+            edited_patient.emergency_contact_name = request.POST.get('edit_emergency_contact_name') or None
+            edited_patient.emergency_contact_relation = request.POST.get('emergency_contact_relation') or None
+            edited_patient.emergency_contact_phone = request.POST.get('edit_emergency_contact_phone') or None
+
+            # Validate and update NIDA number if provided
+            nida_number = request.POST.get('edit_nida_number', '').strip()
+            if nida_number:
+                if not re.fullmatch(r'\d{20}', nida_number):
+                    return JsonResponse({'success': False, 'message': 'NIDA number must be exactly 20 digits.'})
+                if Patients.objects.filter(nida_number=nida_number).exclude(id=patient_id).exists():
+                    return JsonResponse({'success': False, 'message': 'NIDA number already exists.'})
+                edited_patient.nida_number = nida_number
+            else:
+                edited_patient.nida_number = None
+
+            # Handle DOB and age
             age = request.POST.get('edit_age')
             dob = request.POST.get('edit_dob')
 
             if dob:
-                # Calculate age from dob
                 try:
                     dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
                     current_date = date.today()
                     age = current_date.year - dob_date.year - ((current_date.month, current_date.day) < (dob_date.month, dob_date.day))
                 except ValueError:
+                    dob_date = None
                     age = None
             elif age:
-                # Calculate dob from age
                 try:
                     age_int = int(age)
                     current_date = date.today()
-                    dob = current_date.replace(year=current_date.year - age_int)
+                    dob_date = current_date.replace(year=current_date.year - age_int)
                 except ValueError:
-                    dob = None
-                       
-            edited_patient.dob = dob
+                    dob_date = None
+                    age = None
+            else:
+                dob_date = None
+                age = None
+
+            edited_patient.dob = dob_date
             edited_patient.age = age
-            
-            # Handle insurance details
+
+            # Insurance details if payment type is insurance
             if edited_patient.payment_form == 'Insurance':
                 edited_patient.insurance_name = request.POST.get('insurance_name')
-                edited_patient.insurance_number = request.POST.get('edit_insurance_number')           
-            
-            # Save the edited patient
+                edited_patient.insurance_number = request.POST.get('edit_insurance_number')
+            else:
+                edited_patient.insurance_name = None
+                edited_patient.insurance_number = None
+
+            # Validate and save
+            edited_patient.full_clean()
             edited_patient.save()
 
-            # Return JSON response for success
-            return JsonResponse({'success':True,'message': 'Patient data updated successfully.'})
-        except Exception as e:
-            # Return JSON response for error
-            return JsonResponse({'success':False,'message': str(e)}, status=400)
-    else:
-        return JsonResponse({'success':False,'message': 'Invalid request method.'}, status=400)
+            return JsonResponse({'success': True, 'message': 'Patient data updated successfully.'})
 
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=400)
+
+    
     
 @csrf_exempt
 def add_patient(request):
     try:
         if request.method == 'POST':
-            # Extract data from the request
+            # Extract data
             first_name = request.POST.get('first_name')
             middle_name = request.POST.get('middle_name')
             last_name = request.POST.get('last_name')
+            # Ensure uniqueness by checking full name (case-insensitive)
+            existing_patient = Patients.objects.filter(
+                first_name__iexact=first_name if first_name else '',
+                middle_name__iexact=middle_name if middle_name else '',
+                last_name__iexact=last_name if last_name else ''
+            ).exists()
+
+            if existing_patient:
+                return JsonResponse({'success': False, 'message': 'Patient with the same full name already exists.'})
             first_name = first_name.capitalize() if first_name else None
             middle_name = middle_name.capitalize() if middle_name else None
             last_name = last_name.capitalize() if last_name else None  
+
             emergency_contact_name = request.POST.get('emergency_contact_name')
             emergency_contact_relation = request.POST.get('emergency_contact_relation')         
             emergency_contact_phone = request.POST.get('emergency_contact_phone')
+
             nationality_id = request.POST.get('nationality')           
             gender = request.POST.get('gender')
             phone = request.POST.get('phone')
             address = request.POST.get('Address')                       
-            marital_status = request.POST.get('maritalStatus')
-            patient_type = request.POST.get('patient_type')
+
             payment_type = request.POST.get('payment_type')
             insurance_name = request.POST.get('insurance_name')
             insurance_number = request.POST.get('insurance_number')
+            nida_number = request.POST.get('nida_number')
+
             age = request.POST.get('age')
             dob = request.POST.get('dob')
-            # Check if age or dob is provided
+
+            # Age or DOB conversion
             if dob:
-                # Calculate age from dob
                 try:
-                    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()  # Use datetime class from datetime module
-                    current_date = datetime.today().date()  # Use datetime class from datetime module
+                    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
+                    current_date = datetime.today().date()
                     age = current_date.year - dob_date.year - ((current_date.month, current_date.day) < (dob_date.month, dob_date.day))
                 except ValueError:
+                    dob_date = None
                     age = None
-                    
             elif age:
-                # Calculate dob from age
                 try:
                     age_int = int(age)
-                    current_date = datetime.today().date()  # Use datetime class from datetime module
-                    dob = current_date.replace(year=current_date.year - age_int)
+                    current_date = datetime.today().date()
+                    dob_date = current_date.replace(year=current_date.year - age_int)
                 except ValueError:
-                    dob = None           
-             # Check if a patient with the same name already exists
-             
+                    dob_date = None
+                    age = None
+            else:
+                dob_date = None
+                age = None
+
+            # NIDA number validation
+            if nida_number and not re.fullmatch(r'\d{20}', nida_number):
+                return JsonResponse({'success': False, 'message': 'NIDA number must be exactly 20 digits.'})
+
+            if nida_number and Patients.objects.filter(nida_number=nida_number).exists():
+                return JsonResponse({'success': False, 'message': 'NIDA number already exists.'})
+
+            # Check duplicate patient name
             existing_patient = Patients.objects.filter(
                 first_name=first_name,
                 middle_name=middle_name,
@@ -1439,62 +1503,53 @@ def add_patient(request):
             ).exists()
 
             if existing_patient:
-                return JsonResponse({'success':False,'message': 'Patient with the same name already exists'})
-            # Generate the medical record number (mrn)
+                return JsonResponse({'success': False, 'message': 'Patient with the same name already exists.'})
+
+            # Generate MRN
             mrn = generate_mrn()
 
-            # Create an instance of the Patient model
+            # Create patient instance
             patient_instance = Patients(
                 mrn=mrn,
                 first_name=first_name,
                 middle_name=middle_name,
                 last_name=last_name,             
-                dob=dob,
+                dob=dob_date,
                 age=age,
                 gender=gender,
                 phone=phone,
                 address=address,
-                emergency_contact_name=emergency_contact_name,
-                emergency_contact_relation=emergency_contact_relation,                
-                emergency_contact_phone=emergency_contact_phone,
-                nationality_id=nationality_id,                
-                marital_status=marital_status,
-                patient_type=patient_type,
+                emergency_contact_name=emergency_contact_name or None,
+                emergency_contact_relation=emergency_contact_relation or None,                
+                emergency_contact_phone=emergency_contact_phone or None,
+                nationality_id=nationality_id,
                 payment_form=payment_type,
+                nida_number=nida_number or None,
             )
 
-            # If payment type is insurance, save insurance details
-            if payment_type == 'insurance':
+            # Optional insurance
+            if payment_type == 'Insurance':
                 patient_instance.insurance_name = insurance_name
                 patient_instance.insurance_number = insurance_number
-               
 
-            # Save the instance to the database
+            # Run model validation
+            patient_instance.full_clean()
             patient_instance.save()
 
-            # Return a JsonResponse with a success message
-            return JsonResponse({'success':True,'message': 'Patient added successfully'})
+            return JsonResponse({'success': True, 'message': 'Patient added successfully'})
 
     except Exception as e:
-        # Log or print the error for tracking
         logger.error(f"Error adding patient: {str(e)}")
-    # Return an error response if there's an exception or if the request method is not POST
-    return JsonResponse({'success':False,'message': f'Failed to add patient {str(e)}'})
+        return JsonResponse({'success': False, 'message': f'Failed to add patient: {str(e)}'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
 
 def generate_mrn():
-    # Retrieve the last patient's MRN from the database
-    last_patient = Patients.objects.last()
-
-    # Extract the numeric part from the last MRN, or start from 0 if there are no patients yet
+    last_patient = Patients.objects.order_by('-id').first()
     last_mrn_number = int(last_patient.mrn.split('-')[-1]) if last_patient else 0
-
-    # Increment the numeric part for the new patient
     new_mrn_number = last_mrn_number + 1
-
-    # Format the MRN with leading zeros and concatenate with the prefix "PAT-"
-    new_mrn = f"RES-{new_mrn_number:07d}"
-
-    return new_mrn
+    return f"RES-{new_mrn_number:07d}"
       
       
 

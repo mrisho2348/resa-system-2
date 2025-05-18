@@ -1,5 +1,6 @@
 import calendar
 from datetime import  datetime
+import json
 from django.utils import timezone
 import logging
 from django.urls import reverse
@@ -21,7 +22,7 @@ from django.core.exceptions import ValidationError
 from clinic.models import  Consultation,  DiseaseRecode, Medicine, PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, ConsultationNotes,  ConsultationOrder, Counseling, Country, Diagnosis,Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InsuranceCompany, InventoryItem,LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, Reagent, Referral, SalaryChangeRecord,Service
+from .models import ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, ConsultationNotes,  ConsultationOrder, Counseling, Country, CustomUser, Diagnosis,Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InsuranceCompany, InventoryItem,LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, Reagent, Referral, SalaryChangeRecord,Service
 from django.views.decorators.http import require_GET
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
@@ -291,15 +292,6 @@ def appointment_view_remote(request, patient_id):
                 description=description
             )
             consultation.save()
-
-            # Create a notification for the patient
-            notification_message = f"New appointment scheduled with Dr. { doctor.admin.get_full_name() } on {date_of_consultation} from {start_time} to {end_time}."
-            Notification.objects.create(
-                content_type=ContentType.objects.get_for_model(Patients),
-                object_id=patient.id,
-                message=notification_message
-            )
-
             messages.success(request, "Appointment created successfully.")
             return JsonResponse({'status': 'success'})
        
@@ -569,16 +561,6 @@ def get_item_quantity(request):
         return JsonResponse({'error': 'Invalid request'}, status=400)
     
 
-def get_chief_complaints(request):
-    # Retrieve chief complaints from the HealthRecord model
-    chief_complaints = HealthRecord.objects.values_list('name', flat=True)
-    
-    # Convert the QuerySet to a list
-    chief_complaints_list = list(chief_complaints)
-    
-    # Return the chief complaints as JSON response
-    return JsonResponse(chief_complaints_list, safe=False)    
-
 @csrf_exempt
 def save_chief_complaint(request):
     try:
@@ -588,8 +570,11 @@ def save_chief_complaint(request):
             patient_id = request.POST.get('patient_id')
             visit_id = request.POST.get('visit_id')
             health_record_id = request.POST.get('chief_complain_name')
-            other_chief_complaint = request.POST.get('other_chief_complaint')
-            duration = request.POST.get('chief_complain_duration')        
+            other_chief_complaint = request.POST.get('other_complaint')          
+            if request.POST.get('chief_complain_duration'):
+                duration = request.POST.get('chief_complain_duration')  
+            else:
+                duration = request.POST.get('other_complain_duration')       
 
             # Create a new ChiefComplaint object
             chief_complaint = ClinicChiefComplaint(
@@ -602,7 +587,7 @@ def save_chief_complaint(request):
             if health_record_id == "other":
                 # Check if a ChiefComplaint with the same other_complaint already exists for the given visit_id
                 if ClinicChiefComplaint.objects.filter(visit_id=visit_id, other_complaint=other_chief_complaint).exists():
-                    return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name already exists for this patient'})
+                    return JsonResponse({'status': False, 'message': 'A Other ChiefComplaint with the same name already exists for this patient'})
                 chief_complaint.other_complaint = other_chief_complaint
             else:
                 # Check if a ChiefComplaint with the same health_record_id already exists for the given visit_id
@@ -610,6 +595,7 @@ def save_chief_complaint(request):
                     return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name  already exists for this patient'})
                 chief_complaint.health_record_id = health_record_id          
 
+            chief_complaint.data_recorder = request.user.staff  
             # Save the ChiefComplaint object
             chief_complaint.save()
 
@@ -642,6 +628,43 @@ def save_chief_complaint(request):
         # Catch any exceptions and return an error response
         return JsonResponse({'status': False, 'message': str(e)})
     
+def update_chief_complaint(request, chief_complaint_id):
+    if request.method == 'POST':
+        try:
+            # Fetch the complaint record
+            chief_complaint = get_object_or_404(ClinicChiefComplaint, id=chief_complaint_id)
+            
+            # Parse the JSON data from the request body
+            data = json.loads(request.body)            
+            chief_complain_duration = data.get('chief_complain_duration')
+            other_complaint = data.get('other_complaint')           
+
+            if chief_complain_duration:
+                chief_complaint.duration = chief_complain_duration
+            if other_complaint:
+                chief_complaint.other_complaint = other_complaint
+
+            # Save the updated record
+            chief_complaint.save()
+
+            # Return a success response
+            return JsonResponse({'status': True, 'message': 'Chief complaint updated successfully.'})
+        
+        except ClinicChiefComplaint.DoesNotExist:
+            # Handle the case where the chief complaint record does not exist
+            return JsonResponse({'status': False, 'message': 'Chief complaint not found.'})
+        
+        except ValueError as e:
+            # Handle invalid data errors
+            return JsonResponse({'status': False, 'message': f'Invalid data: {str(e)}'})
+        
+        except Exception as e:
+            # Handle any other unexpected errors
+            return JsonResponse({'status': False, 'message': f'An unexpected error occurred: {str(e)}'})
+
+    # If not a POST request, return a method not allowed response
+    return JsonResponse({'status': False, 'message': 'Invalid request method.'})
+  
 
 def fetch_existing_data(request):
     try:
@@ -669,13 +692,19 @@ def fetch_existing_data(request):
             else:
                 # Use the "other complaint" field if health record is null
                 display_info = entry['other_complaint'] if entry['other_complaint'] else "Unknown"
-
-            # Create a modified entry with unified information under the 'health_record' key
+ 
+            # Create a modified entry with unified information under the 'health_record' key Staff.objects.get(admin=request.user.staff)
+            admin = CustomUser.objects.get(id=request.user.id)
+            staff = Staffs.objects.get(admin=admin)  # Tumia object ya `admin` moja kwa moja
+         
             modified_entry = {
                 'id': entry['id'],
                 'patient_id': entry['patient_id'],
                 'visit_id': entry['visit_id'],
+                'data_recorder_id': entry['data_recorder_id'],
+                'staff_id':staff.id,
                 'health_record': display_info,
+                'health_record_id': health_record.id,
                 'duration': entry['duration'],
                 'created_at': entry['created_at'],
                 'updated_at': entry['updated_at']
@@ -695,270 +724,118 @@ def fetch_existing_data(request):
 @csrf_exempt
 def delete_chief_complaint(request, chief_complaint_id):
     try:
-        # Fetch the ChiefComplaint object to delete
-        chief_complaint = get_object_or_404(ClinicChiefComplaint, id=chief_complaint_id)
-        
-        # Delete the ChiefComplaint
-        chief_complaint.delete()
-        
-        # Return a success response
-        return JsonResponse({'message': 'Chief complaint deleted successfully'})
+        if request.method == 'POST' and request.POST.get('_method') == 'DELETE':
+            # Fetch the ChiefComplaint object to delete
+            chief_complaint = get_object_or_404(ClinicChiefComplaint, id=chief_complaint_id)
+            
+            # Delete the ChiefComplaint
+            chief_complaint.delete()
+            
+            # Return a success response
+            return JsonResponse({'message': 'Chief complaint deleted successfully'})
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
     except Exception as e:
-        # If an error occurs, return an error response
-        return JsonResponse({'error': str(e)}, status=500)   
+        # Return detailed error message for client-side display
+        return JsonResponse({'error': f"Error: {str(e)}"}, status=500)
+
     
 @login_required
 def save_remotesconsultation_notes(request, patient_id, visit_id):
     doctor = request.user.staff
     patient = get_object_or_404(Patients, pk=patient_id)
-    visit = get_object_or_404(PatientVisits, patient=patient_id, id=visit_id)
-    
-    try:     
-        patient_vitals = PatientVital.objects.filter(patient=patient_id, visit=visit)
+    visit = get_object_or_404(PatientVisits, patient=patient, id=visit_id)
+    patient_visits = PatientVisits.objects.filter(patient=patient)
+
+    # Retrieve patient vitals and health records
+    try:
+        patient_vitals = PatientVital.objects.filter(patient=patient, visit=visit)
         health_records = HealthRecord.objects.all()
-        
-    except Exception as e:
-        patient_vitals = None  
-        health_records = None  
-        
-       
-    provisional_diagnoses = Diagnosis.objects.all()
-    consultation_note = ConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
-    provisional_record, created = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+    except Exception:
+        patient_vitals = None
+        health_records = None
+
+    # Get existing consultation note or None
+    consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+
+    # Get or create provisional diagnosis record
+    provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
     provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
-    primary_examination = ClinicPrimaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit).first()
-    previous_counselings = Counseling.objects.filter(patient=patient_id, visit=visit)
-    previous_discharges = DischargesNotes.objects.filter(patient=patient_id, visit=visit)
-    previous_observations = ObservationRecord.objects.filter(patient=patient_id, visit=visit)
-    previous_lab_orders = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit)
-    previous_prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit)
-    previous_referrals = Referral.objects.filter(patient=patient_id, visit=visit)
-    previous_procedures = Procedure.objects.filter(patient=patient_id, visit=visit)
-    secondary_examination = ClinicSecondaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()    
-    pathology_records = PathodologyRecord.objects.all()   
-    range_51 = range(51)
-    range_301 = range(301)
-    range_101 = range(101)
-    range_15 = range(3, 16)
-    integer_range = np.arange(start=0, stop=510, step=1)
-    temps = integer_range / 10
-    
+
+    # Numeric ranges for form inputs
     context = {
-        'secondary_examination': secondary_examination,
-        'previous_counselings': previous_counselings,
-        'previous_discharges': previous_discharges,
-        'previous_observations': previous_observations,
-        'previous_lab_orders': previous_lab_orders,
-        'previous_prescriptions': previous_prescriptions,
-        'previous_referrals': previous_referrals,
-        'previous_procedures': previous_procedures,
-        'primary_examination': primary_examination,
-        'health_records': health_records,
-        'pathology_records': pathology_records,    
-        'provisional_diagnoses': provisional_diagnoses,
-        'provisional_diagnosis_ids': provisional_diagnosis_ids,        
         'patient': patient,
         'visit': visit,
-        'patient_vitals': patient_vitals,       
-        'range_51': range_51,
-        'range_301': range_301,
-        'range_101': range_101,
-        'range_15': range_15,
-        'temps': temps,
+        'patient_visits': patient_visits,
+        'patient_vitals': patient_vitals,
+        'provisional_diagnoses': Diagnosis.objects.all(),
+        'provisional_diagnosis_ids': provisional_diagnosis_ids,
+        'range_51': range(51),
+        'range_301': range(301),
+        'range_101': range(101),
+        'range_15': range(3, 16),
+        'temps': np.arange(0, 510, 1) / 10,
         'consultation_note': consultation_note,
     }
 
     if request.method == 'POST':
         try:
-            # Retrieve form fields for consultation note      
-            type_of_illness = request.POST.get('type_of_illness')        
-            nature_of_current_illness = request.POST.get('nature_of_current_illness')        
-            history_of_presenting_illness = request.POST.get('history_of_presenting_illness')        
-            doctor_plan = request.POST.get('doctor_plan')       
-            pathology = request.POST.getlist('pathology[]')
-            
-               # Retrieve form fields for secondary examination
-            heent = request.POST.get('heent')
-            cns = request.POST.get('cns')
-            normal_cns = request.POST.get('normal_cns')
-            abnormal_cns = request.POST.get('abnormal_cns')
-            cvs = request.POST.get('cvs')
-            normal_cvs = request.POST.get('normal_cvs')
-            abnormal_cvs = request.POST.get('abnormal_cvs')
-            rs = request.POST.get('rs')
-            normal_rs = request.POST.get('normal_rs')
-            abnormal_rs = request.POST.get('abnormal_rs')
-            pa = request.POST.get('pa')
-            normal_pa = request.POST.get('normal_pa')
-            abnormal_pa = request.POST.get('abnormal_pa')
-            gu = request.POST.get('gu')
-            normal_gu = request.POST.get('normal_gu')
-            abnormal_gu = request.POST.get('abnormal_gu')
-            mss = request.POST.get('mss')
-            normal_mss = request.POST.get('normal_mss')
-            abnormal_mss = request.POST.get('abnormal_mss')
+            # Collect data from form submission
+            history = request.POST.get('history_of_presenting_illness')
+            plan = request.POST.get('doctor_plan')
+            plan_note = request.POST.get('doctor_plan_note')
+            ros = request.POST.get('review_of_systems')
+            exam_notes = request.POST.get('physical_examination')
+            allergy_summary = request.POST.get('allergy_summary')
+            comorbidity_summary = request.POST.get('known_comorbidities_summary')
+            provisional_ids = request.POST.getlist('provisional_diagnosis[]')
 
-            # Retrieve form fields for primary examination
-            airway = request.POST.get('airway')
-            explanation = request.POST.get('explanation')
-            breathing = request.POST.get('breathing')
-            normal_breathing = request.POST.getlist('normalBreathing[]')
-            abnormal_breathing = request.POST.get('abnormalBreathing')
-            circulating = request.POST.get('circulating')
-            normal_circulating = request.POST.getlist('normalCirculating[]')
-            abnormal_circulating = request.POST.get('abnormalCirculating')
-            gcs = request.POST.get('gcs')
-            rbg = request.POST.get('rbg')
-            pupil = request.POST.get('pupil')
-            pain_score = request.POST.get('painScore')
-            avpu = request.POST.get('avpu')
-            exposure = request.POST.get('exposure')
-            normal_exposure = request.POST.getlist('normal_exposure[]')
-            abnormal_exposure = request.POST.get('abnormalities')           
-        
-            provisional_diagnosis = request.POST.getlist('provisional_diagnosis[]')       
-            if not provisional_diagnosis:
-                provisional_record = PatientDiagnosisRecord.objects.create(patient=patient, visit=visit)
-                provisional_record.data_recorder = request.user.staff
+            # Save provisional diagnosis
+            if not provisional_ids:
+                provisional_record.data_recorder = doctor
+            provisional_record.provisional_diagnosis.set(provisional_ids)
+            provisional_record.save()
 
-            provisional_record.provisional_diagnosis.set(provisional_diagnosis)  
-            provisional_record.save()    
-            # Handle primary examination model
-            if primary_examination:                
-                primary_examination.patent_airway = airway
-                primary_examination.notpatient_explanation = explanation
-                primary_examination.breathing = breathing
-                primary_examination.normal_breathing = normal_breathing
-                primary_examination.abnormal_breathing = abnormal_breathing
-                primary_examination.circulating = circulating
-                primary_examination.normal_circulating = normal_circulating
-                primary_examination.abnormal_circulating = abnormal_circulating
-                primary_examination.gcs = gcs
-                primary_examination.rbg = rbg
-                primary_examination.pupil = pupil
-                primary_examination.pain_score = pain_score
-                primary_examination.avpu = avpu
-                primary_examination.exposure = exposure
-                primary_examination.normal_exposure = normal_exposure
-                primary_examination.abnormal_exposure = abnormal_exposure
-                primary_examination.save()
+            # Create or update consultation note
+            if consultation_note:
+                consultation_note.history_of_presenting_illness = history
+                consultation_note.doctor_plan = plan
+                consultation_note.doctor_plan_note = plan_note
+                consultation_note.review_of_systems = ros
+                consultation_note.physical_examination = exam_notes
+                consultation_note.allergy_summary = allergy_summary
+                consultation_note.known_comorbidities_summary = comorbidity_summary
+                consultation_note.save()
             else:
-                existing_record = ClinicPrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-                if existing_record:
-                    messages.error(request, f'A record already exists for this patient on the specified visit')
+                # Prevent duplicate consultation for same visit
+                if ConsultationNotes.objects.filter(patient=patient, visit=visit).exists():
+                    messages.error(request, 'A consultation note already exists for this patient and visit.')
                     return render(request, 'doctor_template/add_consultation_notes.html', context)
-                ClinicPrimaryPhysicalExamination.objects.create(
-                    patient_id=patient_id,
-                    visit_id=visit_id,
-                    patent_airway = airway,
-                    notpatient_explanation = explanation,
-                    breathing = breathing,
-                    normal_breathing = normal_breathing,
-                    abnormal_breathing = abnormal_breathing,
-                    circulating = circulating,
-                    normal_circulating = normal_circulating,
-                    abnormal_circulating = abnormal_circulating,
-                    gcs = gcs,
-                    rbg = rbg,
-                    pupil = pupil,
-                    pain_score = pain_score,
-                    avpu = avpu,
-                    exposure = exposure,
-                    normal_exposure = normal_exposure,
-                    abnormal_exposure = abnormal_exposure,
+
+               
+                # Create a new consultation note
+                consultation_note = ConsultationNotes.objects.create(
+                    doctor=doctor,
+                    patient=patient,
+                    visit=visit,
+                    history_of_presenting_illness=history,
+                    doctor_plan=plan,
+                    doctor_plan_note=plan_note,
+                    review_of_systems=ros,
+                    physical_examination=exam_notes,
+                    allergy_summary=allergy_summary,
+                    known_comorbidities_summary=comorbidity_summary
                 )
 
-            if secondary_examination:  # If record exists, update it
-                secondary_examination.heent = heent
-                secondary_examination.cns = cns
-                secondary_examination.normal_cns = normal_cns
-                secondary_examination.abnormal_cns = abnormal_cns
-                secondary_examination.cvs = cvs
-                secondary_examination.normal_cvs = normal_cvs
-                secondary_examination.abnormal_cvs = abnormal_cvs
-                secondary_examination.rs = rs
-                secondary_examination.normal_rs = normal_rs
-                secondary_examination.abnormal_rs = abnormal_rs
-                secondary_examination.pa = pa
-                secondary_examination.normal_pa = normal_pa
-                secondary_examination.abnormal_pa = abnormal_pa
-                secondary_examination.gu = gu
-                secondary_examination.normal_gu = normal_gu
-                secondary_examination.abnormal_gu = abnormal_gu
-                secondary_examination.mss = mss
-                secondary_examination.normal_mss = normal_mss
-                secondary_examination.abnormal_mss = abnormal_mss
-                secondary_examination.save()
-            else:
-                existing_record = ClinicSecondaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-                if existing_record:
-                    messages.error(request, f'A record already exists for this patient on the specified visit')
-                    return render(request, 'doctor_template/add_consultation_notes.html', context)
-                # If record doesn't exist, create a new one
-                ClinicSecondaryPhysicalExamination.objects.create(
-                    patient_id=patient_id,
-                    visit_id=visit_id,
-                    heent=heent,
-                    cns=cns,
-                    normal_cns=normal_cns,
-                    abnormal_cns=abnormal_cns,
-                    cvs=cvs,
-                    normal_cvs=normal_cvs,
-                    abnormal_cvs=abnormal_cvs,
-                    rs=rs,
-                    normal_rs=normal_rs,
-                    abnormal_rs=abnormal_rs,
-                    pa=pa,
-                    normal_pa=normal_pa,
-                    abnormal_pa=abnormal_pa,
-                    gu=gu,
-                    normal_gu=normal_gu,
-                    abnormal_gu=abnormal_gu,
-                    mss=mss,
-                    normal_mss=normal_mss,
-                    abnormal_mss=abnormal_mss
-                )             
-            
-
-           
-            if consultation_note:
-                consultation_note.nature_of_current_illness = nature_of_current_illness                
-                consultation_note.type_of_illness = type_of_illness                
-                consultation_note.history_of_presenting_illness = history_of_presenting_illness                
-                consultation_note.doctor_plan = doctor_plan  
-                consultation_note.save()            
-                consultation_note.pathology.set(pathology)
-                try:
-                    consultation_note.save()
-                except Exception as e:
-                    print("Error saving consultation note:", e)
-            else:
-                existing_record = ConsultationNotes.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-                if existing_record:
-                    messages.error(request, f'A record already exists for this patient on the specified visit')
-                    return render(request, 'doctor_template/add_consultation_notes.html', context)
-                consultation_note = ConsultationNotes()
-                consultation_note.doctor = doctor
-                consultation_note.patient = patient
-                consultation_note.visit = visit
-                consultation_note.type_of_illness = type_of_illness             
-                consultation_note.nature_of_current_illness = nature_of_current_illness             
-                consultation_note.history_of_presenting_illness = history_of_presenting_illness             
-                consultation_note.doctor_plan = doctor_plan   
-                consultation_note.save()             
-                consultation_note.pathology.set(pathology)
-                consultation_note.save()
-            messages.success(request, 'record added   successfully.')    
+            messages.success(request, 'Consultation record saved successfully.')
             return redirect(reverse('doctor_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
-            # Add similar logic for other plans
-            
+
         except Exception as e:
-            messages.error(request, f'Error: {str(e)}')
-            # Return an appropriate response or render a template with an error message
+            messages.error(request, f'Error saving consultation note: {str(e)}')
             return render(request, 'doctor_template/add_consultation_notes.html', context)
-    else:
-        # If GET request, render the template for adding consultation notes
-        return render(request, 'doctor_template/add_consultation_notes.html', context)
+
+    # If GET request, render form
+    return render(request, 'doctor_template/add_consultation_notes.html', context)
+
     
 @login_required
 def save_remotesconsultation_notes_next(request, patient_id, visit_id):

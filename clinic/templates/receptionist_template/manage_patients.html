@@ -59,18 +59,24 @@
                                     <td>{{ patient.phone }}</td>                                   
                                     <td>{{ patient.created_at|date:'d-m-Y' }}</td>                                   
                                     <td>
-                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editPatientModal{{ patient.id }}"  data-toggle="tooltip" title="Edit">
-                                            <i class="fa fa-edit text-white"></i>
+                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editPatientModal{{ patient.id }}">
+                                            Edit
+                                        </button> 
+                                          <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#consultationModal{{ patient.id }}">
+                                            Appointment
+                                        </button>                                                                 
+                                        <a href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+                                        <button type="button" class="btn btn-success btn-sm">visit History</button>
+                                          </a>   
+                                        <!-- Trigger: View Patient Details Modal -->
+                                        <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#patientDetailModal{{ patient.id }}" title="Open patient details">
+                                         patient details
                                         </button>
-                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePatientModal{{ patient.id }}"  data-toggle="tooltip" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>                                    
-                                        <a href="{% url 'receptionist_patient_visit_history_view' patient.id %}" data-toggle="tooltip" title="open visit History">
-                                        <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i></button>
-                                    </a>   
-                                        <a href="{% url 'receptionist_patient_detail' patient.id %}" data-toggle="tooltip" title="open patient details">
-                                        <button type="button" class="btn btn-secondary btn-sm"><i class="fa fa-eye text-dark"></i></button>
-                                    </a>   
+                                        <!-- Button to trigger visits modal -->
+                                       <!-- View All Visits Button -->
+                                        <button type="button" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#patientVisitsModal{{ patient.id }}">
+                                            View Visits
+                                        </button>  
                                          
                                     </td>              
                                  
@@ -87,48 +93,7 @@
 </div>
 </div>
 
-{% for patient in patient_records %}
-<!-- Delete Patient Modal -->
-<div class="modal fade" id="deletePatientModal{{ patient.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePatientModalLabel{{ patient.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deletePatientModalLabel{{ patient.id }}">Delete Patient</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this patient? <span style="color: blueviolet;">{{ patient }}</span></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <a href="#" onclick="deletePatient({{ patient.id }})" class="btn btn-danger">Delete</a>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
 
-<script>
-function deletePatient(patientId) {
-    // Send AJAX request to delete patient
-    $.ajax({
-        url: `/delete_patient/${patientId}/`,  // Update the URL as per your project structure
-        method: 'POST',
-        success: function (response) {
-            // Handle success
-            $('#deletePatientModal' + patientId).modal('hide');
-            // Reload the page
-            location.reload(true);  // Pass true to force a reload from the server rather than the cache
-        },
-        error: function (xhr, status, error) {
-            // Handle other status codes or errors
-            console.error('Error deleting patient:', error);
-        }
-    });
-}
-</script>
 
 
 {% for patient in patient_records %}
@@ -147,22 +112,19 @@ function deletePatient(patientId) {
                     {% csrf_token %}
                     <!-- Personal Information -->
                     <div class="row">
-                        <!-- First Name -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_first_name{{ patient.id }}">First Name:</label> <span class="error">* </span>
                                 <input type="text" class="form-control" id="edit_first_name{{ patient.id }}" name="edit_first_name" value="{{ patient.first_name }}" required>
                             </div>
                         </div>
-                        <!-- Middle Name -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_middle_name{{ patient.id }}">Middle Name:</label> <span class="error">* </span>
                                 <input type="text" class="form-control" id="edit_middle_name{{ patient.id }}" name="edit_middle_name" value="{{ patient.middle_name }}" required>
-                                <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}" >
+                                <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
                             </div>
                         </div>
-                        <!-- Last Name -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_last_name{{ patient.id }}">Last Name:</label> <span class="error">* </span>
@@ -170,29 +132,28 @@ function deletePatient(patientId) {
                             </div>
                         </div>
                     </div>
-                    <!-- Gender -->
+
+                    <!-- Gender, Age, DOB -->
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="edit_gender{{ patient.id }}">Gender:</label><span class="error">* </span>
-                                <select class="form-control select2bs4" style="width: 100%;" id="edit_gender{{ patient.id }}" name="edit_gender" required>
+                                <label for="edit_gender{{ patient.id }}">Gender:</label> <span class="error">* </span>
+                                <select class="form-control select2bs4"  style="width: 100%;"   id="edit_gender{{ patient.id }}" name="edit_gender" required>
                                     <option value="Male" {% if patient.gender == 'Male' %} selected {% endif %}>Male</option>
                                     <option value="Female" {% if patient.gender == 'Female' %} selected {% endif %}>Female</option>
                                 </select>
                             </div>
                         </div>
-                        <!-- Age -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_age{{ patient.id }}">Age:</label>
-                                <select class="form-control select2bs4" style="width: 100%;" id="edit_age{{ patient.id }}" name="edit_age" required>
+                                <select class="form-control select2bs4"  style="width: 100%;"   id="edit_age{{ patient.id }}" name="edit_age" required>
                                     {% for age in range_121 %}
                                         <option value="{{ age }}" {% if patient.age == age %} selected {% endif %}>{{ age }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                         </div>
-                        <!-- Date of Birth -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_dob{{ patient.id }}">Date of Birth:</label>
@@ -200,54 +161,44 @@ function deletePatient(patientId) {
                             </div>
                         </div>
                     </div>
-                    <!-- Additional Personal Information -->
+
+                    <!-- Additional Information -->
                     <div class="row">
                         <div class="form-group col-sm-4">
-                            <label for="edit_patient_type{{ patient.id }}" class="col-form-label">Patient type</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="edit_patient_type{{ patient.id }}" name="edit_patient_type"  required>                                               
-                                    <option value="National Staff" {% if patient.patient_type == 'National Staff' %} selected {% endif %}>National Staff</option>
-                                    <option value="International Staff" {% if patient.patient_type == 'International Staff' %} selected {% endif %}>International Staff</option>
-                                    <option value="National Visitor" {% if patient.patient_type == 'National Visitor' %} selected {% endif %}>National Visitor</option>
-                                    <option value="International Visitor" {% if patient.patient_type == 'International Visitor' %} selected {% endif %}>International Visitor</option>
-                                    <option value="Unknown Status" {% if patient.patient_type == 'Unknown Status' %} selected {% endif %}>Unknown Status</option>
-                                    <option value="Others" {% if patient.patient_type == 'Others' %} selected {% endif %}>Others</option>
-
-                            </select>
+                            <label for="edit_nida_number{{ patient.id }}" class="col-form-label">NIDA Number</label>
+                            <input type="text" class="form-control" id="edit_nida_number{{ patient.id }}" name="edit_nida_number" value="{{ patient.nida_number|default:'' }}">
                         </div>
                         <div class="form-group col-sm-4">
                             <label for="edit_phone{{ patient.id }}" class="col-form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="edit_phone" id="edit_phone{{ patient.id }}" value="{{ patient.phone }}" 
-                            pattern="0\d{9}" title="Please enter a valid phone number starting with '0' and having 10" maxlength="10" required>
-                            <div class="invalid-feedback">Please enter a valid phone number starting with '0' and having 10 .</div>
+                            <input type="tel" class="form-control" name="edit_phone" id="edit_phone{{ patient.id }}" value="{{ patient.phone }}" pattern="0\d{9}" title="Please enter a valid phone number starting with '0' and having 10 digits" maxlength="10" required>
+                            <div class="invalid-feedback">Please enter a valid phone number starting with '0' and having 10 digits.</div>
                         </div>
                         <div class="form-group col-sm-4">
                             <label for="edit_Address{{ patient.id }}" class="col-form-label">Address</label>
                             <textarea id="edit_Address{{ patient.id }}" name="edit_Address" rows="2" class="form-control">{{ patient.address }}</textarea>
                         </div>
                     </div>
-                    <!-- Professional Information -->
+
+                    <!-- Nationality, Payment Type -->
                     <div class="row">
-                        <!-- Nationality -->
                         <div class="form-group col-sm-4">
                             <label for="edit_nationality{{ patient.id }}" class="col-form-label">Nationality</label>
-                            <select class="form-control select2bs4" style="width: 100%;" name="edit_nationality" id="edit_nationality{{ patient.id }}" required>
+                            <select class="form-control select2bs4"  style="width: 100%;"   name="edit_nationality" id="edit_nationality{{ patient.id }}" required>
                                 {% for country in all_country %}
-                                    <option value="{{country.id}}" {% if patient.nationality == country.id %} selected {% endif %}>{{country.name}}</option>
+                                    <option value="{{ country.id }}" {% if patient.nationality == country.id %} selected {% endif %}>{{ country.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <!-- Payment Type -->
                         <div class="form-group col-sm-4">
                             <label for="edit_payment_type{{ patient.id }}" class="col-form-label">Payment Type</label>
-                            <select class="form-control select2bs4" style="width: 100%;" name="edit_payment_type" id="edit_payment_type{{ patient.id }}">
+                            <select class="form-control select2bs4"  style="width: 100%;"   name="edit_payment_type" id="edit_payment_type{{ patient.id }}">
                                 <option value="Cash" {% if patient.payment_form == 'Cash' %} selected {% endif %}>Cash</option>
                                 <option value="Insurance" {% if patient.payment_form == 'Insurance' %} selected {% endif %}>Insurance</option>
                             </select>
                         </div>
-                        <!-- Insurance Name -->
                         <div class="form-group col-sm-4" id="edit_insurance_name_container{{ patient.id }}" {% if patient.payment_form == 'Insurance' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-                            <label for="edit_insurance_name{{ patient.id }}" class="col-form-label">Insurance Name</label>
-                            <select class="form-control select2bs4" style="width: 100%;" name="insurance_name" id="insurance_name{{ patient.id }}">
+                            <label for="insurance_name{{ patient.id }}" class="col-form-label">Insurance Name</label>
+                            <select class="form-control select2bs4"  style="width: 100%;"   name="insurance_name" id="insurance_name{{ patient.id }}">
                                 <option value="">Select Insurance Company</option>
                                 <option value="NHIF" {% if patient.insurance_name == 'NHIF' %} selected {% endif %}>NHIF</option>
                                 <option value="Jubilee" {% if patient.insurance_name == 'Jubilee' %} selected {% endif %}>Jubilee</option>
@@ -259,39 +210,25 @@ function deletePatient(patientId) {
                                 <option value="Other" {% if patient.insurance_name == 'Other' %} selected {% endif %}>Other</option>
                             </select>
                         </div>
-                        <!-- Insurance Details -->
-                        <div class="form-group col-sm-4" id="edit_insurance_details_container{{ patient.id }}"{% if patient.payment_form == 'Insurance' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                        <div class="form-group col-sm-4" id="edit_insurance_details_container{{ patient.id }}" {% if patient.payment_form == 'Insurance' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
                             <label for="edit_insurance_number{{ patient.id }}" class="col-form-label">Insurance Number</label>
-                            <input type="text" class="form-control" name="edit_insurance_number" id="edit_insurance_number{{ patient.id }}" placeholder="Insurance Number" value="{{ patient.insurance_number }}">
-                        </div>
-                        <!-- Marital Status -->
-                        <div class="form-group col-sm-4">
-                            <label for="edit_maritalStatus{{ patient.id }}" class="col-form-label">Marital Status</label>
-                            <select class="form-control select2bs4" style="width: 100%;" name="marital_status" id="marital_status{{ patient.id }}">
-                                <option value="single" {% if patient.marital_status == 'single' %} selected {% endif %}>Single</option>
-                                <option value="married" {% if patient.marital_status == 'married' %} selected {% endif %}>Married</option>
-                                <option value="Divorced" {% if patient.marital_status == 'Divorced' %} selected {% endif %}>Divorced</option>
-                                <option value="Widowed" {% if patient.marital_status == 'Widowed' %} selected {% endif %}>Widowed</option>
-                                <!-- Add options for other marital statuses similarly -->
-                            </select>
+                            <input type="text" class="form-control" name="edit_insurance_number" id="edit_insurance_number{{ patient.id }}" value="{{ patient.insurance_number }}">
                         </div>
                     </div>
-                    <!-- Emergency Contact Information -->
+
+                    <!-- Emergency Contact -->
                     <div class="row">
-                        <!-- Emergency Contact Name -->
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="edit_emergency_contact_name{{ patient.id }}">Emergency Contact Name:</label> <span class="error">* </span>
-                                <input type="text" class="form-control" id="edit_emergency_contact_name{{ patient.id }}" name="edit_emergency_contact_name" value="{{ patient.emergency_contact_name }}" 
-                                >
-                               
+                                <label for="edit_emergency_contact_name{{ patient.id }}">Emergency Contact Name:</label>
+                                <input type="text" class="form-control" id="edit_emergency_contact_name{{ patient.id }}" name="edit_emergency_contact_name" value="{{ patient.emergency_contact_name }}">
                             </div>
                         </div>
-                        <!-- Emergency Contact Relation -->
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="edit_emergency_contact_relation{{ patient.id }}">Emergency Contact Relation:</label> <span class="error">* </span>
-                                <select class="form-control select2bs4" style="width: 100%;" id="emergency_contact_relation{{ patient.id }}" name="emergency_contact_relation" required>
+                                <label for="emergency_contact_relation{{ patient.id }}">Emergency Contact Relation:</label>
+                                <select class="form-control select2bs4"  style="width: 100%;"   id="emergency_contact_relation{{ patient.id }}" name="emergency_contact_relation">
+                                    <option value="">-- Select --</option>
                                     <option value="Spouse" {% if patient.emergency_contact_relation == 'Spouse' %} selected {% endif %}>Spouse</option>
                                     <option value="Friend" {% if patient.emergency_contact_relation == 'Friend' %} selected {% endif %}>Friend</option>
                                     <option value="Coworker" {% if patient.emergency_contact_relation == 'Coworker' %} selected {% endif %}>Coworker</option>
@@ -302,29 +239,27 @@ function deletePatient(patientId) {
                                     <option value="Sister" {% if patient.emergency_contact_relation == 'Sister' %} selected {% endif %}>Sister</option>
                                     <option value="Relative" {% if patient.emergency_contact_relation == 'Relative' %} selected {% endif %}>Relative</option>
                                     <option value="Other" {% if patient.emergency_contact_relation == 'Other' %} selected {% endif %}>Other</option>
-                                    <!-- Add options for other relations similarly -->
                                 </select>
                             </div>
                         </div>
-                        <!-- Emergency Contact Phone -->
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_emergency_contact_phone{{ patient.id }}">Emergency Contact Phone:</label>
-                                <input type="tel" class="form-control" id="edit_emergency_contact_phone{{ patient.id }}" name="edit_emergency_contact_phone" value="{{ patient.emergency_contact_phone }}"
-                                pattern="0\d{9}" title="Please enter a valid phone number starting with '0' and having 10" maxlength="10"  required>
-                                <div class="invalid-feedback">Please enter a valid phone number starting with '0' and having 10 .</div>
+                                <input type="tel" class="form-control" id="edit_emergency_contact_phone{{ patient.id }}" name="edit_emergency_contact_phone" value="{{ patient.emergency_contact_phone }}" pattern="0\d{9}" maxlength="10">
+                                <div class="invalid-feedback">Please enter a valid phone number starting with '0' and having 10 digits.</div>
                             </div>
                         </div>
-                    </div>                
-                    
-                    <!-- Form Submission Button -->
+                    </div>
+
+                    <!-- Submit -->
                     <div class="form-group">
-                        <div class="row">                         
+                        <div class="row">
                             <div class="col-md-12">
                                 <button type="button" class="btn btn-md btn-primary btn-block" id="editPatient{{ patient.id }}">Save Changes</button>
                             </div>
                         </div>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -434,6 +369,827 @@ function deletePatient(patientId) {
 </script>
 {% endfor %}
 
+
+{% for patient in patient_records %}
+<!-- Appointment Modal -->
+<div class="modal fade" id="consultationModal{{ patient.id }}" tabindex="-1" aria-labelledby="consultationModalLabel{{ patient.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="consultationModalLabel{{ patient.id }}">Add Appointment</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="consultationForm{{ patient.id }}">
+          {% csrf_token %}
+          <input type="hidden" name="patient_id" id="patient_id{{ patient.id }}" value="{{ patient.id }}">
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="doctor{{ patient.id }}" class="form-label">Doctor</label>
+              <select class="form-control select2bs4"  style="width: 100%;"   id="doctor{{ patient.id }}" name="doctor" required>
+                <option value="">Select Doctor</option>
+                {% for doctor in doctors %}
+                <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label for="date_of_consultation{{ patient.id }}" class="form-label">Date of Consultation</label>
+              <input type="date" class="form-control" id="date_of_consultation{{ patient.id }}" name="date_of_consultation" required>
+            </div>
+
+            <div class="col-md-6">
+              <label for="start_time{{ patient.id }}" class="form-label">Start Time</label>
+              <input type="time" class="form-control" id="start_time{{ patient.id }}" name="start_time" required>
+            </div>
+
+            <div class="col-md-6">
+              <label for="end_time{{ patient.id }}" class="form-label">End Time</label>
+              <input type="time" class="form-control" id="end_time{{ patient.id }}" name="end_time" required>
+            </div>
+
+            <div class="col-md-12 mb-2">
+              <label for="description{{ patient.id }}" class="form-label">Description</label>
+              <textarea class="form-control" id="description{{ patient.id }}" name="description" rows="3" placeholder="Enter description..." required></textarea>
+            </div>
+
+            <div class="col-md-12 mb-2">
+              <div id="successMessageContainer{{ patient.id }}"></div>
+            </div>
+
+            <div class="col-md-12">
+              <button type="button" class="btn btn-success w-100" onclick="addConsultation({{ patient.id }})">Create Appointment</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function addConsultation(patientId) {
+    const doctor = $('#doctor' + patientId).val();
+    const patient_id = $('#patient_id' + patientId).val();
+    const date_of_consultation = $('#date_of_consultation' + patientId).val();
+    const start_time = $('#start_time' + patientId).val();
+    const end_time = $('#end_time' + patientId).val();
+    const description = $('#description' + patientId).val();
+    const csrf_token = $('[name=csrfmiddlewaretoken]').val();
+
+    const container = '#successMessageContainer' + patientId;
+    $(container).html(''); // Clear previous messages
+
+    // --- Validation ---
+    if (!doctor || !patient_id || !date_of_consultation || !start_time || !end_time) {
+      $(container).html('<div class="alert alert-danger">Please fill in all required fields.</div>');
+      return;
+    }
+
+    // Check that appointment date is today or later
+    const today = new Date().setHours(0, 0, 0, 0);
+    const selectedDate = new Date(date_of_consultation).setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      $(container).html('<div class="alert alert-danger">Appointment date must be today or in the future.</div>');
+      return;
+    }
+
+    // Check that start time is before end time
+    const start = new Date(`1970-01-01T${start_time}:00`);
+    const end = new Date(`1970-01-01T${end_time}:00`);
+    if (start >= end) {
+      $(container).html('<div class="alert alert-danger">Start time must be before end time.</div>');
+      return;
+    }
+
+    // --- Send AJAX POST ---
+    const data = {
+      doctor,
+      patient_id,
+      date_of_consultation,
+      start_time,
+      end_time,
+      description,
+      csrfmiddlewaretoken: csrf_token
+    };
+
+    $.post("{% url 'receptionist_appointment_view' %}", data)
+      .done(function(response) {
+        if (response.status === 'success') {
+          $(container).html('<div class="alert alert-success">' + response.message + '</div>');
+          setTimeout(() => location.reload(true), 1500);
+        } else {
+          $(container).html('<div class="alert alert-danger">' + response.message + '</div>');
+        }
+      })
+      .fail(function(xhr) {
+        $(container).html('<div class="alert alert-danger">Failed to create appointment. Try again.</div>');
+      });
+  }
+</script>
+
+{% endfor %}
+
+
+{% for patient in patient_records %}
+<!-- Patient Details Modal -->
+<div class="modal fade" id="patientDetailModal{{ patient.id }}" tabindex="-1" aria-labelledby="patientDetailModalLabel{{ patient.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="patientDetailModalLabel{{ patient.id }}">Patient Details</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div class="row g-4">
+
+            <!-- Personal Information -->
+            <div class="col-md-6">
+              <div class="border p-3 rounded shadow-sm h-100">
+                <h6 class="mb-3 text-primary">Personal Information</h6>
+                <p><strong>MRN:</strong> {{ patient.mrn }}</p>
+                <p><strong>Full Name:</strong> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</p>
+                <p><strong>Gender:</strong> {{ patient.gender }}</p>
+                <p><strong>Age:</strong> {{ patient.age }}</p>
+                <p><strong>Date of Birth:</strong> {{ patient.dob }}</p>
+                <p><strong>Phone:</strong> {{ patient.phone }}</p>
+                <p><strong>Address:</strong> {{ patient.address }}</p>
+                <p><strong>Nationality:</strong> {{ patient.nationality.name }}</p>
+                {% if patient.nida_number %}
+                  <p><strong>NIDA Number:</strong> {{ patient.nida_number }}</p>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Emergency and Payment Information -->
+            <div class="col-md-6">
+              <div class="border p-3 rounded shadow-sm h-100">
+                <h6 class="mb-3 text-danger">Emergency Contact</h6>
+                <p><strong>Name:</strong> {{ patient.emergency_contact_name }}</p>
+                <p><strong>Relation:</strong> {{ patient.emergency_contact_relation }}</p>
+                <p><strong>Phone:</strong> {{ patient.emergency_contact_phone }}</p>
+
+                <hr>
+
+                <h6 class="mb-3 text-success">Payment Information</h6>
+                <p><strong>Payment Form:</strong> {{ patient.payment_form }}</p>
+                {% if patient.payment_form == 'Insurance' %}
+                  <p><strong>Insurance Name:</strong> {{ patient.insurance_name }}</p>
+                  <p><strong>Insurance Number:</strong> {{ patient.insurance_number }}</p>
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer bg-light d-block">
+        <div class="row">
+          <div class="col-md-12 text-md-end">
+            <p class="mb-1"><strong>Created At:</strong> {{ patient.created_at|date:"d M Y, H:i" }}</p>
+            <p class="mb-1"><strong>Updated At:</strong> {{ patient.updated_at|date:"d M Y, H:i" }}</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+
+  {% for patient in patient_records %}
+<!-- Modal: List of All Patient Visits -->
+<div class="modal fade" id="patientVisitsModal{{ patient.id }}" tabindex="-1" role="dialog" aria-labelledby="patientVisitsModalLabel{{ patient.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="patientVisitsModalLabel{{ patient.id }}">
+          Visit History for {{ patient.first_name }} {{ patient.last_name }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <table class="table table-striped table-bordered table-sm">
+          <thead class="thead-light">
+            <tr>
+              <th>Visit Number</th>
+              <th>Visit Type</th>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for visit in patient.patientvisits_set.all %}
+              <tr>
+                <td>{{ visit.vst }}</td>
+                <td>{{ visit.get_visit_type_display }}</td>
+                <td>{{ visit.created_at|date:"Y-m-d" }}</td>
+                <td>{{ visit.created_at|date:"l" }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#visitDetailModal_{{ visit.id }}">
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center">No previous visits found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+{% endfor %}
+
+
+{% for patient in patient_records %}
+  {% for visit in patient.patientvisits_set.all %}
+<div class="modal fade" id="visitDetailModal_{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="visitDetailModalLabel_{{ visit.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title" id="visitDetailModalLabel_{{ visit.id }}">Visit Details: {{ visit.vst }}</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+
+      {% with consultation_note=visit.consultationnotes_set.first diagnosis_record=visit.patientdiagnosisrecord_set.first %}
+  {% if consultation_note %}
+    <div class="card clinical-notes-card mt-4">
+      <div class="card-header bg-dark text-white">
+        <h2 class="card-title">Clinical Notes</h2>
+      </div>
+      <div class="card-body">
+        <table class="table table-bordered">
+          <tbody>
+
+            <tr>
+              <th>Chief Complaints:</th>
+              <td>
+                <ul>
+                  {% for complaint in visit.clinicchiefcomplaint_set.all %}
+                    <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
+                  {% endfor %}
+                </ul>
+              </td>
+            </tr>
+
+            <tr>
+              <th>History of Presenting Illness:</th>
+              <td>{{ consultation_note.history_of_presenting_illness }}</td>
+            </tr>
+
+            <tr>
+              <th>Review of Systems:</th>
+              <td>{{ consultation_note.review_of_systems }}</td>
+            </tr>
+
+            <tr>
+              <th>Physical Examination:</th>
+              <td>{{ consultation_note.physical_examination }}</td>
+            </tr>
+
+            <tr>
+              <th>Doctor's Plan:</th>
+              <td>{{ consultation_note.doctor_plan }}</td>
+            </tr>
+
+            <tr>
+              <th>Doctor's Plan Notes:</th>
+              <td>{{ consultation_note.doctor_plan_note }}</td>
+            </tr>
+
+            <tr>
+              <th>Allergy Summary:</th>
+              <td>{{ consultation_note.allergy_summary }}</td>
+            </tr>
+
+            <tr>
+              <th>Known Comorbidities:</th>
+              <td>{{ consultation_note.known_comorbidities_summary }}</td>
+            </tr>
+
+            {% if diagnosis_record %}
+              <tr>
+                <th>Provisional Diagnosis:</th>
+                <td>
+                  <ul class="list-group">
+                    {% for pdx in diagnosis_record.provisional_diagnosis.all %}
+                      <li class="list-group-item">{{ pdx.diagnosis_name }}</li>
+                    {% endfor %}
+                  </ul>
+                </td>
+              </tr>
+
+              <tr>
+                <th>Final Diagnosis:</th>
+                <td>
+                  <ul class="list-group">
+                    {% for fdx in diagnosis_record.final_diagnosis.all %}
+                      <li class="list-group-item">{{ fdx.diagnosis_name }}</li>
+                    {% endfor %}
+                  </ul>
+                </td>
+              </tr>
+            {% endif %}
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+{% endwith %}
+
+        <!-- 🔹 CARD: Vital Signs -->
+        <div class="card mb-4">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">Vital Signs Records</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.patientvital_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-hover text-nowrap table-bordered table-striped table-sm">
+                  <thead class="thead-dark">
+                    <tr>
+                      <th>#</th>
+                      <th>Resp Rate</th>
+                      <th>Pulse</th>
+                      <th>BP</th>
+                      <th>SBP</th>
+                      <th>DBP</th>
+                      <th>SPO2</th>
+                      <th>Temp (°C)</th>
+                      <th>GCS</th>
+                      <th>AVPU</th>
+                      <th>Weight</th>
+                      <th>Recorded By</th>
+                      <th>Recorded At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for vitals in visit.patientvital_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ vitals.respiratory_rate|default:"-" }}</td>
+                      <td>{{ vitals.pulse_rate|default:"-" }}</td>
+                      <td>{{ vitals.blood_pressure|default:"-" }}</td>
+                      <td>{{ vitals.sbp|default:"-" }}</td>
+                      <td>{{ vitals.dbp|default:"-" }}</td>
+                      <td>{{ vitals.spo2|default:"-" }}%</td>
+                      <td>{{ vitals.temperature|default:"-" }}</td>
+                      <td>{{ vitals.gcs|default:"-" }}</td>
+                      <td>{{ vitals.avpu|default:"-" }}</td>
+                      <td>{{ vitals.weight|default:"-" }}</td>
+                      <td>{{ vitals.recorded_by.get_full_name|default:"System" }}</td>
+                      <td>{{ vitals.recorded_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No vitals recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 🔹 CARD: Imaging Records -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0">Imaging Records</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.imagingrecord_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Imaging</th>
+                      <th>Description</th>
+                      <th>Result</th>
+                      <th>Image</th>
+                      <th>Doctor</th>
+                      <th>Ordered By</th>
+                      <th>Order Date</th>
+                      <th>Cost</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for record in visit.imagingrecord_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ record.imaging.name|default:"-" }}</td>
+                      <td>{{ record.description|default:"-" }}</td>
+                      <td>{{ record.result|default:"-" }}</td>
+                      <td>
+                        {% if record.image %}
+                          <a href="{{ record.image.url }}" target="_blank">View Image</a>
+                        {% else %}
+                          <span class="text-muted">No Image</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ record.doctor.get_full_name|default:"-" }}</td>
+                      <td>{{ record.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ record.order_date|date:"d-m-Y" }}</td>
+                      <td>{{ record.cost }}</td>
+                      <td>{{ record.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ record.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No imaging records available for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 🔹 CARD: Procedures -->
+        <div class="card mb-4">
+          <div class="card-header bg-warning text-dark">
+            <h6 class="mb-0">Procedure Records</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.procedure_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Procedure No.</th>
+                      <th>Procedure</th>
+                      <th>Description</th>
+                      <th>Doctor</th>
+                      <th>Ordered By</th>
+                      <th>Order Date</th>
+                      <th>Equipments Used</th>
+                      <th>Result</th>
+                      <th>Cost</th>
+                      <th>Created</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for procedure in visit.procedure_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ procedure.procedure_number }}</td>
+                      <td>{{ procedure.name.name|default:"-" }}</td>
+                      <td>{{ procedure.description|default:"-" }}</td>
+                      <td>{{ procedure.doctor.get_full_name|default:"-" }}</td>
+                      <td>{{ procedure.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ procedure.order_date|date:"d-m-Y" }}</td>
+                      <td>{{ procedure.equipments_used }}</td>
+                      <td>
+                        {% if procedure.result %}
+                          <div style="max-width: 300px; max-height: 150px; overflow:auto;">
+                            {{ procedure.result|safe }}
+                          </div>
+                        {% else %}
+                          <em>No result</em>
+                        {% endif %}
+                      </td>
+                      <td>{{ procedure.cost }}</td>
+                      <td>{{ procedure.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ procedure.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No procedures recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 🔬 CARD: Laboratory Orders -->
+        <div class="card mb-4">
+          <div class="card-header bg-danger text-white">
+            <h6 class="mb-0">Laboratory Orders</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.laboratoryorder_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-dark">
+                    <tr>
+                      <th>#</th>
+                      <th>Lab No.</th>
+                      <th>Test</th>
+                      <th>Description</th>
+                      <th>Doctor</th>
+                      <th>Ordered By</th>
+                      <th>Order Date</th>
+                      <th>Result</th>
+                      <th>Cost</th>
+                      <th>Created</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for lab in visit.laboratoryorder_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ lab.lab_number }}</td>
+                      <td>{{ lab.name.name|default:"-" }}</td>
+                      <td>{{ lab.description|default:"-" }}</td>
+                      <td>{{ lab.doctor.get_full_name|default:"-" }}</td>
+                      <td>{{ lab.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ lab.order_date|date:"d-m-Y" }}</td>
+                      <td>
+                        {% if lab.result %}
+                          <div style="max-width: 300px; max-height: 150px; overflow:auto;">
+                            {{ lab.result|safe }}
+                          </div>
+                        {% else %}
+                          <em>No result</em>
+                        {% endif %}
+                      </td>
+                      <td>{{ lab.cost }}</td>
+                      <td>{{ lab.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ lab.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No lab orders recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 💬 CARD: Counseling Notes -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0">Counseling Notes</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.counseling_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Recorder</th>
+                      <th>Notes</th>
+                      <th>Created</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for session in visit.counseling_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ session.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>
+                        {% if session.counselling_notes %}
+                          <div style="max-width: 400px; max-height: 200px; overflow:auto;">
+                            {{ session.counselling_notes|safe }}
+                          </div>
+                        {% else %}
+                          <em>No notes recorded.</em>
+                        {% endif %}
+                      </td>
+                      <td>{{ session.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ session.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No counseling notes for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 💊 CARD: Prescription Records -->
+        <div class="card mb-4">
+          <div class="card-header bg-success text-white">
+            <h6 class="mb-0">Prescription Records</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.prescription_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Medicine</th>
+                      <th>Dose</th>
+                      <th>Frequency</th>
+                      <th>Duration</th>
+                      <th>Quantity Used</th>
+                      <th>Total Price</th>
+                      <th>Verified</th>
+                      <th>Issued</th>
+                      <th>Status</th>
+                      <th>Entered By</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for prescription in visit.prescription_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ prescription.medicine.name }}</td>
+                      <td>{{ prescription.dose }}</td>
+                      <td>{{ prescription.frequency }}</td>
+                      <td>{{ prescription.duration }}</td>
+                      <td>{{ prescription.quantity_used }}</td>
+                      <td>{{ prescription.total_price|default:"-" }}</td>
+                      <td>{{ prescription.get_verified_display }}</td>
+                      <td>{{ prescription.get_issued_display }}</td>
+                      <td>{{ prescription.status }}</td>
+                      <td>{{ prescription.entered_by.get_full_name|default:"System" }}</td>
+                      <td>{{ prescription.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ prescription.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No prescriptions recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 📝 CARD: Observation Records -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0">Observation Records</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.observationrecord_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Observation Notes</th>
+                      <th>Recorded By</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for observation in visit.observationrecord_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ observation.observation_notes|safe }}</td>
+                      <td>{{ observation.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ observation.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ observation.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No observations recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 🏥 CARD: Discharge Notes -->
+        <div class="card mb-4">
+          <div class="card-header bg-warning text-dark">
+            <h6 class="mb-0">Discharge Notes</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.dischargesnotes_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Discharge Condition</th>
+                      <th>Discharge Notes</th>
+                      <th>Recorded By</th>
+                      <th>Discharge Date</th>
+                      <th>Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for discharge in visit.dischargesnotes_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ discharge.discharge_condition|default:"-" }}</td>
+                      <td>{{ discharge.discharge_notes|safe|default:"-" }}</td>
+                      <td>{{ discharge.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ discharge.discharge_date|date:"d-m-Y" }}</td>
+                      <td>{{ discharge.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No discharge notes recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 🏥 CARD: Referral Details -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0">Referral Details</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.referral_set.exists %}
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Source Location</th>
+                      <th>Destination Location</th>
+                      <th>Nature of Referral</th>
+                      <th>Transport Model</th>
+                      <th>Notes</th>
+                      <th>Status</th>
+                      <th>Recorded By</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for referral in visit.referral_set.all %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ referral.source_location|default:"-" }}</td>
+                      <td>{{ referral.destination_location|default:"-" }}</td>
+                      <td>{{ referral.get_nature_of_referral_display|default:"-" }}</td>
+                      <td>{{ referral.get_transport_model_display|default:"-" }}</td>
+                      <td>{{ referral.notes|safe|default:"-" }}</td>
+                      <td>
+                        <span class="badge badge-{{ referral.get_status_color }}">
+                          {{ referral.get_status_display }}
+                        </span>
+                      </td>
+                      <td>{{ referral.data_recorder.get_full_name|default:"System" }}</td>
+                      <td>{{ referral.created_at|date:"d-m-Y" }}</td>
+                      <td>{{ referral.updated_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p><em>No referrals recorded for this visit.</em></p>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endfor %}
+
+
+ 
 
 {% include 'receptionist_template/datatable.html' %}
     

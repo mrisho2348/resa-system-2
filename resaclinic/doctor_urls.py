@@ -31,10 +31,13 @@ urlpatterns = [
     re_path(r'^doctor/prescriptions-notes/(?P<visit_number>[\w-]+)/(?P<patient_id>\d+)/$', DoctorView.prescription_notes, name='doctor_prescription_notes'),
     re_path(r'^doctor/new_consultation_order/$', DoctorView.new_consultation_order, name='doctor_new_consultation_order'), 
     re_path(r'^doctor/save_patient_vital/$', DoctorView.save_remotepatient_vital, name='doctor_save_remotepatient_vital'),
+
     path('save_chief_complaint/', DoctorView.save_chief_complaint, name='doctor_save_chief_complaint'),
-    path('delete_chief_complaint/<int:chief_complaint_id>/', DoctorView.delete_chief_complaint, name='doctor_delete_chief_complaint'),   
-    path('fetch-existing-data/', DoctorView.fetch_existing_data, name='doctor_endpoint_to_fetch_existing_data'),       
-    path('get_chief_complaints/', DoctorView.get_chief_complaints, name='doctor_get_chief_complaints'),  
+    path('delete_chief_complaint/<int:chief_complaint_id>/', DoctorView.delete_chief_complaint, name='doctor_delete_chief_complaint'),
+    path('chief_complaint/update/<int:chief_complaint_id>/', DoctorView.update_chief_complaint, name='doctor_update_chief_complaint'),       
+    path('fetch-existing-data/', DoctorView.fetch_existing_data, name='doctor_endpoint_to_fetch_existing_data'), 
+
+  
     re_path(r'^doctor/manage_laboratory/$', DoctorView.manage_laboratory, name='doctor_manage_laboratory'),
     path('save_remotesconsultation_notes_next/<int:patient_id>/<int:visit_id>/',DoctorView.save_remotesconsultation_notes_next, name="doctor_save_remotesconsultation_notes_next"),
     re_path(r'^doctor/staff_detail/(?P<staff_id>\d+)/$', DoctorView.single_staff_detail, name='doctor_single_staff_detail'),
