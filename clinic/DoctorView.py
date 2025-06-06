@@ -745,7 +745,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     patient = get_object_or_404(Patients, pk=patient_id)
     visit = get_object_or_404(PatientVisits, patient=patient, id=visit_id)
     patient_visits = PatientVisits.objects.filter(patient=patient)
-
+    
     # Retrieve patient vitals and health records
     try:
         patient_vitals = PatientVital.objects.filter(patient=patient, visit=visit)
@@ -765,6 +765,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     context = {
         'patient': patient,
         'visit': visit,
+        'health_records': health_records,
         'patient_visits': patient_visits,
         'patient_vitals': patient_vitals,
         'provisional_diagnoses': Diagnosis.objects.all(),
