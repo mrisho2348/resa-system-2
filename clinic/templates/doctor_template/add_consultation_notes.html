@@ -4,29 +4,60 @@
 {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Consultation notes
 {% endblock title %}
 
+{% block page_title %}
+    <!-- Forward Button -->
+     {% if consultation_note.doctor == request.user.staff %}
+                {% if final_provisional_diagnosis %}
+                <a class="btn btn-primary breadcrumb-link" type="button" 
+                    href="
+                    {% if consultation_note.doctor_plan == 'Prescription' %}
+                        {% url 'doctor_save_prescription' patient.id visit.id %}
+                    {% elif consultation_note.doctor_plan == 'Laboratory' %}
+                        {% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}
+                    {% elif consultation_note.doctor_plan == 'Referral' %}
+                        {% url 'doctor_save_remotereferral' patient.id visit.id %}
+                    {% elif consultation_note.doctor_plan == 'Counselling' %}
+                        {% url 'doctor_save_remote_counseling' patient.id visit.id %}
+                    {% elif consultation_note.doctor_plan == 'Procedure' %}
+                        {% url 'doctor_save_remoteprocedure' patient.id visit.id %}
+                    {% elif patient.remoteconsultationnotes_set.last.doctor_plan == 'Observation' %}
+                        {% url 'doctor_save_observation' patient.id visit.id %}
+                    {% elif consultation_note.doctor_plan == 'Discharge' %}
+                        {% url 'doctor_save_remote_discharges_notes' patient.id visit.id %}
+                    {% endif %}
+                    ">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>       
+            {% endif %}
+     {% endif %}
+    
+      <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_visit_history_view' patient.id %}">
+        <i class="fas fa-arrow-left"></i>visit history
+    </a>  
+         <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i>health record
+    </a>  
+    <!-- Back Button -->
+     {% if consultation_note.doctor == request.user.staff %}
+            {% if consultation_note %}
+            <a class="btn btn-success breadcrumb-link" type="button" 
+            href="
+            {% if consultation_note.doctor_plan == 'Laboratory' %}
+                {% url 'doctor_save_laboratory' patient.id visit.id %}
+            {% else %}
+                {% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}
+            {% endif %}
+            ">
+            <i class="fas fa-arrow-right"></i> Forward
+        </a>
+            {% endif %}
+     {% endif %}
+    
+{% endblock page_title %}
+
 {% block breadcrumb %}
     {% include "doctor_template/modal_form.html" %}
-
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0 mr-2">Add Consultation Notes</h5>
-
-        <div>
-            <!-- Back Button -->
-            <a href="{% url 'doctor_patient_visit_history_view' patient.id %}" 
-               class="btn btn-success btn-sm mr-2" 
-               role="button">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
-
-            <!-- View All Visits Modal Trigger -->
-            <button type="button" 
-                    class="btn btn-outline-info btn-sm" 
-                    data-toggle="modal" 
-                    data-target="#patientVisitsModal">
-                View All Visits
-            </button>
-        </div>
-    </div>
+Add  Consultation notes
 {% endblock breadcrumb %}
 
 
@@ -87,91 +118,91 @@
       <div class="modal-body">
 
       {% with consultation_note=visit.consultationnotes_set.first diagnosis_record=visit.patientdiagnosisrecord_set.first %}
-  {% if consultation_note %}
-    <div class="card clinical-notes-card mt-4">
-      <div class="card-header bg-dark text-white">
-        <h2 class="card-title">Clinical Notes</h2>
-      </div>
-      <div class="card-body">
-        <table class="table table-bordered">
-          <tbody>
+          {% if consultation_note %}
+            <div class="card clinical-notes-card mt-4">
+              <div class="card-header bg-dark text-white">
+                <h2 class="card-title">Clinical Notes</h2>
+              </div>
+              <div class="card-body">
+                <table class="table table-bordered">
+                  <tbody>
 
-            <tr>
-              <th>Chief Complaints:</th>
-              <td>
-                <ul>
-                  {% for complaint in visit.clinicchiefcomplaint_set.all %}
-                    <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
-                  {% endfor %}
-                </ul>
-              </td>
-            </tr>
+                    <tr>
+                      <th>Chief Complaints:</th>
+                      <td>
+                        <ul>
+                          {% for complaint in visit.clinicchiefcomplaint_set.all %}
+                            <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
+                          {% endfor %}
+                        </ul>
+                      </td>
+                    </tr>
 
-            <tr>
-              <th>History of Presenting Illness:</th>
-              <td>{{ consultation_note.history_of_presenting_illness }}</td>
-            </tr>
+                    <tr>
+                      <th>History of Presenting Illness:</th>
+                      <td>{{ consultation_note.history_of_presenting_illness }}</td>
+                    </tr>
 
-            <tr>
-              <th>Review of Systems:</th>
-              <td>{{ consultation_note.review_of_systems }}</td>
-            </tr>
+                    <tr>
+                      <th>Review of Systems:</th>
+                      <td>{{ consultation_note.review_of_systems }}</td>
+                    </tr>
 
-            <tr>
-              <th>Physical Examination:</th>
-              <td>{{ consultation_note.physical_examination }}</td>
-            </tr>
+                    <tr>
+                      <th>Physical Examination:</th>
+                      <td>{{ consultation_note.physical_examination }}</td>
+                    </tr>
 
-            <tr>
-              <th>Doctor's Plan:</th>
-              <td>{{ consultation_note.doctor_plan }}</td>
-            </tr>
+                    <tr>
+                      <th>Doctor's Plan:</th>
+                      <td>{{ consultation_note.doctor_plan }}</td>
+                    </tr>
 
-            <tr>
-              <th>Doctor's Plan Notes:</th>
-              <td>{{ consultation_note.doctor_plan_note }}</td>
-            </tr>
+                    <tr>
+                      <th>Doctor's Plan Notes:</th>
+                      <td>{{ consultation_note.doctor_plan_note }}</td>
+                    </tr>
 
-            <tr>
-              <th>Allergy Summary:</th>
-              <td>{{ consultation_note.allergy_summary }}</td>
-            </tr>
+                    <tr>
+                      <th>Allergy Summary:</th>
+                      <td>{{ consultation_note.allergy_summary }}</td>
+                    </tr>
 
-            <tr>
-              <th>Known Comorbidities:</th>
-              <td>{{ consultation_note.known_comorbidities_summary }}</td>
-            </tr>
+                    <tr>
+                      <th>Known Comorbidities:</th>
+                      <td>{{ consultation_note.known_comorbidities_summary }}</td>
+                    </tr>
 
-            {% if diagnosis_record %}
-              <tr>
-                <th>Provisional Diagnosis:</th>
-                <td>
-                  <ul class="list-group">
-                    {% for pdx in diagnosis_record.provisional_diagnosis.all %}
-                      <li class="list-group-item">{{ pdx.diagnosis_name }}</li>
-                    {% endfor %}
-                  </ul>
-                </td>
-              </tr>
+                    {% if diagnosis_record %}
+                      <tr>
+                        <th>Provisional Diagnosis:</th>
+                        <td>
+                          <ul class="list-group">
+                            {% for pdx in diagnosis_record.provisional_diagnosis.all %}
+                              <li class="list-group-item">{{ pdx.diagnosis_name }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                      </tr>
 
-              <tr>
-                <th>Final Diagnosis:</th>
-                <td>
-                  <ul class="list-group">
-                    {% for fdx in diagnosis_record.final_diagnosis.all %}
-                      <li class="list-group-item">{{ fdx.diagnosis_name }}</li>
-                    {% endfor %}
-                  </ul>
-                </td>
-              </tr>
-            {% endif %}
+                      <tr>
+                        <th>Final Diagnosis:</th>
+                        <td>
+                          <ul class="list-group">
+                            {% for fdx in diagnosis_record.final_diagnosis.all %}
+                              <li class="list-group-item">{{ fdx.diagnosis_name }}</li>
+                            {% endfor %}
+                          </ul>
+                        </td>
+                      </tr>
+                    {% endif %}
 
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
-{% endwith %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+        {% endwith %}
 
         <!-- 🔹 CARD: Vital Signs -->
         <div class="card mb-4">
@@ -640,7 +671,7 @@
                                 <div class="card-body">
                                     <div class="row" style="font-size:13px;">
                                         <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                             <script>
                                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                                 var now = new Date();
@@ -1797,9 +1828,9 @@
                                             <div class="col-12">
                                                 {% for message in messages %}
                                                 {% if message.tags == 'error' %}
-                                                <div class="alert alert-danger">{{ message }}</div>
+                                                <div class="alert alert-danger alert-message">{{ message }}</div>
                                                 {% elif message.tags == 'success' %}
-                                                <div class="alert alert-primary">{{ message }}</div>
+                                                <div class="alert alert-primary alert-message">{{ message }}</div>
                                                 {% endif %}
                                                 {% endfor %}
                                             </div>
@@ -1814,6 +1845,18 @@
         </div>
 
     </div>
+
+    <script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
+
 
 <div class="modal fade" id="abdominalPainModal" tabindex="-1" role="dialog" aria-labelledby="abdominalPainModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">

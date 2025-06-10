@@ -2284,8 +2284,333 @@ def patient_detail(request, patient_id):
     return render(request, 'receptionist_template/patient_detail.html', context)
 
 
+@login_required
+def patient_laboratory_view(request):
+    template_name = 'receptionist_template/manage_lab_result.html'
+
+    # Retrieve distinct patient and visit combinations from RemoteLaboratoryOrder
+    patient_lab_results = (
+        LaboratoryOrder.objects.values('patient__mrn', 
+                                            'data_recorder__admin__first_name',
+                                          'data_recorder__middle_name',
+                                          'data_recorder__role',
+                                          'data_recorder__admin__first_name',
+                                             'visit__vst',
+                                             ) 
+        .annotate(
+            latest_result_date=Max('created_at')  # Annotate with the latest lab result date for each combination
+        )
+        .order_by('-latest_result_date')  # Order results by the latest date in descending order
+    )
+
+    context = {
+        'data': patient_lab_results,  # Pass the results as 'data' for template rendering
+    }
+
+    return render(request, template_name, context)
+
+
+@login_required
+def patient_lab_result_history_view(request, mrn):
+    patient = get_object_or_404(Patients, mrn=mrn)    
+    # Retrieve all procedures for the specific patient
+    lab_results = LaboratoryOrder.objects.filter(patient=patient)
+    patient_lab_results =  Service.objects.filter(type_service='Laboratory')    
+    context = {
+        'patient': patient,
+        'lab_results': lab_results,
+        'patient_lab_results': patient_lab_results,
+    }
+    return render(request, 'receptionist_template/manage_patient_lab_result.html', context)
+
+@login_required
+def patient_lab_details_view(request, mrn, visit_number):
+    # Fetch the patient with a prefetch query to reduce database hits
+    patient = get_object_or_404(Patients.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_number)
+    
+    # Retrieve lab results efficiently
+    lab_results = list(patient.laboratoryorder_set.filter(visit__vst=visit_number))
+
+    # Get the first data recorder if lab results exist
+    lab_done_by = lab_results[0].data_recorder if lab_results else None
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'lab_done_by': lab_done_by,
+        'lab_results': lab_results,
+    }
+
+    return render(request, 'receptionist_template/lab_details.html', context)    
+
+@login_required
+def patient_procedure_view(request):
+    # Retrieve distinct patient and visit combinations from RemoteProcedure
+    patient_procedures = (
+        Procedure.objects.values('patient__mrn', 'visit__vst',
+                                       'doctor__admin__first_name',
+                                          'doctor__middle_name',
+                                          'doctor__role',
+                                          'doctor__admin__first_name',
+                                       ) 
+        .annotate(
+            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
+            procedure_name=Subquery(
+                Procedure.objects.filter(
+                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
+                    visit__vst=OuterRef('visit__vst')       # Match visit number
+                )
+                .order_by('-created_at')  # Order by most recent procedure
+                .values('name__name')[:1]  # Retrieve the latest procedure name
+            )
+        )
+        .order_by('-latest_date')  # Order by the latest procedure date
+    )
+
+    context = {
+        'patient_procedures': patient_procedures,
+    }
+    return render(request, 'receptionist_template/manage_procedure.html', context)
+
+
+@login_required
+def patient_procedure_detail_view(request, mrn, visit_number):
+    """ View to display procedure details for a specific patient and visit. """
+    
+    # Fetch patient and visit in one go
+    patient = get_object_or_404(Patients, mrn=mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_number)
+    
+    # Retrieve procedures related to this patient and visit
+    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
+
+    # Get the doctor who performed the first procedure (if exists)
+    procedure_done_by = procedures[0].doctor if procedures else None
+
+    context = {
+        'procedure_done_by': procedure_done_by,
+        'patient': patient,
+        'visit': visit,
+        'procedure': procedures,
+    }
+
+    return render(request, 'receptionist_template/manage_procedure_detail_view.html', context)
+
+
+@login_required
+def manage_referral(request):
+    referrals = Referral.objects.all()
+    patients = Patients.objects.all()
+    return render(request, 'receptionist_template/manage_referral.html', {'referrals': referrals,'patients':patients}) 
+
+def view_referral(request, referral_id):
+    referral = get_object_or_404(Referral, id=referral_id)
+    context = {
+        'referral': referral
+    }
+    return render(request, 'receptionist_template/view_referral.html', context)
+
+def counseling_list_view(request):
+    counselings = Counseling.objects.all().order_by('-created_at')
+    return render(request, 'receptionist_template/manage_counselling.html', {'counselings': counselings})   
+
+@login_required    
+def save_counsel(request, patient_id, visit_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)              
+    data_recorder = request.user.staff
+    # Retrieve existing remote counseling record if it exists
+    remote_counseling = Counseling.objects.get(patient=patient, visit=visit)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'remote_counseling': remote_counseling,
+        'consultation_notes': consultation_notes,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = CounselingForm(request.POST, instance=remote_counseling)
+        
+        # Check if a record already exists for the patient and visit
+        if remote_counseling:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, '')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient
+            form.instance.data_recorder = data_recorder
+            form.instance.visit = visit
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, '')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect(reverse('receptionist_save_remotesconsultation_notes', args=[patient_id, visit_id]))
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = CounselingForm(instance=remote_counseling)   
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'receptionist_template/counsel_template.html', context)
+
+def view_counseling_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(PatientVisits, id=visit_id)  
+    patient = get_object_or_404(Patients, id=patient_id) 
+    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+    
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling_note': counseling_note,
+    }
+    return render(request, 'receptionist_template/counseling_notes_details.html', context) 
+
+def discharge_notes_list_view(request):
+    discharge_notes = DischargesNotes.objects.all().order_by('-discharge_date')
+    return render(request, 'receptionist_template/manage_discharge.html', {'discharge_notes': discharge_notes})           
+
+@login_required    
+def save_remote_discharges_notes(request, patient_id, visit_id):
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    remote_discharges_notes = DischargesNotes.objects.filter(patient=patient, visit=visit).first()  
+    context = {
+            'patient': patient,
+            'visit': visit,
+            'consultation_notes': consultation_notes,
+            'remote_discharges_notes': remote_discharges_notes,         
+        }
+        
+    try:      
+        # Check if the request user is staff
+        data_recorder = request.user.staff      
+        # Handle form submission
+        if request.method == 'POST':
+            form = DischargesNotesForm(request.POST, instance=remote_discharges_notes)
+            if form.is_valid():
+                remote_discharges_notes = form.save(commit=False)
+                remote_discharges_notes.patient = patient
+                remote_discharges_notes.visit = visit
+                remote_discharges_notes.data_recorder = data_recorder
+                remote_discharges_notes.save()
+                messages.success(request, '')
+                return redirect(reverse('receptionist_patient_visit_details_view', args=[patient_id, visit_id]))  # Redirect to the next view
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            form = DischargesNotesForm(instance=remote_discharges_notes)        
+        # Prepare context for rendering the template
+        context['form'] = form
+        return render(request, 'receptionist_template/disrcharge_template.html', context)    
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return render(request, 'receptionist_template/disrcharge_template.html', context)
+
+@login_required
+def discharge_details_view(request, patient_id, visit_id):
+    # Fetch the patient
+    patient = get_object_or_404(Patients, id=patient_id)
+
+    # Fetch the visit
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    
+    # Fetch the discharge note related to this visit
+    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'consultation_notes': consultation_notes,
+        'discharge_note': discharge_note,
+    }
+
+    return render(request, 'receptionist_template/discharge_details.html', context)        
+
+def observation_record_list_view(request):
+    observation_records = ObservationRecord.objects.all().order_by('-created_at')
+    return render(request, 'receptionist_template/manage_observation_record.html', {'observation_records': observation_records})
+
+@login_required
+def save_observation(request, patient_id, visit_id):
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    data_recorder = request.user.staff
+    record_exists = ObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    context = {'patient': patient, 
+               'visit': visit, 
+               'consultation_notes': consultation_notes, 
+               'record_exists': record_exists
+               }
+    if request.method == 'POST':
+        form = RemoteObservationRecordForm(request.POST)
+        if form.is_valid():
+            description = form.cleaned_data['observation_notes']
+            try:
+                if record_exists:
+                    # If a record exists, update it
+                    observation_record = ObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
+                    observation_record.observation_notes = description
+                    observation_record.data_recorder = data_recorder
+                    observation_record.save()
+                    messages.success(request, '')
+                else:
+                    # If no record exists, create a new one
+                    ObservationRecord.objects.create(
+                        patient=patient,
+                        visit=visit,
+                        data_recorder=data_recorder,
+                        observation_notes=description,
+                    )
+                    messages.success(request, '')
+                return redirect(reverse('receptionist_save_remotesconsultation_notes', args=[patient_id, visit_id]))
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        else:
+            messages.error(request, 'Please fill out all required fields.')
+    else:
+        form = ObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
+
+    context['form'] = form
+    return render(request, 'receptionist_template/observation_template.html', context)
+
+def view_observation_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(PatientVisits, id=visit_id)  
+    patient = get_object_or_404(Patients, id=patient_id)  
+    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)      
+    
+    return render(request, 'receptionist_template/observation_notes_detail.html', {
+        'observation_record': observation_record,
+        'visit': visit,
+    })
 
    
+@login_required        
+def consultation_notes_view(request):
+    consultation_notes = ConsultationNotes.objects.all() 
+    return render(request, 'receptionist_template/manage_consultation_notes.html', {
+        'consultation_notes': consultation_notes,       
+        })    
 
 
 

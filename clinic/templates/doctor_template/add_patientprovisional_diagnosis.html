@@ -3,11 +3,45 @@
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Final Diagnosis
 {% endblock title %}
-
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">  
+    <div>
+        <a href="{% if doctor_plan_note.doctor_plan == 'Laboratory' %}
+                {% url 'doctor_save_laboratory' patient.id visit.id %}
+                {% else %}
+                {% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %}
+                {% endif %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        {% if final_diagnosis_ids %}
+        <a href="{% if doctor_plan_note.doctor_plan == 'Prescription' %}
+                {% url 'doctor_save_prescription' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Laboratory' %}
+                {% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Referral' %}
+                {% url 'doctor_save_remotereferral' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Counselling' %}
+                {% url 'doctor_save_remote_counseling' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Procedure' %}
+                {% url 'doctor_save_remoteprocedure' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Observation' %}
+                {% url 'doctor_save_observation' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Discharge' %}
+                {% url 'doctor_save_remote_discharges_notes' patient.id visit.id %}
+            {% elif doctor_plan_note.doctor_plan == 'Radiology' %}
+                {% url 'doctor_add_radiology' patient.id visit.id %}
+            {% endif %}" class="btn btn-success btn-sm">
+            Next <i class="fas fa-arrow-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock page_title %}
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-Final Diagnosis
+Final Diagnosis for {{ doctor_plan_note.doctor_plan }}
 {% endblock breadcrumb %}
+
 
 {% block main_content %}
 <div class="container-fluid">
@@ -23,7 +57,7 @@ Final Diagnosis
                         <div class="card-body">
                             <div class="row" style="font-size:13px;">
                                 <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                     <script>
                                         var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                         var now = new Date();
@@ -86,9 +120,9 @@ Final Diagnosis
                                     <div class="col-12">
                                         {% for message in messages %}
                                             {% if message.tags == 'error' %}
-                                                <div class="alert alert-danger">{{ message }}</div>
+                                                <div class="alert alert-danger alert-message">{{ message }}</div>
                                             {% elif message.tags == 'success' %}
-                                                <div class="alert alert-primary">{{ message }}</div>
+                                                <div class="alert alert-primary alert-message">{{ message }}</div>
                                             {% endif %}
                                         {% endfor %}
                                     </div>
@@ -107,6 +141,16 @@ Final Diagnosis
         </div>
     </div>
 </div>
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
 
 {% include 'doctor_template/datatable.html' %}
 {% endblock main_content %}

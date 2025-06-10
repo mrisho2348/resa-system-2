@@ -4,7 +4,20 @@
 {% endblock title %}
 
 {% block page_title %}
-Patient Imaging 
+{% if final_provisional_diagnosis %}
+    <a class="btn btn-primary" type="button"  href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% endif %}
+     <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back to health record
+    </a>    
+{% if radiology_record and consultation_note.doctor_plan|lower == 'radiology' %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -12,9 +25,7 @@ Patient Imaging
     <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#imagingRecordsModal">
         <i class="fas fa-eye"></i> view Imaging result
     </a>
-    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#prescriptionModal">
-        <i class="fas fa-eye-slash"></i> view prescription
-    </a>
+
 {% endblock breadcrumb %}
 {% block main_content %}
 
@@ -33,7 +44,7 @@ Patient Imaging
                                     PATIENT:    <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b>
                                 </div>
                                 <div class="col-md-3">
-                                    DOB:   <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                    DOB:   <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                         <script>
                                             var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                             var now = new Date();
@@ -68,7 +79,8 @@ Patient Imaging
             </div>
         </div>
     </div>
-    <div class="row">
+    {% if consultation_notes %}
+         <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-primary-600">
@@ -107,6 +119,8 @@ Patient Imaging
             </div>
         </div>
     </div>
+    {% endif %}
+   
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -162,7 +176,7 @@ Patient Imaging
                                 <div id="imagingResponse"></div>
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
+                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
                         <!-- Save Procedure button -->
                         <div class="form-group mt-3">
@@ -194,7 +208,15 @@ Patient Imaging
     
     <script>
         $(document).ready(function() {
-            // Add row button functionality
+
+            // Function to initialize Select2 dynamically
+            function initializeSelect2(selector) {
+                $(selector).select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
+            // Add row button functionality            
             $('#addRow{{ visit.id }}').click(function() {
                 var newRow = `
                     <tr>
@@ -211,6 +233,7 @@ Patient Imaging
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
                 $('#imagingTable{{ visit.id }} tbody').append(newRow);
+                   initializeSelect2('.select2bs4');
             });
     
             // Delete row button functionality
@@ -366,57 +389,7 @@ Patient Imaging
 /* Add more styles as needed */
 
 </style>
-<div class="modal fade" id="prescriptionModal" tabindex="-1" role="dialog" aria-labelledby="prescriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="prescriptionModalLabel">Prescription and Total Amount: <span style="background-color: red;">{{ total_price }}</span></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-bordered table-striped" id="example5">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Drug</th>
-                                        <th>Dose</th>
-                                        <th>Frequency</th>
-                                        <th>Duration</th>
-                                        <th>Quantity</th>
-                                        <th>Unit Price</th>
-                                        <th>Total Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for prescription in prescriptions %}
-                                    <tr>
-                                        <td>{{ prescription.id }}</td>
-                                        <td>{{ prescription.medicine.name }}</td>
-                                        <td>{{ prescription.dose }}</td>
-                                        <td>{{ prescription.frequency }}</td>
-                                        <td>{{ prescription.duration }}</td>
-                                        <td>{{ prescription.quantity_used }}</td>
-                                        <td>{{ prescription.medicine.unit_price }}</td>
-                                        <td>{{ prescription.total_price }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 
 {% include 'doctor_template/datatable.html' %}

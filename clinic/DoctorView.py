@@ -760,7 +760,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
     # Get or create provisional diagnosis record
     provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
     provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
-
+    final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
     # Numeric ranges for form inputs
     context = {
         'patient': patient,
@@ -768,6 +768,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
         'health_records': health_records,
         'patient_visits': patient_visits,
         'patient_vitals': patient_vitals,
+        'final_provisional_diagnosis': final_provisional_diagnosis,
         'provisional_diagnoses': Diagnosis.objects.all(),
         'provisional_diagnosis_ids': provisional_diagnosis_ids,
         'range_51': range(51),
@@ -782,7 +783,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
         try:
             # Collect data from form submission
             history = request.POST.get('history_of_presenting_illness')
-            plan = request.POST.get('doctor_plan')
+            doctor_plan = request.POST.get('doctor_plan')
             plan_note = request.POST.get('doctor_plan_note')
             ros = request.POST.get('review_of_systems')
             exam_notes = request.POST.get('physical_examination')
@@ -799,7 +800,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
             # Create or update consultation note
             if consultation_note:
                 consultation_note.history_of_presenting_illness = history
-                consultation_note.doctor_plan = plan
+                consultation_note.doctor_plan = doctor_plan
                 consultation_note.doctor_plan_note = plan_note
                 consultation_note.review_of_systems = ros
                 consultation_note.physical_examination = exam_notes
@@ -819,7 +820,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                     patient=patient,
                     visit=visit,
                     history_of_presenting_illness=history,
-                    doctor_plan=plan,
+                    doctor_plan=doctor_plan,
                     doctor_plan_note=plan_note,
                     review_of_systems=ros,
                     physical_examination=exam_notes,
@@ -827,8 +828,13 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                     known_comorbidities_summary=comorbidity_summary
                 )
 
-            messages.success(request, 'Consultation record saved successfully.')
-            return redirect(reverse('doctor_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))
+            if doctor_plan == "Laboratory":
+                messages.success(request, 'Consultation record saved successfully.')
+                return redirect(reverse('doctor_save_laboratory', args=[patient_id, visit_id]))
+            else:
+                messages.success(request, 'Consultation record saved successfully.')
+                return redirect(reverse('doctor_save_remotesconsultation_notes_next', args=[patient_id, visit_id]))            
+
 
         except Exception as e:
             messages.error(request, f'Error saving consultation note: {str(e)}')
@@ -874,7 +880,7 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
             if doctor_plan == 'Prescription':
                 return redirect(reverse('doctor_save_prescription', args=[patient_id, visit_id]))
             elif doctor_plan == 'Laboratory':
-                return redirect(reverse('doctor_save_laboratory', args=[patient_id, visit_id]))
+                return redirect(reverse('doctor_new_lab_order'))
             elif doctor_plan == 'Referral':
                 return redirect(reverse('doctor_save_remotereferral', args=[patient_id, visit_id]))
             elif doctor_plan == 'Counselling':
@@ -1007,7 +1013,8 @@ def save_remotereferral(request, patient_id, visit_id):
         visit = get_object_or_404(PatientVisits, id=visit_id)
         data_recorder = request.user.staff
         referral = Referral.objects.filter(patient=patient, visit=visit).first()
-        context = {'patient': patient, 'visit': visit, 'referral': referral}
+        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+        context = {'patient': patient, 'visit': visit, 'referral': referral,'consultation_notes':consultation_notes}
 
         if request.method == 'POST':
             form = ReferralForm(request.POST, instance=referral)
@@ -1028,8 +1035,7 @@ def save_remotereferral(request, patient_id, visit_id):
             else:
                 # Add form errors to messages
                 form_errors = form.errors.as_json()
-                messages.error(request, f'Form validation errors: {form_errors}')
-                print(form.errors)  # Print errors to console/log for debugging
+                messages.error(request, f'Form validation errors: {form_errors}')               
         else:
             form = ReferralForm(instance=referral)
 
@@ -1085,51 +1091,57 @@ def save_observation(request, patient_id, visit_id):
     context['form'] = form
     return render(request, 'doctor_template/observation_template.html', context)    
 
-@login_required    
+@login_required
 def save_remoteprocedure(request, patient_id, visit_id):
     try:
-        # Retrieve visit history for the specified patient
+        # Get patient and visit objects early
         try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+            patient = Patients.objects.get(id=patient_id)
+        except Patients.DoesNotExist:
+            return render(request, '404.html', {'error_message': "Patient not found."})
+
+        try:
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
         except PatientVisits.DoesNotExist:
-            visit_history = None
+            return render(request, '404.html', {'error_message': "Visit not found."})
 
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
+        # Fetch related data
+        prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+        previous_procedures = Procedure.objects.filter(patient=patient, visit=visit)
+        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+        
+        provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+        final_provisional_diagnosis = provisional_record.final_diagnosis.values_list('id', flat=True)
 
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        except Procedure.DoesNotExist:
-            procedures = None
+        procedures = Procedure.objects.filter(patient=patient, visit=visit)
+        total_price = sum(p.total_price for p in prescriptions)
 
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-
-        patient = Patients.objects.get(id=patient_id)
-
-        # Fetching services based on coverage and type
+        # Fetch procedure services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='procedure') & Q(coverage=patient.payment_form)
+                Q(type_service='procedure') & Q(coverage='insurance')
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='procedure')
 
-        # Calculate total amount from all procedures
-        total_procedure_cost = Procedure.objects.filter(patient=patient_id, visit=visit_id).aggregate(Sum('cost'))['cost__sum']
+        # Calculate total cost of procedures
+        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum'] or 0
 
         return render(request, 'doctor_template/procedure_template.html', {
-            'visit_history': visit_history,
+            'visit': visit,
             'patient': patient,
             'prescriptions': prescriptions,
             'total_price': total_price,
+            'previous_procedures': previous_procedures,
+            'final_provisional_diagnosis': final_provisional_diagnosis,
+            'consultation_note': consultation_note,
             'procedures': procedures,
             'remote_service': remote_service,
             'total_procedure_cost': total_procedure_cost,
         })
+
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})
+        return render(request, '404.html', {'error_message': f"Oop's sorry we can't find that page! ({str(e)})"})
     
 @csrf_exempt    
 def get_patient_details(request, patient_id):
@@ -1307,34 +1319,54 @@ def add_remoteprescription(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': 'An unexpected error occurred: ' + str(e)})
     
-@login_required         
+@login_required
 def save_prescription(request, patient_id, visit_id):
     try:
-        # Retrieve visit history for the specified patient
-        visit = PatientVisits.objects.get(id=visit_id)   
-        frequencies = PrescriptionFrequency.objects.all()       
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit_id=visit_id)        
+        # Get patient and visit objects first
+        try:
+            patient = Patients.objects.get(id=patient_id)
+        except Patients.DoesNotExist:
+            return render(request, '404.html', {'error_message': "Patient not found."})
+
+        try:
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        except PatientVisits.DoesNotExist:
+            return render(request, '404.html', {'error_message': "Visit not found."})
+
+        # Retrieve related data
+        frequencies = PrescriptionFrequency.objects.all()
+        prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+
+        provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+        final_provisional_diagnosis = provisional_record.final_diagnosis.values_list('id', flat=True)
+
         current_date = timezone.now().date()
-        patient = Patients.objects.get(id=patient_id)    
-        total_price = sum(prescription.total_price for prescription in prescriptions)  
+        total_price = sum(p.total_price for p in prescriptions)
+
         medicines = Medicine.objects.filter(
-            remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
+            remain_quantity__gt=0,
+            expiration_date__gt=current_date
         ).distinct()
+
         range_31 = range(31)
-        return render(request, 'doctor_template/prescription_template.html', {           
+
+        return render(request, 'doctor_template/prescription_template.html', {
             'patient': patient,
-            'visit': visit,       
+            'visit': visit,
+            'final_provisional_diagnosis': final_provisional_diagnosis,
+            'consultation_note': consultation_note,
             'medicines': medicines,
             'total_price': total_price,
             'range_31': range_31,
             'prescriptions': prescriptions,
             'frequencies': frequencies,
-         
         })
+
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)}) 
+        return render(request, '404.html', {
+            'error_message': f"Oop's sorry we can't find that page! ({str(e)})"
+        })
     
 
 @require_POST
@@ -1493,31 +1525,21 @@ def save_observations(request, patient_id, visit_id):
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-@login_required   
+@login_required
 def add_radiology(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        doctor = request.user.staff
+    try:    
         try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
         except PatientVisits.DoesNotExist:
-            visit_history = None
-        try:
-            imaging_records = ImagingRecord.objects.filter(patient_id=patient_id, visit_id=visit_id,doctor_id=doctor)
-        except ImagingRecord.DoesNotExist:
-            imaging_records = None
-
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id, doctor_id=doctor)
-        except Procedure.DoesNotExist:
-            procedures = None
-
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-
+            visit = None
+       
+        doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
         patient = Patients.objects.get(id=patient_id)
-
+        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
+        radiology_record = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
+        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+        provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)     
+        final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
         # Fetching services based on coverage and type
         if patient.payment_form == 'insurance':
             # If patient's payment form is insurance, fetch services with matching coverage
@@ -1527,21 +1549,17 @@ def add_radiology(request, patient_id, visit_id):
         else:
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Imaging')
-
-        # Calculate total amount from all procedures
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
+       
         return render(request, 'doctor_template/add_radiology.html', {
-            'visit_history': visit_history,
+            'visit': visit,
             'patient': patient,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'imaging_records': imaging_records,
-            'procedures': procedures,
+            'radiology_record': radiology_record,          
+            'final_provisional_diagnosis': final_provisional_diagnosis,          
+            'doctors': doctors,          
+            'consultation_note': consultation_note,          
+            'consultation_notes': consultation_notes,          
             'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
-            'consultation_notes': consultation_notes,
+        
         })
     except Exception as e:
         # Handle other exceptions if necessary
@@ -1590,60 +1608,51 @@ def add_imaging(request):
         # If the request method is not POST, return an error response
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
-@login_required                
+@login_required
 def save_laboratory(request, patient_id, visit_id):
     try:
-        # Retrieve visit history for the specified patient
         doctor = request.user.staff
-        try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
-        except PatientVisits.DoesNotExist:
-            visit_history = None
-        try:
-            Investigation = LaboratoryOrder.objects.filter(patient_id=patient_id, visit_id=visit_id,doctor_id=doctor)
-        except LaboratoryOrder.DoesNotExist:
-            Investigation = None
 
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id, doctor_id=doctor)
-        except Procedure.DoesNotExist:
-            procedures = None
+        # Get patient and visit objects
+        patient = get_object_or_404(Patients, id=patient_id)
+        visit = get_object_or_404(PatientVisits, id=visit_id, patient_id=patient_id)
 
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-        doctors = Staffs.objects.filter(role='labTechnician',work_place="resa")
-        patient = Patients.objects.get(id=patient_id)
+        # Fetch lab investigations for this visit
+        investigations = LaboratoryOrder.objects.filter(patient_id=patient_id, visit_id=visit_id)
 
-        # Fetching services based on coverage and type
+        # Fetch consultation notes for this visit
+        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+
+        # Get available lab technicians
+        lab_technicians = Staffs.objects.filter(role='labTechnician', work_place="resa")
+
+        # Filter laboratory services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='Laboratory') & Q(coverage=patient.payment_form)
+                type_service='Laboratory',
+                coverage=patient.payment_form
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Laboratory')
 
-        # Calculate total amount from all procedures
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = Investigation.aggregate(Sum('cost'))['cost__sum']
-        return render(request, 'doctor_template/laboratory_template.html', {
-            'visit_history': visit_history,
+        # Calculate total lab cost
+        total_lab_cost = investigations.aggregate(total=Sum('cost'))['total']
+
+        context = {
+            'visit': visit,
             'patient': patient,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'Investigation': Investigation,
-            'procedures': procedures,
-            'doctors': doctors,
+            'Investigation': investigations,
+            'previous_results': investigations,
+            'doctors': lab_technicians,
             'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
-            'consultation_notes': consultation_notes,
-        })
+            'total_imaging_cost': total_lab_cost,
+            'consultation_note': consultation_note,
+        }
+
+        return render(request, 'doctor_template/laboratory_template.html', context)
+
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
+        return render(request, '404.html', {'error_message': str(e)}) 
     
 @csrf_exempt
 def add_investigation(request):
@@ -1766,7 +1775,7 @@ def prescription_list(request):
     visit_total_prices = prescriptions.values(
     'visit__vst', 
     'visit__patient__first_name',
-    'visit__created_at', 
+    'visit__updated_at', 
     'visit__patient__id', 
     'visit__patient__middle_name', 
     'visit__patient__last_name'
@@ -2051,10 +2060,9 @@ def new_radiology_order(request):
     
 @login_required
 def patient_procedure_view(request):
-    template_name = 'doctor_template/manage_procedure.html'
-    doctor = request.user.staff
+    template_name = 'doctor_template/manage_procedure.html'   
     # Query to retrieve the latest procedure record for each patient
-    procedures = Procedure.objects.filter(doctor=doctor).order_by('-order_date')  
+    procedures = Procedure.objects.order_by('-order_date')  
     form = ProcedureForm()    
     return render(request, template_name, {'procedures': procedures,'form':form})
 
@@ -2223,7 +2231,7 @@ def patient_lab_view(request):
     template_name = 'doctor_template/lab_order_result.html'
     doctor = request.user.staff
     # Query to retrieve the latest procedure record for each patient
-    procedures = LaboratoryOrder.objects.filter(data_recorder=doctor).order_by('-order_date')      
+    procedures = LaboratoryOrder.objects.order_by('-order_date')      
     return render(request, template_name, {'procedures': procedures})
 
 @login_required

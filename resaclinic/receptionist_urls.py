@@ -97,5 +97,22 @@ urlpatterns = [
         path('appointment_view/', ReceptionistView.appointment_view, name='receptionist_appointment_view'), 
         path('patient-procedure-history/<str:mrn>/view/', ReceptionistView.patient_procedure_history_view, name='receptionist_patient_procedure_history_view_mrn'), 
 
-              
+        path('patient_laboratory_view/', ReceptionistView.patient_laboratory_view, name="receptionist_patient_laboratory_view"), 
+        path('patient_lab_result_history_view/<str:mrn>/view/', ReceptionistView.patient_lab_result_history_view, name="receptionist_patient_lab_result_history_view"), 
+        path('lab-details/<str:mrn>/<str:visit_number>/', ReceptionistView.patient_lab_details_view, name='receptionist_patient_lab_details_view'),
+        path('resa/patient-procedure-view/', ReceptionistView.patient_procedure_view, name='receptionist_patient_procedure_view'),   
+        path('procedure/detail/<str:mrn>/<str:visit_number>/', ReceptionistView.patient_procedure_detail_view, name='receptionist_patient_procedure_detail_view'),  
+        path('resa/manage-referral/', ReceptionistView.manage_referral, name='receptionist_manage_referral'), 
+        path('referral/view/<int:referral_id>/',ReceptionistView.view_referral, name='receptionist_view_referral'),
+        path('counseling/', ReceptionistView.counseling_list_view, name='receptionist_counseling_list'),
+        path('save_counsel/<int:patient_id>/<int:visit_id>/', ReceptionistView.save_counsel, name='kahama_save_remote_counseling'),
+        path('counseling_notes/<int:patient_id>/<int:visit_id>/', ReceptionistView.view_counseling_notes, name='kahama_view_counseling_notes'),
+        path('discharge_notes/', ReceptionistView.discharge_notes_list_view, name='receptionist_discharge_notes_list'),
+        path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', ReceptionistView.save_remote_discharges_notes, name='receptionist_save_remote_discharges_notes'),
+        path('discharge/details/<int:patient_id>/<int:visit_id>/', ReceptionistView.discharge_details_view, name='receptionist_discharge_details_view'),
+        path('observation_records/', ReceptionistView.observation_record_list_view, name='receptionist_observation_record_list'),
+        path('save_observation/<int:patient_id>/<int:visit_id>/', ReceptionistView.save_observation, name='receptionist_save_observation'),
+        path('observation_notes/<int:patient_id>/<int:visit_id>/', ReceptionistView.view_observation_notes, name='receptionist_view_observation_notes'),
+        path('consultation-notes/', ReceptionistView.consultation_notes_view, name='receptionist_consultation_notes'),
+
 ]

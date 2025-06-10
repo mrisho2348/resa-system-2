@@ -1,286 +1,174 @@
 {% extends 'receptionist_template/base_template.html' %}
 {% block title %}
-{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }} Imaging   
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Observation   
 {% endblock title %}
 
 {% block page_title %}
-Patient Imaging 
+
+{% if record_exists.data_recorder == request.user.staff %}
+<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% endif %}
+{% if record_exists %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
+Patient Observation  
 {% endblock breadcrumb %}
 {% block main_content %}
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">               
+            <div class="card">
+                <div class="card-header bg-primary-600">
+                    <h5 class="card-title text-center text-uppercase">Patient Observation  </h5>
+                </div>
                 <div class="card-body">
-                    <div class="row text-uppercase" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
-                    </div>
-                        <div class="row mt-3">
-                            <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
-                            <div class="col-md-3">VISIT NUMBER: <b>{{ visit_number }}</b></div>                           
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-primary-600">
+                                    <h5 class="card-title text-center text-uppercase">Service</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <label for="chief_complaints">Patient Information</label>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <b>PATIENT:</b> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>DOB:</b> {{ patient.dob|date:"d-m-Y" }} [ Age: {% if patient.dob %}
+                                                    <script>
+                                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                        var now = new Date();
+                                                        var ageMilliseconds = now - dob;
+                                                        var ageSeconds = ageMilliseconds / 1000;
+                                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                        document.write(ageYears + ' years');
+                                                    </script>
+                                                    {% else %}
+                                                    {{ patient.age }}
+                                                    {% endif %}]
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>SEX:</b> {{ patient.gender }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>FILE NO:</b> {{ patient.mrn }}
+                                                </div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <b>Company:</b> {{ patient.company }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>Visit Number:</b> {{ visit.vst }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                </div>           
-             </div>
+                    </div>
+                    <br />                   
+                    
+                </div>
+            </div>
         </div>
     </div>
     <div class="row">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Imaging </h4>
+                <div class="card-header bg-primary-600">
+                    <h6 class="card-title text-center text-uppercase">Diagnosis</h6>
                 </div>
                 <div class="card-body">
-                    <form id="addImagingForm" method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="imagingTable{{ visit.id }}">
-                                <thead>
-                                    <tr>
-                                        <th>Imaging Name</th>
-                                        <th>Description</th>                                   
-                                        <th>Cost</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" name="imaging_name[]" required>
-                                                <option value="">Select Imaging</option>
-                                                {% for imaging in remote_service %}
-                                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                                       
-                                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Total Cost -->
-                        <div class="row">
-                            <div class="col-md-9">
-                             
-                            </div>
-                            <div class="col-md-3">
-                                <div class="row">
-                                    <div class="col-md-6">Total Cost</div>
-                                    <div class="col-md-6">
-                                        Sh <span id="totalCost{{ visit.id }}">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div id="imagingResponse"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
-                        <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                        <!-- Save Procedure button -->
-                        <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Imaging</button>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Order Date</label>
-                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
-                                </div>
-                                <script>
-                                    // Get the current date in the format yyyy-mm-dd
-                                    const currentDate = new Date().toISOString().split('T')[0];
-                                    
-                                    // Set the value of the input field to the current date
-                                    document.getElementById('orderDate').value = currentDate;
-                                </script>
-                            </div>                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="doctor">Doctor:</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>                                      
-                                        {% for doctor in doctors %}
-                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                             </div>                      
-                        </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-block" >Request Order & Pay</button>
-                        </div>
-                    </form>
+                    {% for note in consultation_notes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
+                            <tbody>
+                                <tr>
+                                    <th>Preliminary Diagnosis</th>
+                                    <th>Final Diagnosis</th>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <ul class="list-group">
+                                            {% for diagnosis in note.provisional_diagnosis.all %}
+                                            <li class="list-group-item">{{ diagnosis}}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        <ul class="list-group">
+                                            {% for diagnosis in note.final_diagnosis.all %}
+                                            <li class="list-group-item">{{ diagnosis}}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>        
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        $(document).ready(function() {
-            // Initialize a counter to create unique IDs for each row
-            var rowIdCounter = 0;
-    
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                // Check if the last row already has a selected imaging procedure
-                var lastRow = $('#imagingTable{{ visit.id }} tbody tr:last');
-                var selectedValue = lastRow.find('.imaging-name').val();
-    
-                if (!selectedValue) {
-                    alert('Please select an imaging procedure before adding another row.');
-                    return;
-                }
-    
-                // Generate a unique ID for the select element
-                var uniqueId = 'imaging_name' + rowIdCounter++;
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" id="${uniqueId}" name="imaging_name[]" required>
-                                <option value="">Select Procedure</option>
-                                {% for imaging in remote_service %}
-                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                       
-                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                $('#imagingTable{{ visit.id }} tbody').append(newRow);
-    
-                // Initialize the select2 for the new row
-                $('#' + uniqueId).select2();
-            });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-                updateTotalCost{{ visit.id }}();
-            });
-    
-            // Fetch cost when imaging name is selected
-            $(document).on('change', '.imaging-name', function() {
-                var selectedProcedureId = $(this).val();
-                var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
-                var row = $(this).closest('tr');
-    
-                // Check for duplicate imaging values in other rows
-                var duplicateFound = false;
-                $('#imagingTable{{ visit.id }} tbody tr:not(:last)').each(function() {
-                    var rowValue = $(this).find('.imaging-name').val();
-                    if (row !== $(this) && rowValue && rowValue === selectedProcedureId) {
-                        duplicateFound = true;
-                        return false; // Exit loop if duplicate is found
-                    }
-                });
-    
-                if (duplicateFound) {
-                    alert('Each imaging procedure should be selected only once.');
-                    $(this).val(''); // Clear the selection
-                    return;
-                }
-    
-                $.ajax({
-                    url: '{% url "receptionist_get_procedure_cost" %}',
-                    method: 'POST',
-                    data: {
-                        procedure_id: selectedProcedureId,
-                        patient_id: patientId // Include patient ID in the POST data
-                    },
-                    success: function(response) {
-                        row.find('.cost').val(response.cost);
-                        updateTotalCost{{ visit.id }}();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(xhr.responseText);
-                    }
-                });
-            });
-    
-            // Function to update total cost
-            function updateTotalCost{{ visit.id }}() {
-                var totalCost = 0;
-                $('#imagingTable{{ visit.id }} tbody tr').each(function() {
-                    var cost = parseFloat($(this).find('.cost').val());
-                    if (!isNaN(cost)) {
-                        totalCost += cost;
-                    }
-                });
-                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
-            }
-    
-            // Handle form submission using AJAX
-            $('#addImagingForm').submit(function(e) {
-                e.preventDefault();
-    
-                // Check for duplicate imaging values before submission
-                var imagingValues = [];
-                var duplicateFound = false;
-    
-                $('.imaging-name').each(function() {
-                    var value = $(this).val();
-                    if (value && imagingValues.includes(value)) {
-                        duplicateFound = true;
-                        return false; // Exit loop if duplicate is found
-                    } else {
-                        imagingValues.push(value);
-                    }
-                });
-    
-                if (duplicateFound) {
-                    alert('Each imaging procedure should be selected only once.');
-                    return;
-                }
-    
-                // If no duplicate found, proceed with form submission
-                $.ajax({
-                    type: 'POST',
-                    url: '{% url "receptionist_add_imaging" %}',
-                    data: $('#addImagingForm').serialize(),
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            $('#imagingResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                            window.location.href = '{% url "receptionist_all_orders_view" %}';
-                        } else {
-                            $('#imagingResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        $('#imagingResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
-                    }
-                });
-            });
-        });
-    </script>  
-    
-    
-    
+    <div class="row">
+        <div class="col-md-12">                 
+            <form method="POST" action="{% url 'kahama_save_observation' patient.id visit.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="container-fluid">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">                                     
+                                        {{ form.media }}
+                                        {{ form.as_p }}
+                                    </div>
+                                </div>                 
+                            </div>              
+                       {% if record_exists.data_recorder == request.user.staff %}
+                       <button type="submit" class="btn btn-primary btn-block">Save to proceed</button>
+                       {% endif %}
+                        </div>
+                        <div class="card-footer">
+                            {% if messages %}
+                            <div class="row">
+                                <div class="col-12">
+                                    {% for message in messages %}
+                                    {% if message.tags == 'error' %}
+                                    <div class="alert alert-danger">{{ message }}</div>
+                                    {% elif message.tags == 'success' %}
+                                    <div class="alert alert-primary">{{ message }}</div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
-
-{% include 'receptionist_template/datatable.html' %}
-    
+{% include 'receptionist_template/datatable.html' %}    
 
 {% endblock main_content %}

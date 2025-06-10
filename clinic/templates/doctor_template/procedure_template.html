@@ -5,7 +5,20 @@ Patient procedure
 {% endblock title %}
 
 {% block page_title %}
-Patient procedure 
+{% if final_provisional_diagnosis %}
+    <a class="btn btn-primary" type="button"  href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% endif %}
+     <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back to health record
+    </a>   
+{% if previous_procedures and consultation_note.doctor_plan|lower == 'procedure' %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -26,7 +39,7 @@ Patient procedure
                 <div class="card-body">
                     <div class="row text-uppercase" style="font-size:13px;">
                         <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                             <script>
                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                 var now = new Date();
@@ -43,7 +56,7 @@ Patient procedure
                     </div>
                         <div class="row mt-3">
                             <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
-                            <div class="col-md-3">VISIT NUMBER: <b>{{ visit_number }}</b></div>                           
+                            <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
                         </div>
                 </div>           
             
@@ -105,7 +118,7 @@ Patient procedure
                                 <div id="ProcedureResponse"></div>
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
+                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
                         <!-- Save Procedure button -->
                         <div class="form-group mt-3">
@@ -137,6 +150,13 @@ Patient procedure
     
 <script>
         $(document).ready(function() {
+
+            function initializeSelect2(selector) {
+                $(selector).select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
             // Add row button functionality
             $('#addRow{{ visit.id }}').click(function() {
                 var newRow = `
@@ -155,6 +175,8 @@ Patient procedure
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
                 $('#procedureTable{{ visit.id }} tbody').append(newRow);
+
+                   initializeSelect2('.select2bs4');
             });
     
             // Delete row button functionality
@@ -252,8 +274,8 @@ Patient procedure
                             <td>{{ procedure.description }}</td>                           
                             <td>{{ procedure.equipments_used }}</td>
                             <td>{{ procedure.cost }}</td>
-                            <td>{{ procedure.created_at }}</td>
-                            <td>{{ procedure.updated_at }}</td>
+                            <td>{{ procedure.created_at|date:"d-m-Y" }}</td>
+                            <td>{{ procedure.updated_at|date:"d-m-Y" }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -370,8 +392,7 @@ Patient procedure
                         <div class="table-responsive">
                             <table class="table table-hover text-nowrap table-bordered table-striped" id="example5">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
+                                    <tr>                                    
                                         <th>Drug</th>
                                         <th>Dose</th>
                                         <th>Frequency</th>
@@ -383,12 +404,11 @@ Patient procedure
                                 </thead>
                                 <tbody>
                                     {% for prescription in prescriptions %}
-                                    <tr>
-                                        <td>{{ prescription.id }}</td>
-                                        <td>{{ prescription.medicine.name }}</td>
+                                    <tr>                                        
+                                        <td>{{ prescription.medicine.drug_name }}</td>
                                         <td>{{ prescription.dose }}</td>
                                         <td>{{ prescription.frequency }}</td>
-                                        <td>{{ prescription.duration }}</td>
+                                        <td>{{ prescription.duration }} day</td>
                                         <td>{{ prescription.quantity_used }}</td>
                                         <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
                                         <td>{{ prescription.total_price }}</td>

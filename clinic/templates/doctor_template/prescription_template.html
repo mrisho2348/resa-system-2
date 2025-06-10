@@ -5,7 +5,20 @@
 {% endblock title %}
 
 {% block page_title %}
-Patient prescription 
+{% if final_provisional_diagnosis %}
+    <a class="btn btn-primary" type="button"  href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
+    <i class="fas fa-arrow-left"></i> Back
+</a>
+{% endif %}
+     <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back to health record
+    </a>    
+{% if prescriptions and consultation_note.doctor_plan|lower == 'prescription' %}
+    <a class="btn btn-success breadcrumb-link" type="button" 
+    href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -176,7 +189,8 @@ Patient prescription
     </div>
     
     <script>
-        $(document).ready(function() {
+        $(document).ready(function() {       
+
             // Event listeners
             $('#addRow{{ visit.id }}').click(addRow);
             $(document).on('click', '.delete-row', deleteRow);
@@ -189,7 +203,13 @@ Patient prescription
             // Initial setup
             updateTotalPrice();
         });
-    
+       // Function to initialize Select2 dynamically
+            function initializeSelect2(selector) {
+                $(selector).select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
         // Function to add a new row to the prescription table
         function addRow() {
             var newRow = `
@@ -226,6 +246,7 @@ Patient prescription
                 </tr>`;
             
             $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
+                       initializeSelect2('.select2bs4');
         }
     
         // Function to delete a row from the prescription table
@@ -459,8 +480,7 @@ Patient prescription
                         <div class="table-responsive">
                             <table class="table table-hover text-nowrap table-bordered table-striped" id="example">
                                 <thead>
-                                    <tr>
-                                        <th>#</th>
+                                    <tr>                                     
                                         <th>Drug</th>
                                         <th>Dose</th>
                                         <th>Frequency</th>
@@ -472,12 +492,11 @@ Patient prescription
                                 </thead>
                                 <tbody>
                                     {% for prescription in prescriptions %}
-                                    <tr>
-                                        <td>{{ prescription.id }}</td>
-                                        <td>{{ prescription.medicine.name }}</td>
+                                    <tr>                                       
+                                        <td>{{ prescription.medicine.drug_name }}</td>
                                         <td>{{ prescription.dose }}</td>
                                         <td>{{ prescription.frequency }}</td>
-                                        <td>{{ prescription.duration }}</td>
+                                        <td>{{ prescription.duration }} day</td>
                                         <td>{{ prescription.quantity_used }}</td>
                                         <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
                                         <td>{{ prescription.total_price }}</td>
