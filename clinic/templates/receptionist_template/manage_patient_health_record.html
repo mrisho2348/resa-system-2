@@ -3,19 +3,19 @@
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} - Health Record
 {% endblock title %}
-
-{% block page_title %}
-Patient - Health Record
-{% endblock page_title %}
-
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
-    <a href="{% url 'receptionist_manage_patients' %}" class="btn btn-success float-right" type="button">
-        <i class="fas fa-arrow-left"></i> Back to Patient List
+    <a href="{% url 'receptionist_patient_visit_history_view' patient.id %}" class="btn btn-success float-right" type="button">
+        <i class="fas fa-arrow-left"></i> Back
     </a>
+
+
 {% endblock breadcrumb %}
+
+
 {% load static %}
 {% block main_content %}
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-4">
@@ -64,7 +64,7 @@ Patient - Health Record
                         <div class="card-body">
                             <div class="row" style="font-size:13px;">
                                 <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                                <div class="col-md-3 text-uppercase">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                                <div class="col-md-3 text-uppercase">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                     <script>
                                         var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                         var now = new Date();
@@ -80,9 +80,14 @@ Patient - Health Record
                                 <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
                             </div>
                                 <div class="row mt-3">
-                                    <div class="col-md-3 text-uppercase">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
-                                    <div class="col-md-3">
-                                        Visit number:    <b>{{ visit.vst }}</b>
+                                     <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                                        {{ patient.payment_form }}- {{ patient.insurance_name }}   
+                                        {% else  %}   
+                                        {{ patient.payment_form }}                  
+                                    {% endif %}</b>
+                                </div>
+                                    <div class="col-md-3 text-uppercase">
+                                        Visit number:  <b>{{ visit.vst }}</b>
                                     </div>
                                 </div>
                         </div>        
@@ -95,7 +100,7 @@ Patient - Health Record
                     <div class="card">
                         <div class="card-body">
                             <div class="tab-content">
-                                <div class="tab-pane fade active" id="health">
+                                <div class="tab-pane fade show active" id="health">
                                     <div class="panel panel-flat">                                     
                                         <div class="panel-body">
                                             <div class="tabbable">
@@ -108,13 +113,13 @@ Patient - Health Record
                                              </div>
                                                                                             
                                                 <div class="tab-content">
-                                                    <div class="tab-pane active" id="left-icon-tab1">
+                                                    <div class="tab-pane active in" id="left-icon-tab1">
                                                         <div class="container">
                                                             <div class="row">
                                                                 <div class="col-md-12">
                                                                     <div class="card">
                                                                         <div class="card-header">
-                                                                            <h5 class="header-title text-center mt-0 mb-1 text-uppercase">vital information</h5>
+                                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">vital information</h6>
                                                                         </div>
                                                                         <div class="card-body">
                                                                             <div class="table-responsive">
@@ -135,7 +140,7 @@ Patient - Health Record
                                                                                         </tr>
                                                                                     </thead>
                                                                                     <tbody>
-                                                                                        {% for vital in previous_vitals %}
+                                                                                        {% for vital in vitals %}
                                                                                         <tr>                                                                                          
                                                                                             <td>{{ vital.respiratory_rate }}</td>
                                                                                             <td>{{ vital.pulse_rate }}</td>
@@ -146,7 +151,7 @@ Patient - Health Record
                                                                                             <td>{{ vital.weight }}</td>
                                                                                             <td>{{ vital.gcs }}</td>
                                                                                             <!-- Split recorded_at into date, day of the week, and time components -->
-                                                                                            <td>{{ vital.recorded_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                                                                            <td>{{ vital.recorded_at|date:"d-m-Y" }}</td> <!-- Display date -->
                                                                                             <td>{{ vital.recorded_at|date:"l" }}</td> <!-- Display day of the week -->
                                                                                             <td>{{ vital.recorded_at|time:"H:i:s" }}</td><!-- Display time -->
                                                                                             
@@ -169,7 +174,7 @@ Patient - Health Record
                                                                 <div class="col-md-12">
                                                                     <div class="card">
                                                                         <div class="card-header">
-                                                                            <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Diagnosis information</h5>
+                                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Diagnosis information</h6>
                                                                         </div>
                                                                         <div class="card-body">
                                                                             <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
@@ -214,7 +219,7 @@ Patient - Health Record
                                         <div class="panel-body">
                                             <a class="btn btn-default" href="{% url 'receptionist_patient_consultation_detail' patient.id visit.id %}">Consultation</a>
                                             <a class="btn btn-default" href="{% url 'receptionist_save_laboratory' patient.id visit.id %}">Laboratory</a>
-                                            <a class="btn btn-default" href="{% url 'receptionist_save_observation' patient.id visit.id %}">Imaging</a>
+                                            <a class="btn btn-default" href="{% url 'receptionist_add_radiology' patient.id visit.id %}">Imaging</a>
                                             <a class="btn btn-default" href="{% url 'receptionist_save_remoteprocedure' patient.id visit.id %}">Procedure</a>
                                             <a class="btn btn-default" href="#">Physiotherapy</a>
                                         </div>
@@ -228,7 +233,7 @@ Patient - Health Record
                                                     <div class="col-md-12">
                                                         <div class="card">
                                                             <div class="card-header">
-                                                                <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Lab Result and total amount <span style="background-color: red;">{{lab_tests_cost}}</span></h5>                                  
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Lab Result and total amount <span style="background-color: red;">{{lab_tests_cost}}</span></h6>                                  
                                                             </div>
                                                             <div class="card-body">
                                                                 <div  class="table-responsive">
@@ -248,7 +253,7 @@ Patient - Health Record
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
-                                                                            {% for order in lab_results %}
+                                                                            {% for order in lab_tests %}
                                                                             <tr>
                                                                                 <td>{{ order.doctor }}</td>                                                        
                                                                                 <td>{{ order.lab_number }}</td>                                                       
@@ -273,7 +278,7 @@ Patient - Health Record
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane fade active in" id="procedure_result">                                    
+                                <div class="tab-pane fade" id="procedure_result">                                    
                                     <div class="panel panel-flat">                                       
                                         <div class="panel-body">
                                             <div class="container">
@@ -281,7 +286,7 @@ Patient - Health Record
                                                     <div class="col-md-12">
                                                         <div class="card">
                                                             <div class="card-header">
-                                                                <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Procedures and total amount <span style="background-color: red;">{{total_procedure_cost}}</span></h5>                                   
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Procedures and total amount <span style="background-color: red;">{{total_procedure_cost}}</span></h5>                                   
                                                             </div>
                                                             <div class="card-body">
                                                                 <div class="table-responsive">
@@ -327,7 +332,7 @@ Patient - Health Record
                                     </div>
                                 </div>
                                 
-                                <div class="tab-pane fade active in" id="prescription">                                   
+                                <div class="tab-pane fade" id="prescription">                                   
                                     <div class="panel panel-flat">                                     
                                         <div class="panel-body">
                                             <div class="container">
@@ -335,45 +340,45 @@ Patient - Health Record
                                                     <div class="col-md-12">
                                                         <div class="card">
                                                             <div class="card-header">
-                                                                <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription and total amount <span style="background-color: red;">{{total_price}}</span></h5>
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription and total amount <span style="background-color: red;">{{total_price}}</span></h5>
                                                             </div>
                                                             <div class="card-body">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example5"  style="width:100%">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th>Prescriber</th>
-                                                                                <th>Drug</th>                                                      
-                                                                                <th>Dose</th>
-                                                                                <th>Frequency</th>
-                                                                                <th>Duration</th>
-                                                                                <th>Quantity</th>
-                                                                                <th>Unit Price</th>
-                                                                                <th>Total Price</th>
-                                                                                <th>Date</th>
-                                                                                <th>Day</th> 
-                                                                                <th>Time</th>   
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {% for prescription in prescriptions %}
-                                                                            <tr>
-                                                                                <td>{{ prescription.entered_by }}</td>
-                                                                                <td>{{ prescription.medicine.name }}</td>
-                                                                                <td>{{ prescription.dose }}</td>                                                       
-                                                                                <td>{{ prescription.frequency }}</td>
-                                                                                <td>{{ prescription.duration }}</td>
-                                                                                <td>{{ prescription.quantity_used }}</td>
-                                                                                <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
-                                                                                <td>{{ prescription.total_price }}</td>
-                                                                                <td>{{ prescription.created_at|date:"d-m-Y" }}</td> 
-                                                                                <td>{{ prescription.created_at|date:"l" }}</td>
-                                                                                <td>{{ prescription.created_at|time:"H:i:s" }}</td>    
-                                                                            </tr>
-                                                                            {% endfor %}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
+                                                               <div class="table-responsive">
+                                                                     <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example5"  style="width:100%">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Prescriber</th>
+                                                                            <th>Drug</th>                                                      
+                                                                            <th>Dose</th>
+                                                                            <th>Frequency</th>
+                                                                            <th>Duration</th>
+                                                                            <th>Quantity</th>
+                                                                            <th>Unit Price</th>
+                                                                            <th>Total Price</th>
+                                                                            <th>Date</th>
+                                                                            <th>Day</th> 
+                                                                            <th>Time</th>   
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for prescription in prescriptions %}
+                                                                        <tr>
+                                                                            <td>{{ prescription.entered_by }}</td>
+                                                                            <td>{{ prescription.medicine.drug_name }}</td>
+                                                                            <td>{{ prescription.dose }}</td>                                                       
+                                                                            <td>{{ prescription.frequency }}</td>
+                                                                            <td>{{ prescription.duration }}</td>
+                                                                            <td>{{ prescription.quantity_used }}</td>
+                                                                            <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
+                                                                            <td>{{ prescription.total_price }}</td>
+                                                                            <td>{{ prescription.created_at|date:"d-m-Y" }}</td> 
+                                                                            <td>{{ prescription.created_at|date:"l" }}</td>
+                                                                            <td>{{ prescription.created_at|time:"H:i:s" }}</td>    
+                                                                        </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>   
+                                                               </div>                                                          
                                                             </div>
                                                         </div>
                                                     </div>
@@ -383,7 +388,7 @@ Patient - Health Record
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade active in" id="radiology">                                    
+                                <div class="tab-pane fade" id="radiology">                                    
                                     <div class="panel panel-flat">                                     
                                         <div class="panel-body">
                                             <div class="container">
@@ -391,7 +396,7 @@ Patient - Health Record
                                                     <div class="col-md">
                                                         <div class="card">
                                                             <div class="card-header">
-                                                                <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Imaging and total amount <span style="background-color: red;">{{total_imaging_cost}}</span></h5>
+                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Imaging and total amount <span style="background-color: red;">{{total_imaging_cost}}</span></h6>
                                                             </div>
                                                             <div class="card-body">
                                                                 <div class="table-responsive">
@@ -429,8 +434,7 @@ Patient - Health Record
                                             </div>
                                         </div>
                                     </div>
-                                </div>                               
-                                                    
+                                </div>                                                             
                                 
                         </div>
                     </div>

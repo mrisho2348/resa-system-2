@@ -4,12 +4,21 @@
 {% endblock title %}
 
 {% block page_title %}
-New Lab Order - Request
+
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+    <i class="fas fa-arrow-left"></i> Back to health record
+    </a>  
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+    <i class="fas fa-arrow-left"></i>visit history
+</a>  
+
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
+New Lab Order - Request
 {% endblock breadcrumb %}
+
 {% block main_content %}
 
 <div class="container-fluid">
@@ -22,7 +31,7 @@ New Lab Order - Request
                 <div class="card-body">
                     <div class="row text-uppercase" style="font-size:13px;">
                         <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                             <script>
                                 var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                 var now = new Date();
@@ -38,7 +47,12 @@ New Lab Order - Request
                         <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
                     </div>
                         <div class="row mt-3">
-                            <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                             <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                                        {{ patient.payment_form }}- {{ patient.insurance_name }}   
+                                        {% else  %}   
+                                        {{ patient.payment_form }}                  
+                                    {% endif %}</b>
+                                </div>
                             <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
                         </div>
                 </div>    
@@ -100,7 +114,7 @@ New Lab Order - Request
                                 <div id="investigationResponse"></div>
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
+                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
                         <!-- Save Procedure button -->
                         <div class="form-group mt-3">
@@ -142,6 +156,15 @@ New Lab Order - Request
     
     <script>
         $(document).ready(function() {
+
+            
+            // Function to initialize Select2 dynamically
+            function initializeSelect2(selector) {
+                $(selector).select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
             // Add row button functionality
             $('#addRow{{ visit.id }}').click(function() {
                 var newRow = `
@@ -159,6 +182,7 @@ New Lab Order - Request
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
                 $('#investigationTable{{ visit.id }} tbody').append(newRow);
+                 initializeSelect2('.select2bs4');
             });
     
             // Delete row button functionality

@@ -10,6 +10,7 @@ class ImportStaffForm(forms.Form):
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+    
 class ImportDiseaseForm(forms.Form):
     disease_recode_file = forms.FileField(
         label='Choose an Excel file',
@@ -126,48 +127,56 @@ class ImportDiagnosisForm(forms.Form):
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportConsultationNotesForm(forms.Form):
     consultation_records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportRemoteServiceForm(forms.Form):
     service_records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportRemotePatientForm(forms.Form):
     patient_records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportCountryForm(forms.Form):
     country_records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportHealthRecordForm(forms.Form):
     health_records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportPrescriptionFrequencyForm(forms.Form):
     records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportAmbulanceRouteForm(forms.Form):
     records_file = forms.FileField(
         label='Choose an Excel file',
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.xlsx, .xls'})
     )
+
 class ImportAmbulanceActivityForm(forms.Form):
     records_file = forms.FileField(
         label='Choose an Excel file',

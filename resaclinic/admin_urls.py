@@ -133,5 +133,8 @@ urlpatterns = [
     re_path(r'^admin/vehicle-detail/(?P<order_id>\d+)/$', AdminViews.vehicle_detail, name="admin_vehicle_detail"),
     path('api/admin/out-of-stock-medicines/', AdminViews.out_of_stock_medicines, name="api_admin_out_of_stock_medicines"),
     path('api/admin/out-of-stock-reagent-count/', AdminViews.get_out_of_stock_count_reagent, name="admin_get_out_of_stock_count_reagent"),
+
+    path('api/earnings/', AdminViews.get_earnings_data, name='admin_get_earnings_data'),
+    path('earnings/monthly-by-year/', AdminViews.get_monthly_earnings_by_year, name='admin_monthly_earnings_by_year'),
 ]
 

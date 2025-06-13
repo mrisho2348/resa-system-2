@@ -15,13 +15,14 @@ from django.contrib import messages
 from django.db.models import F, Window
 from django.core.exceptions import ValidationError
 from django.db.models.functions import RowNumber
+from clinic.forms import CounselingForm, DischargesNotesForm, LaboratoryOrderForm, ObservationRecordForm
 from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
 from .models import AmbulanceOrder, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination,ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InventoryItem, LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
-from django.db.models import Sum
-from django.db.models import Q
 import numpy as np
+from django.db.models import Max,Sum,Q
+from django.db.models import OuterRef, Subquery
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
@@ -120,6 +121,240 @@ def receptionist_dashboard(request):
 
     # Render the template with the context
     return render(request, "receptionist_template/home_content.html", context)
+
+def get_earnings_data(request):
+    try:
+        today = date.today()
+        current_month = today.month
+        current_year = today.year
+
+        def aggregate_earnings(querysets, field='cost'):
+            earnings = {'nhif': 0, 'cash': 0, 'other': 0}
+            for qs in querysets:
+                earnings['nhif'] += qs.filter(
+                    patient__payment_form='Insurance',
+                    patient__insurance_name__icontains='nhif'
+                ).aggregate(total=Sum(field))['total'] or 0
+
+                earnings['cash'] += qs.filter(
+                    patient__payment_form='Cash'
+                ).aggregate(total=Sum(field))['total'] or 0
+
+                earnings['other'] += qs.filter(
+                    patient__payment_form='Insurance'
+                ).exclude(patient__insurance_name__icontains='nhif'
+                ).aggregate(total=Sum(field))['total'] or 0
+            return earnings
+
+        def compile_total(data):
+            return data['nhif'] + data['cash'] + data['other']
+
+        # DAILY
+        daily_hospital_qs = [
+            LaboratoryOrder.objects.filter(order_date=today),
+            Procedure.objects.filter(order_date=today),
+            ImagingRecord.objects.filter(order_date=today),
+            ConsultationOrder.objects.filter(order_date=today),
+        ]
+
+        daily_prescription_qs = [
+            Prescription.objects.filter(created_at__date=today),
+        ]
+
+        daily_hospital_data = aggregate_earnings(daily_hospital_qs)
+        daily_prescription_data = aggregate_earnings(daily_prescription_qs, field='total_price')
+
+        # MONTHLY
+        monthly_hospital_qs = [
+            LaboratoryOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
+            Procedure.objects.filter(order_date__month=current_month, order_date__year=current_year),
+            ImagingRecord.objects.filter(order_date__month=current_month, order_date__year=current_year),
+            ConsultationOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
+        ]
+
+        monthly_prescription_qs = [
+            Prescription.objects.filter(created_at__month=current_month, created_at__year=current_year),
+        ]
+
+        monthly_hospital_data = aggregate_earnings(monthly_hospital_qs)
+        monthly_prescription_data = aggregate_earnings(monthly_prescription_qs, field='total_price')
+
+        # YEARLY
+        yearly_hospital_qs = [
+            LaboratoryOrder.objects.filter(order_date__year=current_year),
+            Procedure.objects.filter(order_date__year=current_year),
+            ImagingRecord.objects.filter(order_date__year=current_year),
+            ConsultationOrder.objects.filter(order_date__year=current_year),
+        ]
+
+        yearly_prescription_qs = [
+            Prescription.objects.filter(created_at__year=current_year),
+        ]
+
+        yearly_hospital_data = aggregate_earnings(yearly_hospital_qs)
+        yearly_prescription_data = aggregate_earnings(yearly_prescription_qs, field='total_price')
+
+        # ALL-TIME
+        alltime_hospital_qs = [
+            LaboratoryOrder.objects.all(),
+            Procedure.objects.all(),
+            ImagingRecord.objects.all(),
+            ConsultationOrder.objects.all(),
+        ]
+
+        alltime_prescription_qs = [
+            Prescription.objects.all(),
+        ]
+
+        alltime_hospital_data = aggregate_earnings(alltime_hospital_qs)
+        alltime_prescription_data = aggregate_earnings(alltime_prescription_qs, field='total_price')
+
+        return JsonResponse({
+            'daily': {
+                'hospital': {
+                    'nhif': daily_hospital_data['nhif'],
+                    'cash': daily_hospital_data['cash'],
+                    'other': daily_hospital_data['other'],
+                    'total': compile_total(daily_hospital_data),
+                },
+                'prescription': {
+                    'nhif': daily_prescription_data['nhif'],
+                    'cash': daily_prescription_data['cash'],
+                    'other': daily_prescription_data['other'],
+                    'total': compile_total(daily_prescription_data),
+                },
+                'grand_total': compile_total(daily_hospital_data) + compile_total(daily_prescription_data),
+            },
+            'monthly': {
+                'hospital': {
+                    'nhif': monthly_hospital_data['nhif'],
+                    'cash': monthly_hospital_data['cash'],
+                    'other': monthly_hospital_data['other'],
+                    'total': compile_total(monthly_hospital_data),
+                },
+                'prescription': {
+                    'nhif': monthly_prescription_data['nhif'],
+                    'cash': monthly_prescription_data['cash'],
+                    'other': monthly_prescription_data['other'],
+                    'total': compile_total(monthly_prescription_data),
+                },
+                'grand_total': compile_total(monthly_hospital_data) + compile_total(monthly_prescription_data),
+            },
+            'yearly': {
+                'hospital': {
+                    'nhif': yearly_hospital_data['nhif'],
+                    'cash': yearly_hospital_data['cash'],
+                    'other': yearly_hospital_data['other'],
+                    'total': compile_total(yearly_hospital_data),
+                },
+                'prescription': {
+                    'nhif': yearly_prescription_data['nhif'],
+                    'cash': yearly_prescription_data['cash'],
+                    'other': yearly_prescription_data['other'],
+                    'total': compile_total(yearly_prescription_data),
+                },
+                'grand_total': compile_total(yearly_hospital_data) + compile_total(yearly_prescription_data),
+            },
+            'alltime': {
+                'hospital': {
+                    'nhif': alltime_hospital_data['nhif'],
+                    'cash': alltime_hospital_data['cash'],
+                    'other': alltime_hospital_data['other'],
+                    'total': compile_total(alltime_hospital_data),
+                },
+                'prescription': {
+                    'nhif': alltime_prescription_data['nhif'],
+                    'cash': alltime_prescription_data['cash'],
+                    'other': alltime_prescription_data['other'],
+                    'total': compile_total(alltime_prescription_data),
+                },
+                'grand_total': compile_total(alltime_hospital_data) + compile_total(alltime_prescription_data),
+            },
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_earnings_data view: {str(e)}")
+        return JsonResponse({'error': 'An error occurred while retrieving earnings data.'}, status=500)
+
+
+def get_monthly_earnings_by_year(request):
+    try:
+        year = int(request.GET.get('year', datetime.today().year))
+        print(year)
+        def monthly_insurance_totals(model, date_field, value_field):
+            monthly = {
+                'nhif': [0] * 12,
+                'cash': [0] * 12,
+                'other': [0] * 12
+            }
+
+            for month in range(1, 13):
+                # NHIF totals
+                nhif_qs = model.objects.filter(
+                    **{
+                        f"{date_field}__year": year,
+                        f"{date_field}__month": month,
+                        "patient__payment_form": "Insurance",
+                        "patient__insurance_name__icontains": "nhif"
+                    }
+                )
+                monthly['nhif'][month - 1] = nhif_qs.aggregate(total=Sum(value_field))['total'] or 0
+
+                # Cash totals
+                cash_qs = model.objects.filter(
+                    **{
+                        f"{date_field}__year": year,
+                        f"{date_field}__month": month,
+                        "patient__payment_form": "Cash"
+                    }
+                )
+                monthly['cash'][month - 1] = cash_qs.aggregate(total=Sum(value_field))['total'] or 0
+
+                # Other Insurance totals (not NHIF)
+                other_qs = model.objects.filter(
+                    **{
+                        f"{date_field}__year": year,
+                        f"{date_field}__month": month,
+                        "patient__payment_form": "Insurance"
+                    }
+                ).exclude(patient__insurance_name__icontains="nhif")
+                monthly['other'][month - 1] = other_qs.aggregate(total=Sum(value_field))['total'] or 0
+
+            return monthly
+
+        hospital_nhif = [0] * 12
+        hospital_cash = [0] * 12
+        hospital_other = [0] * 12
+
+        hospital_sources = [
+            (LaboratoryOrder, 'order_date', 'cost'),
+            (Procedure, 'order_date', 'cost'),
+            (ImagingRecord, 'order_date', 'cost'),
+            (ConsultationOrder, 'order_date', 'cost')
+        ]
+
+        for model, date_field, value_field in hospital_sources:
+            monthly = monthly_insurance_totals(model, date_field, value_field)
+            hospital_nhif = [x + y for x, y in zip(hospital_nhif, monthly['nhif'])]
+            hospital_cash = [x + y for x, y in zip(hospital_cash, monthly['cash'])]
+            hospital_other = [x + y for x, y in zip(hospital_other, monthly['other'])]
+
+        presc_monthly = monthly_insurance_totals(Prescription, 'created_at', 'total_price')
+
+        return JsonResponse({
+            'hospital_nhif': hospital_nhif,
+            'hospital_cash': hospital_cash,
+            'hospital_other': hospital_other,
+            'prescription_nhif': presc_monthly['nhif'],
+            'prescription_cash': presc_monthly['cash'],
+            'prescription_other': presc_monthly['other']
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 @login_required
 def receptionist_profile(request):
@@ -1460,7 +1695,7 @@ def add_patient(request):
             address = request.POST.get('Address')                       
 
             payment_type = request.POST.get('payment_type')
-            insurance_name = request.POST.get('insurance_name')
+            insurance_name = request.POST.get('insurance_company')
             insurance_number = request.POST.get('insurance_number')
             nida_number = request.POST.get('nida_number')
 
@@ -2326,7 +2561,7 @@ def patient_lab_result_history_view(request, mrn):
 @login_required
 def patient_lab_details_view(request, mrn, visit_number):
     # Fetch the patient with a prefetch query to reduce database hits
-    patient = get_object_or_404(Patients.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
+    patient = get_object_or_404(Patients.objects.prefetch_related('laboratoryorder_set'), mrn=mrn)
     visit = get_object_or_404(PatientVisits, vst=visit_number)
     
     # Retrieve lab results efficiently
@@ -2343,6 +2578,146 @@ def patient_lab_details_view(request, mrn, visit_number):
     }
 
     return render(request, 'receptionist_template/lab_details.html', context)    
+
+@login_required    
+def edit_lab_result(request, patient_id, visit_id, lab_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)            
+
+    procedures = LaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
+    
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'procedures': procedures,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = LaboratoryOrderForm(request.POST, instance=procedures)
+        
+        # Check if a record already exists for the patient and visit
+        if procedures:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    # Track the user who edited the record
+                    procedures.data_recorder = request.user.staff   # Set the staff member who edited
+                    form.save()  # Save the updated record
+                    messages.success(request, 'Laboratory result updated successfully!')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient          
+            form.instance.visit = visit
+            form.instance.data_recorder = request.user.staff   # Set the staff member who added the record
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, 'Laboratory result added successfully!')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect(reverse('receptionist_patient_lab_result_history_view', args=[patient.mrn]))
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = LaboratoryOrderForm(instance=procedures)   
+    
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'receptionist_template/edit_lab_result.html', context)   
+
+@login_required
+def add_radiology(request, patient_id, visit_id):
+    try:    
+        try:
+            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        except PatientVisits.DoesNotExist:
+            visit = None
+       
+        doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
+        patient = Patients.objects.get(id=patient_id)
+        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
+        radiology_record = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
+        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+        provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)     
+        final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
+        # Fetching services based on coverage and type
+        if patient.payment_form == 'insurance':
+            # If patient's payment form is insurance, fetch services with matching coverage
+            remote_service = Service.objects.filter(
+                Q(type_service='Imaging') & Q(coverage=patient.payment_form)
+            )
+        else:
+            # If payment form is cash, fetch all services of type procedure
+            remote_service = Service.objects.filter(type_service='Imaging')
+       
+        return render(request, 'receptionist_template/add_radiology.html', {
+            'visit': visit,
+            'patient': patient,
+            'radiology_record': radiology_record,          
+            'final_provisional_diagnosis': final_provisional_diagnosis,          
+            'doctors': doctors,          
+            'consultation_note': consultation_note,          
+            'consultation_notes': consultation_notes,          
+            'remote_service': remote_service,
+        
+        })
+    except Exception as e:
+        # Handle other exceptions if necessary
+        return render(request, '404.html', {'error_message': str(e)})     
+
+@login_required
+@csrf_exempt
+def add_imaging(request):
+    if request.method == 'POST':
+        try:
+            # Assuming your form fields are named appropriately in your template
+            patient_id = request.POST.get('patient_id')
+            doctor = request.user.staff
+            visit_id = request.POST.get('visit_id')
+            doctor_id = request.POST.get('doctor_id')
+            imaging_names = request.POST.getlist('imaging_name[]')
+            descriptions = request.POST.getlist('description[]')            
+            costs = request.POST.getlist('cost[]')
+            order_date = request.POST.get('order_date')
+
+            # Loop through the submitted data and create ImagingRecord objects
+            for i in range(len(imaging_names)):
+                imaging_record = ImagingRecord.objects.create(
+                    patient_id=patient_id,
+                    doctor_id=doctor_id,
+                    visit_id=visit_id,
+                    order_date=order_date,              
+                    data_recorder=request.user.staff ,
+                    imaging_id=imaging_names[i],
+                    description=descriptions[i],                 
+                    cost=costs[i],
+                    # Set other fields as needed
+                )
+                # Save the imaging record to the database
+                imaging_record.save()
+
+            # Assuming the imaging records were successfully saved
+            return JsonResponse({'status': 'success', 'message': 'Imaging records saved successfully'})
+        except IntegrityError as e:
+            # Handle integrity errors, such as unique constraint violations
+            return JsonResponse({'status': 'error', 'message': 'Integrity error occurred: ' + str(e)})
+        except Exception as e:
+            # Handle other unexpected errors
+            return JsonResponse({'status': 'error', 'message': 'An error occurred: ' + str(e)})
+    else:
+        # If the request method is not POST, return an error response
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})        
 
 @login_required
 def patient_procedure_view(request):
@@ -2474,7 +2849,7 @@ def save_counsel(request, patient_id, visit_id):
 def view_counseling_notes(request, patient_id, visit_id):
     visit = get_object_or_404(PatientVisits, id=visit_id)  
     patient = get_object_or_404(Patients, id=patient_id) 
-    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+    counseling_note = get_object_or_404(Counseling, patient=patient, visit=visit)
     
     context = {
         'patient': patient,
@@ -2535,7 +2910,7 @@ def discharge_details_view(request, patient_id, visit_id):
     consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     
     # Fetch the discharge note related to this visit
-    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
 
     context = {
         'patient': patient,
@@ -2563,7 +2938,7 @@ def save_observation(request, patient_id, visit_id):
                'record_exists': record_exists
                }
     if request.method == 'POST':
-        form = RemoteObservationRecordForm(request.POST)
+        form = ObservationRecordForm(request.POST)
         if form.is_valid():
             description = form.cleaned_data['observation_notes']
             try:
@@ -2597,7 +2972,7 @@ def save_observation(request, patient_id, visit_id):
 def view_observation_notes(request, patient_id, visit_id):
     visit = get_object_or_404(PatientVisits, id=visit_id)  
     patient = get_object_or_404(Patients, id=patient_id)  
-    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)      
+    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)      
     
     return render(request, 'receptionist_template/observation_notes_detail.html', {
         'observation_record': observation_record,

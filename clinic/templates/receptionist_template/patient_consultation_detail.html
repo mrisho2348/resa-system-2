@@ -3,6 +3,17 @@
 {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Consultation - Request 
 {% endblock title %}
 
+{% block page_title %}
+
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+    <i class="fas fa-arrow-left"></i> Back to health record
+    </a>  
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+    <i class="fas fa-arrow-left"></i>visit history
+</a>  
+
+{% endblock page_title %}
+
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %} 
 Consultation - Request   
@@ -14,7 +25,7 @@ Consultation - Request
         <div class="card-body">
             <div class="row text-uppercase" style="font-size:13px;">
                 <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                     <script>
                         var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                         var now = new Date();
@@ -30,7 +41,12 @@ Consultation - Request
                 <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
             </div>
                 <div class="row mt-3">
-                    <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                    <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                         {{ patient.payment_form }}- {{ patient.insurance_name }}   
+                         {% else  %}   
+                         {{ patient.payment_form }}                  
+                    {% endif %}</b>
+                </div>
                     <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
                 </div>
         </div>    
@@ -90,7 +106,7 @@ Consultation - Request
                                 <div id="consultationResponse"></div>
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit_history.id }}">
+                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
                         <!-- Save Procedure button -->
                         <div class="form-group mt-3">
@@ -132,6 +148,15 @@ Consultation - Request
     
     <script>
         $(document).ready(function() {
+
+                        
+            // Function to initialize Select2 dynamically
+            function initializeSelect2(selector) {
+                $(selector).select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                });
+            }
             // Initialize a counter to create unique IDs for each row
             var rowIdCounter = 1;
     
@@ -178,9 +203,7 @@ Consultation - Request
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
                 $('#consultationTable{{ visit.id }} tbody').append(newRow);
-    
-                // Initialize the select2 for the new row
-                $('#' + uniqueId).select2();
+                                             initializeSelect2('.select2bs4');
             });
     
             // Delete row button functionality

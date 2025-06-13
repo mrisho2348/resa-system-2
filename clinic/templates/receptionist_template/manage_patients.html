@@ -299,56 +299,55 @@
     });
 </script>    
 <script>
-    $(document).ready(function() {
-        // Set the max attribute of all date inputs to today's date
+    $(document).ready(function () {
+        // Set max date only for the DOB input with specific ID
         const today = new Date().toISOString().split('T')[0];
-        $('input[type="date"]').attr('max', today);
-    
-        // Function to calculate age from date of birth
+        const dobInput = $('#edit_dob{{ patient.id }}');
+        dobInput.attr('max', today);
+
+        // Function to calculate age from DOB
         function calculateAge(dob) {
             const today = new Date();
             const birthDate = new Date(dob);
             let age = today.getFullYear() - birthDate.getFullYear();
-            const monthDifference = today.getMonth() - birthDate.getMonth();
-            const dayDifference = today.getDate() - birthDate.getDate();
-    
-            if (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)) {
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            const dayDiff = today.getDate() - birthDate.getDate();
+
+            if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
                 age--;
             }
-    
             return age;
         }
-    
-        // Function to calculate date of birth from age
+
+        // Function to calculate DOB from age
         function calculateDOB(age) {
             const today = new Date();
             const birthYear = today.getFullYear() - age;
-            const birthDate = new Date(birthYear, 6, 1); // July is month 6 (0-based index)
-    
-            // Manually format the date to YYYY-MM-DD
+            const birthDate = new Date(birthYear, 6, 1); // July 1st as approx. DOB
             const year = birthDate.getFullYear();
-            const month = String(birthDate.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
+            const month = String(birthDate.getMonth() + 1).padStart(2, '0');
             const day = String(birthDate.getDate()).padStart(2, '0');
-            
             return `${year}-${month}-${day}`;
         }
-    
-        // Event listeners for dynamically generated elements
-        $('input[type="date"]').on('change', function() {
+
+        // Update age when DOB changes
+        dobInput.on('change', function () {
             const dob = $(this).val();
             const age = calculateAge(dob);
             const ageId = $(this).attr('id').replace('dob', 'age');
             $('#' + ageId).val(age).trigger('change');
         });
-    
-        $('select[name="edit_age"]').on('change', function() {
+
+        // Update DOB when age changes
+        $('select[name="edit_age"]').on('change', function () {
             const age = $(this).val();
             const dobId = $(this).attr('id').replace('age', 'dob');
             const dob = calculateDOB(age);
             $('#' + dobId).val(dob);
         });
-    });                                    
+    });
 </script>
+
 
 <script>
     $(document).ready(function(){
@@ -733,7 +732,8 @@
 {% endwith %}
 
         <!-- 🔹 CARD: Vital Signs -->
-        <div class="card mb-4">
+        {% if visit.patientvital_set.all %}
+              <div class="card mb-4">
           <div class="card-header bg-dark text-white">
             <h6 class="mb-0">Vital Signs Records</h6>
           </div>
@@ -784,9 +784,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 🔹 CARD: Imaging Records -->
-        <div class="card mb-4">
+        {% if visit.imagingrecord_set.all %}
+              <div class="card mb-4">
           <div class="card-header bg-info text-white">
             <h6 class="mb-0">Imaging Records</h6>
           </div>
@@ -839,9 +841,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 🔹 CARD: Procedures -->
-        <div class="card mb-4">
+        {% if visit.procedure_set.all %}
+               <div class="card mb-4">
           <div class="card-header bg-warning text-dark">
             <h6 class="mb-0">Procedure Records</h6>
           </div>
@@ -898,9 +902,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 🔬 CARD: Laboratory Orders -->
-        <div class="card mb-4">
+        {% if visit.laboratoryorder_set.all %}
+            <div class="card mb-4">
           <div class="card-header bg-danger text-white">
             <h6 class="mb-0">Laboratory Orders</h6>
           </div>
@@ -955,9 +961,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 💬 CARD: Counseling Notes -->
-        <div class="card mb-4">
+        {% if visit.counseling_set.all %}
+              <div class="card mb-4">
           <div class="card-header bg-info text-white">
             <h6 class="mb-0">Counseling Notes</h6>
           </div>
@@ -1000,9 +1008,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 💊 CARD: Prescription Records -->
-        <div class="card mb-4">
+        {% if visit.prescription_set.all %}
+                  <div class="card mb-4">
           <div class="card-header bg-success text-white">
             <h6 class="mb-0">Prescription Records</h6>
           </div>
@@ -1053,9 +1063,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 📝 CARD: Observation Records -->
-        <div class="card mb-4">
+       {% if visit.observationrecord_set.all %}
+         <div class="card mb-4">
           <div class="card-header bg-info text-white">
             <h6 class="mb-0">Observation Records</h6>
           </div>
@@ -1090,9 +1102,11 @@
             {% endif %}
           </div>
         </div>
+       {% endif %}
 
         <!-- 🏥 CARD: Discharge Notes -->
-        <div class="card mb-4">
+        {% if visit.dischargesnotes_set.all %}
+            <div class="card mb-4">
           <div class="card-header bg-warning text-dark">
             <h6 class="mb-0">Discharge Notes</h6>
           </div>
@@ -1129,9 +1143,11 @@
             {% endif %}
           </div>
         </div>
+        {% endif %}
 
         <!-- 🏥 CARD: Referral Details -->
-        <div class="card mb-4">
+          {% if visit.referral_set.all %}
+            <div class="card mb-4">
           <div class="card-header bg-info text-white">
             <h6 class="mb-0">Referral Details</h6>
           </div>
@@ -1180,6 +1196,7 @@
             {% endif %}
           </div>
         </div>
+          {% endif %}
 
       </div>
     </div>

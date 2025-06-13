@@ -1,67 +1,75 @@
-{% extends 'doctor_template/base_template.html' %}
+{% extends 'receptionist_template/base_template.html' %}
 {% block title %}
-New Lab Order - Request   
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Imaging   
 {% endblock title %}
 
 {% block page_title %}
 
-{% if previous_results and consultation_note.doctor_plan|lower == 'laboratory' %}
-  <a class="btn btn-primary" type="button"  href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+    <i class="fas fa-arrow-left"></i> Back to health record
+    </a>  
+    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+    <i class="fas fa-arrow-left"></i>visit history
 </a>  
-{% endif %}
-<a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
-<i class="fas fa-arrow-left"></i> Back to health record
-</a>  
-{% if previous_results and consultation_note.doctor_plan|lower == 'laboratory' %}
-<a class="btn btn-success" type="button"  href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-right"></i> Forward
-</a>
-{% endif %}
- 
+
 {% endblock page_title %}
 
 {% block breadcrumb %}
-{% include "doctor_template/modal_form.html" %}
-    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#imagingRecordsModal">
-        <i class="fas fa-eye"></i> view result
-    </a>
+{% include "receptionist_template/modal_form.html" %}
+Patient Imaging/Radiolgy
 {% endblock breadcrumb %}
 {% block main_content %}
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">               
+            <div class="card">                              
                 <div class="card-body">
-                    <div class="row text-uppercase" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
-                    </div>
-                        <div class="row mt-3">
-                             <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                    <div class="card">
+                        <div class="card-header">
+                            <label for="chief_complaints">Patient Information</label>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    PATIENT:    <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b>
+                                </div>
+                                <div class="col-md-3">
+                                    DOB:   <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                                        <script>
+                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                            var now = new Date();
+                                            var ageMilliseconds = now - dob;
+                                            var ageSeconds = ageMilliseconds / 1000;
+                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                            document.write(ageYears + ' years');
+                                        </script>
+                                        {% else %}
+                                        {{ patient.age }}
+                                        {% endif %}]</b> 
+                                </div>
+                                <div class="col-md-3">
+                                    SEX:   <b>{{ patient.gender }}</b>
+                                </div>
+                                <div class="col-md-3">
+                                    FILE NO:   <b>{{ patient.mrn }}</b>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                 <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
                                         {{ patient.payment_form }}- {{ patient.insurance_name }}   
                                         {% else  %}   
                                         {{ patient.payment_form }}                  
                                     {% endif %}</b>
                                 </div>
-                            <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
+                                <div class="col-md-3">
+                                    Visit Number:     <b>{{ visit.vst }}</b>
+                                </div>
+                            </div>
                         </div>
-                </div>           
-            
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -69,16 +77,16 @@ New Lab Order - Request
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add New Lab Order </h4>
+                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Imaging </h4>
                 </div>
                 <div class="card-body">
-                    <form id="addInvestigationForm" method="post" enctype="multipart/form-data">
+                    <form id="addImagingForm" method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="investigationTable{{ visit.id }}">
+                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="imagingTable{{ visit.id }}">
                                 <thead>
                                     <tr>
-                                        <th>Investigation Name</th>
+                                        <th>Imaging Name</th>
                                         <th>Description</th>                                   
                                         <th>Cost</th>
                                         <th></th>
@@ -87,14 +95,14 @@ New Lab Order - Request
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <select class="form-control select2bs4 investigation-name" style="width: 100%;" name="investigation_name[]" required>
-                                                <option value="">Select Investigation</option>
-                                                {% for lab in remote_service %}
-                                                    <option value="{{ lab.id }}">{{ lab.name }}</option>
+                                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" name="imaging_name[]" required>
+                                                <option value="">Select Imaging</option>
+                                                {% for imaging in remote_service %}
+                                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
                                                 {% endfor %}
                                             </select>
                                         </td>
-                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter investigation description"></td>                                       
+                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                                       
                                         <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
                                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                                     </tr>
@@ -117,14 +125,14 @@ New Lab Order - Request
                         </div>
                         <div class="row">
                             <div class="col-md-12">
-                                <div id="investigationResponse"></div>
+                                <div id="imagingResponse"></div>
                             </div>
                         </div>
                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
                         <!-- Save Procedure button -->
                         <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Investigation</button>
+                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Imaging</button>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -139,17 +147,17 @@ New Lab Order - Request
                                     // Set the value of the input field to the current date
                                     document.getElementById('orderDate').value = currentDate;
                                 </script>
-                            </div>
-                            <div class="col-md-6">
+                            </div>  
+                              <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="doctor">Lab Technician:</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>
+                                    <label for="doctor">Doctor:</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>                                     
                                         {% for doctor in doctors %}
                                             <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                             </div>                                
+                             </div>                            
                            </div>
                         <div class="form-group">
                             <button type="button" class="btn btn-primary btn-block" onclick="addImaging()">Request Order & Pay</button>
@@ -163,7 +171,6 @@ New Lab Order - Request
     <script>
         $(document).ready(function() {
 
-            
             // Function to initialize Select2 dynamically
             function initializeSelect2(selector) {
                 $(selector).select2({
@@ -171,24 +178,24 @@ New Lab Order - Request
                     width: '100%',
                 });
             }
-            // Add row button functionality
+            // Add row button functionality            
             $('#addRow{{ visit.id }}').click(function() {
                 var newRow = `
                     <tr>
                         <td>
-                            <select class="form-control select2bs4 investigation-name" style="width: 100%;" name="investigation_name[]" required>
-                                <option value="">Select Investigation</option>
-                                {% for lab in remote_service %}
-                                    <option value="{{ lab.id }}">{{ lab.name }}</option>
+                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" name="imaging_name[]" required>
+                                <option value="">Select Procedure</option>
+                                {% for imaging in remote_service %}
+                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
                                 {% endfor %}
                             </select>
                         </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter investigation description"></td>                       
+                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                       
                         <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
                         <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
                     </tr>`;
-                $('#investigationTable{{ visit.id }} tbody').append(newRow);
-                        initializeSelect2('.select2bs4');
+                $('#imagingTable{{ visit.id }} tbody').append(newRow);
+                   initializeSelect2('.select2bs4');
             });
     
             // Delete row button functionality
@@ -198,12 +205,12 @@ New Lab Order - Request
             });
     
                         // Fetch cost when procedure name is selected
-                $(document).on('change', '.investigation-name', function() {
+                $(document).on('change', '.imaging-name', function() {
                     var selectedProcedureId = $(this).val();
                     var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
                     var row = $(this).closest('tr');
                     $.ajax({
-                        url: '{% url "doctor_get_procedure_cost" %}',
+                        url: '{% url "receptionist_get_procedure_cost" %}',
                         method: 'POST',
                         data: {
                             procedure_id: selectedProcedureId,
@@ -221,7 +228,7 @@ New Lab Order - Request
             // Function to update total cost
             function updateTotalCost{{ visit.id }}() {
                 var totalCost = 0;
-                $('#investigationTable{{ visit.id }} tbody tr').each(function() {
+                $('#imagingTable{{ visit.id }} tbody tr').each(function() {
                     var cost = parseFloat($(this).find('.cost').val());
                     if (!isNaN(cost)) {
                         totalCost += cost;
@@ -235,19 +242,19 @@ New Lab Order - Request
         function addImaging() {
             $.ajax({
                 type: 'POST',
-                url: '{% url "doctor_add_investigation" %}',
-                data: $('#addInvestigationForm').serialize(),
+                url: '{% url "receptionist_add_imaging" %}',
+                data: $('#addImagingForm').serialize(),
                 success: function(response) {
                     if (response.status === 'success') {
-                        $('#investigationResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "doctor_save_remotesconsultation_notes_next" patient.id visit.id %}';
+                        $('#imagingResponse').html('<div class="alert alert-success">' + response.message + '</div>');
+                        var redirectUrl = '{% url "receptionist_all_orders_view" %}';
                         window.location.href = redirectUrl;
                     } else {
-                        $('#investigationResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        $('#imagingResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
                 error: function(xhr, status, error) {
-                    $('#investigationResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+                    $('#imagingResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
                 }
             });
         }
@@ -260,7 +267,7 @@ New Lab Order - Request
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title text-center text-uppercase" id="prescriptionModalLabel">Investigation Total cost: <span style="background-color: red;">{{ total_imaging_cost }}</span></h5>
+            <h5 class="modal-title text-center text-uppercase" id="prescriptionModalLabel">Imaging Total cost: <span style="background-color: red;">{{ total_imaging_cost }}</span></h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
         </button>
@@ -272,7 +279,7 @@ New Lab Order - Request
                     <table  class="table table-hover text-nowrap table-bordered table-striped" id="example4">
                         <thead>
                           <tr>
-                            <th>Investigation Name</th>
+                            <th>Image Name</th>
                             <th>Description</th>                           
                             <th>Cost</th>
                             <th>Date</th> <!-- New column -->
@@ -280,9 +287,9 @@ New Lab Order - Request
                           </tr>
                         </thead>
                         <tbody>
-                          {% for record in Investigation %}
+                          {% for record in imaging_records %}
                           <tr>
-                            <td>{{ record.name.name }}</td>
+                            <td>{{ record.imaging.name }}</td>
                             <td>{{ record.description }}</td>                            
                             <td>{{ record.cost }}</td>
                             <td>{{ record.created_at|date:"F d, Y" }}</td> <!-- Display date -->
@@ -301,55 +308,7 @@ New Lab Order - Request
       </div>
     </div>
   </div>
-  
 
-
-<style>
-    /* Reset default margin and padding */
-.navigation {
-    padding-left: 0;
-    list-style: none;
-}
-
-/* Style for the header */
-.navigation-header {
-    background-color: #f0f0f0; /* Header background color */
-    color: #333; /* Header text color */
-    font-weight: bold;
-    padding: 10px; /* Add padding to the header */
-    border-radius: 5px; /* Add border radius */
-    margin-bottom: 10px; /* Add space between header and links */
-}
-
-/* Style for each list item */
-.navigation li {
-    margin-bottom: 5px;
-}
-
-/* Style for each link */
-.navigation li a {
-    color: #333; /* Default text color */
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease; /* Smooth transition for background color */
-}
-
-/* Style for the active link */
-.navigation li.active a {
-    background-color: #007bff; /* Active background color */
-    color: #fff; /* Active text color */
-}
-
-/* Style for link hover */
-.navigation li a:hover {
-    background-color: #e0e0e0; /* Hover background color */
-    color: #000; /* Change text color on hover */
-}
-
-    
-</style>
 <style>
     /* styles.css */
 
@@ -393,7 +352,9 @@ New Lab Order - Request
 
 </style>
 
-{% include 'doctor_template/datatable.html' %}
+
+
+{% include 'receptionist_template/datatable.html' %}
     
 
 {% endblock main_content %}
