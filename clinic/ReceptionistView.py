@@ -125,233 +125,77 @@ def receptionist_dashboard(request):
 def get_earnings_data(request):
     try:
         today = date.today()
-        current_month = today.month
-        current_year = today.year
 
+        # Helper function to calculate earnings from multiple querysets
         def aggregate_earnings(querysets, field='cost'):
-            earnings = {'nhif': 0, 'cash': 0, 'other': 0}
+            totals = {'nhif': 0, 'cash': 0, 'other': 0}
+
             for qs in querysets:
-                earnings['nhif'] += qs.filter(
+                # NHIF Insurance Earnings
+                totals['nhif'] += qs.filter(
                     patient__payment_form='Insurance',
                     patient__insurance_name__icontains='nhif'
                 ).aggregate(total=Sum(field))['total'] or 0
 
-                earnings['cash'] += qs.filter(
+                # Cash Payments
+                totals['cash'] += qs.filter(
                     patient__payment_form='Cash'
                 ).aggregate(total=Sum(field))['total'] or 0
 
-                earnings['other'] += qs.filter(
+                # Other Insurance (non-NHIF)
+                totals['other'] += qs.filter(
                     patient__payment_form='Insurance'
-                ).exclude(patient__insurance_name__icontains='nhif'
+                ).exclude(
+                    patient__insurance_name__icontains='nhif'
                 ).aggregate(total=Sum(field))['total'] or 0
-            return earnings
 
-        def compile_total(data):
-            return data['nhif'] + data['cash'] + data['other']
+            return totals
 
-        # DAILY
-        daily_hospital_qs = [
+        # Helper function to compute total earnings
+        def compute_total(totals_dict):
+            return totals_dict['nhif'] + totals_dict['cash'] + totals_dict['other']
+
+        # DAILY EARNINGS: group related hospital and prescription queries
+        daily_hospital_querysets = [
             LaboratoryOrder.objects.filter(order_date=today),
             Procedure.objects.filter(order_date=today),
             ImagingRecord.objects.filter(order_date=today),
             ConsultationOrder.objects.filter(order_date=today),
         ]
 
-        daily_prescription_qs = [
+        daily_prescription_querysets = [
             Prescription.objects.filter(created_at__date=today),
         ]
 
-        daily_hospital_data = aggregate_earnings(daily_hospital_qs)
-        daily_prescription_data = aggregate_earnings(daily_prescription_qs, field='total_price')
+        # Process hospital and prescription earnings
+        hospital_earnings = aggregate_earnings(daily_hospital_querysets)
+        prescription_earnings = aggregate_earnings(daily_prescription_querysets, field='total_price')
 
-        # MONTHLY
-        monthly_hospital_qs = [
-            LaboratoryOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            Procedure.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            ImagingRecord.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            ConsultationOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
-        ]
-
-        monthly_prescription_qs = [
-            Prescription.objects.filter(created_at__month=current_month, created_at__year=current_year),
-        ]
-
-        monthly_hospital_data = aggregate_earnings(monthly_hospital_qs)
-        monthly_prescription_data = aggregate_earnings(monthly_prescription_qs, field='total_price')
-
-        # YEARLY
-        yearly_hospital_qs = [
-            LaboratoryOrder.objects.filter(order_date__year=current_year),
-            Procedure.objects.filter(order_date__year=current_year),
-            ImagingRecord.objects.filter(order_date__year=current_year),
-            ConsultationOrder.objects.filter(order_date__year=current_year),
-        ]
-
-        yearly_prescription_qs = [
-            Prescription.objects.filter(created_at__year=current_year),
-        ]
-
-        yearly_hospital_data = aggregate_earnings(yearly_hospital_qs)
-        yearly_prescription_data = aggregate_earnings(yearly_prescription_qs, field='total_price')
-
-        # ALL-TIME
-        alltime_hospital_qs = [
-            LaboratoryOrder.objects.all(),
-            Procedure.objects.all(),
-            ImagingRecord.objects.all(),
-            ConsultationOrder.objects.all(),
-        ]
-
-        alltime_prescription_qs = [
-            Prescription.objects.all(),
-        ]
-
-        alltime_hospital_data = aggregate_earnings(alltime_hospital_qs)
-        alltime_prescription_data = aggregate_earnings(alltime_prescription_qs, field='total_price')
-
-        return JsonResponse({
+        # Build JSON response
+        response_data = {
             'daily': {
                 'hospital': {
-                    'nhif': daily_hospital_data['nhif'],
-                    'cash': daily_hospital_data['cash'],
-                    'other': daily_hospital_data['other'],
-                    'total': compile_total(daily_hospital_data),
+                    'nhif': hospital_earnings['nhif'],
+                    'cash': hospital_earnings['cash'],
+                    'other': hospital_earnings['other'],
+                    'total': compute_total(hospital_earnings),
                 },
                 'prescription': {
-                    'nhif': daily_prescription_data['nhif'],
-                    'cash': daily_prescription_data['cash'],
-                    'other': daily_prescription_data['other'],
-                    'total': compile_total(daily_prescription_data),
+                    'nhif': prescription_earnings['nhif'],
+                    'cash': prescription_earnings['cash'],
+                    'other': prescription_earnings['other'],
+                    'total': compute_total(prescription_earnings),
                 },
-                'grand_total': compile_total(daily_hospital_data) + compile_total(daily_prescription_data),
-            },
-            'monthly': {
-                'hospital': {
-                    'nhif': monthly_hospital_data['nhif'],
-                    'cash': monthly_hospital_data['cash'],
-                    'other': monthly_hospital_data['other'],
-                    'total': compile_total(monthly_hospital_data),
-                },
-                'prescription': {
-                    'nhif': monthly_prescription_data['nhif'],
-                    'cash': monthly_prescription_data['cash'],
-                    'other': monthly_prescription_data['other'],
-                    'total': compile_total(monthly_prescription_data),
-                },
-                'grand_total': compile_total(monthly_hospital_data) + compile_total(monthly_prescription_data),
-            },
-            'yearly': {
-                'hospital': {
-                    'nhif': yearly_hospital_data['nhif'],
-                    'cash': yearly_hospital_data['cash'],
-                    'other': yearly_hospital_data['other'],
-                    'total': compile_total(yearly_hospital_data),
-                },
-                'prescription': {
-                    'nhif': yearly_prescription_data['nhif'],
-                    'cash': yearly_prescription_data['cash'],
-                    'other': yearly_prescription_data['other'],
-                    'total': compile_total(yearly_prescription_data),
-                },
-                'grand_total': compile_total(yearly_hospital_data) + compile_total(yearly_prescription_data),
-            },
-            'alltime': {
-                'hospital': {
-                    'nhif': alltime_hospital_data['nhif'],
-                    'cash': alltime_hospital_data['cash'],
-                    'other': alltime_hospital_data['other'],
-                    'total': compile_total(alltime_hospital_data),
-                },
-                'prescription': {
-                    'nhif': alltime_prescription_data['nhif'],
-                    'cash': alltime_prescription_data['cash'],
-                    'other': alltime_prescription_data['other'],
-                    'total': compile_total(alltime_prescription_data),
-                },
-                'grand_total': compile_total(alltime_hospital_data) + compile_total(alltime_prescription_data),
-            },
-        })
+                'grand_total': compute_total(hospital_earnings) + compute_total(prescription_earnings),
+            }
+        }
+
+        return JsonResponse(response_data)
 
     except Exception as e:
-        logger.error(f"Error in get_earnings_data view: {str(e)}")
+        logger.error(f"[get_earnings_data] Error: {str(e)}")
         return JsonResponse({'error': 'An error occurred while retrieving earnings data.'}, status=500)
 
-
-def get_monthly_earnings_by_year(request):
-    try:
-        year = int(request.GET.get('year', datetime.today().year))
-        print(year)
-        def monthly_insurance_totals(model, date_field, value_field):
-            monthly = {
-                'nhif': [0] * 12,
-                'cash': [0] * 12,
-                'other': [0] * 12
-            }
-
-            for month in range(1, 13):
-                # NHIF totals
-                nhif_qs = model.objects.filter(
-                    **{
-                        f"{date_field}__year": year,
-                        f"{date_field}__month": month,
-                        "patient__payment_form": "Insurance",
-                        "patient__insurance_name__icontains": "nhif"
-                    }
-                )
-                monthly['nhif'][month - 1] = nhif_qs.aggregate(total=Sum(value_field))['total'] or 0
-
-                # Cash totals
-                cash_qs = model.objects.filter(
-                    **{
-                        f"{date_field}__year": year,
-                        f"{date_field}__month": month,
-                        "patient__payment_form": "Cash"
-                    }
-                )
-                monthly['cash'][month - 1] = cash_qs.aggregate(total=Sum(value_field))['total'] or 0
-
-                # Other Insurance totals (not NHIF)
-                other_qs = model.objects.filter(
-                    **{
-                        f"{date_field}__year": year,
-                        f"{date_field}__month": month,
-                        "patient__payment_form": "Insurance"
-                    }
-                ).exclude(patient__insurance_name__icontains="nhif")
-                monthly['other'][month - 1] = other_qs.aggregate(total=Sum(value_field))['total'] or 0
-
-            return monthly
-
-        hospital_nhif = [0] * 12
-        hospital_cash = [0] * 12
-        hospital_other = [0] * 12
-
-        hospital_sources = [
-            (LaboratoryOrder, 'order_date', 'cost'),
-            (Procedure, 'order_date', 'cost'),
-            (ImagingRecord, 'order_date', 'cost'),
-            (ConsultationOrder, 'order_date', 'cost')
-        ]
-
-        for model, date_field, value_field in hospital_sources:
-            monthly = monthly_insurance_totals(model, date_field, value_field)
-            hospital_nhif = [x + y for x, y in zip(hospital_nhif, monthly['nhif'])]
-            hospital_cash = [x + y for x, y in zip(hospital_cash, monthly['cash'])]
-            hospital_other = [x + y for x, y in zip(hospital_other, monthly['other'])]
-
-        presc_monthly = monthly_insurance_totals(Prescription, 'created_at', 'total_price')
-
-        return JsonResponse({
-            'hospital_nhif': hospital_nhif,
-            'hospital_cash': hospital_cash,
-            'hospital_other': hospital_other,
-            'prescription_nhif': presc_monthly['nhif'],
-            'prescription_cash': presc_monthly['cash'],
-            'prescription_other': presc_monthly['other']
-        })
-
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
 
 
@@ -2435,6 +2279,7 @@ def delete_ambulancecardorder(request):
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
+
 @csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
 def delete_ambulancedorder(request):
     if request.method == 'POST':
@@ -2452,29 +2297,8 @@ def delete_ambulancedorder(request):
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
-@login_required
-def manage_disease(request):
-    """
-    This function is used to manage disease records.
-    
-    Parameters:
-    request (HttpRequest): The request object.
-    
-    Returns:
-    HttpResponse: The HTTP response.
-    """
-    try:
-        disease_records = DiseaseRecode.objects.all()  # Assuming DiseaseRecord is the correct model name
-        return render(request, "receptionist_template/manage_disease.html", {"disease_records": disease_records})
-    except Exception as e:
-        # Handle the exception
-        print(f"An error occurred: {e}")
-        return HttpResponse("An error occurred")
 
-@login_required    
-def diagnosis_list(request):
-    diagnoses = Diagnosis.objects.all().order_by('-created_at')    
-    return render(request, 'receptionist_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
+
 
 @login_required
 def manage_service(request):
@@ -2484,39 +2308,7 @@ def manage_service(request):
     }
     return render(request,"receptionist_template/manage_service.html",context)
 
-@login_required
-def manage_pathodology(request):
-    pathodology_records=PathodologyRecord.objects.all()    
-    return render(request,"receptionist_template/manage_pathodology.html",{
-        "pathodology_records":pathodology_records,        
-        })
 
-@login_required
-def health_record_list(request):
-    records = HealthRecord.objects.all()
-    return render(request, 'receptionist_template/healthrecord_list.html', {'records': records})
-
-@login_required
-def medicine_list(request):    
-    medicines = Medicine.objects.all()
-    # Render the template with medicine data and notifications
-    return render(request, 'receptionist_template/manage_medicine.html', {'medicines': medicines})
-
-@login_required 
-def reagent_list(request):
-    reagent_list = Reagent.objects.all()
-    return render(request, 'receptionist_template/manage_reagent_list.html', {'reagent_list': reagent_list})    
-
-@login_required
-def patient_detail(request, patient_id):
-    # Retrieve the patient object using the patient_id
-    patient = get_object_or_404(Patients, id=patient_id)    
-    # Context to be passed to the template
-    context = {
-        'patient': patient,
-    }    
-    # Render the patient_detail template with the context
-    return render(request, 'receptionist_template/patient_detail.html', context)
 
 
 @login_required

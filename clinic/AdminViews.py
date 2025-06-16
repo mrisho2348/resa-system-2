@@ -26,6 +26,7 @@ from django.db.models.functions import TruncMonth, ExtractYear
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
+from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm
 
 @login_required
 def dashboard(request):
@@ -3067,3 +3068,198 @@ def employee_detail(request):
     
     return render(request, 'hod_template/employee_detail.html', context)
 
+def counseling_list_view(request):
+    counselings = Counseling.objects.all().order_by('-created_at')
+    return render(request, 'hod_template/manage_counselling.html', {'counselings': counselings})  
+
+@login_required    
+def save_counsel(request, patient_id, visit_id):
+    # Retrieve patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)              
+    data_recorder = request.user.staff
+    # Retrieve existing remote counseling record if it exists
+    remote_counseling = Counseling.objects.get(patient=patient, visit=visit)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    # Prepare context for rendering the template
+    context = {
+        'patient': patient, 
+        'visit': visit,
+        'remote_counseling': remote_counseling,
+        'consultation_notes': consultation_notes,
+    }
+    
+    # Handle form submission
+    if request.method == 'POST':        
+        form = CounselingForm(request.POST, instance=remote_counseling)
+        
+        # Check if a record already exists for the patient and visit
+        if remote_counseling:
+            # If a record exists, update it
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, '')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            # If no record exists, create a new one
+            form.instance.patient = patient
+            form.instance.data_recorder = data_recorder
+            form.instance.visit = visit
+            if form.is_valid():
+                try:
+                    form.save()
+                    messages.success(request, '')
+                except ValidationError as e:
+                    messages.error(request, f'Validation Error: {e}')
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect to the appropriate page after saving
+        return redirect(reverse('admin_save_remotesconsultation_notes', args=[patient_id, visit_id]))
+   
+    else:
+        # If it's a GET request, initialize the form with existing data (if any)
+        form = CounselingForm(instance=remote_counseling)   
+    # Add the form to the context
+    context['form'] = form    
+    return render(request, 'hod_template/counsel_template.html', context)
+
+def view_counseling_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(PatientVisits, id=visit_id)  
+    patient = get_object_or_404(Patients, id=patient_id) 
+    counseling_note = get_object_or_404(Counseling, patient=patient, visit=visit)
+    
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling_note': counseling_note,
+    }
+    return render(request, 'hod_template/counseling_notes_details.html', context) 
+
+def discharge_notes_list_view(request):
+    discharge_notes = DischargesNotes.objects.all().order_by('-discharge_date')
+    return render(request, 'hod_template/manage_discharge.html', {'discharge_notes': discharge_notes}) 
+
+@login_required    
+def save_remote_discharges_notes(request, patient_id, visit_id):
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    remote_discharges_notes = DischargesNotes.objects.filter(patient=patient, visit=visit).first()  
+    context = {
+            'patient': patient,
+            'visit': visit,
+            'consultation_notes': consultation_notes,
+            'remote_discharges_notes': remote_discharges_notes,         
+        }
+        
+    try:      
+        # Check if the request user is staff
+        data_recorder = request.user.staff      
+        # Handle form submission
+        if request.method == 'POST':
+            form = DischargesNotesForm(request.POST, instance=remote_discharges_notes)
+            if form.is_valid():
+                remote_discharges_notes = form.save(commit=False)
+                remote_discharges_notes.patient = patient
+                remote_discharges_notes.visit = visit
+                remote_discharges_notes.data_recorder = data_recorder
+                remote_discharges_notes.save()
+                messages.success(request, '')
+                return redirect(reverse('admin_patient_visit_details_view', args=[patient_id, visit_id]))  # Redirect to the next view
+            else:
+                messages.error(request, 'Please correct the errors in the form.')
+        else:
+            form = DischargesNotesForm(instance=remote_discharges_notes)        
+        # Prepare context for rendering the template
+        context['form'] = form
+        return render(request, 'hod_template/discharge_template.html', context)    
+    except Exception as e:
+        messages.error(request, f'An error occurred: {str(e)}')
+        return render(request, 'hod_template/discharge_template.html', context)
+
+
+@login_required
+def discharge_details_view(request, patient_id, visit_id):
+    # Fetch the patient
+    patient = get_object_or_404(Patients, id=patient_id)
+
+    # Fetch the visit
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    
+    # Fetch the discharge note related to this visit
+    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'consultation_notes': consultation_notes,
+        'discharge_note': discharge_note,
+    }
+
+    return render(request, 'hod_template/discharge_details.html', context)        
+
+@login_required
+def save_observation(request, patient_id, visit_id):
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    data_recorder = request.user.staff
+    record_exists = ObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
+    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    context = {'patient': patient, 
+               'visit': visit, 
+               'consultation_notes': consultation_notes, 
+               'record_exists': record_exists
+               }
+    if request.method == 'POST':
+        form = ObservationRecordForm(request.POST)
+        if form.is_valid():
+            description = form.cleaned_data['observation_notes']
+            try:
+                if record_exists:
+                    # If a record exists, update it
+                    observation_record = ObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
+                    observation_record.observation_notes = description
+                    observation_record.data_recorder = data_recorder
+                    observation_record.save()
+                    messages.success(request, '')
+                else:
+                    # If no record exists, create a new one
+                    ObservationRecord.objects.create(
+                        patient=patient,
+                        visit=visit,
+                        data_recorder=data_recorder,
+                        observation_notes=description,
+                    )
+                    messages.success(request, '')
+                return redirect(reverse('admin_save_remotesconsultation_notes', args=[patient_id, visit_id]))
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        else:
+            messages.error(request, 'Please fill out all required fields.')
+    else:
+        form = ObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
+
+    context['form'] = form
+    return render(request, 'hod_template/observation_template.html', context)
+
+def view_observation_notes(request, patient_id, visit_id):
+    visit = get_object_or_404(PatientVisits, id=visit_id)  
+    patient = get_object_or_404(Patients, id=patient_id)  
+    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)      
+    
+    return render(request, 'hod_template/observation_notes_detail.html', {
+        'observation_record': observation_record,
+        'visit': visit,
+    })
+
+
+
+def observation_record_list_view(request):
+    observation_records = ObservationRecord.objects.all().order_by('-created_at')
+    return render(request, 'hod_template/manage_observation_record.html', {'observation_records': observation_records})       

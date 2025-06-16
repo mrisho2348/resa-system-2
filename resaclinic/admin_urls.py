@@ -136,5 +136,14 @@ urlpatterns = [
 
     path('api/earnings/', AdminViews.get_earnings_data, name='admin_get_earnings_data'),
     path('earnings/monthly-by-year/', AdminViews.get_monthly_earnings_by_year, name='admin_monthly_earnings_by_year'),
+    path('counseling/', AdminViews.counseling_list_view, name='admin_counseling_list'),
+    path('discharge_notes/', AdminViews.discharge_notes_list_view, name='admin_discharge_notes_list'),
+    path('observation_records/', AdminViews.observation_record_list_view, name='admin_observation_record_list'),  
+    path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', AdminViews.save_remote_discharges_notes, name='admin_save_remote_discharges_notes'),
+    path('discharge/details/<int:patient_id>/<int:visit_id>/', AdminViews.discharge_details_view, name='admin_discharge_details_view'),
+    path('save_counsel/<int:patient_id>/<int:visit_id>/', AdminViews.save_counsel, name='admin_save_remote_counseling'),
+    path('counseling_notes/<int:patient_id>/<int:visit_id>/', AdminViews.view_counseling_notes, name='admin_view_counseling_notes'),
+    path('save_observation/<int:patient_id>/<int:visit_id>/', AdminViews.save_observation, name='admin_save_observation'),
+    path('observation_notes/<int:patient_id>/<int:visit_id>/', AdminViews.view_observation_notes, name='admin_view_observation_notes'),
 ]
 

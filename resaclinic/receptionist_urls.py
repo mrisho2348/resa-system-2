@@ -4,7 +4,6 @@ from django.urls import include, path, re_path
 from clinic import  ReceptionistView, editView, imports
 
 
-
 urlpatterns = [
         path('save_prescription/<int:patient_id>/<int:visit_id>/', ReceptionistView.save_prescription, name='receptionist_save_prescription'),
         path('save_laboratory/<int:patient_id>/<int:visit_id>/', ReceptionistView.save_laboratory, name='receptionist_save_laboratory'),
@@ -18,7 +17,7 @@ urlpatterns = [
         path('update_payment_status/', ReceptionistView.update_payment_status, name='receptionist_pay_prescriptions'),
         path('unpay_prescriptions/', ReceptionistView.unpay_prescriptions, name='receptionist_unpay_prescriptions'),
         path('add_investigation/', ReceptionistView.add_investigation, name='receptionist_add_investigation'),
-            path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', ReceptionistView.edit_lab_result, name='receptionist_edit_lab_result'),
+        path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', ReceptionistView.edit_lab_result, name='receptionist_edit_lab_result'),
         path('receptionist/get-gender-yearly-data/', ReceptionistView.get_gender_yearly_data, name="receptionist_get_gender_yearly_data"),
         path('receptionist/get-gender-monthly-data/', ReceptionistView.get_gender_monthly_data, name="receptionist_get_gender_monthly_data"),
         path('add_imaging/', ReceptionistView.add_imaging, name='receptionist_add_imaging'),
@@ -51,14 +50,7 @@ urlpatterns = [
         path('add_prescription/',ReceptionistView.add_prescription, name="receptionist_add_prescription"),
         path('save_edited_patient/',ReceptionistView.save_edited_patient, name="receptionist_save_edited_patient"),
         path('add_patient_visit/',ReceptionistView.add_patient_visit, name="receptionist_add_patient_visit"),      
-        re_path(r'^receptionist/manage-pathodology/$', ReceptionistView.manage_pathodology, name='receptionist_manage_pathodology'),
-        re_path(r'^receptionist/health-record-list/$', ReceptionistView.health_record_list, name='receptionist_health_record_list'),
-        re_path(r'^receptionist/medicine-list/$', ReceptionistView.medicine_list, name='receptionist_medicine_list'),
-        re_path(r'^receptionist/reagent-list/$', ReceptionistView.reagent_list, name='receptionist_reagent_list'),
-        re_path(r'^receptionist/diagnosis-list/$', ReceptionistView.diagnosis_list, name='receptionist_diagnosis_list'),
-        re_path(r'^receptionist/manage-disease/$', ReceptionistView.manage_disease, name='receptionist_manage_disease'),      
         path('staff_detail/<int:staff_id>/', ReceptionistView.single_staff_detail, name='receptionist_single_staff_detail'),
-        path('patient/<int:patient_id>/', ReceptionistView.patient_detail, name='receptionist_patient_detail'),
         path('view-patient/<int:patient_id>/', ReceptionistView.view_patient, name='receptionist_view_patient'),  
         path('save_service_data/',ReceptionistView.save_service_data, name="receptionist_save_service_data"),      
         path('get_item_quantity/',ReceptionistView.get_item_quantity, name="receptionist_get_item_quantity"),  
@@ -118,6 +110,6 @@ urlpatterns = [
         path('api/earnings/', ReceptionistView.get_earnings_data, name='receptionist_get_earnings_data'),
         path('add/radiology/<int:patient_id>/<int:visit_id>/', ReceptionistView.add_radiology, name='receptionist_add_radiology'),
         re_path(r'^doctor/add_imaging/$', ReceptionistView.add_imaging, name='receptionist_add_imaging'),
-        path('earnings/monthly-by-year/', ReceptionistView.get_monthly_earnings_by_year, name='receptionist_monthly_earnings_by_year'),
+     
 
 ]

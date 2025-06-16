@@ -424,22 +424,6 @@ def save_radiology(request):
     return JsonResponse({'success': False, 'message': 'Invalid request method. This endpoint only accepts POST requests.'})
 
 
-@login_required
-def generate_invoice_bill(request,  patient_id,visit_id):
-    # Retrieve the patient and visit objects based on IDs
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)    
-    orders = Order.objects.filter(patient=patient, visit=visit)
-     
-    context = {
-        'orders': orders,
-        'patient': patient,
-        'visit': visit,
-       
-    }
-    return render(request, 'doctor_template/invoice_bill.html', context)
-
-
 
 @csrf_exempt
 def change_referral_status(request):
@@ -880,7 +864,7 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
             if doctor_plan == 'Prescription':
                 return redirect(reverse('doctor_save_prescription', args=[patient_id, visit_id]))
             elif doctor_plan == 'Laboratory':
-                return redirect(reverse('doctor_new_lab_order'))
+                return redirect(reverse('doctor_save_remotesconsultation_notes',  args=[patient_id, visit_id]))
             elif doctor_plan == 'Referral':
                 return redirect(reverse('doctor_save_remotereferral', args=[patient_id, visit_id]))
             elif doctor_plan == 'Counselling':
@@ -958,7 +942,7 @@ def save_counsel(request, patient_id, visit_id):
                 messages.error(request, 'Please correct the errors in the form.')
 
         # Redirect to the appropriate page after saving
-        return redirect(reverse('doctor_counseling_list'))
+        return redirect(reverse('doctor_save_remotesconsultation_notes',  args=[patient_id, visit_id]))
    
     else:
         # If it's a GET request, initialize the form with existing data (if any)
@@ -993,17 +977,17 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
                 remote_discharges_notes.data_recorder = data_recorder
                 remote_discharges_notes.save()
                 messages.success(request, 'discharge notes saved successfully.')
-                return redirect(reverse('doctor_discharge_notes_list'))  # Redirect to the next view
+                return redirect(reverse('doctor_save_remotesconsultation_notes',  args=[patient_id, visit_id]))  # Redirect to the next view
             else:
                 messages.error(request, 'Please correct the errors in the form.')
         else:
             form = DischargesNotesForm(instance=remote_discharges_notes)        
         # Prepare context for rendering the template
         context['form'] = form
-        return render(request, 'doctor_template/disrcharge_template.html', context)    
+        return render(request, 'doctor_template/discharge_template.html', context)    
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'doctor_template/disrcharge_template.html', context)
+        return render(request, 'doctor_template/discharge_template.html', context)
 
 @login_required
 def save_remotereferral(request, patient_id, visit_id):
@@ -1029,7 +1013,7 @@ def save_remotereferral(request, patient_id, visit_id):
                         referral.source_location = "Default Source Location"
                     referral.save()
                     messages.success(request, 'Referral saved successfully.')
-                    return redirect(reverse('doctor_manage_referral'))
+                    return redirect(reverse('doctor_save_remotesconsultation_notes',  args=[patient_id, visit_id]))
                 except Exception as e:
                     messages.error(request, f'Error saving referral: {str(e)}')
             else:
@@ -1080,7 +1064,7 @@ def save_observation(request, patient_id, visit_id):
                         observation_notes=description,
                     )
                     messages.success(request, 'observation record saved successfully.')
-                return redirect(reverse('doctor_observation_record_list'))
+                return redirect(reverse('doctor_save_remotesconsultation_notes',  args=[patient_id, visit_id]))
             except Exception as e:
                 messages.error(request, f'Error: {str(e)}')
         else:
@@ -1763,38 +1747,7 @@ def patient_health_record_view(request, patient_id, visit_id):
     except Exception as e:
         # Handle other exceptions if necessary
         return render(request, '404.html', {'error_message': str(e)})
-    
 
-
-@login_required
-def prescription_list(request):
-    
-    # Retrieve all prescriptions with related patient and visit
-    prescriptions = Prescription.objects.select_related('patient', 'visit')
-
-    visit_total_prices = prescriptions.values(
-    'visit__vst', 
-    'visit__patient__first_name',
-    'visit__updated_at', 
-    'visit__patient__id', 
-    'visit__patient__middle_name', 
-    'visit__patient__last_name'
-).annotate(
-    total_price=Sum('total_price'),
-    verified=F('verified'), 
-    issued=F('issued'),      
-    status=F('status'),    
-)
-
-    
-    # Calculate total price of all prescriptions
-    total_price = sum(prescription.total_price for prescription in prescriptions) 
-    
-    return render(request, 'doctor_template/manage_prescription_list.html', {     
-        'total_price': total_price,
-        'visit_total_prices': visit_total_prices,
-    })
-    
     
 @login_required
 def prescription_detail(request, visit_number, patient_id):
@@ -1860,19 +1813,7 @@ def patient_vital_list(request, patient_id):
     
     return render(request, 'doctor_template/manage_patient_vital_list.html', context) 
 
-@login_required   
-def patient_vital_all_list(request):
-    # Retrieve the patient object
-    patients = Patients.objects.all()   
-    # Retrieve all vital information for the patient
-    patient_vitals = PatientVital.objects.all().order_by('-recorded_at')    
-    context = {       
-        'patients': patients, 
-        'patient_vitals': patient_vitals
-    }
-    # Render the template with the patient's vital information
-    return render(request, 'doctor_template/manage_all_patient_vital.html', context)  
-  
+
 
 @login_required
 @csrf_exempt
@@ -2269,53 +2210,7 @@ def observation_record_list_view(request):
     observation_records = ObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'doctor_template/manage_observation_record.html', {'observation_records': observation_records})
 
-def discharge_notes_list_view(request):
-    discharge_notes = DischargesNotes.objects.all().order_by('-discharge_date')
-    return render(request, 'doctor_template/manage_discharge.html', {'discharge_notes': discharge_notes})
 
-    
-@login_required
-def manage_disease(request):
-    disease_records=DiseaseRecode.objects.all() 
-    return render(request,"doctor_template/manage_disease.html",{"disease_records":disease_records})
-
-@login_required    
-def diagnosis_list(request):
-    diagnoses = Diagnosis.objects.all().order_by('-created_at')    
-    return render(request, 'doctor_template/manage_diagnosis_list.html', {'diagnoses': diagnoses}) 
-
-@login_required
-def manage_service(request):
-    services=Service.objects.all()
-    insurance_companies=InsuranceCompany.objects.all()
-    context = {
-        'services':services,
-        'insurance_companies':insurance_companies,
-    }
-    return render(request,"doctor_template/manage_service.html",context)
-
-@login_required
-def manage_pathodology(request):
-    pathodology_records=PathodologyRecord.objects.all()    
-    return render(request,"doctor_template/manage_pathodology.html",{
-        "pathodology_records":pathodology_records,        
-        })
-
-@login_required
-def medicine_list(request):    
-    medicines = Medicine.objects.all()
-    # Render the template with medicine data and notifications
-    return render(request, 'doctor_template/manage_medicine.html', {'medicines': medicines})
-
-@login_required 
-def reagent_list(request):
-    reagent_list = Reagent.objects.all()
-    return render(request, 'doctor_template/manage_reagent_list.html', {'reagent_list': reagent_list})  
-
-@login_required
-def health_record_list(request):
-    records = HealthRecord.objects.all()
-    return render(request, 'doctor_template/healthrecord_list.html', {'records': records})
 
 @login_required
 def patient_detail(request, patient_id):

@@ -20,9 +20,9 @@ urlpatterns = [
     re_path(r'^doctor/new_radiology_order/$', DoctorView.new_radiology_order, name='doctor_new_radiology_order'),
     re_path(r'^doctor/fetch_order_counts/$', DoctorView.fetch_order_counts_view, name='doctor_fetch_order_counts_view'),
     re_path(r'^doctor/fetch_consultation_counts/$', DoctorView.fetch_consultation_counts, name='doctor_fetch_consultation_counts'),
-    re_path(r'^doctor_/medicine-list/$', DoctorView.medicine_list, name='doctor_medicine_list'),
+
     re_path(r'^doctor_/radiology_order/$', DoctorView.radiology_order, name='doctor_radiology_order'),
-    re_path(r'^doctor_/reagent-list/$', DoctorView.reagent_list, name='doctor_reagent_list'),
+
     path('patient/<int:patient_id>/', DoctorView.patient_detail, name='doctor_patient_detail'),
     re_path(r'^doctor/unread_appointments/$', DoctorView.unread_appointments_view, name='doctor_unread_appointments'),
     re_path(r'^doctor/read_appointments/$', DoctorView.read_appointments_view, name='doctor_read_appointments'),
@@ -46,11 +46,7 @@ urlpatterns = [
     path('save_remotereferral/<int:patient_id>/<int:visit_id>/', DoctorView.save_remotereferral, name='doctor_save_remotereferral'),
     path('add/radiology/<int:patient_id>/<int:visit_id>/', DoctorView.add_radiology, name='doctor_add_radiology'),
     path('counsel/<int:patient_id>/<int:visit_id>/', DoctorView.save_counsel, name='doctor_save_remote_counseling'),
-    path('manage-disease/', DoctorView.manage_disease, name='doctor_manage_disease'),
-    path('diagnosis-list/', DoctorView.diagnosis_list, name='doctor_diagnosis_list'),
-    path('manage-service/', DoctorView.manage_service, name='doctor_manage_service'),
-    path('manage-pathodology/', DoctorView.manage_pathodology, name='doctor_manage_pathodology'),
-    path('health-record-list/', DoctorView.health_record_list, name='doctor_health_record_list'),
+
     path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', DoctorView.save_remote_discharges_notes, name='doctor_save_remote_discharges_notes'),
 
     # manage urls
@@ -67,7 +63,7 @@ urlpatterns = [
     re_path(r'^doctor/get_frequency_name/$', DoctorView.get_frequency_name, name='doctor_get_frequency_name'),
     re_path(r'^doctor/medicine_dosage/$', DoctorView.medicine_dosage, name='doctor_medicine_dosage'),
     re_path(r'^doctor/consultation-notes/$', DoctorView.consultation_notes_view, name='doctor_consultation_notes'),
-    re_path(r'^doctor/resa/patient_vital_all_list/$', DoctorView.patient_vital_all_list, name='doctor_patient_vital_all_list'),
+
     re_path(r'^doctor/save_prescription/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_prescription, name='doctor_save_prescription'),
     re_path(r'^doctor/save_laboratory/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_laboratory, name='doctor_save_laboratory'),
     re_path(r'^doctor/save_remoteprocedure/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_remoteprocedure, name='doctor_save_remoteprocedure'),
@@ -77,15 +73,14 @@ urlpatterns = [
     re_path(r'^doctor/patient_vital_list/(?P<patient_id>\d+)/$', DoctorView.patient_vital_list, name='doctor_patient_vital_list'),
     re_path(r'^doctor/patient_health_record_view/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.patient_health_record_view, name='doctor_patient_health_record_view'),
     re_path(r'^doctor/patient_visit_history/(?P<patient_id>\d+)/$', DoctorView.patient_visit_history_view, name='doctor_patient_visit_history_view'),
-    re_path(r'^doctor/prescriptions/$', DoctorView.prescription_list, name='doctor_prescription_list'),
-    re_path(r'^doctor/resa/manage-referral/$', DoctorView.manage_referral, name='doctor_manage_referral'),
+
     re_path(r'^doctor/resa/patient-procedure-view/$', DoctorView.patient_procedure_view, name='doctor_patient_procedure_view'),
     re_path(r'^doctor/resa/all-patients/$', DoctorView.manage_patient, name='doctor_manage_patient'),
     re_path(r'^doctor/resa/consultation-queue/$', DoctorView.manage_consultation, name='doctor_manage_consultation'),
-    re_path(r'^doctor/resa/manage-pathodology/$', DoctorView.manage_pathodology, name='doctor_manage_pathodology'),
+
     re_path(r'^doctor/resa/appointments/$', DoctorView.appointment_list_view, name='doctor_appointment_list'),
     path('counseling/', DoctorView.counseling_list_view, name='doctor_counseling_list'),
-    path('discharge_notes/', DoctorView.discharge_notes_list_view, name='doctor_discharge_notes_list'),
+
     path('observation_records/', DoctorView.observation_record_list_view, name='doctor_observation_record_list'),   
     re_path(r'^doctor/confirm_meeting/(?P<appointment_id>\d+)/$', DoctorView.confirm_meeting, name='doctor_confirm_meeting'),
     re_path(r'^doctor/generate-bill/(?P<procedure_id>\d+)/$', DoctorView.generate_billing, name='doctor_generate_billing'),
@@ -93,7 +88,6 @@ urlpatterns = [
     re_path(r'^doctor/save_radiology/$', DoctorView.save_radiology, name='doctor_save_radiology'),
     re_path(r'^doctor/save_procedure/$', DoctorView.save_procedure, name='doctor_save_procedure'),  
     re_path(r'^doctor/change_referral_status/$', DoctorView.change_referral_status, name='doctor_change_referral_status'),
-    re_path(r'^doctor/invoice/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.generate_invoice_bill, name='doctor_generate_invoice_bill'),
     path('patient/<int:patient_id>/visit/<int:visit_id>/', DoctorView.patient_visit_details_view, name='doctor_patient_visit_details_view'),
     path('employee_detail/', DoctorView.employee_detail, name='doctor_employee_detail'),
     path('patient/<int:patient_id>/', DoctorView.patient_detail, name='doctor_patient_detail'), 
