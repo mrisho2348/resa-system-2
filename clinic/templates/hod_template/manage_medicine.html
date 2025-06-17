@@ -41,6 +41,7 @@
                                     <th>Remaining Quantity</th>
                                     <th>Quantity</th>
                                     <th>Dividable</th>
+                                    <th>Dividing unit</th>
                                     <th>Batch Number</th>
                                     <th>Expiration Date</th>
                                     <th>Cash Cost</th>
@@ -62,7 +63,8 @@
                                         <td>{{ medicine.manufacturer }}</td>
                                         <td>{{ medicine.remain_quantity }}</td>
                                         <td>{{ medicine.quantity }}</td>
-                                        <td>{{ medicine.dividable }}</td>
+                                        <td>{{ medicine.is_dividable }}</td>
+                                        <td>{{ medicine.dividing_unit }}</td>
                                         <td>{{ medicine.batch_number }}</td>
                                         <td>{{ medicine.expiration_date|date:"d/m/Y" }}</td>
                                         <td>{{ medicine.cash_cost }}</td>
@@ -203,15 +205,18 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="dividable{{ medicine.id }}">Dividable</label>
-                                <select  class="form-control select2bs4" style="width: 100%;" id="dividable{{ medicine.id }}" name="dividable" required>
-                                    <option value=""></option>
-                                    <option value="True" {% if medicine.dividable == 'True' %}selected{% endif %}>True</option>
-                                    <option value="False" {% if medicine.dividable == 'False' %}selected{% endif %}>False</option>
+                                 <select class="form-control select2bs4 dividable-selector" style="width: 100%;"  name="is_dividable" data-id="{{ medicine.id }}" required>
+                                    <option value="True" {% if medicine.is_dividable == 'True' %}selected{% endif %}>True</option>
+                                    <option value="False" {% if medicine.is_dividable == 'False' %}selected{% endif %}>False</option>
                                 </select>
                             </div>
                         </div>
                     </div>
                     <div class="row">
+                         <div class="col-md-4">
+                            <label>Dividing Unit</label>
+                            <input type="text" class="form-control" name="dividing_unit" id="dividing_unit{{ medicine.id }}" value="{{ medicine.dividing_unit }}">
+                        </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="batch_number{{ medicine.id }}">Batch Number</label>
@@ -265,6 +270,26 @@
     $(document).ready(function () {
         $('#editMedicine{{ medicine.id }}').click(function (event) {
             var form = document.getElementById('editMedicineForm{{ medicine.id }}');
+            var dividable = $('#editMedicineForm{{ medicine.id }} select[name="dividable"]').val();
+            var dividingUnitField = $('#dividing_unit{{ medicine.id }}');
+
+            // Conditionally enforce dividing unit field requirement
+            if (dividable === "True") {
+                dividingUnitField.attr('required', true);
+                if (!dividingUnitField.val().trim()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    $('#editMedicineContainers{{ medicine.id }}').html(
+                        '<div class="alert alert-danger">Please enter a dividing unit since this medicine is dividable.</div>'
+                    );
+                    dividingUnitField.focus();
+                    return;
+                }
+            } else {
+                dividingUnitField.removeAttr('required');
+            }
+
+            // Validate the entire form
             if (form.checkValidity() === false) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -272,20 +297,26 @@
                 var formData = $('#editMedicineForm{{ medicine.id }}').serialize();
 
                 $.ajax({
-                    url: '{% url "admin_add_medicine" %}', // Update with your actual URL
+                    url: '{% url "admin_add_medicine" %}', // Make sure this is your actual update URL
                     type: 'POST',
                     data: formData,
                     success: function (response) {
                         if (response.success) {
-                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            $('#editMedicineContainers{{ medicine.id }}').html(
+                                '<div class="alert alert-success">' + response.message + '</div>'
+                            );
                             location.reload(true);
                         } else {
-                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                            $('#editMedicineContainers{{ medicine.id }}').html(
+                                '<div class="alert alert-danger">' + response.message + '</div>'
+                            );
                         }
                     },
                     error: function () {
                         console.error('AJAX request failed');
-                        $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                        $('#editMedicineContainers{{ medicine.id }}').html(
+                            '<div class="alert alert-danger">AJAX request failed</div>'
+                        );
                     }
                 });
             }
@@ -294,6 +325,7 @@
         });
     });
 </script>
+
 {% endfor %}
 
 <!-- Add Medicine Modal -->
@@ -319,7 +351,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_drug_type">Drug Type</label>
-                                <select  class="form-control select2bs4" style="width: 100%;" id="edit_drug_type" name="drug_type" required>
+                                <select class="form-control select2bs4"  style="width: 100%;"  id="edit_drug_type" name="drug_type" required>
                                     <option value=""></option>
                                     <option value="Tablet">Tablet</option>
                                     <option value="Capsule">Capsule</option>
@@ -334,8 +366,7 @@
                                     <option value="Suppository">Suppository</option>
                                     <option value="Powder">Powder</option>
                                     <option value="Suspension">Suspension</option>
-                                    <option value="Lozenge">Lozenge</option>                     
-                                    <!-- Add more options as needed -->
+                                    <option value="Lozenge">Lozenge</option>
                                 </select>
                             </div>
                         </div>
@@ -346,6 +377,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
@@ -361,16 +393,23 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="dividable">Dividable</label>
-                                <select  class="form-control select2bs4" style="width: 100%;" id="dividable" name="dividable" required>
-                                    <option value=""></option>
-                                    <option value="True" {% if medicine.dividable == 'True' %}selected{% endif %}>True</option>
-                                    <option value="False" {% if medicine.dividable == 'False' %}selected{% endif %}>False</option>
+                                <label for="is_dividable">Is Dividable</label>
+                                <select class="form-control select2bs4" style="width: 100%;"  id="is_dividable" name="is_dividable" required>
+                                    <option value="">Select</option>
+                                    <option value="True">True</option>
+                                    <option value="False">False</option>
                                 </select>
                             </div>
                         </div>
                     </div>
+
                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="dividing_unit">Dividing Unit (mg/ml)</label>
+                                <input type="number" class="form-control" id="dividing_unit" name="dividing_unit" placeholder="e.g. 125">
+                            </div>
+                        </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="batch_number">Batch Number</label>
@@ -383,14 +422,15 @@
                                 <input type="date" class="form-control" id="expiration_date" name="expiration_date" required>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="buying_price">Buying Price</label>
                                 <input type="number" step="0.01" class="form-control" id="buying_price" name="buying_price" required>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="cash_cost">Cash Cost</label>
@@ -403,57 +443,93 @@
                                 <input type="number" step="0.01" class="form-control" id="insurance_cost" name="insurance_cost" required>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="nhif_cost">NHIF Cost</label>
                                 <input type="number" step="0.01" class="form-control" id="nhif_cost" name="nhif_cost" required>
                             </div>
                         </div>
-                    </div>                   
-                    <div class="row">                      
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="row">
                         <div class="col-md-12">
                             <button type="button" class="btn btn-primary btn-block" id="addMedicine">Add Medicine</button>
                         </div>
-                    </div>                    
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
+
 <script>
     $(document).ready(function () {
         $('#addMedicine').click(function (event) {
             var form = document.getElementById('addMedicineForm');
+            var isValid = true;
+            var isDividable = $('#is_dividable').val();
+            var dividingUnit = $('#dividing_unit').val();
+
+            // Reset previous messages
+            $('#addMedicineContainers').html('');
+
+            // Basic form validation
             if (form.checkValidity() === false) {
+                isValid = false;
+            }
+
+            // Custom validation: check if is_dividable selected
+            if (!isDividable) {
+                isValid = false;
+                $('#addMedicineContainers').append('<div class="alert alert-warning">Please select whether the drug is dividable.</div>');
+            }
+
+            // If dividable is True, dividing_unit must be a positive number
+            if (isDividable === 'True') {
+                if (!dividingUnit || isNaN(dividingUnit) || parseInt(dividingUnit) <= 0) {
+                    isValid = false;
+                    $('#addMedicineContainers').append('<div class="alert alert-warning">Please enter a valid dividing unit greater than zero.</div>');
+                }
+            }
+
+            if (!isValid) {
                 event.preventDefault();
                 event.stopPropagation();
-            } else {
-                var formData = $('#addMedicineForm').serialize();
-
-                $.ajax({
-                    url: '{% url "admin_add_medicine" %}', // Update with your actual URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                            location.reload(true);
-                        } else {
-                            $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#addMedicineContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
-                    }
-                });
+                form.classList.add('was-validated');
+                return;
             }
+
+            // Submit via AJAX
+            var formData = $('#addMedicineForm').serialize();
+
+            $.ajax({
+                url: '{% url "admin_add_medicine" %}',  // Update to your URL
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    if (response.success) {
+                        $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
+                        location.reload(true);
+                    } else {
+                        $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function () {
+                    console.error('AJAX request failed');
+                    $('#addMedicineContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
+                }
+            });
 
             form.classList.add('was-validated');
         });
     });
 </script>
+
 
 {% include 'hod_template/datatable.html' %}
 {% endblock main_content %}

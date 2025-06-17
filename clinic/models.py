@@ -889,32 +889,37 @@ MEDICINE_TYPES = [
 ]
 
 class Medicine(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='medicines') 
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE, blank=True, null=True, related_name='medicines') 
     drug_name = models.CharField(max_length=100)
     drug_type = models.CharField(max_length=20, blank=True, null=True) 
-    formulation_unit = models.CharField(max_length=50)    
+    formulation_unit = models.CharField(max_length=50)  # e.g., '500mg', '5ml'
+    dividing_unit = models.PositiveIntegerField(blank=True, null=True, help_text="Smallest divisible unit in mg or ml, e.g., 125")  # <-- NEW
+    is_dividable = models.BooleanField(default=False, help_text="Is this drug divisible in smaller units?")
     manufacturer = models.CharField(max_length=100)
     remain_quantity = models.PositiveIntegerField(blank=True, null=True)
     quantity = models.PositiveIntegerField(blank=True, null=True)
-    dividable = models.CharField(max_length=20, blank=True, null=True)   
-    batch_number = models.CharField(max_length=20,unique=True,default=12345)   
+    batch_number = models.CharField(max_length=20, unique=True, default=12345)   
     expiration_date = models.DateField()
+    
     cash_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     insurance_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     nhif_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     buying_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     total_buying_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     objects = models.Manager()
+
     def save(self, *args, **kwargs):
-        # Calculate total buying price before saving
         if self.buying_price is not None and self.quantity is not None:
             self.total_buying_price = float(self.buying_price) * self.quantity
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.drug_name  
+        return self.drug_name
+
     
 class RemoteMedicine(models.Model):
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_medicines') 

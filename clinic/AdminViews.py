@@ -881,10 +881,11 @@ def add_medicine(request):
             medicine_id = request.POST.get('medicine_id')
             drug_name = request.POST.get('drug_name').strip()
             drug_type = request.POST.get('drug_type')
+            dividing_unit = request.POST.get('dividing_unit')
             formulation_unit = request.POST.get('formulation_unit')
             manufacturer = request.POST.get('manufacturer').strip()
             quantity = request.POST.get('quantity')
-            dividable = request.POST.get('dividable')
+            is_dividable = request.POST.get('is_dividable')
             batch_number = request.POST.get('batch_number').strip()
             expiration_date = request.POST.get('expiration_date')
             cash_cost = request.POST.get('cash_cost')
@@ -921,8 +922,9 @@ def add_medicine(request):
                 medicine.formulation_unit = formulation_unit
                 medicine.manufacturer = manufacturer
                 medicine.quantity = quantity
+                medicine.dividing_unit = dividing_unit
                 medicine.remain_quantity = quantity
-                medicine.dividable = dividable
+                medicine.is_dividable = is_dividable
                 medicine.batch_number = batch_number
                 medicine.expiration_date = expiration_date
                 medicine.cash_cost = cash_cost
@@ -945,7 +947,8 @@ def add_medicine(request):
                     manufacturer=manufacturer,
                     quantity=quantity,
                     remain_quantity=quantity,
-                    dividable=dividable,
+                    is_dividable=is_dividable,
+                    dividing_unit=dividing_unit,
                     batch_number=batch_number,
                     expiration_date=expiration_date,
                     cash_cost=cash_cost,

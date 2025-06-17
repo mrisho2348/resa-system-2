@@ -958,34 +958,50 @@ Add  Consultation notes
                                     <div class="card-header">
                                          <label for="chief_complaints">Chief Complaints</label>
                                     </div>
-                                    <div class="card-body">
-                                        <div id="savedChiefComplaints">
-                                             <form id="chiefComplaintForm" method="post">
-                                                <div id="popupContainer" class="popup-container"></div>
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="form-group">
-                                                            <div id="chiefComplaintsContainer">
-                                                                <table class="table table-borderless" id="chiefComplaintsTable">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>Chief Complaint</th>
-                                                                            <th>Duration</th>
-                                                                            <th>Actions</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <!-- Rows for chief complaints will be dynamically added here -->
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <button type="button" id="addChiefComplaintButton" class="btn btn-sm btn-info">
-                                                                <i class="fa fa-plus-square" aria-hidden="true"></i> Add Chief Complaint
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </form>
+                                  <div class="card-body">
+                                <div id="savedChiefComplaints">
+                                   <div id="popupContainer" class="popup-container"></div>
+                                        <!-- Chief Complaints List -->
+                                        <div id="chiefComplaintsList" class="mt-3">
+                                            <table class="table table-borderless">                                       
+                                                <tbody id="chiefComplaintsDisplayBody">
+                                                    <!-- Existing saved complaints inserted here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <!-- Full Edit Table (Initially hidden) -->
+                                        <div id="chiefComplaintsEditTableContainer" class="mt-3 d-none">
+                                            <table class="table table-bordered" id="chiefComplaintsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Chief Complaint</th>
+                                                        <th>Duration</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <!-- Populated dynamically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Add/Edit Complaint Row (Initially hidden) -->
+                                        <div id="chiefComplaintFormRow" class="mt-3 d-none">
+                                            <table class="table table-borderless">
+                                                <tbody id="chiefComplaintInputRowBody">
+                                                    <!-- Row gets injected here dynamically -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Action Buttons -->
+                                        <div class="mt-2">
+                                            <button type="button" id="addChiefComplaintButton" class="btn btn-sm btn-info">
+                                                <i class="fa fa-plus-square"></i> Add Chief Complaint
+                                            </button>
+                                            <button type="button" id="toggleEditChiefComplaints" class="btn btn-sm btn-warning">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -997,7 +1013,7 @@ Add  Consultation notes
                             $(document).ready(function () {
                                 const patientId = $('#patient_id').val();
                                 const visitId = $('#visit_id').val();
-                        
+                              $('#chiefComplaintsList').show();
                                 // Function to initialize Select2 dynamically
                                 function initializeSelect2(selector) {
                                     $(selector).select2({
@@ -1006,15 +1022,38 @@ Add  Consultation notes
                                     });
                                 }
                         
-                                // Add a new row for chief complaint
-                                function addChiefComplaintRow() {
-                                    const container = $('#chiefComplaintsTable tbody');
-                                    const rowCount = container.find('tr').length + 1;
-                        
-                                    const newRow = `
-                                        <tr id="chiefComplaintRow${rowCount}" class="temporary-row">
+                             let editingMode = false;
+                                let rowCounter = 0;
+
+                                $('#toggleEditChiefComplaints').on('click', function () {
+                                    editingMode = !editingMode;
+
+                                    if (editingMode) {
+                                        $('#chiefComplaintsList').hide();
+                                        $('#chiefComplaintFormRow').addClass('d-none'); // hide input row
+                                        $('#addChiefComplaintButton').addClass('d-none'); // hide add button
+                                        $('#chiefComplaintsEditTableContainer').removeClass('d-none'); // show editable table
+                                        $(this).html('<i class="fa fa-eye"></i> View');
+                                    } else {
+                                        $('#chiefComplaintFormRow').addClass('d-none');
+                                        $('#chiefComplaintsList').show();                                
+                                        $('#addChiefComplaintButton').removeClass('d-none');
+                                        $('#chiefComplaintsEditTableContainer').addClass('d-none');
+                                        $(this).html('<i class="fa fa-edit"></i> Edit');
+                                    }
+                                });
+
+
+
+                                $('#addChiefComplaintButton').on('click', function () {
+                                    $('#chiefComplaintFormRow').removeClass('d-none');
+
+                                    const rowId = `chiefComplaintRow${rowCounter}`;
+                                    const inputRow = `
+                                        <tr id="${rowId}" class="temporary-row">
                                             <td>
-                                                <select class="form-control select2bs4" name="chief_complain_name" required onchange="handleOtherOption(this.value, 'chiefComplaintRow${rowCount}')">
+                                               <label>Chief Complaint</label>
+                                                <select class="form-control select2bs4" name="chief_complain_name" required>
                                                     {% for health_record in health_records %}
                                                         <option value="{{ health_record.id }}">{{ health_record.name }}</option>
                                                     {% endfor %}
@@ -1022,47 +1061,89 @@ Add  Consultation notes
                                                 </select>
                                             </td>
                                             <td>
+                                               <label>Duration</label>
                                                 <input type="text" class="form-control" name="chief_complain_duration" placeholder="Duration (days)" required>
                                             </td>
-                                            <td>                                         
+                                            <td>
+                                                <label>Actions</label><br>
                                                 <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
                                                 <button type="button" class="btn btn-success btn-sm save-row">Save</button>
                                             </td>
                                         </tr>`;
+
+                                    $('#chiefComplaintInputRowBody').append(inputRow);
+
+                                    initializeSelect2(`#${rowId} .select2bs4`);
+                                    bindEventListener(rowId);
+
+                                    rowCounter++; // Increase after appending
+                                });
+
+                               function bindEventListener(rowId) {
+                                const row = $(`#${rowId}`);
+
+                                // Save button
+                                row.find('.save-row').on('click', function () {
+                                    saveChiefComplaint(rowId);
+                                });
+
+                                // Delete button
+                                row.find('.delete-row').on('click', function () {
+                                    $(`#${rowId}`).remove();
+                                });
+
+                                // Handle "Other" selection in dropdown
+                                row.find('select[name="chief_complain_name"]').on('change', function () {
+                                    const selectedValue = $(this).val();
+                                    handleOtherOption(selectedValue, rowId);
+                                });
+                            }
+
                         
-                                    container.append(newRow);
-                                    initializeSelect2('.select2bs4');
-                                   
-                                    // Re-bind event listeners after row is appended
-                                    bindEventListener(rowCount);
+                                 
+                                function handleOtherOption(value, rowId) {
+                                const row = $(`#${rowId}`);
+                                
+                                // Check if the "Other" input already exists
+                                const existingOtherInput = row.find('input[name="other_complaint"]').closest('td');
+
+                                if (value === 'other') {
+                                    if (existingOtherInput.length === 0) {
+                                        // Add "Other" input after the select field (1st td)
+                                        row.find('td:first').after(`
+                                            <td>
+                                                <label>Other Complaint</label>
+                                                <input type="text" class="form-control" name="other_complaint" placeholder="Enter Other Chief Complaint" required>
+                                            </td>`);
+                                    }
+                                } else {
+                                    existingOtherInput.remove();
                                 }
-                        
-                                // Bind event listeners to the dynamically created "Save", "Delete", and "Other" options
-                                function bindEventListener(rowCount) {
-                                    // Save button event handler
-                                    $(`#chiefComplaintRow${rowCount} .save-row`).on('click', function () {
-                                        saveChiefComplaint(`chiefComplaintRow${rowCount}`);
-                                    });
-                        
-                                    // Delete button event handler
-                                    $(`#chiefComplaintRow${rowCount} .delete-row`).on('click', function () {
-                                        deleteChiefComplaintRow(`chiefComplaintRow${rowCount}`);
-                                    });                      
-                                  
-                                    
-                                }
-                        
-                                // Fetch and display existing chief complaints
-                                function fetchAndDisplayChiefComplaints() {
-                                    const url = `{% url 'doctor_endpoint_to_fetch_existing_data' %}`;
-                        
-                                    $.getJSON(url, { patient_id: patientId, visit_id: visitId }, function (data) {
+                            }
+
+                            
+
+                            // Fetch and display existing chief complaints (table and list)
+                            function fetchAndDisplayChiefComplaints() {
+                                const url = `{% url 'doctor_endpoint_to_fetch_existing_data' %}`;
+
+                                const requestData = {
+                                    patient_id: patientId,
+                                    visit_id: visitId
+                                };
+
+                                $.getJSON(url, requestData)
+                                    .done(function (data) {
+                                        // Populate both table view and list view
                                         populateChiefComplaintsTable(data);
                                         populateChiefComplaintsList(data);
-                                    }).fail(function () {
+                                    })
+                                    .fail(function () {
+                                        // Show error message on failure
                                         displayPopupMessage('Error fetching chief complaints.', 'alert-danger');
                                     });
-                                }
+                            }
+
                         
                                 // Populate the table with chief complaints     
                                 function populateChiefComplaintsTable(data) {
@@ -1104,32 +1185,33 @@ Add  Consultation notes
                                 }
                                 
 
-                                function populateChiefComplaintsList(data) {
-                                      const container = $('#chiefComplaintsList');
-                                      container.empty(); // Clear previous content
+                               function populateChiefComplaintsList(data) {
+                                const container = $('#chiefComplaintsList');
+                                container.empty(); // Clear previous content
 
-                                      if (!Array.isArray(data) || data.length === 0) {
-                                          container.append('<p class="text-muted text-center">No Chief Complaints Found</p>');
-                                          return;
-                                      }
+                                if (!Array.isArray(data) || data.length === 0) {
+                                    container.append('<p class="text-muted text-center">No Chief Complaints Found</p>');
+                                    return;
+                                }
 
-                                      const list = $('<ul class="list-group"></ul>');
+                                const list = $('<div class="list-group list-group-flush"></div>');
 
-                                      data.forEach(item => {
-                                          const complaint = item.health_record || item.other_complaint || 'N/A';
-                                          const duration = item.duration || 'N/A';
+                                data.forEach(item => {
+                                    const complaint = item.health_record || item.other_complaint || 'N/A';
+                                    const duration = item.duration ? `${item.duration}` : 'N/A';
 
-                                          const listItem = $(`
-                                              <li class="list-group-item">
-                                                  ${complaint} – ${duration} days
-                                              </li>
-                                          `);
+                                    const listItem = $(`
+                                        <div class="list-group-item py-2 px-3">
+                                            <strong>${complaint}</strong> &ndash; <span class="text-muted">${duration}</span>
+                                        </div>
+                                    `);
 
-                                          list.append(listItem);
-                                      });
+                                    list.append(listItem);
+                                });
 
-                                      container.append(list);
-                                  }
+                                container.append(list);
+                            }
+
 
 
                                function bindEventListeners(rowId) {
@@ -1306,23 +1388,7 @@ Add  Consultation notes
                                 fetchAndDisplayChiefComplaints();
                             });
 
-                           // Function to handle "Other" option
-                            function handleOtherOption(value, rowId) {
-                                const row = $(`#${rowId}`);
-                                const otherInputCell = row.find('[name="other_complaint"]').closest('td');
-
-                                if (value === 'other') {
-                                    if (otherInputCell.length === 0) {
-                                        // Insert after the first <td> to make it the second column
-                                        row.find('td:first').after(`
-                                            <td>
-                                                <input type="text" class="form-control" name="other_complaint" placeholder="Other Chief Complaint" required>
-                                            </td>`);
-                                    }
-                                } else {
-                                    otherInputCell.remove();
-                                }
-                            }
+                          
                            
                         </script>
                         
