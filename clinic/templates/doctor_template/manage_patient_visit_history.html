@@ -75,22 +75,33 @@ Patient Visit History
                                         <td>{{ visit.vst }}</td>
                                         <td>{{ visit.get_visit_type_display }}</td>                             
                                         <td>{{ visit.primary_service }}</td>                  
-                                        <td>{{ visit.created_at|date:"Y-m-d" }}</td> <!-- Display date -->
+                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
                                         <td>{{ visit.created_at|date:"l" }}</td> <!-- Display day of the week -->
-                                        <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
+                                        <td>{{ visit.created_at|time:"H:i" }}</td> <!-- Display time -->
                                         <td>                          
                                           <!-- Add more action links as needed -->
                                         <a href="{% url 'doctor_patient_health_record_view' visit.patient.id visit.id %}">
                                             <button type="button" class="btn btn-secondary btn-sm">open health record</button>
                                         </a>   
-                                                      <!-- Add more action links as needed -->
-                                         <!-- Button to trigger modal -->
-                                        <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#vitalModal{{ visit.id }}">
-                                            Open Vital
-                                        </button> 
-                                        <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id  visit.id  %}"  class="btn btn-success btn-sm">
-                                            <i class="fas fa-plus-square"></i> Consultation
-                                        </a>                                    
+                                      {% if visit.primary_service == "Consultation" %}
+                                          <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id visit.id %}" class="btn btn-success btn-sm">
+                                              <i class="fas fa-notes-medical"></i> Consultation
+                                          </a>
+                                      {% elif visit.primary_service == "Imaging" %}
+                                          <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#imagingModal{{ visit.id }}">
+                                              <i class="fas fa-x-ray"></i> Imaging
+                                          </button>
+                                      {% elif visit.primary_service == "Investigation" %}
+                                          <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#labModal{{ visit.id }}">
+                                              <i class="fas fa-vials"></i> Investigation
+                                          </button>
+                                      {% elif visit.primary_service == "Procedure" %}
+                                          <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#procedureModal{{ visit.id }}">
+                                              <i class="fas fa-stethoscope"></i> Procedure
+                                          </button>
+                                      {% endif %}
+
+                                  
                                         </td>                                
                                      </tr> 
                           
@@ -104,56 +115,41 @@ Patient Visit History
     </div>
 </div>    
 
-
- {% for visit in visits %}
-    <!-- Modal for each patient visit -->
-<div class="modal fade" id="vitalModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="vitalModalLabel{{ visit.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="vitalModalLabel{{ visit.id }}">Vital Information for Visit #{{ visit.id }}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- Vital Table -->
-        <div class="table-responsive">
-          <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display">
-            <thead>
+{% for visit in visits %}
+  <!-- Lab Modal -->
+  <div class="modal fade" id="labModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="labModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title">Lab Orders - Visit {{ visit.vst }}</h5>
+          <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-bordered table-sm text-nowrap">
+            <thead class="thead-dark">
               <tr>
-                <th>Was Recorded By</th>
-                <th>Recorded Date</th>
-                <th>Recorded Time</th>
-                <th>RR (bpm)</th>
-                <th>PR (bpm)</th>
-                <th>BR</th>
-                <th>SPO2 (%)</th>
-                <th>Temperature (°C)</th>
-                <th>Weight (Kg)</th>
-                <th>GCS</th>
-                <th>AVPU</th>
+                <th>#</th>
+                <th>Lab Test</th>
+                <th>Doctor</th>
+                <th>Order Date</th>         
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {% for vital in visit.patientvital_set.all %}
+              {% for lab in visit.laboratoryorder_set.all %}
                 <tr>
-                  <td>{{ vital.recorded_by.admin.first_name }} {{ vital.recorded_by.admin.middle_name }} {{ vital.recorded_by.admin.last_name }}</td>
-                  <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
-                  <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
-                  <td>{{ vital.respiratory_rate }}</td>
-                  <td>{{ vital.pulse_rate }}</td>
-                  <td>{{ vital.blood_pressure }}</td>
-                  <td>{{ vital.spo2 }}%</td>
-                  <td>{{ vital.temperature }}</td>
-                  <td>{{ vital.weight }}</td>
-                  <td>{{ vital.gcs }}</td>
-                  <td>{{ vital.avpu }}</td>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ lab.name.name }}</td>
+                  <td>{{ lab.doctor.get_full_name|default:"-" }}</td>
+                  <td>{{ lab.order_date|date:"d-m-Y" }}</td>           
+                  <td>
+                    <a href="{% url 'doctor_edit_lab_result' lab.patient.id lab.visit.id lab.id %}" class="btn btn-sm btn-success">
+                      Add Result
+                    </a>
+                  </td>
                 </tr>
               {% empty %}
-                <tr>
-                  <td colspan="11" class="text-center">No vital records available.</td>
-                </tr>
+                <tr><td colspan="5" class="text-center"><em>No Lab Orders</em></td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -161,10 +157,95 @@ Patient Visit History
       </div>
     </div>
   </div>
-</div>
-
 {% endfor %}
-    
+
+{% for visit in visits %}
+  <!-- Procedure Modal -->
+  <div class="modal fade" id="procedureModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="procedureModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Procedures - Visit {{ visit.vst }}</h5>
+          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-bordered table-sm text-nowrap">
+            <thead class="thead-light">
+              <tr>
+                <th>#</th>
+                <th>Procedure</th>
+                <th>Doctor</th>
+                <th>Date</th>         
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for procedure in visit.procedure_set.all %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ procedure.name.name }}</td>
+                  <td>{{ procedure.doctor.get_full_name|default:"-" }}</td>
+                  <td>{{ procedure.order_date|date:"d-m-Y" }}</td>                
+                  <td>
+                    <a href="{% url 'doctor_edit_procedure_result' procedure.patient.id procedure.visit.id procedure.id %}" class="btn btn-sm btn-success">
+                      Add Result
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="text-center"><em>No Procedures</em></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+{% for visit in visits %}
+  <!-- Imaging Modal -->
+  <div class="modal fade" id="imagingModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="imagingModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title">Imaging Orders - Visit {{ visit.vst }}</h5>
+          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-bordered table-sm text-nowrap">
+            <thead class="thead-dark">
+              <tr>
+                <th>#</th>
+                <th>Imaging</th>
+                <th>Doctor</th>
+                <th>Order Date</th>             
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for imaging in visit.imagingrecord_set.all %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ imaging.imaging.name }}</td>
+                  <td>{{ imaging.doctor.get_full_name|default:"-" }}</td>
+                  <td>{{ imaging.created_at|date:"d-m-Y" }}</td>             
+                  <td>
+                    <a href="{% url 'doctor_edit_radiology_result' imaging.patient.id imaging.visit.id imaging.id  %}" class="btn btn-sm btn-success">
+                      Add Result
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="text-center"><em>No Imaging Records</em></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
 
 <style>
     /* styles.css */

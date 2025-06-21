@@ -161,97 +161,132 @@ New Lab Order - Request
     </div>
     
     <script>
-        $(document).ready(function() {
+    $(document).ready(function () {
+        let rowCounter = 1;
 
-            
-            // Function to initialize Select2 dynamically
-            function initializeSelect2(selector) {
-                $(selector).select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
-            }
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 investigation-name" style="width: 100%;" name="investigation_name[]" required>
-                                <option value="">Select Investigation</option>
-                                {% for lab in remote_service %}
-                                    <option value="{{ lab.id }}">{{ lab.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter investigation description"></td>                       
-                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                $('#investigationTable{{ visit.id }} tbody').append(newRow);
-                        initializeSelect2('.select2bs4');
+        // Function to initialize Select2 for a specific element
+        function initializeSelect2(element) {
+            element.select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                dropdownParent: $('#addInvestigationForm') // Ensures dropdown works inside modal
             });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-                updateTotalCost{{ visit.id }}();
-            });
-    
-                        // Fetch cost when procedure name is selected
-                $(document).on('change', '.investigation-name', function() {
-                    var selectedProcedureId = $(this).val();
-                    var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
-                    var row = $(this).closest('tr');
-                    $.ajax({
-                        url: '{% url "doctor_get_procedure_cost" %}',
-                        method: 'POST',
-                        data: {
-                            procedure_id: selectedProcedureId,
-                            patient_id: patientId // Include patient ID in the POST data
-                        },
-                        success: function(response) {
-                            row.find('.cost').val(response.cost);
-                            updateTotalCost{{ visit.id }}();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error(xhr.responseText);
-                        }
-                    });
-                });
-            // Function to update total cost
-            function updateTotalCost{{ visit.id }}() {
-                var totalCost = 0;
-                $('#investigationTable{{ visit.id }} tbody tr').each(function() {
-                    var cost = parseFloat($(this).find('.cost').val());
-                    if (!isNaN(cost)) {
-                        totalCost += cost;
-                    }
-                });
-                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
-            }
+        }
+
+        // Add new row to the investigation table
+        $('#addRow{{ visit.id }}').click(function () {
+            const rowId = `investigationRow_${rowCounter}`;
+            const newRow = $(`
+                <tr id="${rowId}">
+                    <td>
+                        <select class="form-control select2bs4 investigation-name" name="investigation_name[]" required>
+                            <option value="">Select Investigation</option>
+                            {% for lab in remote_service %}
+                                <option value="{{ lab.id }}">{{ lab.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control description" name="description[]" placeholder="Enter investigation description">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control cost" name="cost[]" readonly>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger delete-row">Delete</button>
+                    </td>
+                </tr>
+            `);
+
+            $('#investigationTable{{ visit.id }} tbody').append(newRow);
+
+            // Initialize Select2 for this new select only
+            initializeSelect2(newRow.find('.investigation-name'));
+
+            rowCounter++;
         });
-    
-        // Handle form submission using AJAX
-        function addImaging() {
+
+        // Delete row
+        $(document).on('click', '.delete-row', function () {
+            $(this).closest('tr').remove();
+            updateTotalCost();
+        });
+
+        // On selecting investigation, fetch cost via AJAX
+        $(document).on('change', '.investigation-name', function () {
+            const procedureId = $(this).val();
+            const patientId = $('#patient_id{{ visit.id }}').val();
+            const row = $(this).closest('tr');
+
+            if (!procedureId) return;
+
+            $.ajax({
+                url: '{% url "doctor_get_procedure_cost" %}',
+                method: 'POST',
+                data: {
+                    procedure_id: procedureId,
+                    patient_id: patientId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    if (response.cost) {
+                        row.find('.cost').val(parseFloat(response.cost).toFixed(2));
+                        updateTotalCost();
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Failed to get procedure cost:', xhr.responseText);
+                }
+            });
+        });
+
+        // Calculate total cost of all rows
+        function updateTotalCost() {
+            let total = 0;
+            $('#investigationTable{{ visit.id }} tbody tr').each(function () {
+                const costVal = parseFloat($(this).find('.cost').val());
+                if (!isNaN(costVal)) {
+                    total += costVal;
+                }
+            });
+            $('#totalCost{{ visit.id }}').text(total.toFixed(2));
+        }
+
+        // AJAX form submission with validation
+        window.addImaging = function () {
+            let valid = true;
+            $('#investigationTable{{ visit.id }} tbody tr').each(function () {
+                const procedure = $(this).find('.investigation-name').val();
+                const cost = $(this).find('.cost').val();
+                if (!procedure || !cost || isNaN(parseFloat(cost))) {
+                    valid = false;
+                    alert('Please ensure all fields are filled and cost is valid.');
+                    return false; // break each loop
+                }
+            });
+
+            if (!valid) return;
+
             $.ajax({
                 type: 'POST',
                 url: '{% url "doctor_add_investigation" %}',
                 data: $('#addInvestigationForm').serialize(),
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#investigationResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "doctor_save_remotesconsultation_notes_next" patient.id visit.id %}';
-                        window.location.href = redirectUrl;
+                        window.location.href = '{% url "doctor_save_remotesconsultation_notes_next" patient.id visit.id %}';
                     } else {
                         $('#investigationResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
-                error: function(xhr, status, error) {
-                    $('#investigationResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+                error: function (xhr) {
+                    $('#investigationResponse').html('<div class="alert alert-danger">An error occurred: ' + xhr.responseText + '</div>');
                 }
             });
-        }
-    </script>
+        };
+    });
+</script>
+
     
 </div>
 

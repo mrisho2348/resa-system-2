@@ -44,6 +44,7 @@ urlpatterns = [
     re_path(r'^doctor/view-patient/(?P<patient_id>\d+)/$', DoctorView.view_patient, name='doctor_view_patient'),
     re_path(r'^doctor/get_item_quantity/$', DoctorView.get_item_quantity, name='doctor_get_item_quantity'),    
     path('save_remotereferral/<int:patient_id>/<int:visit_id>/', DoctorView.save_remotereferral, name='doctor_save_remotereferral'),
+    path('procedure/detail/<str:mrn>/<str:visit_number>/', DoctorView.patient_procedure_detail_view, name='doctor_patient_procedure_detail_view'),
     path('add/radiology/<int:patient_id>/<int:visit_id>/', DoctorView.add_radiology, name='doctor_add_radiology'),
     path('counsel/<int:patient_id>/<int:visit_id>/', DoctorView.save_counsel, name='doctor_save_remote_counseling'),
 

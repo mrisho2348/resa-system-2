@@ -1,5 +1,5 @@
 import calendar
-from datetime import  datetime
+from datetime import  date, datetime
 import json
 from django.utils import timezone
 import logging
@@ -12,7 +12,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404, JsonResponse
-from django.db.models import Sum
+from django.db.models import Sum,Max
+from django.db.models import OuterRef, Subquery
 from django.db import transaction
 from django.db.models import Q
 import numpy as np
@@ -34,58 +35,92 @@ from django.views import View
 @login_required
 def doctor_dashboard(request):
     try:
-        # Count total records for different models
+        today = date.today()
+        print(today)
+        # 1. Total Patients
         total_patients_count = Patients.objects.count()
-        total_medicines_count = Medicine.objects.count()
-        total_lab_orders_count = LaboratoryOrder.objects.count()
-        total_disease_records_count = DiseaseRecode.objects.count()
-        total_services_count = Service.objects.count()
 
-        # Fetch the most recently added patients (limit to 6)
-        recently_added_patients = Patients.objects.order_by('-created_at')[:6]
+        # 2. Today's Visits
+        today_visits = PatientVisits.objects.filter(updated_at__date=today)
+        today_total_patients = today_visits.count()
 
-        # Count staff by roles
-        total_doctors_count = Staffs.objects.filter(role='doctor', work_place="resa").count()
-        total_nurses_count = Staffs.objects.filter(role='nurse', work_place="resa").count()
-        total_physiotherapists_count = Staffs.objects.filter(role='physiotherapist', work_place="resa").count()
-        total_lab_technicians_count = Staffs.objects.filter(role='labTechnician', work_place="resa").count()
-        total_pharmacists_count = Staffs.objects.filter(role='pharmacist', work_place="resa").count()
-        total_receptionists_count = Staffs.objects.filter(role='receptionist', work_place="resa").count()
+        # 3. Today's Consultations
+        today_notes = ConsultationNotes.objects.filter(updated_at__date=today)
+        completed_notes = today_notes.filter(doctor_plan__in=["Discharge", "Referral"])
+        in_progress_notes = today_notes.exclude(doctor_plan__in=["Discharge", "Referral"])
+        today_completed_patients = completed_notes.values('patient').distinct().count()
+        today_in_progress_patients = in_progress_notes.values('patient').distinct().count()
 
-        # Prepare the context dictionary
+        # 4. Lab Orders
+        today_lab_orders = LaboratoryOrder.objects.filter(created_at__date=today)
+        today_lab_patients_count = today_lab_orders.values('patient').distinct().count()
+        in_progress_lab_patients_count = today_lab_orders.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
+        completed_lab_patients_count = today_lab_patients_count - in_progress_lab_patients_count if today_lab_patients_count else 0
+
+        # 5. Prescriptions
+        today_prescriptions = Prescription.objects.filter(created_at__date=today).count()
+        today_today_prescription_count = today_prescriptions.values('patient').distinct().count()
+        # 6. Procedures
+        today_procedures = Procedure.objects.filter(created_at__date=today)
+        today_procedure_patients_count = today_procedures.values('patient').distinct().count()
+        in_progress_procedure_patients_count = today_procedures.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
+        completed_procedure_patients_count = today_procedure_patients_count - in_progress_procedure_patients_count if today_procedure_patients_count else 0
+
+        # 7. Imaging
+        today_imagings = ImagingRecord.objects.filter(created_at__date=today)
+        today_imaging_patients_count = today_imagings.values('patient').distinct().count()
+        in_progress_imaging_patients_count = today_imagings.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
+        completed_imaging_patients_count = today_imaging_patients_count - in_progress_imaging_patients_count if today_imaging_patients_count else 0
+
         context = {
+            # General
             'total_patients_count': total_patients_count,
-            'total_medicines_count': total_medicines_count,
-            'total_lab_orders_count': total_lab_orders_count,
-            'total_disease_records_count': total_disease_records_count,
-            'total_services_count': total_services_count,
-            'recently_added_patients': recently_added_patients,
-            'total_doctors_count': total_doctors_count,
-            'total_nurses_count': total_nurses_count,
-            'total_physiotherapists_count': total_physiotherapists_count,
-            'total_lab_technicians_count': total_lab_technicians_count,
-            'total_pharmacists_count': total_pharmacists_count,
-            'total_receptionists_count': total_receptionists_count,
-            # 'gender_based_monthly_counts': gender_based_monthly_counts,  # Uncomment and implement if needed
+            'today_total_patients': today_total_patients,
+
+            # Consultations
+            'today_in_progress_patients': today_in_progress_patients,
+            'today_completed_patients': today_completed_patients,
+
+            # Lab Orders
+            'today_lab_orders': today_lab_patients_count,
+            'in_progress_lab_orders': in_progress_lab_patients_count,
+            'completed_lab_orders': completed_lab_patients_count,
+
+            # Prescriptions
+            'today_today_prescription_count': today_today_prescription_count,
+
+            # Procedures
+            'today_procedure_patients': today_procedure_patients_count,
+            'in_progress_procedures': in_progress_procedure_patients_count,
+            'completed_procedures': completed_procedure_patients_count,
+
+            # Imaging
+            'today_imaging_patients': today_imaging_patients_count,
+            'in_progress_imagings': in_progress_imaging_patients_count,
+            'completed_imagings': completed_imaging_patients_count,
         }
 
-    except Patients.DoesNotExist:
-        messages.error(request, 'Error fetching patient data.')
-    except Medicine.DoesNotExist:
-        messages.error(request, 'Error fetching medicine data.')
-    except LaboratoryOrder.DoesNotExist:
-        messages.error(request, 'Error fetching laboratory order data.')
-    except DiseaseRecode.DoesNotExist:
-        messages.error(request, 'Error fetching disease record data.')
-    except Service.DoesNotExist:
-        messages.error(request, 'Error fetching service data.')
-    except Staffs.DoesNotExist:
-        messages.error(request, 'Error fetching staff data.')
     except Exception as e:
-        messages.error(request, f'An unexpected error occurred: {e}')
+        messages.error(request, f"An error occurred: {str(e)}")
+        context = {
+            'total_patients_count': 0,
+            'today_total_patients': 0,
+            'today_in_progress_patients': 0,
+            'today_completed_patients': 0,
+            'today_lab_orders': 0,
+            'in_progress_lab_orders': 0,
+            'completed_lab_orders': 0,
+            'today_today_prescription_count': 0,
+            'today_procedure_patients': 0,
+            'in_progress_procedures': 0,
+            'completed_procedures': 0,
+            'today_imaging_patients': 0,
+            'in_progress_imagings': 0,
+            'completed_imagings': 0,
+        }
 
-    # Render the template with the context
     return render(request, "doctor_template/home_content.html", context)
+
 
 @login_required
 def doctor_profile(request):
@@ -740,15 +775,18 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
 
     # Get existing consultation note or None
     consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
-
+    previous_referrals = Referral.objects.filter(patient=patient_id, visit=visit)
     # Get or create provisional diagnosis record
     provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+    previous_discharges = DischargesNotes.objects.filter(patient=patient_id, visit=visit)
     provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
     final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
     # Numeric ranges for form inputs
     context = {
         'patient': patient,
         'visit': visit,
+        'previous_discharges': previous_discharges,
+        'previous_referrals': previous_referrals,
         'health_records': health_records,
         'patient_visits': patient_visits,
         'patient_vitals': patient_vitals,
@@ -988,6 +1026,7 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
     except Exception as e:
         messages.error(request, f'An error occurred: {str(e)}')
         return render(request, 'doctor_template/discharge_template.html', context)
+        
 
 @login_required
 def save_remotereferral(request, patient_id, visit_id):
@@ -1391,7 +1430,7 @@ def get_drug_division_status(request):
         medicine_id = request.GET.get('medicine_id')
         try:
             medicine = Medicine.objects.get(pk=medicine_id)
-            dividable = medicine.dividable
+            dividable = medicine.is_dividable
             return JsonResponse({'dividable': dividable})
         except Medicine.DoesNotExist:
             return JsonResponse({'error': 'Medicine not found'}, status=404)
@@ -1905,17 +1944,18 @@ def save_remotepatient_vital(request):
     except Exception as e:
         return JsonResponse({'status': False, 'message': str(e)})
     
+ 
     
 @login_required
-def consultation_notes_view(request):   
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff    
-    # Retrieve all ConsultationOrder instances for the current doctor
-    consultation_orders = ConsultationOrder.objects.filter(doctor=current_doctor).order_by('-order_date')     
-    # Retrieve all related orders for the ConsultationOrder instances
-    orders = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders], is_read=True)    
-    # Render the template with the fetched orders
-    return render(request, 'doctor_template/manage_consultation_notes.html', {'orders': orders})
+def consultation_notes_view(request):
+    # Get all patients who have consultation notes
+    patient_records = Patients.objects.filter(
+        consultationnotes__isnull=False
+    ).distinct().order_by('-consultationnotes__updated_at')
+
+    return render(request, 'doctor_template/manage_consultation_notes.html', {
+        'patient_records': patient_records
+    })
 
 @login_required
 def new_consultation_order(request):   
@@ -2001,11 +2041,56 @@ def new_radiology_order(request):
     
 @login_required
 def patient_procedure_view(request):
-    template_name = 'doctor_template/manage_procedure.html'   
-    # Query to retrieve the latest procedure record for each patient
-    procedures = Procedure.objects.order_by('-order_date')  
-    form = ProcedureForm()    
-    return render(request, template_name, {'procedures': procedures,'form':form})
+    # Retrieve distinct patient and visit combinations from RemoteProcedure
+    patient_procedures = (
+        Procedure.objects.values('patient__mrn', 'visit__vst',
+                                       'doctor__admin__first_name',
+                                          'doctor__middle_name',
+                                          'doctor__role',
+                                          'doctor__admin__first_name',
+                                       ) 
+        .annotate(
+            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
+            procedure_name=Subquery(
+                Procedure.objects.filter(
+                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
+                    visit__vst=OuterRef('visit__vst')       # Match visit number
+                )
+                .order_by('-created_at')  # Order by most recent procedure
+                .values('name__name')[:1]  # Retrieve the latest procedure name
+            )
+        )
+        .order_by('-latest_date')  # Order by the latest procedure date
+    )
+
+    context = {
+        'patient_procedures': patient_procedures,
+    }
+    return render(request, 'doctor_template/manage_procedure.html', context)
+
+@login_required
+def patient_procedure_detail_view(request, mrn, visit_number):
+    """ View to display procedure details for a specific patient and visit. """
+    
+    # Fetch patient and visit in one go
+    patient = get_object_or_404(Patients, mrn=mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_number)
+    
+    # Retrieve procedures related to this patient and visit
+    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
+
+    # Get the doctor who performed the first procedure (if exists)
+    procedure_done_by = procedures[0].doctor if procedures else None
+
+    context = {
+        'procedure_done_by': procedure_done_by,
+        'patient': patient,
+        'visit': visit,
+        'procedure': procedures,
+    }
+
+    return render(request, 'doctor_template/manage_procedure_detail_view.html', context)
+
 
 @login_required    
 def edit_procedure_result(request, patient_id, visit_id, procedure_id):

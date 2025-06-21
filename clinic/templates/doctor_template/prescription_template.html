@@ -57,7 +57,12 @@
                             <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
                         </div>
                         <div class="row mt-3">
-                            <div class="col-md-3 text-uppercase">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                              <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                                    {{ patient.payment_form }}- {{ patient.insurance_name }}   
+                                    {% else  %}   
+                                    {{ patient.payment_form }}                  
+                                {% endif %}</b>
+                            </div>
                             <div class="col-md-3">
                                 Visit number:  <b>{{ visit.vst }}</b>
                             </div>
@@ -187,7 +192,7 @@
     </div>
     
     <script>
-        $(document).ready(function() {       
+        $(document).ready(function() {      
 
             // Event listeners
             $('#addRow{{ visit.id }}').click(addRow);
@@ -201,6 +206,7 @@
             // Initial setup
             updateTotalPrice();
         });
+        
        // Function to initialize Select2 dynamically
             function initializeSelect2(selector) {
                 $(selector).select2({
@@ -244,7 +250,8 @@
                 </tr>`;
             
             $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
-                       initializeSelect2('.select2bs4');
+                        // Only initialize Select2 on the new row
+                initializeSelect2(newRow.find('.select2bs4'));
         }
     
         // Function to delete a row from the prescription table
@@ -276,38 +283,55 @@
             });
         }
     
-        // Function to update total price
-        function updateTotalPrice() {
-            var totalPrice = 0;
-            $('#prescriptionTable{{ visit.id }} tbody tr').each(function() {
-                var row = $(this);
-                var selectedMedicineId = row.find('.medicine-select').val();
-                var selectedFrequencyId = row.find('.frequency-select').val();
-                var selectedDuration = parseInt(row.find('.duration-select').val());
-                var enteredDose = parseInt(row.find('.dose-input').val());
-                var isDividable = IsDrugDividable(selectedMedicineId);
-                var frequencyName = getFrequencyName(selectedFrequencyId);
-                var quantity;
-    
-                // Check if quantity is manually entered for PRN frequency or non-dividable medicine
-                if (frequencyName === 'PRN' || isDividable === 'False') {
-                    quantity = parseInt(row.find('.quantity-input').val()) || 0;
-                } else {
-                    var formulationUnit = getFormulationUnit(selectedMedicineId);
-                    var adjustedDose = enteredDose / formulationUnit;
-                    quantity = calculateTabletQuantity(frequencyName, selectedDuration, adjustedDose);
-                }
-    
-                row.find('.quantity-input').val(quantity);
-    
-                var unitPrice = parseFloat(row.find('.unit-price-input').val());
-                var rowTotalPrice = quantity * unitPrice;
-                row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
-                totalPrice += rowTotalPrice;
-            });
-    
-            $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
-        }
+      function updateTotalPrice() {
+                let totalPrice = 0;
+
+                $('#prescriptionTable{{ visit.id }} tbody tr').each(function () {
+                    const row = $(this);
+                    const medicineId = row.find('.medicine-select').val();
+                    const frequencyId = row.find('.frequency-select').val();
+                    const durationVal = row.find('.duration-select').val();
+                    const doseVal = row.find('.dose-input').val();
+
+                    // Skip row if required fields are missing
+                    if (!medicineId || !frequencyId || !durationVal || !doseVal) {
+                        return; // skip this row
+                    }
+
+                    const duration = parseInt(durationVal);
+                    const enteredDose = parseFloat(doseVal);
+
+                    // If not a number, skip
+                    if (isNaN(duration) || isNaN(enteredDose)) return;
+
+                    const isDividable = IsDrugDividable(medicineId);
+                    const frequencyName = getFrequencyName(frequencyId);
+
+                    let quantity;
+
+                    if (frequencyName === 'PRN' || isDividable === 'False') {
+                        quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+                    } else {
+                        const formulationUnit = getFormulationUnit(medicineId);
+
+                        // Prevent division by zero
+                        if (!formulationUnit || formulationUnit === 0) return;
+
+                        const adjustedDose = enteredDose / formulationUnit;
+                        quantity = calculateTabletQuantity(frequencyName, duration, adjustedDose);
+                    }
+
+                    row.find('.quantity-input').val(quantity);
+
+                    const unitPrice = parseFloat(row.find('.unit-price-input').val()) || 0;
+                    const rowTotalPrice = quantity * unitPrice;
+                    row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
+                    totalPrice += rowTotalPrice;
+                });
+
+                $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
+            }
+
     
         // Function to check if a drug is dividable
         function IsDrugDividable(medicineId) {
@@ -401,26 +425,61 @@
             return formulationUnit;
         }
     
-        // Function to handle form submission using AJAX
+       // Function to handle form submission using AJAX
         function addPrescription{{ visit.id }}() {
+            let isValid = true;
+            let errorMsg = "";
+
+            $('#prescriptionTable{{ visit.id }} tbody tr').each(function (index, row) {
+                const $row = $(row);
+                const medicine = $row.find('[name="medicine[]"]').val();
+                const formulation = $row.find('[name="formulation"]').val();
+                const dose = $row.find('[name="dose[]"]').val();
+                const frequency = $row.find('[name="frequency[]"]').val();
+                const duration = $row.find('[name="duration[]"]').val();
+                const quantity = $row.find('[name="quantity[]"]').val();
+                const unitPrice = $row.find('.unit-price-input').val();
+
+                if (!medicine || !formulation || !dose || !frequency || !duration || !quantity || !unitPrice) {
+                    isValid = false;
+                    errorMsg = "Please fill all fields for every row before submitting.";
+                    return false; // Break the loop
+                }
+
+                if (isNaN(dose) || dose <= 0 || isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+                    isValid = false;
+                    errorMsg = "Dose, quantity, and unit price must be positive numbers.";
+                    return false;
+                }
+            });
+
+            if (!isValid) {
+                $('#PrescriptionResponse{{ visit.id }}').html(
+                    `<div class="alert alert-danger">${errorMsg}</div>`
+                );
+                return;
+            }
+
+            // If validation passes, proceed to submit via AJAX
             $.ajax({
                 type: 'POST',
                 url: '{% url "doctor_add_remoteprescription" %}',
                 data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "doctor_save_remotesconsultation_notes" patient.id visit.id  %}';
+                        var redirectUrl = '{% url "doctor_save_remotesconsultation_notes" patient.id visit.id %}';
                         window.location.href = redirectUrl;
                     } else {
                         $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
-                error: function(xhr) {
+                error: function (xhr) {
                     $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
                 }
             });
         }
+
     </script>
     
 
