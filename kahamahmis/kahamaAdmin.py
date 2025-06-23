@@ -127,7 +127,7 @@ def resa_report(request):
     return render(request,"kahama_template/resa_reports.html")
 
 
-
+@login_required
 def manage_adjustment(request):
     return render(request,"kahama_template/manage_adjustment.html")
 
@@ -184,6 +184,7 @@ def reports_service(request):
 def reports_stock_ledger(request):
     return render(request,"kahama_template/reports_stock_ledger.html")
 
+@login_required
 def reports_stock_level(request):
     return render(request,"kahama_template/reports_stock_level.html")
 
@@ -1194,6 +1195,85 @@ def patient_info_form_edit(request, patient_id):
         'range_121': range_121,
     })
 
+@require_POST
+@csrf_exempt
+def delete_health_record(request):
+    try:
+        record_id = request.POST.get('record_id')
+        if not record_id:
+            return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
+
+        record = get_object_or_404(PatientHealthCondition, id=record_id)
+        record.delete()
+
+        return JsonResponse({'status': 'success', 'message': 'Record deleted'})
+
+    except PatientHealthCondition.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Health record not found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
+
+
+@require_POST
+@csrf_exempt  # Remove this if you're sending CSRF tokens via AJAX
+def delete_family_medical_history_record(request):
+    try:
+        record_id = request.POST.get('record_id')
+        if not record_id:
+            return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
+
+        record = get_object_or_404(FamilyMedicalHistory, id=record_id)
+        record.delete()
+
+        return JsonResponse({'status': 'success', 'message': 'Family medical history record deleted successfully'})
+
+    except FamilyMedicalHistory.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
+
+
+@require_POST
+@csrf_exempt  # Remove this if you’re sending CSRF token from JavaScript
+def delete_medication_allergy_record(request):
+    try:
+        record_id = request.POST.get('record_id')
+        if not record_id:
+            return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
+
+        record = get_object_or_404(PatientMedicationAllergy, id=record_id)
+        record.delete()
+
+        return JsonResponse({'status': 'success', 'message': 'Record deleted successfully'})
+
+    except PatientMedicationAllergy.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Allergy record not found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
+
+@require_POST
+@csrf_exempt  # Remove this if CSRF token is sent from AJAX
+def delete_surgery_history_record(request):
+    try:
+        record_id = request.POST.get('record_id')
+        if not record_id:
+            return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
+
+        record = get_object_or_404(PatientSurgery, id=record_id)
+        record.delete()
+
+        return JsonResponse({'status': 'success', 'message': 'Surgery record deleted successfully'})
+
+    except PatientSurgery.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Surgery record not found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
+
+
 @login_required
 def health_info_edit(request, patient_id):
     try:
@@ -1427,10 +1507,12 @@ def generatePDF(request, patient_id, visit_id):
     pass
 
 
+@login_required
 def counseling_list_view(request):
     counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_counselling.html', {'counselings': counselings})    
 
+@login_required
 def view_counseling_notes(request, patient_id, visit_id):
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
     patient = get_object_or_404(RemotePatient, id=patient_id) 
@@ -1443,6 +1525,8 @@ def view_counseling_notes(request, patient_id, visit_id):
     }
     return render(request, 'kahama_template/counseling_notes_details.html', context) 
 
+
+@login_required
 def download_counseling_notes(request, patient_id, visit_id):
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
     patient = get_object_or_404(RemotePatient, id=patient_id) 
@@ -1476,10 +1560,12 @@ def download_counseling_notes(request, patient_id, visit_id):
     except OSError as e:
         return HttpResponse(f"PDF generation error: {e}", content_type="text/plain")
 
+@login_required
 def observation_record_list_view(request):
     observation_records = RemoteObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'kahama_template/manage_observation_record.html', {'observation_records': observation_records})
 
+@login_required
 def view_observation_notes(request, patient_id, visit_id):
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
     patient = get_object_or_404(RemotePatient, id=patient_id)  
@@ -1491,6 +1577,7 @@ def view_observation_notes(request, patient_id, visit_id):
     })
 
 
+@login_required
 def discharge_notes_list_view(request):
     discharge_notes = RemoteDischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'kahama_template/manage_discharge.html', {'discharge_notes': discharge_notes})

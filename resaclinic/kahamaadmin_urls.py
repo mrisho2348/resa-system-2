@@ -99,4 +99,8 @@ urlpatterns = [
 
     path('get_all_medicine_data/', kahamaAdmin.get_all_medicine_data, name='kahama_get_all_medicine_data'),
     path('get_all_frequency_data/', kahamaAdmin.get_all_frequency_data, name='kahama_get_all_frequency_data'),
+    path('delete_health_record/', kahamaAdmin.delete_health_record, name='kahama_delete_health_record'),
+    path('delete_medication_allergy/', kahamaAdmin.delete_medication_allergy_record, name='kahama_delete_medication_allergy_record'),
+    path('delete_surgery_history/', kahamaAdmin.delete_surgery_history_record, name='kahama_delete_surgery_history_record'),
+    path('delete_family_medical_history/', kahamaAdmin.delete_family_medical_history_record, name='kahama_delete_family_medical_history_record'),
 ]
