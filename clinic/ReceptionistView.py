@@ -1,5 +1,6 @@
 import calendar
 from datetime import  date, datetime
+import os
 from django.urls import reverse
 from django.utils import timezone
 import logging
@@ -20,8 +21,9 @@ from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, P
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
 from .models import AmbulanceOrder, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination,ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InventoryItem, LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
-import numpy as np
-from django.db.models import Max,Sum,Q
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from django.db.models import Max,Sum,Q,Count
 from django.db.models import OuterRef, Subquery
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
@@ -121,6 +123,48 @@ def receptionist_dashboard(request):
 
     # Render the template with the context
     return render(request, "receptionist_template/home_content.html", context)
+
+
+def get_patient_completion_status(request):
+    # Imaging Records
+    imaging_with_result = ImagingRecord.objects.exclude(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+    imaging_pending = ImagingRecord.objects.filter(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+
+    # Procedures
+    procedure_with_result = Procedure.objects.exclude(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+    procedure_pending = Procedure.objects.filter(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+
+    # Lab Orders
+    lab_with_result = LaboratoryOrder.objects.exclude(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+    lab_pending = LaboratoryOrder.objects.filter(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
+
+    # Consultation Notes - Count how many patients have multiple plans
+    consultation_group = (
+        ConsultationNotes.objects
+        .values('patient')
+        .annotate(plan_count=Count('doctor_plan'))
+    )
+    consultation_completed = consultation_group.filter(plan_count=1).count()
+    consultation_in_progress = consultation_group.filter(plan_count__gt=1).count()
+
+    return JsonResponse({
+        "imaging": {
+            "completed": imaging_with_result,
+            "pending": imaging_pending
+        },
+        "procedure": {
+            "completed": procedure_with_result,
+            "pending": procedure_pending
+        },
+        "laboratory": {
+            "completed": lab_with_result,
+            "pending": lab_pending
+        },
+        "consultation": {
+            "completed": consultation_completed,
+            "in_progress": consultation_in_progress
+        }
+    })    
 
 def get_earnings_data(request):
     try:
@@ -419,6 +463,7 @@ def manage_patients(request):
 @login_required
 def patient_vital_visit_list(request, patient_id,visit_id):
     # Retrieve the patient object
+    import numpy as np
     patient = Patients.objects.get(pk=patient_id)
     visit = PatientVisits.objects.get(pk=visit_id)
     range_51 = range(51)
@@ -1182,15 +1227,6 @@ def appointment_view(request):
 
 
 @login_required
-def patient_procedure_view(request):
-    template_name = 'receptionist_template/manage_procedure.html'
-    
-    # Retrieve all procedure data ordered by created_at field in descending order
-    procedures = Procedure.objects.order_by('-created_at')
-
-    return render(request, template_name, {'data': procedures})
-
-@login_required
 def ambulance_order_view(request):
     template_name = 'receptionist_template/ambulance_order_template.html'
     # Retrieve all ambulance records with the newest records appearing first
@@ -1875,27 +1911,46 @@ def patient_visit_history_view(request, patient_id):
 
 
 @login_required
-def prescription_list(request):  
-    # Retrieve all prescriptions with related patient and visit
-    prescriptions = Prescription.objects.select_related('patient', 'visit')
-    # Group prescriptions by visit and calculate total price for each visit
-    visit_total_prices = prescriptions.values(
-    'visit__vst', 
-    'visit__patient__first_name',
-    'visit__created_at', 
-    'visit__patient__id', 
-    'visit__patient__middle_name', 
-    'visit__patient__last_name'
-).annotate(
-    total_price=Sum('total_price'),
-    verified=F('verified'),  # Access verified field directly from Prescription
-    issued=F('issued'),      # Access issued field directly from Prescription
-    status=F('status'),      # Access status field directly from Prescription
-)
-   
-    return render(request, 'receptionist_template/manage_prescription_list.html', { 
-      
-        'visit_total_prices': visit_total_prices,
+def prescription_list(request):
+    # Step 1: Fetch prescriptions grouped by visit
+    grouped_visits = (
+        Prescription.objects
+        .values(
+            'visit__id',
+            'visit__vst',
+            'visit__created_at',
+            'visit__patient__id',
+            'visit__patient__first_name',
+            'visit__patient__middle_name',
+            'visit__patient__last_name',
+            'visit__patient__gender',
+            'visit__patient__dob',
+            'visit__patient__mrn',
+            'visit__patient__payment_form',
+            'visit__patient__insurance_name',
+        )
+        .annotate(
+            total_price=Sum('total_price')
+        )
+        .order_by('-visit__created_at')
+    )
+
+    # Step 2: Attach related prescriptions to each grouped visit
+    for visit in grouped_visits:
+        prescriptions = Prescription.objects.filter(visit__id=visit['visit__id']).select_related('medicine')
+        visit['prescriptions'] = prescriptions
+
+        # Optional: Derive consistent status, issued, verified if all match
+        statuses = prescriptions.values_list('status', flat=True).distinct()
+        issued = prescriptions.values_list('issued', flat=True).distinct()
+        verified = prescriptions.values_list('verified', flat=True).distinct()
+
+        visit['status'] = statuses[0] if len(statuses) == 1 else "Mixed"
+        visit['issued'] = issued[0] if len(issued) == 1 else "Mixed"
+        visit['verified'] = verified[0] if len(verified) == 1 else "Mixed"
+
+    return render(request, 'receptionist_template/manage_prescription_list.html', {
+        'visit_total_prices': grouped_visits,
     })
     
 
@@ -2313,29 +2368,80 @@ def manage_service(request):
 
 @login_required
 def patient_laboratory_view(request):
-    template_name = 'receptionist_template/manage_lab_result.html'
-
-    # Retrieve distinct patient and visit combinations from RemoteLaboratoryOrder
-    patient_lab_results = (
-        LaboratoryOrder.objects.values('patient__mrn', 
-                                            'data_recorder__admin__first_name',
-                                          'data_recorder__middle_name',
-                                          'data_recorder__role',
-                                          'data_recorder__admin__first_name',
-                                             'visit__vst',
-                                             ) 
-        .annotate(
-            latest_result_date=Max('created_at')  # Annotate with the latest lab result date for each combination
-        )
-        .order_by('-latest_result_date')  # Order results by the latest date in descending order
+    # Get distinct (patient, visit) combinations with latest result date
+    distinct_lab_sets = (
+        LaboratoryOrder.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
 
+    patient_lab_data = []
+
+    for entry in distinct_lab_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        lab_tests = LaboratoryOrder.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin')
+
+        if lab_tests.exists():
+            first_lab = lab_tests.first()
+            patient_lab_data.append({
+                'patient': first_lab.patient,
+                'visit': first_lab.visit,
+                'latest_date': latest_date,
+                'lab_done_by': first_lab.data_recorder,
+                'lab_tests': lab_tests
+            })
+
     context = {
-        'data': patient_lab_results,  # Pass the results as 'data' for template rendering
+        'patient_labs': patient_lab_data,
     }
 
-    return render(request, template_name, context)
+    return render(request, 'receptionist_template/manage_lab_result.html', context)
 
+
+@login_required
+def patient_imaging_view(request):
+    # Get distinct (patient, visit) combinations with the latest imaging record date
+    distinct_imaging_sets = (
+        ImagingRecord.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_imaging_data = []
+
+    for entry in distinct_imaging_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        imaging_records = ImagingRecord.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin', 'imaging')
+
+        if imaging_records.exists():
+            first_imaging = imaging_records.first()
+            patient_imaging_data.append({
+                'patient': first_imaging.patient,
+                'visit': first_imaging.visit,
+                'latest_date': latest_date,
+                'imaging_done_by': first_imaging.data_recorder,
+                'imaging_records': imaging_records
+            })
+
+    context = {
+        'patient_imaging': patient_imaging_data,
+    }
+
+    return render(request, 'receptionist_template/manage_imaging_result.html', context)
 
 @login_required
 def patient_lab_result_history_view(request, mrn):
@@ -2513,27 +2619,37 @@ def add_imaging(request):
 
 @login_required
 def patient_procedure_view(request):
-    # Retrieve distinct patient and visit combinations from RemoteProcedure
-    patient_procedures = (
-        Procedure.objects.values('patient__mrn', 'visit__vst',
-                                       'doctor__admin__first_name',
-                                          'doctor__middle_name',
-                                          'doctor__role',
-                                          'doctor__admin__first_name',
-                                       ) 
-        .annotate(
-            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
-            procedure_name=Subquery(
-                Procedure.objects.filter(
-                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
-                    visit__vst=OuterRef('visit__vst')       # Match visit number
-                )
-                .order_by('-created_at')  # Order by most recent procedure
-                .values('name__name')[:1]  # Retrieve the latest procedure name
-            )
-        )
-        .order_by('-latest_date')  # Order by the latest procedure date
+    # Get all distinct (patient, visit) pairs that have at least one procedure
+    distinct_procedure_sets = (
+        Procedure.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
+
+    # Prepare data structure for template
+    patient_procedures = []
+
+    for entry in distinct_procedure_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        procedures = Procedure.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'doctor__admin', 'name', 'data_recorder')
+
+        if procedures.exists():
+            first_proc = procedures.first()
+            patient_procedures.append({
+                'patient': first_proc.patient,
+                'visit': first_proc.visit,
+                'latest_date': latest_date,
+                'doctor': first_proc.doctor,
+                'procedure_done_by': first_proc.data_recorder,
+                'procedures': procedures  # All procedures for that visit
+            })
 
     context = {
         'patient_procedures': patient_procedures,
@@ -2771,13 +2887,499 @@ def view_observation_notes(request, patient_id, visit_id):
         'visit': visit,
     })
 
-   
-@login_required        
+
+def download_observation_pdf(request, patient_id, visit_id):
+    # Fetch the required patient and visit
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)
+
+    # Prepare context for the template
+    context = {
+        'observation_record': observation_record,
+        'visit': visit,
+    }
+
+    # Render HTML template
+    html_content = render_to_string('receptionist_template/observation_notes_detail.html', context)
+
+    # Create a temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'observation_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_discharge_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and discharge note
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'discharge_note': discharge_note,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('receptionist_template/discharge_note_detail.html', context)
+
+    # Prepare file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'discharge_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response   
+
+def download_counseling_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and counseling note
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    counseling = get_object_or_404(Counseling, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'counseling': counseling,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated counseling note template
+    html_content = render_to_string('receptionist_template/counseling_notes_details.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'counseling_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+def download_referral_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and referral
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    referral = get_object_or_404(Referral, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'referral': referral,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated referral note template
+    html_content = render_to_string('receptionist_template/view_referral.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'referral_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_prescription_notes_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+
+    # Get all prescriptions for this patient and visit
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('receptionist_template/prescription_notes.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_notes_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve file as HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_prescription_bill_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+
+    # Get all prescriptions for this visit and patient
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using template
+    html_content = render_to_string('receptionist_template/prescription_bill.html', context)
+
+    # Create temporary folder and define file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_bill_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_procedure_result_pdf(request, procedure_id):
+    # Fetch procedure or return 404
+    procedure = get_object_or_404(Procedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
+
+    # Prepare context for template
+    context = {
+        'procedure': procedure,
+    }
+
+    # Render the HTML content using template
+    html_content = render_to_string('receptionist_template/pdf_procedure_result.html', context)
+
+    # Create temporary directory for storing the PDF
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Define safe file name and full path
+    file_name = f"procedure_result_{procedure.patient.full_name}_{procedure.procedure_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove file if it already exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+@login_required
+def download_all_procedures_pdf(request, patient_mrn, visit_vst):
+    # Get patient and visit
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all related procedures
+    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+
+    if not procedures.exists():
+        return HttpResponse("No procedures found for this visit.", status=404)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'procedures': procedures
+    }
+
+    # Render the template
+    html_content = render_to_string('receptionist_template/pdf_all_procedures.html', context)
+
+    # Generate file
+    file_name = f"all_procedures_{patient.full_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Write PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+
+@login_required
+def download_lab_result_pdf(request, lab_id):
+    # Fetch the lab order or return 404 if not found
+    lab = get_object_or_404(
+        LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+        id=lab_id
+    )
+
+    # Prepare context for PDF rendering
+    context = {
+        'lab': lab,
+    }
+
+    # Render HTML from template
+    html_content = render_to_string('receptionist_template/pdf_lab_result.html', context)
+
+    # Setup temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe file name and path
+    safe_name = lab.patient.full_name.replace(" ", "_")
+    file_name = f"lab_result_{safe_name}_{lab.lab_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete if file exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the PDF as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all laboratory orders for this patient and visit
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related(
+        'name', 'data_recorder'
+    )
+
+    if not lab_tests.exists():
+        return HttpResponse("No lab results found for this visit.", status=404)
+
+    # Prepare the template context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'lab_tests': lab_tests
+    }
+
+    # Render HTML template
+    html_content = render_to_string('receptionist_template/pdf_all_lab_results.html', context)
+
+    # Define a safe filename and temporary path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_lab_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate the PDF file
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the file as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_imaging_result_pdf(request, imaging_id):
+    # Fetch the imaging record or return 404
+    imaging = get_object_or_404(
+        ImagingRecord.objects.select_related('patient', 'visit', 'data_recorder', 'imaging'),
+        id=imaging_id
+    )
+
+    # Prepare context for rendering
+    context = {
+        'imaging': imaging,
+    }
+
+    # Render HTML content from template
+    html_content = render_to_string('receptionist_template/pdf_imaging_result.html', context)
+
+    # Temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe filename
+    safe_name = imaging.patient.full_name.replace(" ", "_")
+    file_name = f"imaging_result_{safe_name}_{imaging.id}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_imaging_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit instances
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all imaging records for this visit
+    imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related(
+        'imaging', 'data_recorder'
+    )
+
+    if not imaging_records.exists():
+        return HttpResponse("No imaging records found for this visit.", status=404)
+
+    # Prepare context for rendering
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'imaging_records': imaging_records
+    }
+
+    # Render HTML content
+    html_content = render_to_string('receptionist_template/pdf_all_imaging_results.html', context)
+
+    # Prepare temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_imaging_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if any
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
 def consultation_notes_view(request):
-    consultation_notes = ConsultationNotes.objects.all() 
+    # Get all patients who have consultation notes
+    patient_records = Patients.objects.filter(
+        consultationnotes__isnull=False
+    ).distinct().order_by('-consultationnotes__updated_at')
+
     return render(request, 'receptionist_template/manage_consultation_notes.html', {
-        'consultation_notes': consultation_notes,       
-        })    
+        'patient_records': patient_records
+    })
 
 
 

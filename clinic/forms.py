@@ -807,7 +807,7 @@ PROFESSION_CHOICES = [
 # Existing fields...
 WORK_PLACE_CHOICES = [
         ('resa', 'Resa'),
-        ('kahama', 'Kahama'),
+        ('kahama', 'Pemba'),
         # Add more choices as needed
     ]
 
@@ -819,10 +819,38 @@ GENDER_CHOICES = [
 
 
 class AddStaffForm(forms.Form):
+    first_name = forms.CharField(
+        label='First Name',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter First Name"})
+    )
+    middle_name = forms.CharField(
+        label='Middle Name',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Middle Name"})
+    )
+    
+    last_name = forms.CharField(
+        label='Last Name',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Last Name"})
+    )
+    phone_number = forms.CharField(
+        label='Phone Number',
+        max_length=10,       
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Phone Number"})
+    )
+
     email = forms.CharField(
         label='Email',
         max_length=50,
         widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "Enter Email"})
+    )
+    username = forms.CharField(
+        label='Username',
+        max_length=50,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Username"})
     )
     password = forms.CharField(
         label='Password',
@@ -833,32 +861,6 @@ class AddStaffForm(forms.Form):
         label='Confirm Password',
         max_length=50,
         widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Confirm Password"})
-    )
-    first_name = forms.CharField(
-        label='First Name',
-        max_length=50,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter First Name"})
-    )
-    last_name = forms.CharField(
-        label='Last Name',
-        max_length=50,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Last Name"})
-    )
-    username = forms.CharField(
-        label='Username',
-        max_length=50,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Username"})
-    )
-    phone_number = forms.CharField(
-        label='Phone Number',
-        max_length=10,       
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Phone Number"})
-    )
-    middle_name = forms.CharField(
-        label='Middle Name',
-        max_length=50,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Middle Name"})
     )
     date_of_birth = forms.DateField(
         label='Date of Birth',

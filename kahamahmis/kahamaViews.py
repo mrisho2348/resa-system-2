@@ -18,7 +18,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.functions import ExtractMonth  # Add this import
 from django.template.loader import render_to_string
 from kahamahmis.forms import RemoteLaboratoryOrderForm, RemoteProcedureForm
-import numpy as np
+
 from django.db.models import Q
 
 @login_required
@@ -318,6 +318,7 @@ def delete_chief_complaint(request, chief_complaint_id):
      
 @login_required
 def save_remotesconsultation_notes(request, patient_id, visit_id):
+    import numpy as np
     doctor = request.user.staff
     patient = get_object_or_404(RemotePatient, pk=patient_id)
     visit = get_object_or_404(RemotePatientVisits, patient=patient_id, id=visit_id)

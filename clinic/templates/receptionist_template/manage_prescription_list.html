@@ -1,5 +1,6 @@
 {% extends 'receptionist_template/base_template.html' %}
-
+{% load static %}
+{% load customfilter %}
 {% block title %}
 Prescription 
 {% endblock title %}
@@ -35,7 +36,7 @@ Prescription
                             <tbody>
                                 {% for visit_total in visit_total_prices %}
                                     <tr>  
-                                        <td>{{ visit_total.visit__created_at|date:"d/m/Y" }}</td> <!-- Format date as dd/mm/yyyy -->
+                                        <td>{{ visit_total.visit__created_at|date:"d/m" }}</td> <!-- Format date as dd/mm/yyyy -->
                                         <td>{{ visit_total.visit__vst }}</td> <!-- Display visit number -->
                                         <td>{{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }}  {{ visit_total.visit__patient__last_name }}</td> <!-- Display patient name -->
                                         <td>{{ visit_total.total_price }}</td> <!-- Display total price for the visit -->
@@ -45,27 +46,29 @@ Prescription
                                                 {{ visit_total.verified }}
                                             </p>
                                           
-                                        </td>  <!-- Display verified field -->
-                                        
+                                        </td>  <!-- Display verified field -->                                        
                                         <td>
                                             <p  {% if visit_total.issued == 'issued' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.issued }}</p>
                                            
-                                        </td>   <!-- Display issued field -->
-                                        
+                                        </td>   <!-- Display issued field -->                                        
                                         <td >
                                            <p {% if visit_total.status == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.status }}</p>
                                         </td>   <!-- Display payment status field -->
                                         
                                         <td>
-                                            <a class="btn btn-primary" href="{% url 'receptionist_prescription_detail' visit_total.visit__vst visit_total.visit__patient__id %}">
-                                                <i class="fas fa-eye"></i> View
-                                            </a>   
-                                            <a class="btn btn-secondary" href="{% url 'receptionist_prescription_billing' visit_total.visit__vst visit_total.visit__patient__id %}">
+                                            <!-- Modal Trigger Button -->
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#prescriptionDetailModal{{ visit_total.visit__vst }}">
+                                                <i class="fas fa-eye"></i> View/Pay
+                                            </button>
+
+                                            <!-- Modal Trigger Buttons -->
+                                            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#prescriptionBillModal{{ visit_total.visit__vst }}">
                                                 <i class="fas fa-file-invoice"></i> Prescription Bill
-                                            </a>   
-                                            <a class="btn btn-success" href="{% url 'receptionist_prescription_notes' visit_total.visit__vst visit_total.visit__patient__id %}">
+                                            </button>
+
+                                            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#prescriptionNotesModal{{ visit_total.visit__vst }}">
                                                 <i class="fas fa-notes-medical"></i> Prescription Notes
-                                            </a>   
+                                            </button>  
                                         </td>       
                                     </tr>
                                 {% endfor %}
@@ -77,6 +80,366 @@ Prescription
         </div>
     </div>
 </div>
+
+{% for visit_total in visit_total_prices %}
+    <div class="modal fade" id="prescriptionDetailModal{{ visit_total.visit__vst }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionBillModalLabel{{ visit_total.visit__vst }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">      
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <div class="mb-3">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+          </div>
+
+          <!-- Patient Details Section -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">Patient Details</div>
+            <div class="card-body">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td><strong>Patient:</strong> {{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</td>
+                  <td><strong>Visit Number:</strong> {{ visit_total.visit__vst }}</td>
+                  <td><strong>Date:</strong> {{ visit_total.visit__created_at|date:"d-m-Y" }}</td>
+                </tr>
+                <tr>
+                  <td colspan="3"><strong>Status:</strong> {{ visit_total.status }} &nbsp;&nbsp; <strong>Verification:</strong> {{ visit_total.verified }} &nbsp;&nbsp; <strong>Issued:</strong> {{ visit_total.issued }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Prescription Bill Table Section -->
+          <div class="card">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0 text-uppercase">Prescription Details</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped table-sm display" id="example5">
+                  <thead>
+                    <tr>
+                      <th>Drug</th>
+                      <th>Dose</th>
+                      <th>Frequency</th>
+                      <th>Duration</th>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for prescription in visit_total.prescriptions %}
+                      <tr>
+                        <td>{{ prescription.medicine.name }}</td>
+                        <td>{{ prescription.dose }}</td>
+                        <td>{{ prescription.frequency }}</td>
+                        <td>{{ prescription.duration }}</td>
+                        <td>{{ prescription.quantity_used }}</td>
+                        <td>{{ prescription.medicine.unit_price }}</td>
+                        <td>{{ prescription.total_price }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download PDF + Conditional Payment Buttons -->
+          <div class="row mt-3">
+            <div class="col-md-6">
+              {% if visit_total.verified == 'verified' and visit_total.issued == 'issued' %}
+                {% if visit_total.status == 'Paid' %}
+                  <button class="btn btn-danger btn-block" onclick="togglePayment('{{ visit_total.visit__vst }}', 'unpay')">Unpay</button>
+                {% else %}
+                  <button class="btn btn-info btn-block" onclick="togglePayment('{{ visit_total.visit__vst }}', 'pay')">Pay</button>
+                {% endif %}
+              {% endif %}
+            </div>           
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="paymentStatusModalLabel">Payment Status</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="paymentStatusModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function togglePayment(visitNumber, action) {
+    const url = action === 'pay' 
+        ? '{% url "receptionist_pay_prescriptions" %}' 
+        : '{% url "receptionist_unpay_prescriptions" %}';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: {
+            visit_number: visitNumber
+        },
+        success: function(response) {
+            $('#paymentStatusModalBody').html('<span class="text-success">Prescription payment status updated successfully.</span>');
+            $('#paymentStatusModal').modal('show');
+
+            // Optional: refresh after modal is closed
+            $('#paymentStatusModal').on('hidden.bs.modal', function () {
+                location.reload();
+            });
+        },
+        error: function(xhr, status, error) {
+            $('#paymentStatusModalBody').html('<span class="text-danger">Failed to update payment status. Please try again.</span>');
+            $('#paymentStatusModal').modal('show');
+        }
+    });
+}
+</script>
+
+
+
+{% for visit_total in visit_total_prices %}
+  <!-- Modal for Prescription Notes -->
+  <div class="modal fade" id="prescriptionNotesModal{{ visit_total.visit__vst }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionNotesModalLabel{{ visit_total.visit__vst }}" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">       
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="container-fluid">
+
+            <!-- Header Image -->
+            <header class="header mb-3">
+              <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+            </header>
+
+            <!-- Patient Details Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-dark text-white">
+                <h6 class="mb-0 text-uppercase">Patient Details</h6>
+              </div>
+              <div class="card-body">
+                <table class="table table-borderless table-sm">
+                  <tr>
+                    <td><strong>Patient:</strong> {{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</td>
+                    <td><strong>DOB:</strong> {{ visit_total.visit__patient__dob|date:'d-m-Y' }}</td>
+                    <td><strong>Gender:</strong> {{ visit_total.visit__patient__gender }}</td>
+                    <td><strong>File No:</strong> {{ visit_total.visit__patient__mrn }}</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><strong>Payment Form:</strong>
+                      {% if visit_total.visit__patient__payment_form == "Insurance" %}
+                        {{ visit_total.visit__patient__payment_form }} - {{ visit_total.visit__patient__insurance_name }}
+                      {% else %}
+                        {{ visit_total.visit__patient__payment_form }}
+                      {% endif %}
+                    </td>
+                    <td colspan="2"><strong>Visit Number:</strong> {{ visit_total.visit__vst }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <!-- Prescription Notes Section -->
+            <div class="card">
+              <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0 text-uppercase">Prescription Notes</h6>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-hover text-nowrap table-bordered table-striped table-sm">
+                    <thead>
+                      <tr>
+                        <th>Drug</th>
+                        <th>Dose</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                        <th>Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for prescription in visit_total.prescriptions %}
+                        <tr>
+                          <td>{{ prescription.medicine.drug_name }}</td>
+                          <td>{{ prescription.dose }}</td>
+                          <td>{{ prescription.frequency }}</td>
+                          <td>{{ prescription.duration }}</td>
+                          <td>{{ prescription.quantity_used }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Download PDF Button -->
+            <div class="row mt-3">
+              <div class="col-md-12 text-right">
+                <a href="{% url 'receptionist_download_prescription_notes_pdf' visit_total.visit__patient__id visit_total.visit__id %}" 
+                   class="btn btn-outline-secondary btn-sm" target="_blank">
+                  <i class="fa fa-download"></i> Download PDF
+                </a>
+              </div>
+            </div>
+
+          </div> <!-- /.container-fluid -->
+        </div> <!-- /.modal-body -->
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+
+{% for visit_total in visit_total_prices %} 
+    <div class="modal fade" id="prescriptionBillModal{{ visit_total.visit__vst }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionBillModalLabel{{ visit_total.visit__vst }}" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header bg-primary text-white">
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            <div class="container-fluid">
+
+              <!-- Header Image -->
+              <header class="header mb-3">
+                <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Clinic Header">
+              </header>
+
+              <!-- Patient Details Section -->
+              <div class="row">
+                <div class="col-12">
+                  <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">
+                      <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                    </div>
+                    <div class="card-body">
+                      <table class="table table-borderless table-sm">
+                        <tbody>
+                          <tr>
+                            <td><strong>PATIENT:</strong> {{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</td>
+                            <td><strong>DOB:</strong> {{ visit_total.visit__patient__dob|date:'d-m-Y' }} [<strong>Age:</strong> {{ visit_total.visit__patient__age }}]</td>
+                            <td><strong>SEX:</strong> {{ visit_total.visit__patient__gender }}</td>
+                            <td><strong>FILE NO:</strong> {{ visit_total.visit__patient__mrn }}</td>
+                          </tr>
+                          <tr>
+                            <td colspan="2"><strong>Payment Form:</strong>
+                              {% if visit_total.visit__patient__payment_form == "Insurance" %}
+                                {{ visit_total.visit__patient__payment_form }} - {{ visit_total.visit__patient__insurance_name }}
+                              {% else %}
+                                {{ visit_total.visit__patient__payment_form }}
+                              {% endif %}
+                            </td>
+                            <td colspan="2"><strong>Visit Number:</strong> {{ visit_total.visit__vst }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Prescription Bill Section -->
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                      <h6 class="mb-0 text-uppercase">Prescription Bill</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped">
+                          <thead class="thead-dark">
+                            <tr>
+                              <th>Drug</th>
+                              <th>Dose</th>
+                              <th>Frequency</th>
+                              <th>Duration</th>
+                              <th>Quantity</th>
+                              <th>Unit Price</th>
+                              <th>Total Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for prescription in visit_total.prescriptions %}
+                              <tr>
+                                <td>{{ prescription.medicine.drug_name }}</td>
+                                <td>{{ prescription.dose }}</td>
+                                <td>{{ prescription.frequency }}</td>
+                                <td>{{ prescription.duration }}</td>
+                                <td>{{ prescription.quantity_used }}</td>
+                                <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
+                                <td>{{ prescription.total_price }}</td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="card-footer text-right">
+                      <strong>Total: {{ visit_total.prescriptions|total_cost_of_prescription }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Download PDF Button -->
+              <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                  <a href="{% url 'receptionist_download_prescription_bill_pdf' visit_total.visit__patient__id visit_total.visit__id %}"
+                     class="btn btn-outline-secondary btn-sm" target="_blank">
+                    <i class="fa fa-download"></i> Download PDF
+                  </a>
+                </div>
+              </div>
+
+            </div> <!-- /.container-fluid -->
+          </div> <!-- /.modal-body -->
+
+        </div> <!-- /.modal-content -->
+      </div> <!-- /.modal-dialog -->
+    </div> <!-- /.modal -->
+{% endfor %}
 
 
 {% include 'receptionist_template/datatable.html' %}

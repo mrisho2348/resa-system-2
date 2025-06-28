@@ -1,55 +1,67 @@
 {% extends 'receptionist_template/base_template.html' %}
 {% load static %}
 {% block title %}
-all Procedure    
+All Imaging Results
 {% endblock title %}
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
-
+ 
 {% endblock breadcrumb %}
 {% block main_content %}
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-12">
       <div class="card">
-        <div class="card-header">
-          <h5 class="header-title text-center mt-0 mb-1 text-uppercase">All Procedures</h5>
+
+        <!-- Card Header -->
+        <div class="card-header text-center">
+          <h6 class="header-title text-uppercase mb-0">All Imaging Results</h6>
         </div>
+
+        <!-- Card Body -->
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-              <thead>
+            <table class="table table-hover table-bordered table-striped table-sm text-nowrap" id="example">
+              <thead class="thead-light">
                 <tr>
-                  <th>Patient MRN</th>
+                  <th>Patient</th>
                   <th>Visit Number</th>
-                  <th>Procedure done by</th>
+                  <th>Data Recorder</th>
                   <th>Date</th>
                   <th>Action</th>
                 </tr>
               </thead>
+
               <tbody>
-                {% for record in patient_procedures %}
+                {% for record in patient_imaging %}
                 <tr>
-                  <td>{{ record.patient.mrn }}</td>
+                  <td>{{ record.patient }}</td>
                   <td>{{ record.visit.vst }}</td>
                   <td>
-                    <b style="color: blue;" class="text-capitalize">Dr.</b>
+                    <strong class="text-primary text-capitalize">{{ record.imaging_done_by.role }}</strong><br>
                     <span class="text-muted">
-                      {{ record.doctor.admin.first_name }} {{ record.doctor.middle_name }} {{ record.doctor.admin.last_name }}
+                      {{ record.imaging_done_by.admin.first_name }}
+                      {{ record.imaging_done_by.middle_name }}
+                      {{ record.imaging_done_by.admin.last_name }}
                     </span>
                   </td>
                   <td>{{ record.latest_date|date:"d-m-Y" }}</td>
                   <td>
-                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#procedureModal{{ record.visit.vst }}">
-                      <i class="fa fa-eye text-dark"></i> View Details
+                    <button type="button"
+                            class="btn btn-info btn-sm"
+                            data-toggle="modal"
+                            data-target="#imagingModal{{ record.patient.mrn }}{{ record.visit.vst }}">
+                      <i class="fa fa-image text-dark"></i> View Imaging Info
                     </button>
                   </td>
                 </tr>
                 {% endfor %}
               </tbody>
+
             </table>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -57,13 +69,17 @@ all Procedure
 
 
 
-{% for record in patient_procedures %}
-<div class="modal fade" id="procedureModal{{ record.visit.vst }}" tabindex="-1" role="dialog" aria-labelledby="procedureModalLabel{{ record.visit.vst }}" aria-hidden="true">
+
+
+{% for record in patient_imaging %}
+<!-- Imaging Modal -->
+<div class="modal fade" id="imagingModal{{ record.patient.mrn }}{{ record.visit.vst }}" tabindex="-1" role="dialog" aria-labelledby="imagingModalLabel{{ record.patient.mrn }}{{ record.visit.vst }}" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
     <div class="modal-content">
 
       <!-- Modal Header -->
-      <div class="modal-header bg-primary text-white"> 
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Imaging Result Summary</h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -105,44 +121,48 @@ all Procedure
             </div>
           </div>
 
-          <!-- Procedure Summary Table -->
+          <!-- Imaging Result Summary -->
           <div class="card mb-3">
             <div class="card-header bg-secondary text-white">
-              <h6 class="mb-0 text-uppercase">Procedure Summary</h6>
+              <h6 class="mb-0 text-uppercase">Imaging Summary</h6>
             </div>
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table table-hover table-bordered table-striped table-sm">
                   <thead>
                     <tr>
-                      <th>Procedure Name</th>
+                      <th>Imaging</th>
                       <th>Result</th>
-                      <th>Description</th>             
+                      <th>Description</th>
+                      <th>Image</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {% for proc in record.procedures %}
+                    {% for imaging in record.imaging_records %}
                     <tr>
-                      <td>{{ proc.name.name }}</td>
-                      <td> 
-                        {% if proc.result %}
-                          <span class="text-success">Completed</span>
-                        {% else %}
-                          <span class="text-danger">Pending</span>
-                        {% endif %}
-                        {% if proc.result %}
-                          <button type="button" class="btn btn-link p-0" data-toggle="modal" data-target="#resultModal{{ proc.id }}">
+                      <td>{{ imaging.imaging.name }}</td>
+                      <td>
+                        {% if imaging.result %}
+                          <span class="text-success">Available</span>
+                          <button type="button" class="btn btn-link p-0" data-toggle="modal" data-target="#imagingResultModal{{ imaging.id }}">
                             View Result
                           </button>
                         {% else %}
-                          <span class="text-muted">No Result</span>  
-                         {% endif %}
-                    </td>
-                      <td>{{ proc.description }}</td>                      
+                          <span class="text-muted">Pending</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ imaging.description|default:"-" }}</td>
+                      <td>
+                        {% if imaging.image %}
+                          <a href="{{ imaging.image.url }}" target="_blank">View Image</a>
+                        {% else %}
+                          <span class="text-muted">No Image</span>
+                        {% endif %}
+                      </td>
                     </tr>
                     {% empty %}
                     <tr>
-                      <td colspan="4" class="text-center text-muted">No procedures recorded for this visit.</td>
+                      <td colspan="4" class="text-center text-muted">No imaging records found for this visit.</td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -150,15 +170,15 @@ all Procedure
               </div>
             </div>
 
-            <!-- Procedure Performed By Footer -->
+            <!-- Imaging Performed By Footer -->
             <div class="card-footer">
               <table class="table table-borderless table-sm mb-0">
                 <tbody>
                   <tr>
-                    <td><strong>Procedure Done By:</strong> {{ record.procedure_done_by }}</td>
-                    <td><strong>Signature:</strong> {{ record.procedure_done_by.signature }}</td>
-                    <td><strong>Date:</strong> {{ record.visit.created_at|date:"d-m-Y" }}</td>
-                    <td><strong>MCT No:</strong> {{ record.procedure_done_by.mct_number }}</td>
+                    <td><strong>Recorded By:</strong> {{ record.imaging_done_by }}</td>
+                    <td><strong>Signature:</strong> {{ record.imaging_done_by.signature }}</td>
+                    <td><strong>Date:</strong> {{ record.latest_date|date:"d-m-Y" }}</td>
+                    <td><strong>MCT No:</strong> {{ record.imaging_done_by.mct_number }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -168,8 +188,7 @@ all Procedure
           <!-- PDF Download Button -->
           <div class="row mt-3">
             <div class="col-md-12 text-right">
-              <a href="{% url 'receptionist_download_all_procedures_pdf' record.patient.mrn record.visit.vst %}" 
-                 class="btn btn-outline-secondary btn-sm" target="_blank">
+              <a href="{% url 'receptionist_download_all_imaging_results_pdf' record.patient.mrn record.visit.vst %}" class="btn btn-outline-secondary btn-sm" target="_blank">
                 <i class="fa fa-download"></i> Download PDF
               </a>
             </div>
@@ -183,35 +202,50 @@ all Procedure
 </div>
 {% endfor %}
 
-{% for record in patient_procedures %}
-    {% for proc in record.procedures %}
-        <!-- Result Modal -->
-    <div class="modal fade" id="resultModal{{ proc.id }}" tabindex="-1" role="dialog" aria-labelledby="resultModalLabel{{ proc.id }}" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+
+
+{% for record in patient_imaging %}
+  {% for imaging in record.imaging_records %}
+    <!-- Imaging Result Modal -->
+    <div class="modal fade" id="imagingResultModal{{ imaging.id }}" tabindex="-1" role="dialog" aria-labelledby="imagingResultModalLabel{{ imaging.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-            <h5 class="modal-title" id="resultModalLabel{{ proc.id }}">Procedure Result</h5>
+
+          <!-- Modal Header -->
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="imagingResultModalLabel{{ imaging.id }}">
+              Imaging Result - {{ imaging.imaging.name }}
+            </h5>
             <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+              <span aria-hidden="true">&times;</span>
             </button>
-            </div>
-            <div class="modal-body">
-            {{ proc.result|safe }}
-            </div>
-            <div class="modal-footer">
-            <a href="{% url 'receptionist_download_procedure_result_pdf' proc.id %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            {% if imaging.result %}
+              {{ imaging.result|safe }}
+            {% else %}
+              <p class="text-muted">No result available for this imaging test.</p>
+            {% endif %}
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            {% if imaging.result %}
+              <a href="{% url 'receptionist_download_imaging_result_pdf' imaging.id %}" class="btn btn-outline-secondary btn-sm" target="_blank">
                 <i class="fa fa-download"></i> Download Result
-            </a>
+              </a>
+            {% endif %}
             <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
-            </div>
+          </div>
 
         </div>
-        </div>
+      </div>
     </div>
-    </td>
-{% endfor %}
+  {% endfor %}
 {% endfor %}
 
-{% include 'receptionist_template/datatable.html' %}    
+{% include 'receptionist_template/datatable.html' %}   
 
 {% endblock main_content %}

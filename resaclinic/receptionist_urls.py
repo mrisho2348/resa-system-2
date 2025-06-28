@@ -90,7 +90,8 @@ urlpatterns = [
         path('appointment_view/', ReceptionistView.appointment_view, name='receptionist_appointment_view'), 
         path('patient-procedure-history/<str:mrn>/view/', ReceptionistView.patient_procedure_history_view, name='receptionist_patient_procedure_history_view_mrn'), 
 
-        path('patient_laboratory_view/', ReceptionistView.patient_laboratory_view, name="receptionist_patient_laboratory_view"), 
+        path('patient/imaging/view/', ReceptionistView.patient_imaging_view, name="receptionist_patient_imaging_view"), 
+        path('patient/laboratory/view/', ReceptionistView.patient_laboratory_view, name="receptionist_patient_laboratory_view"), 
         path('patient_lab_result_history_view/<str:mrn>/view/', ReceptionistView.patient_lab_result_history_view, name="receptionist_patient_lab_result_history_view"), 
         path('lab-details/<str:mrn>/<str:visit_number>/', ReceptionistView.patient_lab_details_view, name='receptionist_patient_lab_details_view'),
         path('resa/patient-procedure-view/', ReceptionistView.patient_procedure_view, name='receptionist_patient_procedure_view'),   
@@ -110,6 +111,21 @@ urlpatterns = [
         path('api/earnings/', ReceptionistView.get_earnings_data, name='receptionist_get_earnings_data'),
         path('add/radiology/<int:patient_id>/<int:visit_id>/', ReceptionistView.add_radiology, name='receptionist_add_radiology'),
         re_path(r'^doctor/add_imaging/$', ReceptionistView.add_imaging, name='receptionist_add_imaging'),
+
+        path('imaging/download/<int:imaging_id>/', ReceptionistView.download_imaging_result_pdf, name='receptionist_download_imaging_result_pdf' ),
+        path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', ReceptionistView.download_all_imaging_results_pdf, name='receptionist_download_all_imaging_results_pdf'),
+        path('lab-result/download/<int:lab_id>/', ReceptionistView.download_lab_result_pdf, name='receptionist_download_lab_result_pdf'),
+        path('lab/download/all/<str:patient_mrn>/<str:visit_vst>/',ReceptionistView.download_all_lab_results_pdf, name='receptionist_download_all_lab_results_pdf'),
+        path('procedure/download/all/<str:patient_mrn>/<str:visit_vst>/', ReceptionistView.download_all_procedures_pdf, name='receptionist_download_all_procedures_pdf'),
+        path('procedure/result/download/<int:procedure_id>/', ReceptionistView.download_procedure_result_pdf, name='receptionist_download_procedure_result_pdf'),
+        path('download/prescription-bill/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_prescription_bill_pdf, name='receptionist_download_prescription_bill_pdf'),
+        path('download/prescription-notes/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_prescription_notes_pdf, name='receptionist_download_prescription_notes_pdf'),
+        path('download-referral-pdf/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_referral_pdf, name='receptionist_download_referral_pdf'),
+        path('download-counseling-pdf/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_counseling_pdf, name='receptionist_download_counseling_pdf'),
+        path('download-discharge-pdf/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_discharge_pdf, name='receptionist_download_discharge_pdf'),
+        path('download/observation/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_observation_pdf, name='receptionist_download_observation_pdf'),
+        path('analytics/patient-status/', ReceptionistView.get_patient_completion_status, name='receptionist_patient_status_report'),
+
      
 
 ]

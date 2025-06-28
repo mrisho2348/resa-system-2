@@ -20,7 +20,6 @@ from django.views.decorators.http import require_POST
 from .models import AmbulanceOrder, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination,ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InventoryItem, LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
 from django.db.models import Sum
 from django.db.models import Q
-import numpy as np
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
@@ -337,6 +336,7 @@ def manage_patients(request):
 @login_required
 def patient_vital_visit_list(request, patient_id,visit_id):
     # Retrieve the patient object
+    import numpy as np
     patient = Patients.objects.get(pk=patient_id)
     visit = PatientVisits.objects.get(pk=visit_id)
     range_51 = range(51)

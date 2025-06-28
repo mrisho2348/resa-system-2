@@ -16,7 +16,6 @@ from django.db.models import Sum,Max
 from django.db.models import OuterRef, Subquery
 from django.db import transaction
 from django.db.models import Q
-import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
 from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm
 from django.core.exceptions import ValidationError
@@ -760,6 +759,7 @@ def delete_chief_complaint(request, chief_complaint_id):
     
 @login_required
 def save_remotesconsultation_notes(request, patient_id, visit_id):
+    import numpy as np
     doctor = request.user.staff
     patient = get_object_or_404(Patients, pk=patient_id)
     visit = get_object_or_404(PatientVisits, patient=patient, id=visit_id)
@@ -1957,20 +1957,23 @@ def consultation_notes_view(request):
         'patient_records': patient_records
     })
 
+
 @login_required
-def new_consultation_order(request):   
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff   
-    current_date = timezone.now().date() 
-    # Retrieve all ConsultationOrder instances for the current doctor
-    consultation_orders = ConsultationOrder.objects.filter(doctor=current_doctor).order_by('-order_date')     
-    # Retrieve all unread orders for the ConsultationOrder instances
-    unread_orders = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders],  order_date=current_date)    
-    # Mark the retrieved unread orders as read
-    orders = unread_orders 
-    unread_orders.update(is_read=True)    
-    # Render the template with the fetched unread orders
-    return render(request, 'doctor_template/new_consultation_order.html', {'orders': orders})
+def new_consultation_order(request):
+    # Get today's date
+    today = timezone.now().date()
+
+    # Filter consultation orders for today
+    today_orders = ConsultationOrder.objects.filter(order_date=today).select_related('patient')
+
+    # Get unique patients from today's consultation orders
+    patients = Patients.objects.filter(id__in=today_orders.values_list('patient_id', flat=True)).distinct()
+
+    return render(request, 'doctor_template/new_consultation_order.html', {
+        'orders': today_orders,
+        'patient_records': patients
+    })
+
 
 
 def fetch_order_counts_view(request):

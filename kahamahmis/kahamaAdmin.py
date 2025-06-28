@@ -3,7 +3,6 @@ from datetime import  datetime
 from django.utils import timezone
 import logging
 from kahamahmis.forms import StaffProfileForm
-import numpy as np
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, HttpResponse 
@@ -17,7 +16,7 @@ from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
 from clinic.models import ChiefComplaint, FamilyMedicalHistory, Country, CustomUser,InsuranceCompany, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
 from django.template.loader import render_to_string
-import pdfkit
+
 from django.db.models import Max
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
@@ -805,6 +804,7 @@ def save_remotepatient_vital(request):
     
 @login_required
 def save_remotepatient_vitals(request, patient_id, visit_id):
+    import numpy as np
     patient = RemotePatient.objects.get(pk=patient_id)
     visit = RemotePatientVisits.objects.get(patient=patient_id, id=visit_id)
     range_51 = range(51)
@@ -1528,6 +1528,7 @@ def view_counseling_notes(request, patient_id, visit_id):
 
 @login_required
 def download_counseling_notes(request, patient_id, visit_id):
+    import pdfkit
     visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
     patient = get_object_or_404(RemotePatient, id=patient_id) 
     counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)

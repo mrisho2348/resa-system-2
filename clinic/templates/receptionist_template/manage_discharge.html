@@ -1,62 +1,186 @@
 {% extends 'receptionist_template/base_template.html' %}
-{% block title %}
-Discharge Notes
-{% endblock title %}
-
+{% block title %}Discharge Notes{% endblock title %}
+{% load static %}
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
 {% endblock breadcrumb %}
 
 {% block main_content %}
-  <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">All Discharge Notes</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead>
-                                <tr>
-                                    <th>Patient</th>                                                
-                                    <th>Discharge Condition</th>                              
-                                    <th>Data Recorder</th>                              
-                                    <th>Date</th>                            
-                                    <th>Time</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for discharge_note in discharge_notes %}
-                                <tr>
-                                    <td>{{ discharge_note.patient }}</td>                                                     
-                                    <td>{{ discharge_note.discharge_condition }}</td>
-                                    <td>
-                                        <b style="color: blue;" class="text-capitalize">
-                                            {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
-                                        </b> 
-                                         <span class="text-muted">{{ discharge_note.data_recorder }}</span>
-                                    </td>                          
-                                    <td>{{ discharge_note.discharge_date|date:"d-m-Y" }}</td>                          
-                                    <td>{{ discharge_note.discharge_date|date:"H:i" }}</td>
-                                    <td>
-                                        <a href="{% url 'receptionist_save_remote_discharges_notes' discharge_note.patient.id discharge_note.visit.id %}" class="btn btn-info">View</a>
-                                        <a href="{% url 'receptionist_discharge_details_view' discharge_note.patient.id discharge_note.visit.id %}" class="btn btn-primary">View discharge</a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>                   
-                        </table>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">All Discharge Notes</h6>
         </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+              <thead>
+                <tr>
+                  <th>Patient</th>                                                
+                  <th>Discharge Condition</th>                              
+                  <th>Data Recorder</th>                              
+                  <th>Date</th>                            
+                  <th>Time</th>
+                  <th>Discharge Status</th> <!-- ✅ New column -->
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for discharge_note in discharge_notes %}
+                <tr>
+                  <td>{{ discharge_note.patient }}</td>                                                     
+                  <td>{{ discharge_note.discharge_condition }}</td>
+                  <td>
+                    <b style="color: blue;" class="text-capitalize">
+                      {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
+                    </b> 
+                    <span class="text-muted">{{ discharge_note.data_recorder }}</span>
+                  </td>                          
+                  <td>{{ discharge_note.discharge_date|date:"d-m-Y" }}</td>                          
+                  <td>{{ discharge_note.discharge_date|date:"H:i" }}</td>
+                   <td>
+                    {% if discharge_note.discharge_notes %}
+                        <span class="badge badge-success">Available</span>
+                    {% else %}
+                        <span class="badge badge-warning">Pending</span>
+                    {% endif %}
+                </td>
+                  <td>
+                    {% if discharge_note.discharge_notes %}
+                        <!-- Button to open View Modal -->
+                        <button class="btn btn-info" data-toggle="modal" data-target="#dischargeModal{{ discharge_note.id }}">
+                            View
+                        </button>
+
+                    {% else %}
+                        <!-- Disabled buttons if result is missing -->
+                        <button class="btn btn-info" disabled>View</button>                                     
+                    {% endif %}
+                </td>
+                </tr>
+                {% endfor %}
+              </tbody>                   
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-{% include 'receptionist_template/datatable.html' %}   
+ {% for discharge_note in discharge_notes %}
+    {% if discharge_note.discharge_notes %}
+        <!-- Bootstrap Modal for Discharge Note -->
+        <div class="modal fade" id="dischargeModal{{ discharge_note.id }}" tabindex="-1" role="dialog" aria-labelledby="dischargeModalLabel{{ discharge_note.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="dischargeModalLabel{{ discharge_note.id }}">
+                    {{ discharge_note.patient.full_name }} - Discharge Note
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
 
+                <div class="modal-body">
+                <div class="container-fluid">
+
+                    <!-- Header Image -->
+                    <header class="header mb-3">
+                    <div class="row">
+                        <div class="col-12">
+                        <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+                        </div>
+                    </div>
+                    </header>
+
+                    <!-- Patient Details Section -->
+                    <div class="row mt-1">
+                    <div class="col-md-12">
+                        <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless table-sm">
+                            <tbody>
+                                <tr>
+                                <td>PATIENT: <b>{{ discharge_note.patient }}</b></td>
+                                <td>DOB: <b>{{ discharge_note.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ discharge_note.patient.age }}</b>]</td>
+                                <td>SEX: <b>{{ discharge_note.patient.gender }}</b></td>
+                                <td>FILE NO: <b>{{ discharge_note.patient.mrn }}</b></td>
+                                </tr>
+                                <tr>
+                                <td>Payment Form: 
+                                    <b>
+                                    {% if discharge_note.patient.payment_form == "Insurance" %}
+                                        {{ discharge_note.patient.payment_form }} - {{ discharge_note.patient.insurance_name }}
+                                    {% else %}
+                                        {{ discharge_note.patient.payment_form }}
+                                    {% endif %}
+                                    </b>
+                                </td>
+                                <td>Visit Number: <b>{{ discharge_note.visit.vst }}</b></td>
+                                </tr>
+                            </tbody>
+                            </table>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Discharge Condition Section -->
+                    <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0 text-uppercase">Discharge Condition</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-justify">{{ discharge_note.discharge_condition }}</p>
+                            <p class="text-justify">{{ discharge_note.discharge_notes|safe }}</p>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <div class="row">
+                            <div class="col-md-5">
+                                <strong>Discharged By:</strong>
+                                <b class="text-capitalize" style="color: blue;">
+                                {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
+                                </b>
+                                <span class="text-muted">{{ discharge_note.data_recorder }}</span>
+                            </div>
+                            <div class="col-md-3"><strong>Signature:</strong> {{ discharge_note.data_recorder.signature }}</div>
+                            <div class="col-md-2"><strong>Date:</strong> {{ discharge_note.discharge_date|date:"d-m-Y" }}</div>
+                            <div class="col-md-2"><strong>MCT No:</strong> {{ discharge_note.data_recorder.mct_number }}</div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Download PDF Button -->
+                    <div class="row mt-3">
+                    <div class="col-md-12 text-right">
+                        <a href="{% url 'receptionist_download_discharge_pdf' discharge_note.patient.id discharge_note.visit.id %}"
+                        class="btn btn-outline-secondary btn-sm" target="_blank">
+                        <i class="fa fa-download"></i> Download PDF
+                        </a>
+                    </div>
+                    </div>
+
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        {% endif %}
+{% endfor %}
+
+
+
+
+{% include 'receptionist_template/datatable.html' %}   
 {% endblock main_content %}

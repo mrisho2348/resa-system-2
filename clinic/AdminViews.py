@@ -649,8 +649,7 @@ def update_staff_status(request):
                     f"You can now log in to your account using the following link:\n\n"
                     f"{login_url}\n\n"
                     f"Your login details are as follows:\n"
-                    f"Email: {staff.email}\n"
-                    f"Password: {staff.password}\n\n"  # Note: This assumes that the password is stored in plaintext, which is not recommended
+                    f"Email: {staff.email}\n"                   
                     f"If you have any questions or need further assistance, please do not hesitate to contact the administrator.\n\n"
                     f"Best regards,\n"
                     f"RESA Team"

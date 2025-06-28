@@ -4,7 +4,7 @@ import json
 from django.utils import timezone
 import logging
 from kahamahmis.forms import RemoteLaboratoryOrderForm, RemoteProcedureForm
-import numpy as np
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -921,7 +921,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
         # Retrieve the patient and visit objects
         patient = RemotePatient.objects.get(pk=patient_id)
         visit = RemotePatientVisits.objects.get(patient=patient, id=visit_id)
-
+        import numpy as np
         # Prepare ranges for context
         range_51 = range(51)
         integer_range = np.arange(start=0, stop=510, step=1)
