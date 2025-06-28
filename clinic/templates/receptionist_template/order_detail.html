@@ -1,5 +1,6 @@
 {% extends 'receptionist_template/base_template.html' %}
-
+{% load static %}
+{% load customfilter %}
 {% block title %}
 Order Details
 {% endblock title %}
@@ -11,131 +12,346 @@ Order Details
 
 {% block main_content %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of all Orders</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">    
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead>
-                                <tr>
-                                    <th>Order Number</th>
-                                    <th>Order Type</th>
-                                    <th>Order To</th>
-                                    <th>Patient</th>
-                                    <th>Cost</th>
-                                    <th>Status</th>
-                                    <th>Order Date</th>
-                                    <th>Actions</th> <!-- Add a column for actions -->
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in orders %}
-                                <tr>
-                                    <td>{{ order.order_number }}</td>
-                                    <td>{{ order.order_type }}</td>
-                                    <td>{{ order.doctor }}
-                                        <p><strong>{{ order.doctor.role }}</strong></p>
-                                    </td>
-                                    <td>{{ order.patient }}
-                                        <b> {% if order.patient.payment_form == "Insurance"  %}
-                                                {{ order.patient.payment_form }}- {{ order.patient.insurance_name }}
-                                                {% else %}   
-                                                   {{ order.patient.payment_form }}                   
-                                        {% endif %}</b>
-                                    </td>
-                                    <td>{{ order.cost }}</td>
-                                    <td>
-                                        {% if order.status == 'Paid' %}
-                                        <span class="badge badge-success">{{ order.status }}</span>
-                                        {% else %}
-                                        <span class="badge badge-warning">{{ order.status }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ order.order_date }}</td>
-                                    <td>
-                                        <!-- Button to trigger modal -->
-                                        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#editStatusModal{{ order.id }}">
-                                            Edit Status
-                                        </button>
-                                        <!-- Add more action links as needed -->
-                                        <a href="{% url 'receptionist_generate_invoice_bill' order.patient.id order.visit.id %}" data-toggle="tooltip" title="Billing note">
-                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i> Billing note</button>
-                                        </a>                                       
-                                      </tr>
-                          
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header card-primary">
+          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Orders</h6>
         </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Latest Order Number</th>
+                  <th>Patient</th>
+                  <th>Visit Number</th>
+                  <th>Total Cost (TZS)</th>
+                  <th>Status</th>
+                  <th>Order Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group in grouped_orders %}
+                <tr>
+                  <td>
+                    {# Show latest order number per patient-visit group (fetch from group's orders) #}
+                    {% with latest_order=group.orders|last %}
+                      {{ latest_order.order_number }}
+                    {% endwith %}
+                  </td>
+
+                 <td>
+                {{ group.full_name }}
+                <br>
+                <small>
+                    {% if group.patient__payment_form == "Insurance" %}
+                    {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                    {% else %}
+                    {{ group.patient__payment_form }}
+                    {% endif %}
+                </small>
+                </td>
+                  <td>{{ group.visit__vst }}</td>
+
+                  <td>{{ group.total_cost }}</td>                  
+                    <td>                   
+                      <p {% if group.statuses.0 == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ group.statuses.0 }}</p>
+                    </td>
+                  <td>
+                    {% with latest_order=group.orders|last %}
+                      {{ latest_order.order_date }}
+                    {% endwith %}
+                  </td>
+
+                  <td>
+                       <!-- Modal Trigger Button -->
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editStatusModal{{ group.patient__id }}_{{ group.visit__id }}">
+                        <i class="fas fa-eye"></i> View/Pay
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
+                      <i class="fa fa-eye"></i> Billing Note
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
-{% for order in orders %}
-<div class="modal fade" id="editStatusModal{{ order.id }}" tabindex="-1" role="dialog" aria-labelledby="editStatusModalLabel{{ order.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editStatusModalLabel{{ order.id }}"> Payment Status for {{ order.order_type }} order</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+
+{% for group in grouped_orders %}
+<div class="modal fade" id="billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
+          Billing Note - Visit {{ group.visit__vst }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <div class="mb-3">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Company Header">
+          </div>
+
+          <!-- Patient Info -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+              <h6 class="text-uppercase mb-0">Patient & Visit Details</h6>
             </div>
-            <div class="modal-body">
-                <!-- Form to update payment status -->
-                <div id="statusUpdateResponse{{ order.id }}"></div> <!-- Unique container for displaying response -->
-                <div class="form-group">
-                    <label for="paymentStatus{{ order.id }}">Payment Status</label>
-                    <select class="form-control" id="paymentStatus{{ order.id }}" name="payment_status">
-                        <option value="Paid">Paid</option>
-                        <option value="Unpaid">Unpaid</option>
-                    </select>
-                </div>
-                <input type="hidden" id="orderId{{ order.id }}" value="{{ order.id }}">
-                <input type="hidden" id="patientId{{ order.id }}" value="{{ order.patient.id }}">
-                <input type="hidden" id="visitId{{ order.id }}" value="{{ order.visit.id }}">
-                <button type="button" class="btn btn-primary" onclick="updatePaymentStatus('{{ order.id }}')">Pay</button> <!-- Pass order ID as argument -->
+            <div class="card-body p-2">
+              <table class="table table-borderless table-sm mb-0">
+                <tbody>
+                  <tr>
+                    <td><strong>Patient:</strong> {{ group.full_name }}</td>
+                    <td><strong>DOB:</strong> {{ group.patient__dob|date:"d-m-Y" }}</td>
+                    <td><strong>Sex:</strong> {{ group.patient__gender }}</td>
+                    <td><strong>File No:</strong> {{ group.patient__mrn }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Visit No:</strong> {{ group.visit__vst }}</td>
+                    <td colspan="3"><strong>Payment Form:</strong>
+                      {% if group.patient__payment_form == "Insurance" %}
+                        {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                      {% else %}
+                        {{ group.patient__payment_form }}
+                      {% endif %}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+          </div>
+
+          <!-- Orders Table -->
+          <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+              <h6 class="mb-0 text-uppercase">Order Items</h6>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-bordered table-sm mb-0">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Service / Description</th>
+                    <th>Order Type</th>
+                    <th colspan="4">Order Date</th>
+                    <th class="text-right">Price (TZS)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ord in group.orders %}
+                  <tr>
+                    <td>{{ ord.order_type }}</td>
+                    <td>{{ ord.type_of_order }}</td>
+                    <td colspan="4">{{ ord.order_date|date:"d-m-Y" }}</td>
+                    <td class="text-right">{{ ord.cost }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="row mt-3">
+            <div class="col-md-12">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td class="text-right pr-3"><strong>Total:</strong></td>
+                  <td class="text-right" style="width: 150px;">
+                    <strong>Total: {{ group.total_cost }} /Tsh</strong>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Footer with Print Option -->
+          <div class="row mt-3">
+            <div class="col-md-12 text-right">
+              <a href="{% url 'receptionist_download_invoice_bill' group.patient__id group.visit__id %}" 
+                 class="btn btn-outline-primary btn-sm" target="_blank">
+                <i class="fa fa-download"></i> Download Invoice
+              </a>
+            </div>
+          </div>
+
         </div>
+      </div>
     </div>
+  </div>
 </div>
 {% endfor %}
 
-<script>
-    function updatePaymentStatus(orderId) {
-        var paymentStatus = document.getElementById('paymentStatus' + orderId).value; // Get payment status based on order ID
-        var patientId = document.getElementById('patientId' + orderId).value; // Get patient ID
-        var visitId = document.getElementById('visitId' + orderId).value; // Get visit ID
 
-        // Send Ajax request
-        $.ajax({
-            type: 'POST',
-            url: '{% url 'receptionist_update_orderpayment_status' %}', // URL for updating payment status
-            data: {
-                'order_id': orderId,
-                'payment_status': paymentStatus,
-                'patient_id': patientId, // Include patient ID
-                'visit_id': visitId, // Include visit ID
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            success: function(response) {
-                // Display response in the container
-                $('#statusUpdateResponse' + orderId).html('<div class="alert alert-success">' + response.message + '</div>');
-                location.reload(true)
-            },
-            error: function(response) {
-                // Display error message if request fails
-                $('#statusUpdateResponse' + orderId).html('<div class="alert alert-danger">Failed to update status.</div>');
-            }
-        });
-    }
+
+{% for group in grouped_orders %}
+<div class="modal fade" id="editStatusModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="editStatusModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="editStatusModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
+          Edit Payment Status - Visit {{ group.visit__vst }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Patient Info -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">Patient & Visit Info</div>
+            <div class="card-body">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td><strong>Patient:</strong> {{ group.patient__full_name }}</td>
+                  <td><strong>Visit Number:</strong> {{ group.visit__vst }}</td>
+                  <td><strong>Date:</strong> {{ group.latest_order_date|date:"d-m-Y" }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Orders Table -->
+          <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0 text-uppercase">Orders in this Visit</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Order No</th>
+                      <th>Service</th>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ord in group.orders %}
+                      <tr>
+                        <td>{{ ord.order_number }}</td>
+                        <td>{{ ord.order_type }}</td>
+                        <td>{{ ord.type_of_order }}</td>
+                        <td>{{ ord.order_date }}</td>
+                        <td>{{ ord.cost }}</td>
+                        <td>{{ ord.status }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Update Status Section -->
+          <div id="statusUpdateResponse{{ group.patient__id }}_{{ group.visit__id }}"></div>
+
+          <div class="form-group">
+            <label for="paymentStatus{{ group.patient__id }}_{{ group.visit__id }}">Change Status for All Orders</label>
+            <select class="form-control" id="paymentStatus{{ group.patient__id }}_{{ group.visit__id }}">
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+            </select>
+          </div>
+
+          <input type="hidden" id="patientId{{ group.patient__id }}_{{ group.visit__id }}" value="{{ group.patient__id }}">
+          <input type="hidden" id="visitId{{ group.patient__id }}_{{ group.visit__id }}" value="{{ group.visit__id }}">
+
+          <button type="button" class="btn btn-primary" onclick="updatePaymentStatusGroup('{{ group.patient__id }}_{{ group.visit__id }}')">
+            Update Payment Status
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="paymentStatusModalLabel">Payment Status</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="paymentStatusModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function updatePaymentStatusGroup(groupKey) {
+    const paymentStatus = document.getElementById('paymentStatus' + groupKey).value;
+    const patientId = document.getElementById('patientId' + groupKey).value;
+    const visitId = document.getElementById('visitId' + groupKey).value;
+
+    $.ajax({
+        type: 'POST',
+        url: '{% url "receptionist_update_orderpayment_status" %}',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: {
+            order_id: 'group',  // optional if unused in the view
+            payment_status: paymentStatus,
+            patient_id: patientId,
+            visit_id: visitId
+        },
+        success: function(response) {
+            $('#paymentStatusModalBody').html('<span class="text-success">Group payment status updated successfully.</span>');
+            $('#paymentStatusModal').modal('show');
+
+            $('#paymentStatusModal').on('hidden.bs.modal', function () {
+                location.reload();
+            });
+        },
+        error: function() {
+            $('#paymentStatusModalBody').html('<span class="text-danger">Failed to update group payment status.</span>');
+            $('#paymentStatusModal').modal('show');
+        }
+    });
+}
 </script>
+
 
 {% include 'receptionist_template/datatable.html' %}
 {% endblock main_content %}

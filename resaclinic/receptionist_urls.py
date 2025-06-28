@@ -23,7 +23,7 @@ urlpatterns = [
         path('add_imaging/', ReceptionistView.add_imaging, name='receptionist_add_imaging'),
         path('ambulance_order/', ReceptionistView.ambulance_order_create_or_update, name='receptionist_ambulance_order_create_or_update'),
         path('ambulance_order/<int:order_id>/', ReceptionistView.ambulance_order_create_or_update, name='receptionist_ambulance_order_edit'),
-        path('update_orderpayment_status/', ReceptionistView.update_orderpayment_status, name='receptionist_update_orderpayment_status'),
+        path('receptionist/update-orderpayment-status/', ReceptionistView.update_orderpayment_status, name='receptionist_update_orderpayment_status'),
         path('invoice/<int:patient_id>/<int:visit_id>/', ReceptionistView.generate_invoice_bill, name='receptionist_generate_invoice_bill'),
         path('prescriptions/<str:visit_number>/<int:patient_id>/', ReceptionistView.prescription_detail, name='receptionist_prescription_detail'),
         path('prescription-billing/<str:visit_number>/<int:patient_id>/', ReceptionistView.prescription_billing, name='receptionist_prescription_billing'),
@@ -112,6 +112,8 @@ urlpatterns = [
         path('add/radiology/<int:patient_id>/<int:visit_id>/', ReceptionistView.add_radiology, name='receptionist_add_radiology'),
         re_path(r'^doctor/add_imaging/$', ReceptionistView.add_imaging, name='receptionist_add_imaging'),
 
+        path('receptionist/download-invoice/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_invoice_bill_pdf, name='receptionist_download_invoice_bill'),
+        path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', ReceptionistView.download_consultation_summary_pdf, name='receptionist_download_consultation_summary_pdf' ),
         path('imaging/download/<int:imaging_id>/', ReceptionistView.download_imaging_result_pdf, name='receptionist_download_imaging_result_pdf' ),
         path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', ReceptionistView.download_all_imaging_results_pdf, name='receptionist_download_all_imaging_results_pdf'),
         path('lab-result/download/<int:lab_id>/', ReceptionistView.download_lab_result_pdf, name='receptionist_download_lab_result_pdf'),

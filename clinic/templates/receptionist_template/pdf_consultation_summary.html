@@ -1,0 +1,590 @@
+{% load static %}
+{% load customfilter %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Lab Results - {{ patient.full_name }}</title>
+   <style>
+    /* ========== Base Styles ========== */
+    body {
+        font-family: "Arial", sans-serif;
+        font-size: 13px;
+        color: #000;
+        margin: 0;
+        padding: 20px;
+    }
+
+    ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .label {
+        font-weight: bold;
+    }
+
+    .text-muted {
+        color: #6c757d;
+    }
+
+    .summary-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin: 20px 0 10px;
+    }
+
+    .total {
+        text-align: right;
+        font-weight: bold;
+    }
+
+    /* ========== Header ========== */
+    .header img {
+        width: 100%;
+        height: auto;
+        margin-bottom: 10px;
+    }
+
+    /* ========== Section Titles ========== */
+    .section-title {
+        background-color: #343a40;
+        color: white;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    /* ========== Tables ========== */
+    table,
+    .info-table,
+    .footer-table,
+    .bill-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+        font-size: 13px;
+    }
+
+    table th,
+    table td,
+    .info-table td,
+    .footer-table td,
+    .bill-table th,
+    .bill-table td {
+        border: 1px solid #dee2e6;
+        padding: 6px 10px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    /* ========== Boxes ========== */
+    .result-box,
+    .discharge-box,
+    .observation-box,
+    .counseling-box {
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        background-color: #f8f9fa;
+        margin-bottom: 15px;
+    }
+
+    .result-box {
+        margin-bottom: 30px;
+    }
+
+    .procedure-box {
+        margin-bottom: 30px;
+    }
+
+    /* ========== Paragraphs in Boxes ========== */
+    .discharge-box p,
+    .observation-box p,
+    .counseling-box p {
+        margin: 0;
+        text-align: justify;
+    }
+
+    /* ========== Imaging Preview ========== */
+    .imaging-preview {
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .imaging-preview img {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        margin-top: 5px;
+    }
+</style>
+
+</head>
+<body>
+
+<!-- Header Image -->
+<div class="header">
+    <img src="{% static 'img/headerresa.jpg' %}" alt="Clinic Header">
+</div>
+
+<!-- Patient Details -->
+<div class="section-title">Patient Details</div>
+<table>
+    <tr>
+        <td><strong>Patient:</strong> {{ patient.full_name }}</td>
+        <td><strong>DOB:</strong> {{ patient.dob|date:"d-m-Y" }}</td>
+        <td><strong>Gender:</strong> {{ patient.gender }}</td>
+        <td><strong>File No:</strong> {{ patient.mrn }}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><strong>Payment Form:</strong>
+            {% if patient.payment_form == "Insurance" %}
+                {{ patient.payment_form }} - {{ patient.insurance_name }}
+            {% else %}
+                {{ patient.payment_form }}
+            {% endif %}
+        </td>
+        <td colspan="2"><strong>Visit Number:</strong> {{ visit.vst }}</td>
+    </tr>
+</table>
+
+<!-- Vital Signs -->
+{% if visit.patientvital_set.exists %}
+    <div class="section-title">Vital Signs / Assessment Data</div>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Resp Rate</th>
+                <th>Pulse</th>
+                <th>BP</th>
+                <th>SBP</th>
+                <th>DBP</th>
+                <th>SPO2</th>
+                <th>Temp (°C)</th>
+                <th>GCS</th>
+                <th>AVPU</th>
+                <th>Weight</th>
+                <th>Recorded By</th>
+                <th>Recorded At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vitals in visit.patientvital_set.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ vitals.respiratory_rate|default:"-" }}</td>
+                    <td>{{ vitals.pulse_rate|default:"-" }}</td>
+                    <td>{{ vitals.blood_pressure|default:"-" }}</td>
+                    <td>{{ vitals.sbp|default:"-" }}</td>
+                    <td>{{ vitals.dbp|default:"-" }}</td>
+                    <td>{{ vitals.spo2|default:"-" }}%</td>
+                    <td>{{ vitals.temperature|default:"-" }}</td>
+                    <td>{{ vitals.gcs|default:"-" }}</td>
+                    <td>{{ vitals.avpu|default:"-" }}</td>
+                    <td>{{ vitals.weight|default:"-" }}</td>
+                    <td>{{ vitals.recorded_by.get_full_name|default:"System" }}</td>
+                    <td>{{ vitals.recorded_at|date:"d-m-Y" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+
+<!-- Clinical Notes -->
+{% with consultation_note=visit.consultationnotes_set.first diagnosis_record=visit.patientdiagnosisrecord_set.first %}
+    {% if consultation_note %}
+        <div class="section-title">Clinical Notes</div>
+        <table>
+            <tr>
+                <th>Chief Complaints</th>
+                <td>
+                    <ul>
+                        {% for complaint in visit.clinicchiefcomplaint_set.all %}
+                            <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <th>History of Presenting Illness</th>
+                <td>{{ consultation_note.history_of_presenting_illness }}</td>
+            </tr>
+            <tr>
+                <th>Review of Systems</th>
+                <td>{{ consultation_note.review_of_systems }}</td>
+            </tr>
+            <tr>
+                <th>Physical Examination</th>
+                <td>{{ consultation_note.physical_examination }}</td>
+            </tr>
+            <tr>
+                <th>Doctor's Plan</th>
+                <td>{{ consultation_note.doctor_plan }}</td>
+            </tr>
+            <tr>
+                <th>Doctor's Plan Notes</th>
+                <td>{{ consultation_note.doctor_plan_note }}</td>
+            </tr>
+            <tr>
+                <th>Allergy Summary</th>
+                <td>{{ consultation_note.allergy_summary }}</td>
+            </tr>
+            <tr>
+                <th>Known Comorbidities</th>
+                <td>{{ consultation_note.known_comorbidities_summary }}</td>
+            </tr>
+            {% if diagnosis_record %}
+                <tr>
+                    <th>Provisional Diagnosis</th>
+                    <td>
+                        <ul>
+                            {% for pdx in diagnosis_record.provisional_diagnosis.all %}
+                                <li>{{ pdx.diagnosis_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Final Diagnosis</th>
+                    <td>
+                        <ul>
+                            {% for fdx in diagnosis_record.final_diagnosis.all %}
+                                <li>{{ fdx.diagnosis_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            {% endif %}
+        </table>
+    {% endif %}
+{% endwith %}
+
+
+<!-- ======================= Procedures Section ======================= -->
+{% if procedures %}
+    <div class="section-title">All Procedures</div>
+
+    {% with first_proc=procedures.0 %}
+        {% for proc in procedures %}
+            <!-- Procedure Title -->
+            <div class="summary-title">Procedure Result</div>
+
+            <!-- Procedure Info -->
+            <div class="result-box">
+                <div class="section-title" style="background-color:#6c757d;">Procedure Performed</div>
+                <p><strong>Name:</strong> {{ proc.name.name }}</p>
+                <p><strong>Description:</strong> {{ proc.description|default:"-" }}</p>
+            </div>
+
+            <!-- Procedure Result (if available) -->
+            {% if proc.result %}
+                <div class="result-box">
+                    <div class="section-title" style="background-color:#17a2b8;">Result</div>
+                    <p>{{ proc.result|safe }}</p>
+                </div>
+            {% endif %}
+
+            <hr style="margin: 30px 0;">
+        {% endfor %}
+
+        <!-- Footer Info: Only shown once after loop -->
+        <table class="footer-table">
+            <tr>
+                <td>
+                    <strong>Performed By:</strong>
+                    <span style="color: blue; text-transform: capitalize;">
+                        {% if first_proc.data_recorder.role == "doctor" %}Dr.{% else %}{{ first_proc.data_recorder.role }}{% endif %}
+                    </span>
+                    <br>
+                    <small class="text-muted">{{ first_proc.data_recorder }}</small>
+                </td>
+                <td><strong>Signature:</strong> <u>{{ first_proc.data_recorder.signature }}</u></td>
+                <td><strong>Date:</strong> {{ first_proc.created_at|date:"d-m-Y" }}</td>
+                <td><strong>MCT No:</strong> {{ first_proc.data_recorder.mct_number }}</td>
+            </tr>
+        </table>
+    {% endwith %}
+{% endif %}
+
+
+
+<!-- ======================= Imaging Results Section ======================= -->
+{% if imaging_records %}
+    <div class="section-title">All Imaging Results</div>
+
+    {% with first_image=imaging_records.0 %}
+        {% for imaging in imaging_records %}
+            <div class="summary-title">Imaging Test Result</div>
+
+            <!-- Imaging Info -->
+            <div class="result-box">
+                <div class="section-title" style="background-color:#6c757d;">Imaging Information</div>
+                <p><strong>Test Name:</strong> {{ imaging.imaging.name }}</p>
+                <p><strong>Description:</strong> {{ imaging.description|default:"-" }}</p>
+                <p><strong>Requested On:</strong> {{ imaging.created_at|date:"d-m-Y H:i" }}</p>
+            </div>
+
+            <!-- Imaging Result -->
+            {% if imaging.result %}
+                <div class="result-box">
+                    <div class="section-title" style="background-color:#17a2b8;">Result</div>
+                    <p>{{ imaging.result|safe }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Imaging Image -->
+            {% if imaging.image %}
+                <div class="result-box">
+                    <div class="section-title" style="background-color:#28a745;">Attached Image</div>
+                    <div class="imaging-preview">
+                        <img src="{{ imaging.image.url }}" alt="Imaging Image">
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Footer Info (for Imaging Tests) -->
+        <table class="footer-table">
+            <tr>
+                <td>
+                    <strong>Performed By:</strong>
+                    <span style="color: blue; text-transform: capitalize;">
+                        {% if first_image.data_recorder.role == "doctor" %}Dr.{% else %}{{ first_image.data_recorder.role }}{% endif %}
+                    </span>
+                    <br>
+                    <small class="text-muted">{{ first_image.data_recorder }}</small>
+                </td>
+                <td><strong>Signature:</strong> <u>{{ first_image.data_recorder.signature }}</u></td>
+                <td><strong>Date:</strong> {{ first_image.created_at|date:"d-m-Y" }}</td>
+                <td><strong>MCT No:</strong> {{ first_image.data_recorder.mct_number }}</td>
+            </tr>
+        </table>
+    {% endwith %}
+{% endif %}
+
+<!-- ======================= Lab Results Section ======================= -->
+{% if lab_tests %}
+    <div class="section-title">All Lab Results</div>
+
+    {% with first_lab=lab_tests.0 %}
+        {% for lab in lab_tests %}
+            <div class="summary-title">Lab Test Result</div>
+
+            <!-- Lab Test Info -->
+            <div class="result-box">
+                <div class="section-title" style="background-color:#6c757d;">Lab Test Information</div>
+                <p><strong>Test Name:</strong> {{ lab.name.name }}</p>
+                <p><strong>Description:</strong> {{ lab.description|default:"-" }}</p>
+                <p><strong>Requested On:</strong> {{ lab.created_at|date:"d-m-Y H:i" }}</p>
+            </div>
+
+            <!-- Lab Test Result -->
+            {% if lab.result %}
+                <div class="result-box">
+                    <div class="section-title" style="background-color:#17a2b8;">Result</div>
+                    <p>{{ lab.result|safe }}</p>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Footer Info (for Lab Tests) -->
+        <table class="footer-table">
+            <tr>
+                <td>
+                    <strong>Performed By:</strong>
+                    <span style="color: blue; text-transform: capitalize;">
+                        {% if first_lab.data_recorder.role == "doctor" %}Dr.{% else %}{{ first_lab.data_recorder.role }}{% endif %}
+                    </span>
+                    <br>
+                    <small class="text-muted">{{ first_lab.data_recorder }}</small>
+                </td>
+                <td><strong>Signature:</strong> <u>{{ first_lab.data_recorder.signature }}</u></td>
+                <td><strong>Date:</strong> {{ first_lab.created_at|date:"d-m-Y" }}</td>
+                <td><strong>MCT No:</strong> {{ first_lab.data_recorder.mct_number }}</td>
+            </tr>
+        </table>
+    {% endwith %}
+{% endif %}
+
+
+<!-- ======================= Observation Summary ======================= -->
+{% if observation_record %}
+    <div class="summary-title">Observation Summary</div>
+
+    <!-- Observation Notes -->
+    {% if observation_record.observation_notes %}
+        <div class="observation-box">
+            <div class="section-title" style="background-color:#6c757d;">Observation Notes</div>
+            <p>{{ observation_record.observation_notes|safe }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Footer Info -->
+    <table class="footer-table">
+        <tr>
+            <td>
+                <strong>Observed By:</strong>
+                <span style="color: blue; text-transform: capitalize;">
+                    {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
+                </span>
+                <br>
+                <small class="text-muted">{{ observation_record.data_recorder }}</small>
+            </td>
+            <td><strong>Signature:</strong> <u>{{ observation_record.data_recorder.signature }}</u></td>
+            <td><strong>Date:</strong> {{ observation_record.created_at|date:"d-m-Y" }}</td>
+            <td><strong>MCT No:</strong> {{ observation_record.data_recorder.mct_number }}</td>
+        </tr>
+    </table>
+{% endif %}
+
+<!-- ======================= Prescription Bill ======================= -->
+{% if prescriptions %}
+    <div class="summary-title">Prescription Bill</div>
+
+    <!-- Bill Table -->
+    <div>
+        <div class="section-title" style="background-color:#6c757d;">Bill Details</div>
+        <table class="bill-table">
+            <thead>
+                <tr>
+                    <th>Drug</th>
+                    <th>Dose</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prescription in prescriptions %}
+                    <tr>
+                        <td>{{ prescription.medicine.drug_name }}</td>
+                        <td>{{ prescription.dose }}</td>
+                        <td>{{ prescription.frequency }}</td>
+                        <td>{{ prescription.duration }}</td>
+                        <td>{{ prescription.quantity_used }}</td>
+                        <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
+                        <td>{{ prescription.total_price|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Total Cost -->
+    <table class="info-table">
+        <tr>
+            <td class="total" colspan="7">
+                Total: {{ prescriptions|total_cost_of_prescription }}
+            </td>
+        </tr>
+    </table>
+{% endif %}
+
+
+<!-- ======================= Counseling Summary ======================= -->
+{% if counseling %}
+    <div class="summary-title">Counseling Summary</div>
+
+    <div class="counseling-box">
+        <div class="section-title" style="background-color:#6f42c1;">Counseling Notes</div>
+        <p>{{ counseling.counselling_notes|safe }}</p>
+    </div>
+
+    {% if counseling.data_recorder %}
+    <table class="footer-table">
+        <tr>
+            <td>
+                <strong>Counseled By:</strong>
+                <span style="color: blue; text-transform: capitalize;">
+                    {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role|default:"-" }}{% endif %}
+                </span>
+                <br>
+                <small class="text-muted">{{ counseling.data_recorder }}</small>
+            </td>
+            <td><strong>Signature:</strong> <u>{{ counseling.data_recorder.signature|default:"-" }}</u></td>
+            <td><strong>Date:</strong> {{ counseling.created_at|date:"d-m-Y" }}</td>
+            <td><strong>MCT No:</strong> {{ counseling.data_recorder.mct_number|default:"-" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+{% endif %}
+
+
+<!-- ======================= Referral Summary ======================= -->
+{% if referral %}
+    <div class="summary-title">Referral Summary</div>
+    <div class="referral-box">
+        <div class="section-title" style="background-color:#6c757d;">Referral Details</div>
+        <p><strong>Source Location:</strong> {{ referral.source_location|default:"-" }}</p>
+        <p><strong>Destination Location:</strong> {{ referral.destination_location|default:"-" }}</p>
+        <p><strong>Nature of Referral:</strong> {{ referral.nature_of_referral|default:"-" }}</p>
+        <p><strong>Transport Mode:</strong> {{ referral.transport_model|default:"-" }}</p>
+        <p><strong>Reason / Notes:</strong></p>
+        <p>{{ referral.notes|safe }}</p>
+    </div>
+    {% if referral.data_recorder %}
+    <table class="footer-table">
+        <tr>
+            <td>
+                <strong>Recorded By:</strong>
+                <span style="color: blue; text-transform: capitalize;">
+                    {% if referral.data_recorder.role == "doctor" %}Dr.{% else %}{{ referral.data_recorder.role|default:"-" }}{% endif %}
+                </span>
+                <br>
+                <small class="text-muted">{{ referral.data_recorder }}</small>
+            </td>
+            <td><strong>Signature:</strong> <u>{{ referral.data_recorder.signature|default:"-" }}</u></td>
+            <td><strong>Date:</strong> {{ referral.created_at|date:"d-m-Y" }}</td>
+            <td><strong>MCT No:</strong> {{ referral.data_recorder.mct_number|default:"-" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+{% endif %}
+
+
+<!-- ======================= Discharge Summary ======================= -->
+{% if discharge_note %}
+    <div class="summary-title">Discharge Summary</div>
+
+    {% if discharge_note.discharge_condition %}
+        <div class="discharge-box">
+            <div class="section-title" style="background-color:#6c757d;">Discharge Condition</div>
+            <p>{{ discharge_note.discharge_condition }}</p>
+        </div>
+    {% endif %}
+
+    {% if discharge_note.discharge_notes %}
+        <div class="discharge-box">
+            <div class="section-title" style="background-color:#17a2b8;">Discharge Notes</div>
+            <p>{{ discharge_note.discharge_notes|safe }}</p>
+        </div>
+    {% endif %}
+
+    {% if discharge_note.data_recorder %}
+    <table class="footer-table">
+        <tr>
+            <td>
+                <strong>Discharged By:</strong>
+                <span style="color: blue; text-transform: capitalize;">
+                    {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role|default:"-" }}{% endif %}
+                </span>
+                <br>
+                <small class="text-muted">{{ discharge_note.data_recorder }}</small>
+            </td>
+            <td><strong>Signature:</strong> <u>{{ discharge_note.data_recorder.signature|default:"-" }}</u></td>
+            <td><strong>Date:</strong> {{ discharge_note.discharge_date|date:"d-m-Y" }}</td>
+            <td><strong>MCT No:</strong> {{ discharge_note.data_recorder.mct_number|default:"-" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+{% endif %}
+
+
+</body>
+</html>

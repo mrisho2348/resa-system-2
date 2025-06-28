@@ -387,18 +387,46 @@ def employee_detail(request):
 
 @login_required
 def all_orders_view(request):
-    # Annotate each order with a row number partitioned by patient and ordered by order_date descending
-    annotated_orders = Order.objects.annotate(
-        row_number=Window(
-            expression=RowNumber(),
-            partition_by=[F('patient_id')],
-            order_by=F('order_date').desc()
+    grouped_orders = (
+        Order.objects
+        .values(
+            'patient__id',
+            'patient__first_name',
+            'patient__middle_name',
+            'patient__last_name',
+            'patient__gender',
+            'patient__dob',
+            'patient__mrn',
+            'patient__payment_form',
+            'patient__insurance_name',
+            'visit__id',
+            'visit__vst',
+            'visit__updated_at',
         )
+        .annotate(
+            total_cost=Sum('cost'),
+            latest_order_date=Max('order_date'),
+        )
+        .order_by('-latest_order_date')
     )
-    # Filter to get only the first row in each partition
-    latest_orders = annotated_orders.filter(row_number=1).order_by('-order_date')
-    # Render the template with the list of orders
-    return render(request, 'receptionist_template/order_detail.html', {'orders': latest_orders})
+
+    for group in grouped_orders:
+        patient_id = group['patient__id']
+        visit_id = group['visit__id']
+        orders_qs = Order.objects.filter(patient_id=patient_id, visit_id=visit_id).order_by('order_date')
+        group['orders'] = list(orders_qs)
+
+        # Precompute statuses for template use
+        unique_statuses = orders_qs.values_list('status', flat=True).distinct()
+        group['statuses'] = list(unique_statuses)
+
+        # Combine full name
+        group['full_name'] = f"{group.get('patient__first_name', '')} {group.get('patient__middle_name', '')} {group.get('patient__last_name', '')}".strip()
+
+    return render(request, 'receptionist_template/order_detail.html', {
+        'grouped_orders': grouped_orders,
+    })
+
 
 @login_required
 def generate_invoice_bill(request,  patient_id,visit_id):
@@ -416,34 +444,29 @@ def generate_invoice_bill(request,  patient_id,visit_id):
     return render(request, 'receptionist_template/invoice_bill.html', context)
 
 @csrf_exempt
-@require_POST
 def update_orderpayment_status(request):
-    order_id = request.POST.get('order_id')
-    payment_status = request.POST.get('payment_status')
-    patient_id = request.POST.get('patient_id')
-    visit_id = request.POST.get('visit_id')
-    
-    try:
-        # Update the status of all orders for the given patient and visit
-        orders = Order.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        
-        if not orders.exists():
-            message = 'No orders found for the given patient and visit.'
-            return JsonResponse({'success': False, 'message': message})
+    if request.method == 'POST':
+        try:
+            order_id = request.POST.get('order_id')
+            patient_id = request.POST.get('patient_id')
+            visit_id = request.POST.get('visit_id')
+            payment_status = request.POST.get('payment_status')
 
-        for order in orders:
-            order.status = payment_status
-            order.save()
+            if not all([patient_id, visit_id, payment_status]):
+                return JsonResponse({'error': 'Missing required data.'}, status=400)
 
-        message = 'Payment status updated successfully for all related orders.'
-        return JsonResponse({'success': True, 'message': message})
+            # Update all orders for this patient and visit
+            orders = Order.objects.filter(patient_id=patient_id, visit_id=visit_id)
+            for order in orders:
+                order.status = payment_status
+                order.save()
+
+            return JsonResponse({'message': 'Order payment status updated successfully.'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method.'}, status=400)
     
-    except Order.DoesNotExist:
-        message = 'Order does not exist.'
-        return JsonResponse({'success': False, 'message': message})
-    except Exception as e:
-        message = f'An error occurred: {str(e)}'
-        return JsonResponse({'success': False, 'message': message})
     
 @login_required
 def manage_patients(request):
@@ -3369,6 +3392,119 @@ def download_all_imaging_results_pdf(request, patient_mrn, visit_vst):
     response['Content-Disposition'] = f'attachment; filename="{file_name}"'
     return response
 
+
+@login_required
+def download_consultation_summary_pdf(request, patient_id, visit_id):
+    # Fetch core patient and visit info
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+
+    # Query all related models for that visit
+    counseling = Counseling.objects.filter(patient=patient, visit=visit).last()
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+    observations = ObservationRecord.objects.filter(patient=patient, visit=visit).last()
+    discharge_note = DischargesNotes.objects.filter(patient=patient, visit=visit).last()
+    referral = Referral.objects.filter(patient=patient, visit=visit).last()
+    complaints = ClinicChiefComplaint.objects.filter(patient=patient, visit=visit)
+    vitals = PatientVital.objects.filter(patient=patient, visit=visit).last()
+
+    # NEW: Add Consultation Notes
+    consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).last()
+
+    # NEW: Add Imaging Records
+    imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
+
+    # NEW: Add Laboratory Orders
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling': counseling,
+        'prescriptions': prescriptions,
+        'observation_record': observations,
+        'discharge_note': discharge_note,
+        'referral': referral,
+        'complaints': complaints,
+        'vitals': vitals,
+        'consultation_note': consultation_note,
+        'imaging_records': imaging_records,
+        'lab_tests': lab_tests,
+    }
+
+    # Render the HTML template
+    html_content = render_to_string('receptionist_template/pdf_consultation_summary.html', context)
+
+    # Save to a temp directory
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"consultation_summary_{safe_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the file as a response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_invoice_bill_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+
+    # Get all orders for this patient and visit
+    orders = Order.objects.filter(patient=patient, visit=visit)
+
+    if not orders.exists():
+        return HttpResponse("No orders found for this visit.", status=404)
+
+    # Calculate total cost
+    total_cost = orders.aggregate(total=Sum('cost'))['total'] or 0
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'orders': orders,
+        'total_cost': total_cost,
+    }
+
+    # Render HTML content
+    html_content = render_to_string('receptionist_template/invoice_template.html', context)
+
+    # Define PDF storage path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"invoice_bill_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
 
 @login_required
 def consultation_notes_view(request):
