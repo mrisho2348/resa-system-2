@@ -1,84 +1,56 @@
-
-from django.urls import include, path, re_path
-from clinic import  PharmacistView
+from django.urls import path
+from clinic import PharmacistView
 
 urlpatterns = [
-        path('save_prescription/<int:patient_id>/<int:visit_id>/', PharmacistView.save_prescription, name='pharmacist_save_prescription'),
-        path('save_laboratory/<int:patient_id>/<int:visit_id>/', PharmacistView.save_laboratory, name='pharmacist_save_laboratory'),      
-        path('save_remoteprocedure/<int:patient_id>/<int:visit_id>/', PharmacistView.save_remoteprocedure, name='pharmacist_save_remoteprocedure'),
-        path('save_observation/<int:patient_id>/<int:visit_id>/', PharmacistView.save_observation, name='pharmacist_save_observation'),
-        path('verify_prescriptions/', PharmacistView.verify_prescriptions, name='pharmacist_verify_prescriptions'),
-        path('unverify_prescriptions/', PharmacistView.unverify_prescriptions, name='pharmacist_unverify_prescriptions'),
-        path('issue_prescriptions/', PharmacistView.issue_prescriptions, name='pharmacist_issue_prescriptions'),
-        path('unissue_prescriptions/', PharmacistView.unissue_prescriptions, name='pharmacist_unissue_prescriptions'),        
-        path('update_payment_status/', PharmacistView.update_payment_status, name='pharmacist_pay_prescriptions'),
-        path('unpay_prescriptions/', PharmacistView.unpay_prescriptions, name='pharmacist_unpay_prescriptions'),
-        path('new_lab_order/', PharmacistView.new_lab_order, name='pharmacist_new_lab_order'),
-        path('add_investigation/', PharmacistView.add_investigation, name='pharmacist_add_investigation'),
-        path('pharmacist/expiring-soon-medicines/', PharmacistView.expiring_soon_medicines_count, name='pharmacist_expiring_soon_medicines'),
-        path('pharmacist/total-quantity/', PharmacistView.total_quantity, name='pharmacist_total_quantity'),
-        path('pharmacist/total-lab-orders-today/', PharmacistView.total_lab_orders_today, name='pharmacist_total_lab_orders_today'),
-        path('pharmacist/total-patients-today/', PharmacistView.total_patients_today, name='pharmacist_total_patients_today'),
-        path('get_gender_yearly_data',PharmacistView.get_gender_yearly_data, name="pharmacist_get_gender_yearly_data"),
-        path('get_gender_monthly_data',PharmacistView.get_gender_monthly_data, name="pharmacist_get_gender_monthly_data"),
-        path('add_imaging/', PharmacistView.add_imaging, name='pharmacist_add_imaging'),
-        path('manage_disease/', PharmacistView.manage_disease, name='pharmacist_manage_disease'),
-        path('add_medicine/', PharmacistView.add_medicine, name='pharmacist_add_medicine'),  
-        path('invoice/<int:order_id>/', PharmacistView.generate_invoice_bill, name='pharmacist_generate_invoice_bill'),
-        path('prescriptions-billing/<str:visit_number>/<int:patient_id>/', PharmacistView.prescription_billing, name='pharmacist_prescription_billing'),
-        path('prescriptions-notes/<str:visit_number>/<int:patient_id>/', PharmacistView.prescription_notes, name='pharmacist_prescription_notes'),
-        path('prescriptions/<str:visit_number>/<int:patient_id>/', PharmacistView.prescription_detail, name='pharmacist_prescription_detail'),
-        path('new_consultation_order/', PharmacistView.new_consultation_order, name='pharmacist_new_consultation_order'),
-        path('add_consultation/', PharmacistView.add_consultation, name='pharmacist_add_consultation'),
-        path('new_radiology_order/', PharmacistView.new_radiology_order, name='pharmacist_new_radiology_order'),
-        path('new_procedure_order/', PharmacistView.new_procedure_order, name='pharmacist_new_procedure_order'),
-        path('add_procedure/', PharmacistView.add_procedure, name='pharmacist_add_procedure'),
-        path('get-procedure-cost/', PharmacistView.get_procedure_cost, name='pharmacist_get_procedure_cost'),   
-        path('pharmacist_dashboard/', PharmacistView.pharmacist_dashboard, name='pharmacist_dashboard'),  
-        path('pharmacist/profile/', PharmacistView.pharmacist_profile, name='pharmacist_profile'), 
-        path('resa/pharmacist/change-password/', PharmacistView.change_password, name='pharmacist_change_password'),
-        path('edit-profile/<int:pk>/', PharmacistView.EditStaffProfileView.as_view(), name='pharmacist_edit_staff_profile'),
-        re_path(r'^pharmacist/get_unit_price/$', PharmacistView.get_unit_price, name='pharmacist_get_unit_price'),
-        re_path(r'^pharmacist/get_drug_division_status/$', PharmacistView.get_drug_division_status, name='pharmacist_get_drug_division_status'),
-        re_path(r'^pharmacist/get_medicine_formulation/$', PharmacistView.get_medicine_formulation, name='pharmacist_get_medicine_formulation'),
-        re_path(r'^pharmacist/get_formulation_unit/$', PharmacistView.get_formulation_unit, name='pharmacist_get_formulation_unit'),
-        re_path(r'^pharmacist/get_frequency_name/$', PharmacistView.get_frequency_name, name='pharmacist_get_frequency_name'),
-        re_path(r'^pharmacist/medicine_dosage/$', PharmacistView.medicine_dosage, name='pharmacist_medicine_dosage'),          
-        path('add_remoteprescription/',PharmacistView.add_remoteprescription, name="pharmacist_add_remoteprescription"),
-        path('health_record_list/',PharmacistView.health_record_list, name="pharmacist_health_record_list"),
-        path('reagent_list/',PharmacistView.reagent_list, name="pharmacist_reagent_list"),          
-        path('accounts/', include('django.contrib.auth.urls')),         
-        path('staff_detail/<int:staff_id>/', PharmacistView.single_staff_detail, name='pharmacist_single_staff_detail'),
-        path('view-patient/<int:patient_id>/', PharmacistView.view_patient, name='pharmacist_view_patient'), 
-        path('resa/patient_vital_all_listt/', PharmacistView.patient_vital_all_list, name='pharmacist_patient_vital_all_list'),
-        path('patient_consultation_detail/<int:patient_id>/<int:visit_id>/', PharmacistView.patient_consultation_detail, name='pharmacist_patient_consultation_detail'),
-        path('patient_vital_list/<int:patient_id>/', PharmacistView.patient_vital_list, name='pharmacist_patient_vital_list'),
-        path('patient_health_record/<int:patient_id>/<int:visit_id>/', PharmacistView.patient_health_record, name='pharmacist_patient_health_record'),
-        path('patient_vital_visit_list/<int:patient_id>/<int:visit_id>/', PharmacistView.patient_vital_visit_list, name='pharmacist_patient_vital_visit_list'),
-        path('patient_visit_history/<int:patient_id>/', PharmacistView.patient_visit_history_view, name='pharmacist_patient_visit_history_view'),       
-        path('prescriptions/', PharmacistView.prescription_list, name='pharmacist_prescription_list'),       
-        path('resa/manage-referral/', PharmacistView.manage_referral, name='pharmacist_manage_referral'),
-        path('resa/patient-procedure-view/', PharmacistView.patient_procedure_view, name='pharmacist_patient_procedure_view'),      
-        path('resa/all-patients',PharmacistView.manage_patients, name="pharmacist_manage_patients"),
-        path('resa/consultation-queue',PharmacistView.manage_consultation, name="pharmacist_manage_consultation"),
-        path('resa/manage-service',PharmacistView.manage_service, name="pharmacist_manage_service"),
-        path('resa/appointments/', PharmacistView.appointment_list_view, name='pharmacist_appointment_list'), 
-        re_path(r'^pharmacist/edit_procedure_result/(?P<patient_id>\d+)/(?P<visit_id>\d+)/(?P<procedure_id>\d+)/$', PharmacistView.edit_procedure_result, name='pharmacist_edit_procedure_result'),
-        re_path(r'^pharmacist/edit_radiology_result/(?P<patient_id>\d+)/(?P<visit_id>\d+)/(?P<radiology_id>\d+)/$', PharmacistView.edit_radiology_result, name='pharmacist_edit_radiology_result'),
-        re_path(r'^pharmacist/edit_lab_result/(?P<patient_id>\d+)/(?P<visit_id>\d+)/(?P<lab_id>\d+)/$', PharmacistView.edit_lab_result, name='pharmacist_edit_lab_result'),    
-        path('medicine_list/', PharmacistView.medicine_list, name='pharmacist_medicine_list'),  
-        path('medicine_expired_list/', PharmacistView.medicine_expired_list, name='pharmacist_medicine_expired_list'),
-        path('in_stock_medicines_view/', PharmacistView.in_stock_medicines_view, name='pharmacist_in_stock_medicines_view'),
-        path('out_of_stock_medicines_view/', PharmacistView.out_of_stock_medicines_view, name='pharmacist_out_of_stock_medicines_view'),
-        path('out_of_stock_medicines/', PharmacistView.out_of_stock_medicines, name='pharmacist_out_of_stock_medicines'),
-        path('generate-bill/<int:procedure_id>/', PharmacistView.generate_billing, name='pharmacist_generate_billing'),     
-        path('all_orders_view/', PharmacistView.all_orders_view, name='pharmacist_all_orders_view'),      
-        # imports urls  
-        path('appointment_view/', PharmacistView.appointment_view, name='pharmacist_appointment_view'), 
-        path('patient-procedure-history/<str:mrn>/view/', PharmacistView.patient_procedure_history_view, name='pharmacist_patient_procedure_history_view_mrn'),
-        path('patient/<int:patient_id>/visit/<int:visit_id>/', PharmacistView.patient_visit_details_view, name='pharmacist_patient_visit_details_view'),
-        path('employee_detail/', PharmacistView.employee_detail, name='pharmacist_employee_detail'),
-        path('patient/<int:patient_id>/', PharmacistView.patient_detail, name='pharmacist_patient_detail'), 
 
-              
+    # ------------------ Dashboard & Profile ------------------
+    path('pharmacist_dashboard/', PharmacistView.pharmacist_dashboard, name='pharmacist_dashboard'),
+    path('pharmacist/profile/', PharmacistView.pharmacist_profile, name='pharmacist_profile'),
+    path('edit-profile/<int:pk>/', PharmacistView.EditStaffProfileView.as_view(), name='pharmacist_edit_staff_profile'),
+    path('resa/pharmacist/change-password/', PharmacistView.change_password, name='pharmacist_change_password'),
+
+    path('employee_detail/', PharmacistView.employee_detail, name='pharmacist_employee_detail'),
+
+    # ------------------ Prescription Management ------------------
+
+    path('prescriptions/', PharmacistView.prescription_list, name='pharmacist_prescription_list'),
+    path('todays/prescriptions/', PharmacistView.todays_prescriptions, name='pharmacist_todays_prescriptions'),
+  
+
+    # Verification & Payment Actions
+    path('verify_prescriptions/', PharmacistView.verify_prescriptions, name='pharmacist_verify_prescriptions'),
+    path('unverify_prescriptions/', PharmacistView.unverify_prescriptions, name='pharmacist_unverify_prescriptions'),
+    path('issue_prescriptions/', PharmacistView.issue_prescriptions, name='pharmacist_issue_prescriptions'),
+    path('unissue_prescriptions/', PharmacistView.unissue_prescriptions, name='pharmacist_unissue_prescriptions'),
+   
+
+    # ------------------ Medicine Management ------------------
+    path('add_medicine/', PharmacistView.add_medicine, name='pharmacist_add_medicine'),
+    path('medicine_list/', PharmacistView.medicine_list, name='pharmacist_medicine_list'),
+    path('medicine_expired_list/', PharmacistView.medicine_expired_list, name='pharmacist_medicine_expired_list'),
+
+    # Stock Management
+    path('in_stock_medicines_view/', PharmacistView.in_stock_medicines_view, name='pharmacist_in_stock_medicines_view'),
+    path('out_of_stock_medicines_view/', PharmacistView.out_of_stock_medicines_view, name='pharmacist_out_of_stock_medicines_view'),
+    path('pharmacist/medicine-counts/', PharmacistView.medicine_counts_api, name='pharmacist_medicine_counts_api'),
+
+ 
+
+    # ------------------ AJAX/Utility Endpoints ------------------
+    path('pharmacist/get_unit_price/', PharmacistView.get_unit_price, name='pharmacist_get_unit_price'),
+    path('pharmacist/get_drug_division_status/', PharmacistView.get_drug_division_status, name='pharmacist_get_drug_division_status'),
+    path('pharmacist/get_medicine_formulation/', PharmacistView.get_medicine_formulation, name='pharmacist_get_medicine_formulation'),
+    path('pharmacist/get_formulation_unit/', PharmacistView.get_formulation_unit, name='pharmacist_get_formulation_unit'),
+    path('pharmacist/get_frequency_name/', PharmacistView.get_frequency_name, name='pharmacist_get_frequency_name'),
+    path('pharmacist/medicine_dosage/', PharmacistView.medicine_dosage, name='pharmacist_medicine_dosage'),
+
+    # ------------------ Reagents ------------------
+    path('reagent_list/', PharmacistView.reagent_list, name='pharmacist_reagent_list'),
+    path('reagents/expired/', PharmacistView.lab_reagent_expired, name='pharmacist_reagent_expired'),
+    path('reagents/expiring-soon/', PharmacistView.lab_reagent_expiring_soon, name='pharmacist_reagent_expiring_soon'),
+    path('reagents/out-of-stock/', PharmacistView.lab_reagent_out_of_stock, name='pharmacist_reagent_out_of_stock'),
+    path('api/reagent-counts/', PharmacistView.reagent_counts_api, name='pharmacist_reagent_counts_api'),
+    path('doctor/add_remoteprescription/', PharmacistView.add_remoteprescription, name='pharmacist_add_remoteprescription'),    
+    path('pharmacist/visit-list/', PharmacistView.visit_list, name='pharmacist_visit_list'),
+    path('doctor/save_prescription/<int:patient_id>/<int:visit_id>/', PharmacistView.save_prescription, name='pharmacist_save_prescription'),
 ]

@@ -1,0 +1,77 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+{% block title %}All Patient Visits{% endblock title %}
+
+{% block main_content %}
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h3 class="card-title">Patient Visit Records</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Visit Number</th>
+                <th>Patient Name</th>
+                <th>Visit Type</th>
+                <th>Primary Service</th>
+                <th>Insurance</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Prescription Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for visit in visits %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ visit.vst }}</td>
+                <td>{{ visit.patient }}</td>
+                <td>{{ visit.get_visit_type_display }}</td>
+                <td>{{ visit.primary_service }}</td>
+                <td>
+                  {% if visit.patient.payment_form == "Insurance" %}
+                    {{ visit.patient.payment_form }} - {{ visit.patient.insurance_name }}
+                  {% else %}
+                    {{ visit.patient.payment_form }}
+                  {% endif %}
+                </td>
+                <td>{{ visit.visit_reason|truncatewords:8 }}</td>
+                <td>{{ visit.created_at|date:"d M Y H:i" }}</td>
+                <td>
+                  {% if prescription_map|get_item:visit.id %}
+                    <span class="badge badge-success">Available</span>
+                  {% else %}
+                    <span class="badge badge-secondary">None</span>
+                  {% endif %}
+                </td>
+                <td>
+                {% if paid_prescription_map|get_item:visit.id or verified_prescription_map|get_item:visit.id or issued_prescription_map|get_item:visit.id %}
+                    <button class="btn btn-sm btn-secondary" disabled title="Prescription locked due to payment, verification, or issue">
+                    <i class="fas fa-lock"></i> Locked
+                    </button>
+                {% else %}
+                    <a href="{% url 'pharmacist_save_prescription' visit.patient.id visit.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-pills"></i> Prescription
+                    </a>
+                {% endif %}
+                </td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% include 'receptionist_template/datatable.html' %}
+{% endblock main_content %}

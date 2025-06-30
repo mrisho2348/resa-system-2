@@ -880,7 +880,7 @@ def add_medicine(request):
             medicine_id = request.POST.get('medicine_id')
             drug_name = request.POST.get('drug_name').strip()
             drug_type = request.POST.get('drug_type')
-            dividing_unit = request.POST.get('dividing_unit')
+            dividing_unit = int(request.POST.get('dividing_unit') or 125)
             formulation_unit = request.POST.get('formulation_unit')
             manufacturer = request.POST.get('manufacturer').strip()
             quantity = request.POST.get('quantity')
@@ -930,6 +930,7 @@ def add_medicine(request):
                 medicine.insurance_cost = insurance_cost
                 medicine.nhif_cost = nhif_cost
                 medicine.buying_price = buying_price
+                medicine.save()
                 return JsonResponse({'success': True, 'message': 'medicine drug is updated successfully'})
             else:
                 # Check for uniqueness

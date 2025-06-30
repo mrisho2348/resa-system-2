@@ -1,0 +1,189 @@
+{% extends 'labtechnician_template/base_template.html' %}
+{% load static %}
+
+{% block title %}Lab Result{% endblock title %}
+
+{% block page_title %}Lab Result{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="text-center text-uppercase mb-0">Laboratory Results</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered table-striped table-sm display text-nowrap" id="example" style="width:100%">
+              <thead class="thead-dark">
+                <tr>
+                  <th>Lab Number</th>
+                  <th>Patient</th>
+                  <th>Visit</th>
+                  <th>Test Name</th>
+                  <th>Description</th>
+                  <th>Order Date</th>
+                  <th>Status</th>
+                  <th>Cost (TZS)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for lab in lab_records %}
+                <tr>
+                  <td>{{ lab.lab_number }}</td>
+                  <td>{{ lab.patient.first_name }} {{ lab.patient.middle_name }} {{ lab.patient.last_name }}</td>
+                  <td>{{ lab.visit.vst }}</td>
+                  <td>{{ lab.name.name }}</td>
+                  <td>{{ lab.description }}</td>
+                  <td>{{ lab.order_date }}</td>
+                  <td>
+                    {% if lab.result %}
+                      <span class="badge badge-success">Completed</span>
+                    {% else %}
+                      <span class="badge badge-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ lab.cost }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" data-toggle="modal"  data-target="#labResultModal{{ lab.id }}">
+                      <i class="fas fa-eye"></i> View Result
+                    </button>
+                    <a href="{% url 'lab_edit_lab_result' lab.id %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-edit"></i> Edit
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% for lab in lab_records %}
+<!-- Lab Result Modal -->
+<div class="modal fade" id="labResultModal{{ lab.id }}" tabindex="-1" role="dialog" aria-labelledby="labResultModalLabel{{ lab.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title text-uppercase" id="labResultModalLabel{{ lab.id }}">
+          Lab Result - {{ lab.name.name }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+
+        <!-- Header Image -->
+        <div class="mb-3">
+          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+        </div>
+
+        <!-- Patient Details Card -->
+        <div class="card mb-3">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0 text-uppercase">Patient Details</h6>
+          </div>
+          <div class="card-body p-3">
+            <table class="table table-borderless table-sm mb-0">
+              <tbody>
+                <tr>
+                  <td><strong>Patient:</strong> {{ lab.patient.first_name }} {{ lab.patient.middle_name }} {{ lab.patient.last_name }}</td>
+                  <td><strong>DOB:</strong> {{ lab.patient.dob|date:"d-m-Y" }}</td>
+                  <td><strong>Gender:</strong> {{ lab.patient.gender }}</td>
+                  <td><strong>File No:</strong> {{ lab.patient.mrn }}</td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <strong>Payment Form:</strong>
+                    {% if lab.patient.payment_form == "Insurance" %}
+                      {{ lab.patient.payment_form }} - {{ lab.patient.insurance_name }}
+                    {% else %}
+                      {{ lab.patient.payment_form }}
+                    {% endif %}
+                  </td>
+                  <td colspan="2"><strong>Visit Number:</strong> {{ lab.visit.vst }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lab Result Content Card -->
+        <div class="card mb-3 border-info">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0 text-uppercase">Lab Result Details</h6>
+          </div>
+          <div class="card-body">
+            {% if lab.result %}
+              {{ lab.result|safe }}
+            {% else %}
+              <p class="text-muted mb-0">No result available for this test.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Lab Performed By Card -->
+        <div class="card mb-3">
+          <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0 text-uppercase">Lab Performed By</h6>
+          </div>
+          <div class="card-body p-3">
+            <table class="table table-borderless table-sm mb-0">
+              <tbody>
+                <tr>
+                  <td><strong>Recorded By:</strong> {{ lab.data_recorder.get_full_name }}</td>
+                  <td><strong>Signature:</strong> 
+                    {% if lab.data_recorder.signature %}
+                      <img src="{{ lab.data_recorder.signature.url }}" alt="Signature" style="height: 40px;">
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                  <td><strong>Date:</strong> {{ lab.order_date|date:"d-m-Y" }}</td>
+                  <td><strong>MCT No:</strong> {{ lab.data_recorder.mct_number }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<style>
+  .modal-dialog-scrollable .modal-body {
+  max-height: 60vh; /* 60% of viewport height */
+  overflow-y: auto;
+}
+
+</style>
+
+{% include 'labtechnician_template/datatable.html' %}
+
+
+{% endblock main_content %}

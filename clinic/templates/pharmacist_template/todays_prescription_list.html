@@ -1,0 +1,251 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load customfilter %}
+{% block title %}
+Today's Prescriptions
+{% endblock title %}
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+{% endblock breadcrumb %}
+{% load static %}
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> Today's Prescriptions </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
+                            <thead>
+                                <tr> 
+                                    <th>Date</th>     
+                                    <th>Visit Number</th>
+                                    <th>Patient</th>              
+                                    <th>Billing Amount</th> 
+                                    <th>Verified</th>  <!-- Add this column -->
+                                    <th>Issued</th>   <!-- Add this column -->
+                                    <th>Status</th>   <!-- Add this column -->
+                                    <th>Action</th>               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit_total in visit_total_prices %}
+                                    <tr>  
+                                        <td>{{ visit_total.visit__created_at|date:"d/m/Y" }}</td> <!-- Format date as dd/mm/yyyy -->
+                                        <td>{{ visit_total.visit__vst }}</td> <!-- Display visit number -->
+                                        <td>{{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }}  {{ visit_total.visit__patient__last_name }}</td> <!-- Display patient name -->
+                                        <td>{{ visit_total.total_price }}</td> <!-- Display total price for the visit -->
+                                        
+                                        <td>
+                                            <p  {% if visit_total.verified == 'verified' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}>
+                                                {{ visit_total.verified }}
+                                            </p>
+                                          
+                                        </td>  <!-- Display verified field -->
+                                        
+                                        <td>
+                                            <p  {% if visit_total.issued == 'issued' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.issued }}</p>
+                                           
+                                        </td>   <!-- Display issued field -->
+                                        
+                                        <td >
+                                           <p {% if visit_total.status == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.status }}</p>
+                                        </td>   <!-- Display payment status field -->
+                                        
+                                        <td>
+                                             <!-- Modal Trigger Button -->
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#prescriptionDetailModal{{ visit_total.visit__vst }}">
+                                                <i class="fas fa-eye"></i> Issue/Verify
+                                            </button>                                    
+                                        </td>        
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>                        
+                      </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for visit_total in visit_total_prices %}
+<div class="modal fade" id="prescriptionDetailModal{{ visit_total.visit__vst }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionDetailModalLabel{{ visit_total.visit__vst }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="prescriptionDetailModalLabel{{ visit_total.visit__vst }}">
+          Prescription Details - Visit #{{ visit_total.visit__vst }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Header Image -->
+        <div class="mb-3">
+          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+        </div>
+
+        <!-- Patient Info -->
+        <div class="card mb-3">
+          <div class="card-header bg-dark text-white">Patient Details</div>
+          <div class="card-body">
+            <table class="table table-borderless table-sm">
+              <tr>
+                <td><strong>Patient:</strong> {{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</td>
+                <td><strong>Visit No:</strong> {{ visit_total.visit__vst }}</td>
+                <td><strong>Date:</strong> {{ visit_total.visit__created_at|date:"d-m-Y" }}</td>
+              </tr>
+              <tr>
+                <td colspan="3">
+                  <strong>Status:</strong> {{ visit_total.status }} &nbsp; 
+                  <strong>Verified:</strong> {{ visit_total.verified }} &nbsp; 
+                  <strong>Issued:</strong> {{ visit_total.issued }}
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Prescription Table -->
+        <div class="card">
+          <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0 text-uppercase">Prescribed Drugs</h6>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm">
+                <thead>
+                  <tr>
+                    <th>Drug</th>
+                    <th>Dose</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for prescription in visit_total.prescriptions %}
+                  <tr>
+                    <td>{{ prescription.medicine.drug_name }}</td>
+                    <td>{{ prescription.dose }}</td>
+                    <td>{{ prescription.frequency }}</td>
+                    <td>{{ prescription.duration }} days</td>
+                    <td>{{ prescription.quantity_used }}</td>
+                    <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
+                    <td>{{ prescription.total_price }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+          <div class="col-md-4">
+            {% if visit_total.verified %}
+              <button class="btn btn-danger btn-block" onclick="toggleVerification('{{ visit_total.visit__vst }}', 'unverify')">Unverify</button>
+            {% else %}
+              <button class="btn btn-success btn-block" onclick="toggleVerification('{{ visit_total.visit__vst }}', 'verify')">Verify</button>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            {% if visit_total.verified %}
+              {% if visit_total.issued %}
+                <button class="btn btn-danger btn-block" onclick="toggleIssued('{{ visit_total.visit__vst }}', 'unissue')">Unissue</button>
+              {% else %}
+                <button class="btn btn-primary btn-block" onclick="toggleIssued('{{ visit_total.visit__vst }}', 'issue')">Issue</button>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="paymentStatusModalLabel">Payment Status</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="paymentStatusModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Toggle verification status
+function toggleVerification(visitNumber, action) {
+    const url = action === 'verify'
+        ? '{% url "pharmacist_verify_prescriptions" %}'
+        : '{% url "pharmacist_unverify_prescriptions" %}';
+
+    $.ajax({
+        url: url,
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: { visit_number: visitNumber },
+        success: function () {
+            alert("Verification status updated.");
+            location.reload();
+        },
+        error: function () {
+            alert("Failed to update verification status.");
+        }
+    });
+}
+
+// Toggle issue status
+function toggleIssued(visitNumber, action) {
+    const url = action === 'issue'
+        ? '{% url "pharmacist_issue_prescriptions" %}'
+        : '{% url "pharmacist_unissue_prescriptions" %}';
+
+    $.ajax({
+        url: url,
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: { visit_number: visitNumber },
+        success: function () {
+            alert("Issue status updated.");
+            location.reload();
+        },
+        error: function () {
+            alert("Failed to update issue status.");
+        }
+    });
+}
+</script>
+
+
+
+
+</script>
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}

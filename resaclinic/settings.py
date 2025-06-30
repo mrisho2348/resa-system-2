@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'centric',
     'kahamahmis',
     'wkhtmltopdf',
+    'django.contrib.humanize',
     'django_ckeditor_5',
 ]
 
