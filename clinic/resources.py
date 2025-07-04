@@ -1,18 +1,11 @@
 from import_export import resources
+from .models import AmbulanceActivity, AmbulanceRoute, HealthRecord, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency, Country, Diagnosis, DiseaseRecode, Equipment,   Medicine, PathodologyRecord, Patients, Procedure, Reagent, Referral, RemoteCompany, RemoteMedicine, RemotePatient, RemoteService,Service
 
-
-from .models import AmbulanceActivity, AmbulanceRoute, Category, HealthRecord, MedicineRoute, MedicineUnitMeasure, PrescriptionFrequency,  ConsultationNotes, Country, Diagnosis, DiseaseRecode, Equipment, EquipmentMaintenance,  InsuranceCompany, InventoryItem, Medicine, PathodologyRecord, PatientVital, Patients, Prescription, Procedure, Reagent, Referral, RemoteCompany, RemoteMedicine, RemotePatient, RemoteService,Service, Staffs, Supplier
-
-class StaffResources(resources.ModelResource):
-    class Meta:
-        model = Staffs
 class DiseaseRecodeResource(resources.ModelResource):
     class Meta:
         model = DiseaseRecode
         
-class InsuranceCompanyResource(resources.ModelResource):
-    class Meta:
-        model = InsuranceCompany        
+       
         
 class CompanyResource(resources.ModelResource):
     class Meta:
@@ -21,8 +14,7 @@ class CompanyResource(resources.ModelResource):
 class PathologyRecordResource(resources.ModelResource):
     class Meta:
         model = PathodologyRecord        
-# Create a resource for importing/exporting Patients data
-# Create a resource for importing/exporting Patients data
+
 class PatientsResource(resources.ModelResource):
     class Meta:
         model = Patients 
@@ -38,36 +30,21 @@ class ReferralResource(resources.ModelResource):
 class ServiceResource(resources.ModelResource):
     class Meta:
         model = Service
-class CategoryResource(resources.ModelResource):
-    class Meta:
-        model = Category
-class SupplierResource(resources.ModelResource):
-    class Meta:
-        model = Supplier
-class InventoryItemResource(resources.ModelResource):
-    class Meta:
-        model = InventoryItem
+
+
+
 class EquipmentResource(resources.ModelResource):
     class Meta:
         model = Equipment
-class EquipmentMaintenanceResource(resources.ModelResource):
-    class Meta:
-        model = EquipmentMaintenance
+
 class ReagentResource(resources.ModelResource):
     class Meta:
         model = Reagent
-class PrescriptionResource(resources.ModelResource):
-    class Meta:
-        model = Prescription
-class PatientVitalResource(resources.ModelResource):
-    class Meta:
-        model = PatientVital
+
 class DiagnosisResource(resources.ModelResource):
     class Meta:
         model = Diagnosis
-class ConsultationNotesResource(resources.ModelResource):
-    class Meta:
-        model = ConsultationNotes
+
 class RemoteServiceResource(resources.ModelResource):
     class Meta:
         model = RemoteService

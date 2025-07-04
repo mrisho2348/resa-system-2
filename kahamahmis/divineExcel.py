@@ -1,6 +1,6 @@
 import openpyxl
 from django.http import HttpResponse
-from clinic.models import AmbulanceRoute, AmbulanceVehicleOrder, Category, Country, Diagnosis, DiseaseRecode, HealthRecord, HospitalVehicle, InsuranceCompany, MedicineUnitMeasure, PathodologyRecord, PrescriptionFrequency, RemoteCompany, RemoteEquipment, RemoteMedicine, RemoteReagent, RemoteService, Service, Staffs, Supplier
+from clinic.models import AmbulanceRoute, AmbulanceVehicleOrder,  Country, Diagnosis, DiseaseRecode, HealthRecord, HospitalVehicle,  MedicineUnitMeasure, PathodologyRecord, PrescriptionFrequency, RemoteCompany, RemoteEquipment, RemoteMedicine, RemoteReagent, RemoteService, Service, Staffs
 
 
 def download_disease_recode_excel_template(request):
@@ -96,52 +96,6 @@ def download_pathodology_record_excel_template(request):
 
     return response
 
-def download_supplier_excel_template(request):
-    # Create a new Workbook
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Supplier Template"
-    
-    # Define column headers from model fields
-    excluded_fields = ['created_at', 'updated_at']
-    model_fields = [field.name for field in Supplier._meta.get_fields() 
-                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
-
-    # Add headers to the first row
-    for col_num, column_title in enumerate(model_fields, 1):
-        cell = sheet.cell(row=1, column=col_num)
-        cell.value = column_title
-
-    # Save the workbook to a response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=supplier_template.xlsx'
-    workbook.save(response)
-
-    return response
-
-def download_category_excel_template(request):
-    # Create a new Workbook
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "Category Template"
-    
-    # Define column headers from model fields
-    excluded_fields = ['created_at', 'updated_at']
-    model_fields = [field.name for field in Category._meta.get_fields() 
-                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
-
-    # Add headers to the first row
-    for col_num, column_title in enumerate(model_fields, 1):
-        cell = sheet.cell(row=1, column=col_num)
-        cell.value = column_title
-
-    # Save the workbook to a response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=category_template.xlsx'
-    workbook.save(response)
-
-    return response
-
 
 def download_medicine_unit_measure_excel_template(request):
     # Create a new Workbook
@@ -190,28 +144,6 @@ def download_service_excel_template(request):
 
     return response
 
-def download_insurance_company_excel_template(request):
-    # Create a new Workbook
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    sheet.title = "InsuranceCompany Template"
-    
-    # Define column headers from model fields
-    excluded_fields = ['created_at', 'updated_at']
-    model_fields = [field.name for field in InsuranceCompany._meta.get_fields() 
-                    if not field.auto_created and not field.is_relation and field.name not in excluded_fields]
-
-    # Add headers to the first row
-    for col_num, column_title in enumerate(model_fields, 1):
-        cell = sheet.cell(row=1, column=col_num)
-        cell.value = column_title
-
-    # Save the workbook to a response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=insurance_company_template.xlsx'
-    workbook.save(response)
-
-    return response
 
 
 def download_staffs_excel_template(request):

@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Procedures - {{ patient.full_name }}</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            font-size: 13px;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+        }
+        .header img {
+            width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            background-color: #343a40;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        table th, table td {
+            border: 1px solid #dee2e6;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .procedure-box {
+            margin-bottom: 30px;
+        }
+        .label {
+            font-weight: bold;
+        }
+        .text-muted {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Image -->
+    <div class="header">
+        <img src="{% static 'img/headerresa.jpg' %}" alt="Clinic Header">
+    </div>
+
+    <!-- Patient Details -->
+    <div class="section-title">Patient Details</div>
+    <table>
+        <tr>
+            <td><strong>Patient:</strong> {{ patient.full_name }}</td>
+            <td><strong>DOB:</strong> {{ patient.dob|date:"d-m-Y" }}</td>
+            <td><strong>Gender:</strong> {{ patient.gender }}</td>
+            <td><strong>File No:</strong> {{ patient.mrn }}</td>
+        </tr>
+        <tr>
+            <td colspan="2"><strong>Payment Form:</strong>
+                {% if patient.payment_form == "Insurance" %}
+                    {{ patient.payment_form }} - {{ patient.insurance_name }}
+                {% else %}
+                    {{ patient.payment_form }}
+                {% endif %}
+            </td>
+            <td colspan="2"><strong>Visit Number:</strong> {{ visit.vst }}</td>
+        </tr>
+    </table>
+
+    <!-- Procedures Section -->
+    <div class="section-title">All Procedures</div>
+    {% if procedures %}
+    {% with first_proc=procedures.0 %}
+        {% for proc in procedures %}
+            <!-- Procedure Title -->
+            <div class="summary-title">Procedure Result</div>
+
+            <!-- Procedure Info Section -->
+            <div class="result-box">
+                <div class="section-title" style="background-color:#6c757d;">Procedure Performed</div>
+                <p><strong>Name:</strong> {{ proc.name.name }}</p>
+                <p><strong>Description:</strong> {{ proc.description|default:"-" }}</p>
+            </div>
+
+            <!-- Procedure Result Section -->
+            {% if proc.result %}
+            <div class="result-box">
+                <div class="section-title" style="background-color:#17a2b8;">Result</div>
+                <p>{{ proc.result|safe }}</p>
+            </div>
+            {% endif %}
+
+            <hr style="margin: 30px 0;">
+        {% endfor %}
+
+        <!-- Footer Info Section: shown only once -->
+        <table class="footer-table">
+            <tr>
+                <td>
+                    <strong>Performed By:</strong>
+                    <span style="color: blue; text-transform: capitalize;">
+                        {% if first_proc.data_recorder.role == "doctor" %}Dr.{% else %}{{ first_proc.data_recorder.role }}{% endif %}
+                    </span>
+                    <br>
+                    <small class="text-muted">{{ first_proc.data_recorder }}</small>
+                </td>
+                <td><strong>Signature:</strong> <u>{{ first_proc.data_recorder.signature }}</u></td>
+                <td><strong>Date:</strong> {{ first_proc.created_at|date:"d-m-Y" }}</td>
+                <td><strong>MCT No:</strong> {{ first_proc.data_recorder.mct_number }}</td>
+            </tr>
+        </table>
+    {% endwith %}
+{% else %}
+    <p class="text-muted">No procedures found for this visit.</p>
+{% endif %}
+
+
+</body>
+</html>

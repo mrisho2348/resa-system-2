@@ -1,60 +1,184 @@
 {% extends 'hod_template/base_template.html' %}
+
 {% block title %}
 Counseling Sessions
 {% endblock title %}
+{% load static %}
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
 {% endblock breadcrumb %}
+
 {% block main_content %}
-  <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Counseling Sessions</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead>
-                                <tr>                                 
-                                     <th>Patient</th>
-                                    <th>Visit</th>
-                                    <th>Counselor</th>
-                                    <th>Date</th>                             
-                                    <th>Time</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for counseling in counselings %}
-                                <tr>                                  
-                                    <td>{{ counseling.patient }}</td>
-                                    <td>{{ counseling.visit.vst }}</td>
-                                    <td>
-                                        <b style="color: blue;" class="text-capitalize">
-                                            {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
-                                        </b>                                        
-                                         <span class="text-muted">{{ counseling.data_recorder }}</span>
-                                        </td>
-                                    <td>{{ counseling.created_at|date:"d-m-Y"  }}</td>                                   
-                                    <td>{{ counseling.created_at|date:"H:i" }}</td>
-                                    <td>  
-                                        <a href="{% url 'admin_save_remote_counseling' counseling.patient.id counseling.visit.id  %}" class="btn btn-info">View</a>
-                                    </a>
-                                    <a href="{% url 'admin_view_counseling_notes' counseling.patient.id counseling.visit.id %}" class="btn btn-primary">View Notes</a>
-                                </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>                      
-                        </table>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Counseling Sessions</h6>
         </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+              <thead>
+                <tr>                                 
+                  <th>Patient</th>
+                  <th>Visit</th>
+                  <th>Counselor</th>
+                  <th>Date</th>                             
+                  <th>Time</th>
+                  <th>Session Status</th> <!-- ✅ New Column -->
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for counseling in counselings %}
+                <tr>                                  
+                  <td>{{ counseling.patient }}</td>
+                  <td>{{ counseling.visit.vst }}</td>
+                  <td>
+                    <b style="color: blue;" class="text-capitalize">
+                      {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                    </b>                                        
+                    <span class="text-muted">{{ counseling.data_recorder }}</span>
+                  </td>
+                  <td>{{ counseling.created_at|date:"d-m-Y"  }}</td>                                   
+                  <td>{{ counseling.created_at|date:"H:i" }}</td>
+                  <td>
+                    {% if counseling.counselling_notes %}
+                      <span class="badge badge-success">Available</span>
+                    {% else %}
+                      <span class="badge badge-warning">Pending</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if counseling.counselling_notes %}
+                      <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#counselingModal{{ counseling.id }}">
+                        View
+                      </button>
+                    {% else %}
+                      <button class="btn btn-info btn-sm" disabled>View</button>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>                      
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+
+{% for counseling in counselings %}
+  {% if counseling.counselling_notes %}
+    <!-- Bootstrap Modal for Counseling Note -->
+    <div class="modal fade" id="counselingModal{{ counseling.id }}" tabindex="-1" role="dialog" aria-labelledby="counselingModalLabel{{ counseling.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="counselingModalLabel{{ counseling.id }}">
+              {{ counseling.patient.full_name }} - Counseling Note
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="container-fluid">
+
+              <!-- Header Image -->
+              <header class="header mb-3">
+                <div class="row">
+                  <div class="col-12">
+                    <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+                  </div>
+                </div>
+              </header>
+
+              <!-- Patient Details Section -->
+              <div class="row mt-1">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-dark text-white">
+                      <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                    </div>
+                    <div class="card-body">
+                      <table class="table table-borderless table-sm">
+                        <tbody>
+                          <tr>
+                            <td>PATIENT: <b>{{ counseling.patient }}</b></td>
+                            <td>DOB: <b>{{ counseling.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ counseling.patient.age }}</b>]</td>
+                            <td>SEX: <b>{{ counseling.patient.gender }}</b></td>
+                            <td>FILE NO: <b>{{ counseling.patient.mrn }}</b></td>
+                          </tr>
+                          <tr>
+                            <td>Payment Form: 
+                              <b>
+                                {% if counseling.patient.payment_form == "Insurance" %}
+                                  {{ counseling.patient.payment_form }} - {{ counseling.patient.insurance_name }}
+                                {% else %}
+                                  {{ counseling.patient.payment_form }}
+                                {% endif %}
+                              </b>
+                            </td>
+                            <td>Visit Number: <b>{{ counseling.visit.vst }}</b></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Counseling Notes Section -->
+              <div class="row mt-3">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                      <h6 class="mb-0 text-uppercase">Counseling Notes</h6>
+                    </div>
+                    <div class="card-body">
+                      <p class="text-justify">{{ counseling.counselling_notes|safe }}</p>
+                    </div>
+                    <div class="card-footer text-muted">
+                      <div class="row">
+                        <div class="col-md-5">
+                          <strong>Counseled By:</strong>
+                          <b class="text-capitalize" style="color: blue;">
+                            {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                          </b>
+                          <span class="text-muted">{{ counseling.data_recorder }}</span>
+                        </div>
+                        <div class="col-md-3"><strong>Signature:</strong> {{ counseling.data_recorder.signature }}</div>
+                        <div class="col-md-2"><strong>Date:</strong> {{ counseling.created_at|date:"d-m-Y" }}</div>
+                        <div class="col-md-2"><strong>MCT No:</strong> {{ counseling.data_recorder.mct_number }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Download PDF Button -->
+              <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                  <a href="{% url 'admin_download_counseling_pdf' counseling.patient.id counseling.visit.id %}" 
+                    class="btn btn-outline-secondary btn-sm" >
+                    <i class="fa fa-download"></i> Download PDF
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+
 {% include 'hod_template/datatable.html' %}   
 
 {% endblock main_content %}

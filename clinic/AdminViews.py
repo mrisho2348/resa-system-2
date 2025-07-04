@@ -3,7 +3,7 @@ from datetime import  date, datetime
 from django.utils import timezone
 import logging
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import   Http404, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.urls import reverse
 from django.db.models import F
@@ -12,21 +12,22 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.mail import send_mail
-from clinic.models import Consultation,  CustomUser, DiseaseRecode, InsuranceCompany, Medicine,  PathodologyRecord, Patients, Procedure, Staffs
+from clinic.models import Consultation,  CustomUser, DiseaseRecode,  Medicine,  PathodologyRecord,  Procedure, Staffs
 from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
 from django.utils.decorators import method_decorator
 from kahamahmis.forms import StaffProfileForm
 from django.views import View
-from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, Category, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, Company,  ConsultationNotes, ConsultationOrder, Counseling,  Diagnosis,  Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment, EquipmentMaintenance, HealthRecord,  HospitalVehicle, ImagingRecord, InventoryItem, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, QualityControl, Reagent, ReagentUsage, Referral, SalaryChangeRecord, SalaryPayment,  Service, Supplier, UsageHistory
-from django.db.models import Sum
+from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, ClinicChiefComplaint, ConsultationNotes,  ConsultationOrder, Counseling,   Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment,  HealthRecord,  HospitalVehicle, ImagingRecord, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Reagent,  Referral, SalaryChangeRecord, SalaryPayment,  Service
+from django.db.models import Max,Sum,Q,Count
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db.models.functions import TruncMonth, ExtractYear
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
-from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm
+from weasyprint import HTML
+from django.template.loader import render_to_string
+import os 
 
 @login_required
 def dashboard(request):
@@ -411,16 +412,11 @@ def get_gender_monthly_data(request):
 def manage_patient(request):
     patient_records=Patients.objects.all().order_by('-created_at')   
     return render(request,"hod_template/manage_patients.html", {
-        "patient_records":patient_records,     
+        "patients":patient_records,     
         })
     
 
 
-
-@login_required
-def manage_company(request):
-    companies=Company.objects.all() 
-    return render(request,"hod_template/manage_company.html",{"companies":companies})
 
 @login_required
 def manage_disease(request):
@@ -434,10 +430,7 @@ def manage_staff(request):
 
     return render(request, "hod_template/manage_staff.html", {"staffs": staffs})
 
-@login_required
-def manage_insurance(request):
-    insurance_companies=InsuranceCompany.objects.all() 
-    return render(request,"hod_template/manage_insurance.html",{"insurance_companies":insurance_companies})
+
 
 @login_required
 def resa_report(request):
@@ -445,11 +438,9 @@ def resa_report(request):
 
 @login_required
 def manage_service(request):
-    services=Service.objects.all()
-    insurance_companies=InsuranceCompany.objects.all()
+    services=Service.objects.all()   
     context = {
-        'services':services,
-        'insurance_companies':insurance_companies,
+        'services':services,       
     }
     return render(request,"hod_template/manage_service.html",context)
 
@@ -840,30 +831,6 @@ def edit_staff_save(request):
 
 
 @login_required
-def single_staff_detail(request, staff_id):
-    staff = get_object_or_404(Staffs, id=staff_id)
-    # Fetch additional staff-related data  
-    context = {
-        'staff': staff,
-     
-    }
-
-    return render(request, "hod_template/staff_details.html", context)
-
-@login_required
-def view_patient(request, patient_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    # Fetch additional staff-related data  
-    context = {
-        'patient': patient,
-     
-    }
-
-    return render(request, "hod_template/patients_detail.html", context)
-
-
-
-@login_required
 def medicine_list(request):
     # Retrieve medicines and check for expired ones
     medicines = Medicine.objects.all()
@@ -989,44 +956,81 @@ def medicine_expired_list(request):
 
 @login_required
 def patient_procedure_view(request):
-    template_name = 'hod_template/manage_procedure.html'
-    
-    # Query to retrieve the latest procedure record for each patient
-    procedures = Procedure.objects.filter(
-        patient=OuterRef('id')
-    ).order_by('-created_at')[:1]
-
-    # Query to retrieve patients with their corresponding procedure (excluding patients without procedures)
-    patients_with_procedures = Patients.objects.annotate(
-        procedure_name=Subquery(procedures.values('name')[:1]),
-        procedure_description=Subquery(procedures.values('description')[:1]),
-        procedure_duration=Subquery(procedures.values('duration_time')[:1]),
-        procedure_equipments=Subquery(procedures.values('equipments_used')[:1]),
-        procedure_cost=Subquery(procedures.values('cost')[:1])
-    ).filter(procedure_name__isnull=False)
-    
-    patients = Patients.objects.all()
-    # Retrieve the data
-    data = patients_with_procedures.values(
-        'id', 'mrn', 'procedure_name', 'procedure_description',
-        'procedure_duration', 'procedure_equipments', 'procedure_cost'
+    # Get all distinct (patient, visit) pairs that have at least one procedure
+    distinct_procedure_sets = (
+        Procedure.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
 
-    return render(request, template_name, {'data': data,'patients':patients})
+    # Prepare data structure for template
+    patient_procedures = []
 
+    for entry in distinct_procedure_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        procedures = Procedure.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'doctor__admin', 'name', 'data_recorder')
+
+        if procedures.exists():
+            first_proc = procedures.first()
+            patient_procedures.append({
+                'patient': first_proc.patient,
+                'visit': first_proc.visit,
+                'latest_date': latest_date,
+                'doctor': first_proc.doctor,
+                'procedure_done_by': first_proc.data_recorder,
+                'procedures': procedures  # All procedures for that visit
+            })
+
+    context = {
+        'patient_procedures': patient_procedures,
+    }
+    return render(request, 'hod_template/manage_procedure.html', context)
 
 
 @login_required
-def patient_procedure_history_view(request, mrn):
-    patient = get_object_or_404(Patients, mrn=mrn)    
-    # Retrieve all procedures for the specific patient
-    procedures = Procedure.objects.filter(patient=patient)    
+def patient_laboratory_view(request):
+    # Get distinct (patient, visit) combinations with latest result date
+    distinct_lab_sets = (
+        LaboratoryOrder.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_lab_data = []
+
+    for entry in distinct_lab_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        lab_tests = LaboratoryOrder.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin')
+
+        if lab_tests.exists():
+            first_lab = lab_tests.first()
+            patient_lab_data.append({
+                'patient': first_lab.patient,
+                'visit': first_lab.visit,
+                'latest_date': latest_date,
+                'lab_done_by': first_lab.data_recorder,
+                'lab_tests': lab_tests
+            })
+
     context = {
-        'patient': patient,
-        'procedures': procedures,
+        'patient_labs': patient_lab_data,
     }
 
-    return render(request, 'hod_template/manage_patient_procedure.html', context)
+    return render(request, 'hod_template/manage_lab_result.html', context)
 
 
 @login_required
@@ -1035,14 +1039,6 @@ def manage_referral(request):
     return render(request, 'hod_template/manage_referral.html', {'referrals': referrals})
 
 
-@login_required
-def generate_billing(request, procedure_id):
-    procedure = get_object_or_404(Procedure, id=procedure_id)
-    context = {
-        'procedure': procedure,
-    }
-
-    return render(request, 'hod_template/billing_template.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -1102,62 +1098,7 @@ def add_disease(request):
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
  
-@csrf_exempt
-@login_required
-def add_insurance_company(request):
-    try:
-        if request.method == 'POST':
-            company_id = request.POST.get('company_id')
-            name = request.POST.get('Name')
-            phone = request.POST.get('Phone')
-            short_name = request.POST.get('Short_name')
-            email = request.POST.get('Email')
-            address = request.POST.get('Address')
-            website = request.POST.get('website')
 
-            if company_id:
-                # Edit existing company
-                company = InsuranceCompany.objects.get(id=company_id)
-
-                # Check for duplicates
-                if InsuranceCompany.objects.filter(name=name).exclude(id=company_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Another company with this name already exists'})
-                if InsuranceCompany.objects.filter(email=email).exclude(id=company_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Another company with this email already exists'})
-
-                company.name = name
-                company.phone = phone
-                company.short_name = short_name
-                company.email = email
-                company.address = address
-                company.website = website
-                company.save()
-                message = 'Successfully edited'
-            else:
-                # Check for duplicates
-                if InsuranceCompany.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Company with this name already exists'})
-                if InsuranceCompany.objects.filter(email=email).exists():
-                    return JsonResponse({'success': False, 'message': 'Company with this email already exists'})
-
-                # Create new company
-                InsuranceCompany.objects.create(
-                    name=name,
-                    phone=phone,
-                    short_name=short_name,
-                    email=email,
-                    address=address,
-                    website=website,
-                )
-                message = 'Successfully added'
-
-            return JsonResponse({'success': True, 'message': message})
-        else:
-            return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    except InsuranceCompany.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Insurance company not found'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
 
 @csrf_exempt
 @login_required
@@ -1199,510 +1140,12 @@ def add_pathodology_record(request):
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
 
-@login_required    
-def save_service_data(request):
-    if request.method == 'POST':
-        service_id = request.POST.get('service_id')
-        coverage = request.POST.get('covarage')        
-        type_service = request.POST.get('typeService')
-        name = request.POST.get('serviceName')
-        description = request.POST.get('description')
-        cost = request.POST.get('cost')
-
-        try:
-            if service_id:
-                # Editing existing service
-                service = Service.objects.get(pk=service_id)
-            else:
-                # Creating a new service
-                service = Service()
-
-            service.coverage = coverage           
-            service.type_service = type_service
-            service.name = name
-            service.description = description
-            service.cost = cost
-            service.save()
-
-            return redirect('clinic:manage_service')
-        except Exception as e:
-            return HttpResponseBadRequest(f"Error: {str(e)}") 
-
-    # If the request is not a POST request, handle it accordingly
-    return HttpResponseBadRequest("Invalid request method.")   
-
-def category_list(request):
-    categories = Category.objects.all()
-    return render(request, 'hod_template/manage_category_list.html', {'categories': categories})
-
-
-
-@require_POST
-def add_category(request):
-    try:
-        category_id = request.POST.get('category_id')
-        name = request.POST.get('name')
-        
-        if not name:
-            return JsonResponse({'success': False, 'message': 'Name field is required'})
-
-        if category_id:
-            try:
-                # Editing an existing category
-                category = Category.objects.get(pk=category_id)
-                
-                # Check for duplicates excluding the current category
-                if Category.objects.filter(name=name).exclude(pk=category_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Category with this name already exists'})
-
-                category.name = name
-                category.save()
-                message = 'Category successfully updated'
-            except Category.DoesNotExist:
-                return JsonResponse({'success': False, 'message': 'Category not found'})
-        else:
-            # Adding a new category
-            if Category.objects.filter(name=name).exists():
-                return JsonResponse({'success': False, 'message': 'Category with this name already exists'})
-                
-            category = Category(name=name)
-            category.save()
-            message = 'Category successfully added'
-
-        return JsonResponse({'success': True, 'message': message})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-@login_required    
-def supplier_list(request):
-    suppliers = Supplier.objects.all()
-    return render(request, 'hod_template/manage_supplier_list.html', {'suppliers': suppliers})
-
-@login_required 
-def inventory_list(request):
-    inventory_items = InventoryItem.objects.all()  
-    suppliers = Supplier.objects.all()
-    categories = Category.objects.all()
-    return render(request, 'hod_template/manage_inventory_list.html', {
-        'inventory_items': inventory_items,
-        'suppliers': suppliers,
-        'categories': categories 
-        }) 
-
-
-@csrf_exempt
-@require_POST
-def add_supplier(request):
-    try:
-        supplier_id = request.POST.get('supplier_id')
-        name = request.POST.get('name')
-        address = request.POST.get('address', '')
-        contact_information = request.POST.get('contact_information', '')
-        email = request.POST.get('email', '')       
-        if supplier_id:
-            if Supplier.objects.filter(name=name).exclude(pk=supplier_id).exists():
-                return JsonResponse({'success': False, 'message': 'Supplier with this name already exists.'})
-            # Editing an existing supplier
-            supplier = Supplier.objects.get(pk=supplier_id)
-            supplier.name = name
-            supplier.address = address
-            supplier.contact_information = contact_information
-            supplier.email = email
-            supplier.save()
-            message = 'Supplier updated successfully.'
-        else:
-            if Supplier.objects.filter(name=name).exists():
-                return JsonResponse({'success': False, 'message': 'Supplier with this name already exists.'})
-            supplier = Supplier(
-                name=name,
-                address=address,
-                contact_information=contact_information,
-                email=email,
-            )
-            supplier.save()
-            message = 'Supplier added successfully.'
-
-        return JsonResponse({'success': True, 'message': message})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-    
-@csrf_exempt
-@require_POST
-def add_inventory_item(request):
-    try:
-        inventory_id = request.POST.get('inventory_id')
-        name = request.POST.get('name')
-        supplier_id = request.POST.get('supplier')
-        category_id = request.POST.get('category')
-        quantity = int(request.POST.get('quantity'))
-        description = request.POST.get('description')
-        purchase_date = request.POST.get('purchase_date')
-        purchase_price = request.POST.get('purchase_price')
-        expiry_date = request.POST.get('expiry_date')
-        min_stock_level = int(request.POST.get('min_stock_level'))
-        condition = request.POST.get('condition')
-
-        supplier = Supplier.objects.get(id=supplier_id)
-        category = Category.objects.get(id=category_id)
-
-        if inventory_id:
-            if InventoryItem.objects.filter(name=name).exclude(pk=inventory_id).exists():
-                return JsonResponse({'success': False, 'message': 'Inventory item with this name already exists'})
-            try:
-                inventory_item = InventoryItem.objects.get(pk=inventory_id)
-                inventory_item.name = name
-                inventory_item.quantity = quantity
-                inventory_item.remain_quantity = quantity
-                inventory_item.category = category
-                inventory_item.description = description
-                inventory_item.supplier = supplier
-                inventory_item.purchase_date = purchase_date
-                inventory_item.purchase_price = purchase_price
-                inventory_item.min_stock_level = min_stock_level
-                inventory_item.expiry_date = expiry_date if expiry_date else None
-                inventory_item.condition = condition
-                inventory_item.save()
-
-                return JsonResponse({'success': True, 'message': 'Inventory item updated successfully.'})
-            except InventoryItem.DoesNotExist:
-                return JsonResponse({'success': False, 'message': 'Inventory item not found.'})
-
-        else:
-            # Adding new inventory item
-            if InventoryItem.objects.filter(name=name, supplier=supplier, category=category).exists():
-                return JsonResponse({'success': False, 'message': 'Inventory item already exists.'})
-
-            inventory_item = InventoryItem(
-                name=name,
-                quantity=quantity,
-                remain_quantity=quantity,
-                category=category,
-                description=description,
-                supplier=supplier,
-                purchase_date=purchase_date,
-                purchase_price=purchase_price,
-                min_stock_level=min_stock_level,
-                expiry_date=expiry_date if expiry_date else None,
-                condition=condition,
-            )
-            inventory_item.save()
-
-            return JsonResponse({'success': True, 'message': 'Inventory item added successfully.'})
-
-    except Supplier.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Supplier not found.'})
-    except Category.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Category not found.'})
-    except ValueError as ve:
-        return JsonResponse({'success': False, 'message': f'Invalid value: {str(ve)}'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-    
-
-@login_required
-def usage_history_list(request):
-    usage_history_list = UsageHistory.objects.filter(quantity_used__gt=0)
-    inventory_item = InventoryItem.objects.all()
-    return render(request, 'hod_template/manage_usage_history_list.html', {
-        'usage_history_list': usage_history_list,
-        'inventory_item': inventory_item,
-        })    
-
-@require_POST
-def save_usage_history(request):
-    try:
-        # Extract data from the request
-        usage_history_id = request.POST.get('usageHistoryId')
-        usage_date = request.POST.get('usageDate')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        notes = request.POST.get('notes')
-        item_id = request.POST.get('item')
-
-        # Retrieve the corresponding InventoryItem
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Inventory item not found'})
-
-        if quantity_used > item.remain_quantity:
-            return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
-
-        # Check if the usageHistoryId is provided for editing
-        if usage_history_id:
-            try:
-                # Editing existing usage history
-                usage_history = UsageHistory.objects.get(pk=usage_history_id)
-                # Get the previous quantity used
-                previous_quantity_used = usage_history.quantity_used
-                # Calculate the difference in quantity
-                quantity_difference = quantity_used - previous_quantity_used
-                # Update the stock level of the corresponding item
-                item.remain_quantity -= quantity_difference
-            except UsageHistory.DoesNotExist:
-                return JsonResponse({'success': False, 'message': 'Usage history not found'})
-        else:
-            # Creating new usage history
-            usage_history = UsageHistory()
-            item.remain_quantity -= quantity_used
-
-        # Update or set values for other fields
-        usage_history.usage_date = usage_date
-        usage_history.quantity_used = quantity_used
-        usage_history.notes = notes
-        usage_history.inventory_item = item
-
-        # Save the changes to both models
-        item.save()
-        usage_history.save()
-
-        return JsonResponse({'success': True, 'message': 'Usage history saved successfully'})
-    except ValueError:
-        return JsonResponse({'success': False, 'message': 'Invalid data provided'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-@csrf_exempt
-def get_item_quantity(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('itemId')  # Use request.POST.get() instead of request.GET.get()
-        print(item_id)      
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            quantity = item.quantity
-            print(quantity)
-            return JsonResponse({'quantity': quantity})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'error': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    
-@login_required
-def out_of_stock_items(request):
-    out_of_stock_items = InventoryItem.objects.filter(remain_quantity=0)
-    return render(request, 'hod_template/manage_out_of_stock_items.html', {'out_of_stock_items': out_of_stock_items}) 
-
-@login_required
-def in_stock_items(request):
-    in_stock_items = InventoryItem.objects.filter(remain_quantity__gt=0)
-    return render(request, 'hod_template/manage_in_stock_items.html', {'in_stock_items': in_stock_items})   
-
-def get_out_of_stock_count(request):
-    count = InventoryItem.objects.filter(remain_quantity=0).count()
-    
-    return JsonResponse({'count': count})
-
 def get_out_of_stock_count_reagent(request):
     count = Reagent.objects.filter(remaining_quantity=0).count()
     
     return JsonResponse({'count': count})
 
-def get_items_below_min_stock(request):
-    items_below_min_stock = InventoryItem.objects.filter(remain_quantity__lt=F('min_stock_level')).count()
-    return JsonResponse({'count': items_below_min_stock})
 
-@csrf_exempt
-@require_POST
-def increase_inventory_stock(request):
-    try:
-        item_id = request.POST.get('item_id')
-        quantity_to_add = int(request.POST.get('quantityToAdd'))
-
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Item not found'}, status=404)
-
-        if quantity_to_add <= 0:
-            return JsonResponse({'success': False, 'message': 'Quantity to add must be greater than zero'}, status=400)
-
-        try:
-            item.quantity += quantity_to_add
-            item.remain_quantity += quantity_to_add
-            item.save()
-            return JsonResponse({'success': True, 'message': f'Stock level increased by {quantity_to_add} for item {item.name}'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'Failed to update stock: {str(e)}'}, status=500)
-
-    except ValueError:
-        return JsonResponse({'success': False, 'message': 'Invalid quantity value'}, status=400)
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
-    
-@csrf_exempt
-@require_POST
-def increase_reagent_stock(request):
-    if request.method == 'POST':
-        reagent_id = request.POST.get('item_id')  # Adjusted to match the form input name
-        quantity_to_add = int(request.POST.get('quantityToAdd', 0))  # Default to 0 if not provided
-        
-        try:
-            reagent = Reagent.objects.get(id=reagent_id)
-            reagent.quantity_in_stock += quantity_to_add
-            reagent.remaining_quantity += quantity_to_add
-            reagent.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Stock level increased by {quantity_to_add} for item {reagent.name}'
-            })
-        
-        except Reagent.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': 'Reagent not found'
-            }, status=404)
-        
-        except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid quantity provided'
-            }, status=400)
-        
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Failed to increase stock level: {str(e)}'
-            }, status=500)
-    
-    else:
-        return JsonResponse({
-            'success': False,
-            'message': 'Invalid request method'
-        }, status=400)
-        
-
-@csrf_exempt
-@require_POST
-def use_inventory_item(request):
-    try:
-        item_id = request.POST.get('itemId')
-        notes = request.POST.get('notes')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        usage_date = request.POST.get('usageDate')
-
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-
-            if quantity_used > item.remain_quantity:
-                return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
-            # Create a new usage history entry
-            UsageHistory.objects.create(
-                inventory_item=item,
-                quantity_used=quantity_used,
-                notes=notes,
-                usage_date=usage_date
-            )
-
-            item.remain_quantity -= quantity_used
-            item.save()
-
-            message = f'Stock level decreased by {quantity_used} for item {item.name}'
-            return JsonResponse({'success': True, 'message': message})
-
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Inventory item not found'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-
-    except ValueError:
-        return JsonResponse({'success': False, 'message': 'Invalid quantity used'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-    
-    
-@csrf_exempt
-@require_POST
-def use_reagent_item(request):
-    try:
-        item_id = request.POST.get('reagent')
-        notes = request.POST.get('notes')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        usage_date = request.POST.get('usageDate')
-
-        try:
-            item = Reagent.objects.get(id=item_id)
-
-            if quantity_used > item.remaining_quantity:
-                return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
-            # Create a new usage history entry
-            ReagentUsage.objects.create(
-                reagent=item,
-                quantity_used=quantity_used,
-                notes=notes,
-                usage_date=usage_date
-            )
-
-            item.remaining_quantity -= quantity_used
-            item.save()
-
-            message = f'Stock level decreased by {quantity_used} for item {item.name}'
-            return JsonResponse({'success': True, 'message': message})
-
-        except Reagent.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Reagent item not found'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-
-    except ValueError:
-        return JsonResponse({'success': False, 'message': 'Invalid quantity used'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-    
-    
-@require_POST
-def save_use_reagent_item(request):
-    try:
-        # Extract data from the request
-        usage_history_id = request.POST.get('usage_id')
-        usage_date = request.POST.get('usageDate')
-        quantity_used = int(request.POST.get('quantityUsed'))
-        notes = request.POST.get('notes')
-        item_id = request.POST.get('reagent')
-
-        # Retrieve the corresponding InventoryItem
-        try:
-            item = Reagent.objects.get(id=item_id)
-        except Reagent.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Reagent item not found'})
-
-        if quantity_used > item.remaining_quantity:
-            return JsonResponse({'success': False, 'message': 'Quantity used exceeds available stock quantity'})
-
-        # Check if the usageHistoryId is provided for editing
-        if usage_history_id:
-            try:
-                # Editing existing usage history
-                usage_history = ReagentUsage.objects.get(pk=usage_history_id)
-                # Get the previous quantity used
-                previous_quantity_used = usage_history.quantity_used
-                # Calculate the difference in quantity
-                quantity_difference = quantity_used - previous_quantity_used
-                # Update the stock level of the corresponding item
-                item.remaining_quantity -= quantity_difference
-            except ReagentUsage.DoesNotExist:
-                return JsonResponse({'success': False, 'message': 'Reagent Usage not found'})
-        else:
-            # Creating new usage history
-            usage_history = ReagentUsage()
-            item.remaining_quantity -= quantity_used
-
-        # Update or set values for other fields
-        usage_history.usage_date = usage_date
-        usage_history.quantity_used = quantity_used
-        usage_history.notes = notes
-        usage_history.reagent = item
-
-        # Save the changes to both models
-        item.save()
-        usage_history.save()
-
-        return JsonResponse({'success': True, 'message': 'Reagent Usage saved successfully'})
-    except ValueError:
-        return JsonResponse({'success': False, 'message': 'Invalid data provided'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})    
-    
     
 def out_of_stock_medicines(request):
     try:
@@ -1728,18 +1171,7 @@ def out_of_stock_medicines_view(request):
         # Handle any errors and return an error response
         return render(request, '404.html', {'error_message': str(e)}) 
 
-@login_required    
-def out_of_stock_reagent_view(request):
-    try:
-        # Query the database for out-of-stock medicines
-        out_of_stock_reagent = Reagent.objects.filter(remaining_quantity=0)
-        
-        # Render the template with the out-of-stock medicines data
-        return render(request, 'hod_template/manage_out_of_stock_reagent.html', {'out_of_stock_reagent': out_of_stock_reagent})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return render(request, '404.html', {'error_message': str(e)}) 
+
     
 @login_required    
 def in_stock_medicines_view(request):
@@ -1748,12 +1180,7 @@ def in_stock_medicines_view(request):
 
     return render(request, 'hod_template/manage_in_stock_medicines.html', {'in_stock_medicines': in_stock_medicines})  
 
-@login_required
-def in_stock_reagent_view(request):
-    # Retrieve medicines with inventory levels above zero
-    in_stock_reagent = Reagent.objects.filter(remaining_quantity__gt=0)
 
-    return render(request, 'hod_template/manage_in_stock_reagent.html', {'in_stock_reagent': in_stock_reagent})  
 
 @login_required
 def equipment_list(request):
@@ -1811,66 +1238,7 @@ def add_equipment(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
     
-@login_required    
-def equipment_maintenance_list(request):
-    maintenance_list = EquipmentMaintenance.objects.all()
-    equipments = Equipment.objects.all()
-    return render(request, 'hod_template/manage_equipment_maintenance_list.html',
-                  {
-                      'maintenance_list': maintenance_list,
-                      'equipments': equipments,
-                   })    
 
-@csrf_exempt
-@require_POST
-def add_maintenance(request):
-    try:
-        # Retrieve POST data
-        maintenance_id = request.POST.get('maintenance_id')
-        equipment_id = request.POST.get('equipment')
-        maintenance_date = request.POST.get('maintenance_date')
-        technician = request.POST.get('technician').strip()
-        description = request.POST.get('description', '').strip()
-        cost = request.POST.get('cost')
-        notes = request.POST.get('notes', '').strip()
-
-        # Validate required fields
-        if not equipment_id or not technician or not cost:
-            return JsonResponse({'success': True,  'message': 'Missing required fields'})
-
-        # Retrieve equipment object
-        equipment = get_object_or_404(Equipment, id=equipment_id)
-
-        # Check if we are editing an existing maintenance record
-        if maintenance_id:
-            maintenance = get_object_or_404(EquipmentMaintenance, pk=maintenance_id)
-            maintenance.equipment = equipment
-            maintenance.maintenance_date = maintenance_date if maintenance_date else None
-            maintenance.technician = technician
-            maintenance.description = description
-            maintenance.cost = cost
-            maintenance.notes = notes
-            maintenance.save()
-            message = 'Maintenance record updated successfully'
-        else:
-            # Adding new maintenance record
-            maintenance = EquipmentMaintenance(
-                equipment=equipment,
-                maintenance_date=maintenance_date if maintenance_date else None,
-                technician=technician,
-                description=description,
-                cost=cost,
-                notes=notes,
-            )
-            maintenance.save()
-            message = 'Maintenance record added successfully'
-
-        # Return success response
-        return JsonResponse({'success': True,  'message': message})
-    except Exception as e:
-        # Return error response with the exception message
-        return JsonResponse({'success': True,  'message': str(e)})
-    
 @login_required 
 def reagent_list(request):
     reagent_list = Reagent.objects.all()
@@ -1928,285 +1296,96 @@ def add_reagent(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
-@login_required
-def reagent_usage_list(request):
-    reagent_usage_list = ReagentUsage.objects.all()
-    technicians = Staffs.objects.all()
-    reagents = Reagent.objects.all()
-    return render(request, 'hod_template/manage_reagent_usage_list.html',
-                  {
-                      'reagent_usage_list': reagent_usage_list,
-                      'technicians': technicians,
-                      'reagents': reagents,
-                   }
-                  )
 
-@csrf_exempt
-@require_POST
-def add_reagent_used(request):
-    try:
-        # Extract data from the request
-        usage_id = request.POST.get('usage_id')
-        labTechnician = request.POST.get('labTechnician')
-        reagent_id = request.POST.get('reagent')
-        usage_date = request.POST.get('usage_date')
-        quantity_used = int(request.POST.get('quantity_used'))
-        observation = request.POST.get('observation')
-        technician_notes = request.POST.get('technician_notes')
-
-        # Retrieve the corresponding InventoryItem
-        labTechnician = Staffs.objects.get(id=labTechnician)
-        reagent = Reagent.objects.get(id=reagent_id)
-        
-        if quantity_used > reagent.remaining_quantity:
-            return JsonResponse({'status': 'error', 'message': 'Quantity used exceeds available stock quantity'})
-
-
-        # Check if the usageHistoryId is provided for editing
-        if usage_id:
-            # Editing existing usage history
-            usage_history = ReagentUsage.objects.get(pk=usage_id)
-            # Get the previous quantity used
-            previous_quantity_used = usage_history.quantity_used
-            # Calculate the difference in quantity
-            quantity_difference = quantity_used - previous_quantity_used
-            # Update the stock level of the corresponding item
-            reagent.remaining_quantity -= quantity_difference
-        else:
-            # Creating new usage history
-            usage_history = ReagentUsage()
-         
-
-        # Update or set values for other fields
-        usage_history.lab_technician = labTechnician
-        usage_history.usage_date = usage_date
-        usage_history.quantity_used = quantity_used
-        usage_history.technician_notes = technician_notes
-        usage_history.reagent = reagent
-        usage_history.observation = observation
-
-        # Save the changes to both models
-        reagent.save()
-        usage_history.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-
-
-@login_required    
-def quality_control_list(request):
-    # Retrieve all QualityControl objects
-    quality_controls = QualityControl.objects.all()
-    technicians = Staffs.objects.filter(role='labTechnician', work_place="resa")
-    # Pass the queryset to the template for rendering
-    return render(request, 'hod_template/manage_quality_control_list.html', 
-                  {
-                      'quality_controls': quality_controls,
-                      'technicians': technicians,
-                      }
-                  ) 
-
-@csrf_exempt
-@require_POST
-def add_quality_control(request):
-    try:
-        qualitycontrol_id = request.POST.get('qualitycontrol_id')
-        lab_technician_id = request.POST.get('lab_technician')
-        control_date = request.POST.get('control_date')
-        control_type = request.POST.get('control_type')
-        result = request.POST.get('result')
-        remarks = request.POST.get('remarks')
-
-        # Fetch the lab technician instance
-        lab_technician = Staffs.objects.get(id=lab_technician_id)
-        
-        if qualitycontrol_id:
-            # Editing existing quality control item
-            quality_control = QualityControl.objects.get(pk=qualitycontrol_id)
-            quality_control.lab_technician = lab_technician
-            quality_control.control_date = control_date
-            quality_control.control_type = control_type
-            quality_control.result = result
-            quality_control.remarks = remarks
-            quality_control.save()
-            message = 'Quality control record updated successfully.'
-        else:
-            # Adding new quality control item
-            quality_control = QualityControl(
-                lab_technician=lab_technician,
-                control_date=control_date,
-                control_type=control_type,
-                result=result,
-                remarks=remarks
-            )
-            quality_control.save()
-            message = 'Quality control record added successfully.'
-
-        return JsonResponse({'success': True, 'message': message})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
 
 
 
 @login_required
-def patient_visit_history_view(request, patient_id):
-    # Retrieve visit history for the specified patient
-    visit_history = PatientVisits.objects.filter(patient_id=patient_id)
-    patient = Patients.objects.get(id=patient_id)
-    
-    for visit in visit_history:
-        # Calculate total cost for Prescription
-        prescription_cost = Prescription.objects.filter(visit=visit).aggregate(total_cost=Sum('total_price'))['total_cost'] or 0        
-        # Calculate total cost for AmbulanceVehicleOrder
-        ambulance_cost = AmbulanceOrder.objects.filter(visit=visit).aggregate(total_cost=Sum('cost'))['total_cost'] or 0        
-        # Calculate total cost for ImagingRecord
-        imaging_cost = ImagingRecord.objects.filter(visit=visit).aggregate(total_cost=Sum('cost'))['total_cost'] or 0        
-        # Calculate total cost for ConsultationOrder
-        consultation_cost = ConsultationOrder.objects.filter(visit=visit).aggregate(total_cost=Sum('cost'))['total_cost'] or 0        
-        # Calculate total cost for Procedure
-        procedure_cost = Procedure.objects.filter(visit=visit).aggregate(total_cost=Sum('cost'))['total_cost'] or 0        
-        # Calculate total cost for LaboratoryOrder
-        lab_cost = LaboratoryOrder.objects.filter(visit=visit).aggregate(total_cost=Sum('cost'))['total_cost'] or 0        
-        # Calculate total cost for all models combined
-        total_cost = prescription_cost + ambulance_cost + imaging_cost + consultation_cost + procedure_cost + lab_cost        
-        # Assign the total cost to the visit object
-        visit.total_cost = total_cost    
-    return render(request, 'hod_template/manage_patient_visit_history.html', {
-        'visit_history': visit_history,
-        'patient': patient,     
+def prescription_list(request):
+    # Step 1: Fetch prescriptions grouped by visit
+    grouped_visits = (
+        Prescription.objects
+        .values(
+            'visit__id',
+            'visit__vst',
+            'visit__created_at',
+            'visit__patient__id',
+            'visit__patient__first_name',
+            'visit__patient__middle_name',
+            'visit__patient__last_name',
+            'visit__patient__gender',
+            'visit__patient__dob',
+            'visit__patient__mrn',
+            'visit__patient__payment_form',
+            'visit__patient__insurance_name',
+        )
+        .annotate(
+            total_price=Sum('total_price')
+        )
+        .order_by('-visit__created_at')
+    )
+
+    # Step 2: Attach related prescriptions to each grouped visit
+    for visit in grouped_visits:
+        prescriptions = Prescription.objects.filter(visit__id=visit['visit__id']).select_related('medicine')
+        visit['prescriptions'] = prescriptions
+
+        # Optional: Derive consistent status, issued, verified if all match
+        statuses = prescriptions.values_list('status', flat=True).distinct()
+        issued = prescriptions.values_list('issued', flat=True).distinct()
+        verified = prescriptions.values_list('verified', flat=True).distinct()
+
+        visit['status'] = statuses[0] if len(statuses) == 1 else "Mixed"
+        visit['issued'] = issued[0] if len(issued) == 1 else "Mixed"
+        visit['verified'] = verified[0] if len(verified) == 1 else "Mixed"
+
+    return render(request, 'hod_template/manage_prescription_list.html', {
+        'visit_total_prices': grouped_visits,
     })
 
-@login_required    
-def patient_health_record_view(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient       
-        visit = PatientVisits.objects.get(patient_id=patient_id, id=visit_id)
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            consultation_notes = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        except PatientDiagnosisRecord.DoesNotExist:
-            consultation_notes = None
-         
-        try:
-            vitals = PatientVital.objects.filter(patient=patient_id,visit=visit_id).order_by('-recorded_at')
-        except PatientVital.DoesNotExist:
-            vitals = None  
-       
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)            
-        except Procedure.DoesNotExist:
-            procedures = None
-          
-        try:
-            lab_results = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
-        except LaboratoryOrder.DoesNotExist:
-            lab_results = None  
 
-        try:
-            imaging_records = ImagingRecord.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        except ImagingRecord.DoesNotExist:
-            imaging_records = None
-        
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
-        lab_tests_cost = lab_results.aggregate(Sum('cost'))['cost__sum']     
-        total_price = sum(prescription.total_price for prescription in prescriptions)       
-        patient = Patients.objects.get(id=patient_id)
-  
-        return render(request, 'hod_template/manage_patient_health_record.html', {         
-            'patient': patient,
-            'visit': visit,                  
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
-            'lab_tests_cost': lab_tests_cost,
-            'imaging_records': imaging_records,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'consultation_notes': consultation_notes,           
-            'vitals': vitals,
-            'lab_results': lab_results,
-            'procedures': procedures,
-      
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})
 
 @login_required
-def prescription_list(request):     
-    # Retrieve all prescriptions with related patient and visit
-    prescriptions = Prescription.objects.select_related('patient', 'visit')
-    visit_total_prices = prescriptions.values(
-    'visit__vst', 
-    'visit__patient__first_name',
-    'visit__created_at', 
-    'visit__patient__id', 
-    'visit__patient__middle_name', 
-    'visit__patient__last_name'
-).annotate(
-    total_price=Sum('total_price'),
-    verified=F('verified'),  # Access verified field directly from Prescription
-    issued=F('issued'),      # Access issued field directly from Prescription
-    status=F('status'),      # Access status field directly from Prescription
-)   
-
-    # Calculate total price of all prescriptions
-    total_price = sum(prescription.total_price for prescription in prescriptions) 
-    
-    return render(request, 'hod_template/manage_prescription_list.html', {      
-        'total_price': total_price,
-        'visit_total_prices': visit_total_prices,
-    })
-
-@login_required
-def prescription_billing(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "hod_template/prescription_bill.html", context)
-
-@login_required
-def prescription_notes(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "hod_template/prescription_notes.html", context)    
-
-
-@login_required    
 def all_orders_view(request):
-    # Retrieve all orders from the database
-    orders = Order.objects.all().order_by('-order_date')
-    
-    # Calculate total cost for each order date group
-    order_dates_with_total_cost = []
-    for order_date in orders.values('order_date').distinct():
-        total_cost = orders.filter(order_date=order_date['order_date'],status='Paid').aggregate(total_cost=Sum('cost'))['total_cost']
-        order_dates_with_total_cost.append((order_date['order_date'], total_cost))
+    grouped_orders = (
+        Order.objects
+        .values(
+            'patient__id',
+            'patient__first_name',
+            'patient__middle_name',
+            'patient__last_name',
+            'patient__gender',
+            'patient__dob',
+            'patient__mrn',
+            'patient__payment_form',
+            'patient__insurance_name',
+            'visit__id',
+            'visit__vst',
+            'visit__updated_at',
+        )
+        .annotate(
+            total_cost=Sum('cost'),
+            latest_order_date=Max('order_date'),
+        )
+        .order_by('-latest_order_date')
+    )
 
-    # Render the template with the list of orders and total cost for each group
-    return render(request, 'hod_template/order_detail.html', {'orders': orders, 'order_dates_with_total_cost': order_dates_with_total_cost})
+    for group in grouped_orders:
+        patient_id = group['patient__id']
+        visit_id = group['visit__id']
+        orders_qs = Order.objects.filter(patient_id=patient_id, visit_id=visit_id).order_by('order_date')
+        group['orders'] = list(orders_qs)
+
+        # Precompute statuses for template use
+        unique_statuses = orders_qs.values_list('status', flat=True).distinct()
+        group['statuses'] = list(unique_statuses)
+
+        # Combine full name
+        group['full_name'] = f"{group.get('patient__first_name', '')} {group.get('patient__middle_name', '')} {group.get('patient__last_name', '')}".strip()
+
+    return render(request, 'hod_template/order_detail.html', {
+        'grouped_orders': grouped_orders,
+    })
 
 @login_required
 def orders_by_date(request, date):
@@ -2277,62 +1456,6 @@ def add_frequency(request):
             return JsonResponse({'success': False, 'message': str(e)})
     else:
         return JsonResponse({'success': False,  'message': 'Invalid request method'})
-
-
-@login_required    
-def generate_invoice_bill(request,  order_id):
-    # Retrieve the patient and visit objects based on IDs    
-    order = Order.objects.get(id=order_id)     
-    context = {
-        'order': order,
-       
-    }
-    return render(request, 'hod_template/invoice_bill.html', context)   
-    
-@login_required
-def prescription_detail(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        }
-    return render(request, "hod_template/prescription_detail.html", context)    
-
-@login_required    
-def patient_vital_list(request, patient_id, visit_id):
-    # Retrieve the patient object
-    patient = Patients.objects.get(pk=patient_id)
-    visit = PatientVisits.objects.get(pk=visit_id)   
-    # Retrieve all vital information for the patient
-    patient_vitals = PatientVital.objects.filter(patient=patient,visit=visit).order_by('-recorded_at')
-
-    # Render the template with the patient's vital information
-    context = {    
-        'patient': patient, 
-        'patient_vitals': patient_vitals,
-        'visit': visit,
-    }    
-    return render(request, 'hod_template/manage_patient_vital_list.html', context)   
-
-@login_required 
-def patient_vital_all_list(request):
-    # Retrieve the patient object
-    patients = Patients.objects.all() 
-    patient_vitals = PatientVital.objects.all().order_by('-recorded_at')
-    
-    context = {        
-        'patients': patients, 
-        'patient_vitals': patient_vitals
-    }
-    # Render the template with the patient's vital information
-    return render(request, 'hod_template/manage_all_patient_vital.html', context)    
-
 
 
 
@@ -2427,84 +1550,15 @@ def delete_ambulancedorder(request):
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
-@login_required
-def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None): 
-    # Get the patient and visit objects based on IDs
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)
-    range_31 = range(1,31)
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'days': range_31
-    }
-
-    # Check if ambulance_id is provided, indicating an edit operation
-    if ambulance_id:
-        ambulance_order = get_object_or_404(AmbulanceOrder, id=ambulance_id)
-        context['ambulance_order'] = ambulance_order
-
-    if request.method == 'POST':
-        try:
-            # If ambulance_id is provided, it's an edit operation
-            if ambulance_id:
-                ambulance_order = get_object_or_404(AmbulanceOrder, id=ambulance_id)
-            else:
-                # Otherwise, it's a new record
-                ambulance_order = AmbulanceOrder()
-
-            # Set the data recorder as the current user
-            data_recorder = request.user.staff
-            
-            # Assign values to the AmbulanceOrder fields
-            ambulance_order.patient = patient
-            ambulance_order.visit = visit
-            ambulance_order.data_recorder = data_recorder
-            ambulance_order.service = request.POST.get('service')
-            ambulance_order.from_location = request.POST.get('from_location')
-            ambulance_order.to_location = request.POST.get('to_location')
-            ambulance_order.age = request.POST.get('age')
-            ambulance_order.condition = request.POST.get('condition')
-            ambulance_order.intubation = request.POST.get('intubation')
-            ambulance_order.pregnancy = request.POST.get('pregnancy')
-            ambulance_order.oxygen = request.POST.get('oxygen')
-            ambulance_order.ambulance_type = request.POST.get('ambulance_type')
-            ambulance_order.cost = request.POST.get('cost')
-            ambulance_order.payment_mode = request.POST.get('payment_mode')
-            ambulance_order.duration_hours = request.POST.get('duration_hours')
-            ambulance_order.duration_days = request.POST.get('duration_days')
-
-            # Save the AmbulanceOrder object
-            ambulance_order.save()
-
-            # Define success message
-            if ambulance_id:
-                message = 'Ambulance order updated successfully'
-            else:
-                message = 'Ambulance order saved successfully'
-            # Redirect to another URL upon successful data saving
-            return redirect(reverse('clinic:ambulance_order_view'))        
-        except Exception as e:
-            # Render the template with error message in case of exception
-            messages.error(request, f'Error adding/editing ambulance record: {str(e)}')
-            return render(request, 'hod_template/add_ambulance_order.html', context)
-    else:
-        # Render the template with patient and visit data for GET request
-        return render(request, 'hod_template/add_ambulance_order.html', context)
     
 @login_required    
 def vehicle_detail(request, order_id):
     # Retrieve the ambulance vehicle order object using the provided order_id
     order = get_object_or_404(AmbulanceVehicleOrder, pk=order_id)    
     # Render the vehicle detail template with the order object
-    return render(request, 'receptionist_template/vehicle_detail.html', {'order': order})     
+    return render(request, 'hod_template/vehicle_detail.html', {'order': order})     
 
-@login_required     
-def ambulance_order_detail(request, order_id):
-    # Retrieve the ambulance order object
-    ambulance_order = get_object_or_404(AmbulanceOrder, id=order_id)    
-    # Pass the ambulance order object to the template
-    return render(request, 'hod_template/ambulance_order_detail.html', {'ambulance_order': ambulance_order})
+
 
 @login_required
 def vehicle_ambulance_view(request):
@@ -2712,41 +1766,59 @@ def ambulance_activity_list(request):
     return render(request, 'hod_template/ambulance_activity_list.html', {'ambulance_activities': ambulance_activities}) 
 
 @login_required
-def new_consultation_order(request):  
-    consultation_orders = ConsultationOrder.objects.all().order_by('-order_date')     
-    # Retrieve all unread orders for the ConsultationOrder instances
-    unread_orders = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders], is_read=True)    
-    # Mark the retrieved unread orders as read
-    orders = unread_orders    
-    unread_orders.update(is_read=True)    
-    # Render the template with the fetched unread orders
-    return render(request, 'hod_template/new_consultation_order.html', {'orders': orders})
+def consultation_notes_view(request):
+    # Get all patients who have consultation notes
+    patient_records = Patients.objects.filter(
+        consultationnotes__isnull=False
+    ).distinct().order_by('-consultationnotes__updated_at')
+
+    return render(request, 'hod_template/manage_consultation_notes.html', {
+        'patient_records': patient_records
+    })
 
 
 
 
 
 @login_required
-def new_radiology_order(request):    
-    pathodology_records=ImagingRecord.objects.all().order_by('-order_date')   
-    unread_orders = Order.objects.filter(order_type__in=[pathology.imaging.name for pathology in pathodology_records], is_read=True)     
-    orders = unread_orders   
-    unread_orders.update(is_read=True)     
-    return render(request,"hod_template/new_radiology_order.html",{
-        "orders":unread_orders,       
-        }) 
-    
+def patient_imaging_view(request):
+    # Get distinct (patient, visit) combinations with the latest imaging record date
+    distinct_imaging_sets = (
+        ImagingRecord.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_imaging_data = []
+
+    for entry in distinct_imaging_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        imaging_records = ImagingRecord.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin', 'imaging')
+
+        if imaging_records.exists():
+            first_imaging = imaging_records.first()
+            patient_imaging_data.append({
+                'patient': first_imaging.patient,
+                'visit': first_imaging.visit,
+                'latest_date': latest_date,
+                'imaging_done_by': first_imaging.data_recorder,
+                'imaging_records': imaging_records
+            })
+
+    context = {
+        'patient_imaging': patient_imaging_data,
+    }
+
+    return render(request, 'hod_template/manage_imaging_result.html', context)
 
 
-@login_required
-def new_procedure_order(request):
-    template_name = 'hod_template/new_procedure_order.html'
-    procedures = Procedure.objects.all().order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], is_read=True) 
-    print(procedures)
-    orders = unread_orders 
-    unread_orders.update(is_read=True)         
-    return render(request, template_name, {'orders': orders})  
   
 
 def fetch_order_counts_view(request):
@@ -2960,63 +2032,7 @@ def add_medicine_unit_measure(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}) 
     
-@login_required
-def patient_detail(request, patient_id):
-    # Retrieve the patient object using the patient_id
-    patient = get_object_or_404(Patients, id=patient_id)    
-    # Context to be passed to the template
-    context = {
-        'patient': patient,
-    }    
-    # Render the patient_detail template with the context
-    return render(request, 'hod_template/patient_detail.html', context)  
 
-@login_required
-def patient_visit_details_view(request, patient_id, visit_id):
-    try:        
-        visit = PatientVisits.objects.get(id=visit_id)
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        chief_complaints = ClinicChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        primary_physical_examination = ClinicPrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        secondary_physical_examination = ClinicSecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = ConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        vitals = PatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
-        referral_records  = Referral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
-        counseling_records = Counseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
-        procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        imaging_records = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
-        discharge_notes = DischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
-        observation_records = ObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
-        lab_tests = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
-        procedure = Procedure.objects.filter(patient=patient_id, visit=visit_id).first()    
-        diagnosis_record = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(Patients, id=patient_id)
-
-        context = {
-            'primary_physical_examination': primary_physical_examination,
-            'secondary_physical_examination': secondary_physical_examination,
-            'visit': visit,
-            'counseling_records': counseling_records,
-            'observation_records': observation_records,
-            'patient': patient,
-            'referral_records ': referral_records ,
-            'chief_complaints': chief_complaints,              
-            'prescriptions': prescriptions,           
-            'consultation_notes': consultation_notes,     
-            'diagnosis_record': diagnosis_record,            
-            'vitals': vitals,     
-            'lab_tests': lab_tests,
-            'procedures': procedures,
-            'procedure': procedure,
-            'imaging_records': imaging_records,
-            'discharge_notes': discharge_notes,
-        }
-
-        return render(request, 'hod_template/manage_patient_visit_detail_record.html', context)
-    except Patients.DoesNotExist:
-        raise Http404("Patient does not exist")
-    except Exception as e:
-        return render(request, '404.html', {'error_message': str(e)})
       
    
 def delete_medicine_unit_measure(request):
@@ -3075,194 +2091,608 @@ def counseling_list_view(request):
     counselings = Counseling.objects.all().order_by('-created_at')
     return render(request, 'hod_template/manage_counselling.html', {'counselings': counselings})  
 
-@login_required    
-def save_counsel(request, patient_id, visit_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)              
-    data_recorder = request.user.staff
-    # Retrieve existing remote counseling record if it exists
-    remote_counseling = Counseling.objects.get(patient=patient, visit=visit)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'remote_counseling': remote_counseling,
-        'consultation_notes': consultation_notes,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = CounselingForm(request.POST, instance=remote_counseling)
-        
-        # Check if a record already exists for the patient and visit
-        if remote_counseling:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient
-            form.instance.data_recorder = data_recorder
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
 
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('admin_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = CounselingForm(instance=remote_counseling)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'hod_template/counsel_template.html', context)
-
-def view_counseling_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(PatientVisits, id=visit_id)  
-    patient = get_object_or_404(Patients, id=patient_id) 
-    counseling_note = get_object_or_404(Counseling, patient=patient, visit=visit)
-    
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'counseling_note': counseling_note,
-    }
-    return render(request, 'hod_template/counseling_notes_details.html', context) 
 
 def discharge_notes_list_view(request):
     discharge_notes = DischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'hod_template/manage_discharge.html', {'discharge_notes': discharge_notes}) 
 
-@login_required    
-def save_remote_discharges_notes(request, patient_id, visit_id):
+
+def observation_record_list_view(request):
+    observation_records = ObservationRecord.objects.all().order_by('-created_at')
+    return render(request, 'hod_template/manage_observation_record.html', {'observation_records': observation_records}) 
+
+def download_observation_pdf(request, patient_id, visit_id):
+    # Fetch the required patient and visit
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)
+
+    # Prepare context for the template
+    context = {
+        'observation_record': observation_record,
+        'visit': visit,
+    }
+
+    # Render HTML template
+    html_content = render_to_string('hod_template/observation_notes_detail.html', context)
+
+    # Create a temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'observation_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_discharge_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and discharge note
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'discharge_note': discharge_note,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('hod_template/discharge_note_detail.html', context)
+
+    # Prepare file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'discharge_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response   
+
+def download_counseling_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and counseling note
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    counseling = get_object_or_404(Counseling, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'counseling': counseling,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated counseling note template
+    html_content = render_to_string('hod_template/counseling_notes_details.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'counseling_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+def download_referral_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and referral
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+    patient = get_object_or_404(Patients, id=patient_id)
+    referral = get_object_or_404(Referral, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'referral': referral,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated referral note template
+    html_content = render_to_string('hod_template/view_referral.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'referral_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_prescription_notes_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
     patient = get_object_or_404(Patients, id=patient_id)
     visit = get_object_or_404(PatientVisits, id=visit_id)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    remote_discharges_notes = DischargesNotes.objects.filter(patient=patient, visit=visit).first()  
+
+    # Get all prescriptions for this patient and visit
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
     context = {
-            'patient': patient,
-            'visit': visit,
-            'consultation_notes': consultation_notes,
-            'remote_discharges_notes': remote_discharges_notes,         
-        }
-        
-    try:      
-        # Check if the request user is staff
-        data_recorder = request.user.staff      
-        # Handle form submission
-        if request.method == 'POST':
-            form = DischargesNotesForm(request.POST, instance=remote_discharges_notes)
-            if form.is_valid():
-                remote_discharges_notes = form.save(commit=False)
-                remote_discharges_notes.patient = patient
-                remote_discharges_notes.visit = visit
-                remote_discharges_notes.data_recorder = data_recorder
-                remote_discharges_notes.save()
-                messages.success(request, '')
-                return redirect(reverse('admin_patient_visit_details_view', args=[patient_id, visit_id]))  # Redirect to the next view
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            form = DischargesNotesForm(instance=remote_discharges_notes)        
-        # Prepare context for rendering the template
-        context['form'] = form
-        return render(request, 'hod_template/discharge_template.html', context)    
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'hod_template/discharge_template.html', context)
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('hod_template/prescription_notes.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_notes_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve file as HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_prescription_bill_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
+
+    # Get all prescriptions for this visit and patient
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using template
+    html_content = render_to_string('hod_template/prescription_bill.html', context)
+
+    # Create temporary folder and define file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_bill_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
 
 
 @login_required
-def discharge_details_view(request, patient_id, visit_id):
-    # Fetch the patient
-    patient = get_object_or_404(Patients, id=patient_id)
+def download_procedure_result_pdf(request, procedure_id):
+    # Fetch procedure or return 404
+    procedure = get_object_or_404(Procedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
 
-    # Fetch the visit
-    visit = get_object_or_404(PatientVisits, id=visit_id)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    
-    # Fetch the discharge note related to this visit
-    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
+    # Prepare context for template
+    context = {
+        'procedure': procedure,
+    }
+
+    # Render the HTML content using template
+    html_content = render_to_string('hod_template/pdf_procedure_result.html', context)
+
+    # Create temporary directory for storing the PDF
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Define safe file name and full path
+    file_name = f"procedure_result_{procedure.patient.full_name}_{procedure.procedure_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove file if it already exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+@login_required
+def download_all_procedures_pdf(request, patient_mrn, visit_vst):
+    # Get patient and visit
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all related procedures
+    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+
+    if not procedures.exists():
+        return HttpResponse("No procedures found for this visit.", status=404)
 
     context = {
         'patient': patient,
         'visit': visit,
-        'consultation_notes': consultation_notes,
-        'discharge_note': discharge_note,
+        'procedures': procedures
     }
 
-    return render(request, 'hod_template/discharge_details.html', context)        
+    # Render the template
+    html_content = render_to_string('hod_template/pdf_all_procedures.html', context)
+
+    # Generate file
+    file_name = f"all_procedures_{patient.full_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Write PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
 
 @login_required
-def save_observation(request, patient_id, visit_id):
+def download_lab_result_pdf(request, lab_id):
+    # Fetch the lab order or return 404 if not found
+    lab = get_object_or_404(
+        LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+        id=lab_id
+    )
+
+    # Prepare context for PDF rendering
+    context = {
+        'lab': lab,
+    }
+
+    # Render HTML from template
+    html_content = render_to_string('hod_template/pdf_lab_result.html', context)
+
+    # Setup temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe file name and path
+    safe_name = lab.patient.full_name.replace(" ", "_")
+    file_name = f"lab_result_{safe_name}_{lab.lab_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete if file exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the PDF as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all laboratory orders for this patient and visit
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related(
+        'name', 'data_recorder'
+    )
+
+    if not lab_tests.exists():
+        return HttpResponse("No lab results found for this visit.", status=404)
+
+    # Prepare the template context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'lab_tests': lab_tests
+    }
+
+    # Render HTML template
+    html_content = render_to_string('hod_template/pdf_all_lab_results.html', context)
+
+    # Define a safe filename and temporary path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_lab_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate the PDF file
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the file as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_imaging_result_pdf(request, imaging_id):
+    # Fetch the imaging record or return 404
+    imaging = get_object_or_404(
+        ImagingRecord.objects.select_related('patient', 'visit', 'data_recorder', 'imaging'),
+        id=imaging_id
+    )
+
+    # Prepare context for rendering
+    context = {
+        'imaging': imaging,
+    }
+
+    # Render HTML content from template
+    html_content = render_to_string('hod_template/pdf_imaging_result.html', context)
+
+    # Temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe filename
+    safe_name = imaging.patient.full_name.replace(" ", "_")
+    file_name = f"imaging_result_{safe_name}_{imaging.id}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_imaging_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit instances
+    patient = get_object_or_404(Patients, mrn=patient_mrn)
+    visit = get_object_or_404(PatientVisits, vst=visit_vst)
+
+    # Fetch all imaging records for this visit
+    imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related(
+        'imaging', 'data_recorder'
+    )
+
+    if not imaging_records.exists():
+        return HttpResponse("No imaging records found for this visit.", status=404)
+
+    # Prepare context for rendering
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'imaging_records': imaging_records
+    }
+
+    # Render HTML content
+    html_content = render_to_string('hod_template/pdf_all_imaging_results.html', context)
+
+    # Prepare temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_imaging_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if any
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_consultation_summary_pdf(request, patient_id, visit_id):
+    # Fetch core patient and visit info
     patient = get_object_or_404(Patients, id=patient_id)
     visit = get_object_or_404(PatientVisits, id=visit_id)
-    data_recorder = request.user.staff
-    record_exists = ObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    context = {'patient': patient, 
-               'visit': visit, 
-               'consultation_notes': consultation_notes, 
-               'record_exists': record_exists
-               }
-    if request.method == 'POST':
-        form = ObservationRecordForm(request.POST)
-        if form.is_valid():
-            description = form.cleaned_data['observation_notes']
-            try:
-                if record_exists:
-                    # If a record exists, update it
-                    observation_record = ObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
-                    observation_record.observation_notes = description
-                    observation_record.data_recorder = data_recorder
-                    observation_record.save()
-                    messages.success(request, '')
-                else:
-                    # If no record exists, create a new one
-                    ObservationRecord.objects.create(
-                        patient=patient,
-                        visit=visit,
-                        data_recorder=data_recorder,
-                        observation_notes=description,
-                    )
-                    messages.success(request, '')
-                return redirect(reverse('admin_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-            except Exception as e:
-                messages.error(request, f'Error: {str(e)}')
-        else:
-            messages.error(request, 'Please fill out all required fields.')
-    else:
-        form = ObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
 
-    context['form'] = form
-    return render(request, 'hod_template/observation_template.html', context)
+    # Query all related models for that visit
+    counseling = Counseling.objects.filter(patient=patient, visit=visit).last()
+    prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+    observations = ObservationRecord.objects.filter(patient=patient, visit=visit).last()
+    discharge_note = DischargesNotes.objects.filter(patient=patient, visit=visit).last()
+    referral = Referral.objects.filter(patient=patient, visit=visit).last()
+    complaints = ClinicChiefComplaint.objects.filter(patient=patient, visit=visit)
+    vitals = PatientVital.objects.filter(patient=patient, visit=visit).last()
 
-def view_observation_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(PatientVisits, id=visit_id)  
-    patient = get_object_or_404(Patients, id=patient_id)  
-    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)      
-    
-    return render(request, 'hod_template/observation_notes_detail.html', {
-        'observation_record': observation_record,
+    # NEW: Add Consultation Notes
+    consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).last()
+
+    # NEW: Add Imaging Records
+    imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
+
+    # NEW: Add Laboratory Orders
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+
+    # Prepare context
+    context = {
+        'patient': patient,
         'visit': visit,
-    })
+        'counseling': counseling,
+        'prescriptions': prescriptions,
+        'observation_record': observations,
+        'discharge_note': discharge_note,
+        'referral': referral,
+        'complaints': complaints,
+        'vitals': vitals,
+        'consultation_note': consultation_note,
+        'imaging_records': imaging_records,
+        'lab_tests': lab_tests,
+    }
+
+    # Render the HTML template
+    html_content = render_to_string('hod_template/pdf_consultation_summary.html', context)
+
+    # Save to a temp directory
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"consultation_summary_{safe_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the file as a response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
 
 
+@login_required
+def download_invoice_bill_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(Patients, id=patient_id)
+    visit = get_object_or_404(PatientVisits, id=visit_id)
 
-def observation_record_list_view(request):
-    observation_records = ObservationRecord.objects.all().order_by('-created_at')
-    return render(request, 'hod_template/manage_observation_record.html', {'observation_records': observation_records})       
+    # Get all orders for this patient and visit
+    orders = Order.objects.filter(patient=patient, visit=visit)
+
+    if not orders.exists():
+        return HttpResponse("No orders found for this visit.", status=404)
+
+    # Calculate total cost
+    total_cost = orders.aggregate(total=Sum('cost'))['total'] or 0
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'orders': orders,
+        'total_cost': total_cost,
+    }
+
+    # Render HTML content
+    html_content = render_to_string('hod_template/invoice_template.html', context)
+
+    # Define PDF storage path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"invoice_bill_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response          

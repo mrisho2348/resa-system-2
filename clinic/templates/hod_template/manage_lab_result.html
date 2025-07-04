@@ -1,0 +1,235 @@
+{% extends 'hod_template/base_template.html' %}
+{% load static %}
+{% block title %}
+Lab result 
+{% endblock title %}
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+ 
+{% endblock breadcrumb %}
+{% block main_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+
+        <!-- Card Header -->
+        <div class="card-header text-center">
+          <h6 class="header-title text-uppercase mb-0">All Lab Results</h6>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered table-striped table-sm text-nowrap" id="example">
+              <thead class="thead-light">
+                <tr>
+                  <th>Patient</th>
+                  <th>Visit Number</th>
+                  <th>Data Recorder</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for record in patient_labs %}
+                <tr>
+                  <td>{{ record.patient }}</td>
+                  <td>{{ record.visit.vst }}</td>
+                  <td>
+                    <strong class="text-primary text-capitalize">{{ record.lab_done_by.role }}</strong><br>
+                    <span class="text-muted">
+                      {{ record.lab_done_by.admin.first_name }} {{ record.lab_done_by.middle_name }} {{ record.lab_done_by.admin.last_name }}
+                    </span>
+                  </td>
+                  <td>{{ record.latest_date|date:"d-m-Y" }}</td>
+                  <td>
+                    <button type="button" class="btn btn-info btn-sm"
+                            data-toggle="modal"
+                            data-target="#labModal{{ record.patient.mrn }}{{ record.visit.vst }}">
+                      <i class="fa fa-flask text-dark"></i> View Lab Info
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{% for record in patient_labs  %}
+        <!-- Lab Modal -->
+    <div class="modal fade" id="labModal{{ record.patient.mrn }}{{ record.visit.vst }}" tabindex="-1" role="dialog" aria-labelledby="labModalLabel{{ record.patient__mrn }}{{ record.visit__vst }}" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header bg-primary text-white">         
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+            <div class="container-fluid">
+
+            <!-- Header Image -->
+            <div class="mb-3">
+                <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+            </div>
+
+            <!-- Patient Full Details -->
+            <div class="card mb-3">
+                <div class="card-header bg-dark text-white">
+                <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                </div>
+                <div class="card-body">
+                <table class="table table-borderless table-sm">
+                    <tr>
+                    <td><strong>Patient:</strong> {{ record.patient.first_name }} {{ record.patient.middle_name }} {{ record.patient.last_name }}</td>
+                    <td><strong>DOB:</strong> {{ record.patient.dob|date:'d-m-Y' }}</td>
+                    <td><strong>Gender:</strong> {{ record.patient.gender }}</td>
+                    <td><strong>File No:</strong> {{ record.patient.mrn }}</td>
+                    </tr>
+                    <tr>
+                    <td colspan="2"><strong>Payment Form:</strong>
+                        {% if record.patient.payment_form == "Insurance" %}
+                        {{ record.patient.payment_form }} - {{ record.patient.insurance_name }}
+                        {% else %}
+                        {{ record.patient.payment_form }}
+                        {% endif %}
+                    </td>
+                    <td colspan="2"><strong>Visit Number:</strong> {{ record.visit.vst }}</td>
+                    </tr>
+                </table>
+                </div>
+            </div>
+
+            <!-- Lab Result Summary -->
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0 text-uppercase">Lab Result Summary</h6>
+                </div>
+                <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered table-striped table-sm">
+                    <thead>
+                        <tr>
+                        <th>Test Name</th>
+                        <th>Result</th>                        
+                        <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lab in record.lab_tests %}
+                        <tr>
+                            <td>{{ lab.name.name }}</td>
+                           <td>
+                            {% if lab.result %}
+                                <span class="text-success">Available</span>
+                                <button type="button" class="btn btn-link p-0" data-toggle="modal" data-target="#labResultModal{{ lab.id }}">
+                                View Result
+                                </button>
+                            {% else %}
+                                <span class="text-muted">Pending</span>
+                            {% endif %}
+                            </td>                    
+                            <td>{{ lab.description|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No lab results found for this visit.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+                </div>
+
+                <!-- Lab Performed By Footer -->
+                <div class="card-footer">
+                <table class="table table-borderless table-sm mb-0">
+                    <tbody>
+                    <tr>
+                        <td><strong>Recorded By:</strong> {{ record.lab_done_by }}</td>
+                        <td><strong>Signature:</strong> {{ record.lab_done_by.signature }}</td>
+                        <td><strong>Date:</strong> {{ record.visit.created_at|date:"d-m-Y" }}</td>
+                        <td><strong>MCT No:</strong> {{ record.lab_done_by.mct_number }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- PDF Download Button -->
+            <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                <a href="{% url 'admin_download_all_lab_results_pdf' record.patient.mrn record.visit.vst %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa fa-download"></i> Download PDF
+                </a>
+                </div>
+            </div>
+
+            </div> <!-- /.container-fluid -->
+        </div> <!-- /.modal-body -->
+
+        </div>
+    </div>
+    </div>
+    {% endfor %}
+
+
+{% for record in patient_labs  %}
+     {% for lab in record.lab_tests %}
+    <!-- Lab Result Modal -->
+    <div class="modal fade" id="labResultModal{{ lab.id }}" tabindex="-1" role="dialog" aria-labelledby="labResultModalLabel{{ lab.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="labResultModalLabel{{ lab.id }}">
+                        Lab Result - {{ lab.name.name }}
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    {% if lab.result %}
+                        {{ lab.result|safe }}
+                    {% else %}
+                        <p class="text-muted">No result available for this test.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    {% if lab.result %}
+                        <a href="{% url 'admin_download_lab_result_pdf' lab.id %}" class="btn btn-outline-secondary btn-sm" >
+                            <i class="fa fa-download"></i> Download Result
+                        </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endfor %}
+{% include 'hod_template/datatable.html' %}   
+
+{% endblock main_content %}

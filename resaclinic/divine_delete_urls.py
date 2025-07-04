@@ -15,7 +15,7 @@ urlpatterns = [
     
     # Prescription
     path('delete_prescription/<int:prescription_id>/', divineDelete.delete_prescription, name='divine_delete_prescription'),
-    path('delete-consultation/<int:appointment_id>/', divineDelete.delete_consultation, name='divine_delete_consultation'),
+   
     
     # Medicine
     path('delete_medicine/<int:medicine_id>/', divineDelete.delete_medicine, name='divine_delete_medicine'),
@@ -24,20 +24,6 @@ urlpatterns = [
     path('delete_disease/', divineDelete.delete_disease_record, name='divine_delete_disease_record'),
     path('delete_remotecompany/', divineDelete.delete_remotecompany, name='divine_delete_remotecompany'),
 
-    # Insurance Records
-    path('insurance-records/<int:insurance_id>/delete/', divineDelete.delete_insurance, name='divine_delete_insurance'),
-    
-    # Pathology
-    path('pathodology/<int:pathodology_id>/delete/', divineDelete.delete_pathodology, name='divine_delete_pathodology'),   
-
-    
-    # Staff
-    path('delete_staff/<int:staff_id>/', divineDelete.delete_staff, name='divine_delete_staff'),
-    
-    # Patient
-    path('delete-patient/<int:patient_id>/', divineDelete.delete_patient, name='divine_delete_patient'),
-    path('delete_remoteinsurancecompany/', divineDelete.delete_remoteinsurancecompany, name='divine_delete_remoteinsurancecompany'),
-    
     # Drug
     path('delete_drug/', divineDelete.delete_drug, name='divine_delete_drug'),
     

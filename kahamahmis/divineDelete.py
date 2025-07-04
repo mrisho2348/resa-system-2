@@ -1,42 +1,16 @@
 
 
 from django.http import  JsonResponse
-from django.shortcuts import redirect, render,get_object_or_404
-from clinic.models import  ConsultationNotes, Diagnosis, DiseaseRecode,  FamilyMedicalHistory,  InsuranceCompany,  Medicine,  PathodologyRecord,  PatientHealthCondition, PatientMedicationAllergy, PatientSurgery, PatientVisits, PatientVital, Patients, Prescription, Procedure,  RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral, RemoteService,Service, Staffs
-from django.contrib import messages
+from django.shortcuts import  get_object_or_404
+from clinic.models import  ConsultationNotes, Diagnosis, DiseaseRecode,  FamilyMedicalHistory,    Medicine,  PathodologyRecord,  PatientHealthCondition, PatientMedicationAllergy, PatientSurgery, PatientVisits, PatientVital, Patients, Prescription, Procedure,  RemoteCompany, RemoteConsultation, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemoteProcedure, RemoteReferral, RemoteService,Service, Staffs
+
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import F
 from django.contrib.auth.decorators import login_required
 
-@login_required
-def delete_staff(request, staff_id):
-    # Retrieve the staff object or return a 404 if not found
-    staff = get_object_or_404(Staffs, id=staff_id)
 
-    if request.method == 'POST':
-        # Perform the deletion
-        staff.delete()
-        # Redirect to a success page or a list view
-        messages.success(request, 'staff deleted successfully.')
-        return redirect('manage_staff')  # Replace 'staff_list' with your actual list view name
-
-    return render(request, 'divineDelete/delete_staff_confirm.html', {'staff': staff})
-
-@login_required
-def delete_patient(request, patient_id):
-    # Retrieve the staff object or return a 404 if not found
-    patient = get_object_or_404(Patients, id=patient_id)
-
-    if request.method == 'POST':
-        # Perform the deletion
-        patient.delete()
-        # Redirect to a success page or a list view
-        messages.success(request, 'patient deleted successfully.')
-        return redirect('divine_manage_patient')  # Replace 'manage_patient' with your actual list view name
-
-    return render(request, 'divineDelete/delete_patient_confirm.html', {'patient': patient})
 
 @csrf_exempt
 @require_POST
@@ -53,22 +27,7 @@ def delete_medicine(request, medicine_id):
         # Handle any exception or error during deletion
         return JsonResponse({'success': False, 'message': str(e)})
 
-@login_required    
-def delete_insurance(request, insurance_id):
-    insurance = get_object_or_404(InsuranceCompany, pk=insurance_id)
 
-    if request.method == 'POST':
-        try:
-            # Delete the InsuranceCompany object
-            insurance.delete()
-
-            messages.success(request, 'Insurance details deleted successfully!')
-            return redirect('divine_manage_insurance')  # Replace 'your_redirect_url' with the appropriate URL name
-
-        except Exception as e:
-            messages.error(request, f'An error occurred: {e}')
-
-    return render(request, 'divineDelete/delete_insurance_confirmation.html', {'insurance': insurance})
 
 
 @csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
@@ -154,38 +113,6 @@ def delete_remotecompany(request):
 
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-
-
-
-@login_required
-def delete_pathodology(request, pathodology_id):
-    pathodology = get_object_or_404(PathodologyRecord, pk=pathodology_id)
-
-    if request.method == 'POST':
-        try:
-            # Delete the PathodologyRecord object
-            pathodology.delete()
-
-            messages.success(request, 'Pathodology record deleted successfully!')
-            return redirect('divine_manage_pathodology')  # Replace 'your_redirect_url' with the appropriate URL name
-
-        except Exception as e:
-            messages.error(request, f'An error occurred: {e}')
-
-    return render(request, 'divineDelete/pathodology_delete_confirmation.html', {'pathodology': pathodology})
-
-
-@require_POST
-def delete_consultation(request, appointment_id):
-    # Get the Consultation object
-    consultation = get_object_or_404(RemoteConsultation, pk=appointment_id)
-
-    # Perform deletion
-    consultation.delete()
-
-    # Redirect to the Consultation  page
-    return redirect('divine_appointment_list')
- 
 
 
 @require_POST
@@ -332,24 +259,7 @@ def delete_result(request):
         # Return a JSON response indicating failure
         return JsonResponse({'success': False, 'message': 'Invalid request method'})    
      
-      
-@csrf_exempt
-def delete_remoteinsurancecompany(request):
-    if request.method == 'POST':
-        try:
-            company_id = request.POST.get('company_id')    
-            company = InsuranceCompany.objects.get(id=company_id)
-            company.delete()     
-            deleted_company_id = company_id
-            # Return a JSON response indicating success
-            return JsonResponse({'success': True, 'company_id': deleted_company_id})
-        except Exception as e:
-            # Return a JSON response indicating failure
-            return JsonResponse({'success': False, 'message': f'Error deleting result: {str(e)}'})
-    else:
-        # Return a JSON response indicating failure
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    
+
     
 @csrf_exempt
 @login_required

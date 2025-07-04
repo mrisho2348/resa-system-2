@@ -26,9 +26,9 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-primary-600">
-                    <h6 class="card-title text-center text-uppercase">Patient details</h6>
+                    <h6 class="card-title text-center">Patient details</h6>
                 </div>
-                <div class="card-body  text-uppercase">
+                <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
                             PATIENT:  <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b>
@@ -142,36 +142,7 @@
                                         <th></th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
-                                                <option value="">Select Medicine</option>
-                                                {% for medicine in medicines %}
-                                                    <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
-                                        <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
-                                        <td>
-                                            <select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">
-                                                <option value="">Select Frequency</option>
-                                                {% for frequency in frequencies %}
-                                                    <option value="{{ frequency.id }}">{{ frequency.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
-                                                {% for rate in range_31 %}
-                                                    <option value="{{ rate }}">{{ rate }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>
+                                <tbody>                                  
                                 </tbody>
                             </table>
                         </div>
@@ -220,35 +191,29 @@
         </div>
     </div>
 
-    <script>
+<script>
         $(document).ready(function () {
-            // Cache preloaded data for medicines and frequencies to avoid redundant AJAX calls
             let medicineData = {};
             let frequencyData = {};
-        
-            // Preload medicine and frequency data
+
             preloadData();
-        
-            // Add event listeners for dynamic table rows
+
             $('#addRow{{ visit.id }}').click(() => addRow('#prescriptionTable{{ visit.id }} tbody'));
             $(document).on('click', '.delete-row', deleteRow);
             $(document).on('change', '.medicine-select, .frequency-select, .duration-select, .dose-input', function () {
                 updateRowQuantity($(this).closest('tr'));
             });
-        
-            // Add event listener for medicine selection change to update formulation unit
+
             $(document).on('change', '.medicine-select', function () {
                 var medicineId = $(this).val();
                 var formulationField = $(this).closest('tr').find('.formulation_unit');
-        
+
                 if (medicineData[medicineId]) {
                     formulationField.val(medicineData[medicineId].formulation_unit || '');
                 }
             });
-        
-            // Preload medicine and frequency data
+
             function preloadData() {
-                // Preload medicine data
                 $.ajax({
                     url: '{% url "kahama_get_all_medicine_data" %}',
                     method: 'GET',
@@ -259,8 +224,7 @@
                         console.error('Error fetching medicine data');
                     },
                 });
-        
-                // Preload frequency data
+
                 $.ajax({
                     url: '{% url "kahama_get_all_frequency_data" %}',
                     method: 'GET',
@@ -272,74 +236,79 @@
                     },
                 });
             }
-        
-            // Add a new row to the prescription table
-            function addRow(tbodySelector) {
-                const newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 medicine-select" name="medicine[]" required>
-                                <option value="">Select Medicine</option>
-                                ${Object.entries(medicineData).map(([id, data]) => `<option value="${id}">${data.drug_name}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
-                        <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
-                        <td>
-                            <select class="form-control select2bs4 frequency-select" name="frequency[]" required>
-                                <option value="">Select Frequency</option>
-                                ${Object.entries(frequencyData).map(([id, data]) => `<option value="${id}">${data.name}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-control select2bs4 duration-select" name="duration[]">
-                                ${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-        
-                $(tbodySelector).append(newRow);
-        
-                // Re-initialize Select2 for dynamically added elements
-                $('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
+
+            function initializeSelect2(selector) {
+                $(selector).select2({ theme: 'bootstrap4', width: '100%' });
             }
-        
-            // Delete a row
+
+            function addRow(tbodySelector) {
+                let rowHtml = '<tr>' +
+                    '<td>' +
+                    '<select class="form-control select2bs4 medicine-select" name="medicine[]" required>' +
+                    '<option value="">Select Medicine</option>';
+
+                for (const [id, data] of Object.entries(medicineData)) {
+                    rowHtml += `<option value="${id}">${data.drug_name}</option>`;
+                }
+
+                rowHtml += '</select>' +
+                    '</td>' +
+                    '<td><input type="text" class="form-control formulation_unit" name="formulation" value=""></td>' +
+                    '<td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>' +
+                    '<td>' +
+                    '<select class="form-control select2bs4 frequency-select" name="frequency[]" required>' +
+                    '<option value="">Select Frequency</option>';
+
+                for (const [id, data] of Object.entries(frequencyData)) {
+                    rowHtml += `<option value="${id}">${data.name}</option>`;
+                }
+
+                rowHtml += '</select>' +
+                    '</td>' +
+                    '<td>' +
+                    '<select class="form-control select2bs4 duration-select" name="duration[]">';
+
+                for (let i = 1; i <= 31; i++) {
+                    rowHtml += `<option value="${i}">${i}</option>`;
+                }
+
+                rowHtml += '</select>' +
+                    '</td>' +
+                    '<td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>' +
+                    '<td><button type="button" class="btn btn-danger delete-row">Delete</button></td>' +
+                    '</tr>';
+
+                $(tbodySelector).append(rowHtml);
+                initializeSelect2($(tbodySelector).find('tr:last .select2bs4'));
+            }
+
             function deleteRow() {
                 $(this).closest('tr').remove();
             }
-        
-            // Update quantity for a specific row
+
             function updateRowQuantity(row) {
                 const medicineId = row.find('.medicine-select').val();
                 const frequencyId = row.find('.frequency-select').val();
                 const duration = parseInt(row.find('.duration-select').val()) || 0;
                 const dose = parseFloat(row.find('.dose-input').val()) || 1;
-        
                 let quantity = 1;
-        
+
                 if (frequencyData[frequencyId] && medicineData[medicineId]) {
                     const frequencyName = frequencyData[frequencyId].name;
                     const dividable = medicineData[medicineId].dividable;
                     const formulationUnit = parseFloat(medicineData[medicineId].formulation_unit) || 1;
-        
-                    if (frequencyName === 'PRN' || dividable === 'false') {
+
+                    if (frequencyName === 'PRN' || !dividable) {
                         quantity = parseFloat(row.find('.quantity-input').val()) || 0;
                     } else {
                         const adjustedDose = dose / formulationUnit;
                         quantity = Math.ceil(calculateTabletQuantity(frequencyName, duration, adjustedDose));
                     }
                 }
-        
+
                 row.find('.quantity-input').val(quantity);
             }
-        
-            // Calculate tablet quantity
+
             function calculateTabletQuantity(frequency, duration, dose) {
                 const frequencyMap = {
                     'OD': 1,
@@ -349,50 +318,44 @@
                     'TID': 3,
                     'BID': 2,
                 };
-        
                 return frequencyMap[frequency] ? duration * frequencyMap[frequency] * dose : dose;
             }
-        
-            // Validate and submit the prescription form
+
             $('#addPrescriptionForm{{ visit.id }}').submit(function (event) {
                 event.preventDefault();
-        
                 let isValid = true;
                 let errorMessage = '';
-        
+
                 $('#prescriptionTable{{ visit.id }} tbody tr').each(function () {
                     const row = $(this);
                     const medicine = row.find('.medicine-select').val();
                     const frequency = row.find('.frequency-select').val();
                     const quantity = row.find('.quantity-input').val();
-        
+
                     if (!medicine) {
                         isValid = false;
                         errorMessage = 'Please select a medicine for each row.';
                         return false;
                     }
-        
                     if (!frequency) {
                         isValid = false;
                         errorMessage = 'Please select a frequency for each row.';
                         return false;
                     }
-        
                     if (!Number.isInteger(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
                         isValid = false;
                         errorMessage = 'Quantity must be a positive whole number.';
                         return false;
                     }
                 });
-        
+
                 if (!isValid) {
                     $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + errorMessage + '</div>');
                 } else {
                     savePrescriptions();
                 }
             });
-        
-            // Save prescriptions via AJAX
+
             function savePrescriptions() {
                 $.ajax({
                     type: 'POST',
@@ -412,9 +375,8 @@
                 });
             }
         });
-        
-        
-    </script>   
+</script>
+
 
     
 
@@ -515,7 +477,7 @@
                                                         <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
                                                         <td>{{ prescription.created_at.time }}</td>
                                                         <td>{{ prescription.created_at|date:"l" }}</td>                                       
-                                                        <td>{{ prescription.medicine }}</td>
+                                                        <td>{{ prescription.medicine.drug_name }}</td>
                                                         <td>{{ prescription.dose }}</td>
                                                         <td>{{ prescription.frequency }}</td>
                                                         <td>{{ prescription.duration }}</td>

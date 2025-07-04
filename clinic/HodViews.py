@@ -1,7 +1,7 @@
 from multiprocessing.connection import Client
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from .models import BankAccount, Clients, Company, DeductionOrganization, Employee, EmployeeDeduction, Expense, ExpenseCategory, GovernmentProgram, Grant, Investment, Invoice, Payment, PaymentMethod, Payroll, SalaryChangeRecord, SalaryPayment
+from .models import BankAccount, Clients,  DeductionOrganization, Employee, EmployeeDeduction, Expense, ExpenseCategory, GovernmentProgram, Grant, Investment, Invoice, Payment, PaymentMethod, Payroll, SalaryChangeRecord, SalaryPayment
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import BankAccountForm, ClientForm, DeductionOrganizationForm, EmployeeForm, ExpenseCategoryForm, ExpenseForm, GovernmentProgramForm, GrantForm, InvestmentForm, PaymentForm, PaymentMethodForm, PayrollForm, SalaryPaymentForm
@@ -580,70 +580,3 @@ def delete_investment(request, pk):
     messages.success(request, 'Investment deleted successfully!')
     return redirect('investment_list')
 
-
-@csrf_exempt
-@login_required
-def add_company(request):
-    if request.method == 'POST':
-        try:
-            # Get data from the request
-            company_id = request.POST.get('company_id')
-            name = request.POST.get('Name').strip()
-            industry = request.POST.get('industry', '')
-            sector = request.POST.get('sector', '')
-            headquarters = request.POST.get('headquarters', '')
-            Founded = request.POST.get('Founded', '')
-            Notes = request.POST.get('Notes', '')
-
-            # Check if company_id is provided
-            if company_id:
-                # Fetch the existing company object
-                company = Company.objects.get(pk=company_id)
-
-                # Check if the new name already exists and it's not the same as the current name
-                if Company.objects.filter(name=name).exclude(pk=company_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Company with the provided name already exists'})
-
-                # Update company data
-                company.name = name
-                company.industry = industry
-                company.sector = sector
-                company.headquarters = headquarters
-                company.Founded = Founded
-                company.Notes = Notes
-                company.save()
-
-                return JsonResponse({'success': True, 'message': 'Company updated successfully'})
-            else:
-                # Check if a company with the given name already exists
-                if Company.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Company already exists'})
-
-                # Save new company data
-                Company.objects.create(
-                    name=name,
-                    industry=industry,
-                    sector=sector,
-                    headquarters=headquarters,
-                    Founded=Founded,
-                    Notes=Notes,
-                )
-
-                return JsonResponse({'success': True, 'message': 'Company added successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    
-    
-@csrf_exempt
-def delete_remotecompany(request):
-    if request.method == 'POST':
-        company_id = request.POST.get('company_id')
-        try:
-            company = get_object_or_404(Company, id=company_id)
-            company.delete()
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})    

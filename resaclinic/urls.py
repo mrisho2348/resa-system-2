@@ -25,7 +25,7 @@ urlpatterns = [
     path('admin-panel/', include('resaclinic.admin_urls')),
     path('admin-imports/', include('resaclinic.imports_urls')),
     path('admin-delete/', include('resaclinic.admin_delete_urls')),
-    path('admin-edit/', include('resaclinic.admin_edit_urls')),
+
     path('admin-panel/', include('resaclinic.financial_urls')),
     
     # Doctor paths
@@ -41,7 +41,6 @@ urlpatterns = [
     path('kahama/divine_excel/', include('resaclinic.divine_excel_urls')),
     path('kahama/divine_report/', include('resaclinic.divine_report_urls')),
     path('kahama/divine_import/', include('resaclinic.divine_import_urls')),
-    path('kahama/edit/', include('resaclinic.kahamaedit_urls')),
     path('kahama/report/', include('resaclinic.kahamareport_urls')),
     path('kahama/view/', include('resaclinic.kahamaview_urls')),  
 

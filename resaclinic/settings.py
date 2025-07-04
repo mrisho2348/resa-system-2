@@ -80,9 +80,9 @@ DATABASES = {
         'ENGINE':'django.db.backends.mysql',
         'NAME':'resagroup',
         'USER':'root',
-        'PASSWORD':'m2r3i4s8',            
+        'PASSWORD':'',            
         'HOST':'localhost',
-        'PORT':'3307',
+        'PORT':'3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },

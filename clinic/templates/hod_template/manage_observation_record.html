@@ -1,4 +1,5 @@
 {% extends 'hod_template/base_template.html' %}
+{% load static %}
 {% block title %}
 Observation Notes
 {% endblock title %}
@@ -22,6 +23,7 @@ Observation Notes
                                     <th>Data Recorder</th>                            
                                     <th>Date</th>                                
                                     <th>Time</th>
+                                    <th>Result Status</th> <!-- ✅ New column -->
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -37,13 +39,25 @@ Observation Notes
                                     </td>                              
                                     <td>{{ observation_record.created_at|date:"d-m-Y"  }}</td>                                 
                                     <td>{{ observation_record.created_at|date:"H:i" }}</td>
-                                    <td>  
-                                        <!-- Existing View Button -->
-                                        <a href="{% url 'admin_save_observation' observation_record.patient.id observation_record.visit.id  %}" class="btn btn-info">View</a>
-                                        
-                                        <!-- New View Observation Notes Button -->
-                                        <a href="{% url 'admin_view_observation_notes' observation_record.patient.id observation_record.visit.id %}" class="btn btn-primary">View Notes</a>
+                                    <td>
+                                        {% if observation_record.observation_notes %}
+                                            <span class="badge badge-success">Available</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">Pending</span>
+                                        {% endif %}
                                     </td>
+                                   <td>
+                                    {% if observation_record.observation_notes %}
+                                        <!-- Button to open View Modal -->
+                                        <button class="btn btn-info" data-toggle="modal" data-target="#viewModal{{ observation_record.id }}">
+                                            View
+                                        </button>
+
+                                    {% else %}
+                                        <!-- Disabled buttons if result is missing -->
+                                        <button class="btn btn-info" disabled>View</button>                                     
+                                    {% endif %}
+                                </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>                
@@ -54,6 +68,118 @@ Observation Notes
         </div>
     </div>
 </div>
+
+{% for observation_record in observation_records %}
+  {% if observation_record.observation_notes %}
+    <!-- Modal for Viewing Observation Record -->
+    <div class="modal fade" id="viewModal{{ observation_record.id }}" tabindex="-1" role="dialog" aria-labelledby="viewModalLabel{{ observation_record.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="viewModalLabel{{ observation_record.id }}">
+              {{ observation_record.patient.full_name }} Observation
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="container-fluid">
+
+              <!-- Header Image -->
+              <header class="header mb-3">
+                <div class="container-fluid p-0">
+                  <div class="row">
+                    <div class="col-12">
+                      <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Company Header">
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              <!-- Patient Details Section -->
+              <div class="row mt-1">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-dark text-white">
+                      <h6 class="header-title mt-0 mb-1 text-uppercase">Patient Details</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-borderless text-nowrap table-sm">
+                          <tbody>
+                            <tr>
+                              <td>PATIENT: <b>{{ observation_record.patient }}</b></td>
+                              <td>DOB: <b>{{ observation_record.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ observation_record.patient.age }}</b>]</td>
+                              <td>SEX: <b>{{ observation_record.patient.gender }}</b></td>
+                              <td>FILE NO: <b>{{ observation_record.patient.mrn }}</b></td>
+                            </tr>
+                            <tr>
+                              <td>Payment form: <b>
+                                {% if observation_record.patient.payment_form == "Insurance" %}
+                                  {{ observation_record.patient.payment_form }} - {{ observation_record.patient.insurance_name }}
+                                {% else %}
+                                  {{ observation_record.patient.payment_form }}
+                                {% endif %}
+                              </b></td>
+                              <td>Visit Number: <b>{{ observation_record.visit.vst }}</b></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Observation Notes Section -->
+              <div class="row mt-3">
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                      <h6 class="header-title mb-0 text-uppercase">Observation Notes</h6>
+                    </div>
+                    <div class="card-body">
+                      <p class="text-justify">{{ observation_record.observation_notes|safe }}</p>
+                    </div>
+                    <div class="card-footer text-muted">
+                      <div class="row">
+                        <div class="col-md-5">
+                          <strong>Observed By:</strong>
+                          <b class="text-capitalize" style="color: blue;">
+                            {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
+                          </b>
+                          <span class="text-muted">{{ observation_record.data_recorder }}</span>
+                        </div>
+                        <div class="col-md-3"><strong>Signature:</strong> {{ observation_record.data_recorder.signature }}</div>
+                        <div class="col-md-2"><strong>Date:</strong> {{ observation_record.created_at|date:"d-m-Y" }}</div>
+                        <div class="col-md-2"><strong>MCT No:</strong> {{ observation_record.data_recorder.mct_number }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Download PDF Button -->
+              <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                  <a href="{% url 'admin_download_observation_pdf' observation_record.patient.id observation_record.visit.id %}" 
+                    class="btn btn-outline-secondary btn-sm float-right">
+                        <i class="fa fa-download"></i> Download PDF
+                    </a>
+                </div>
+              </div>
+
+            </div> <!-- /.container-fluid -->
+          </div> <!-- /.modal-body -->
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+
+
 
 {% include 'hod_template/datatable.html' %}   
 

@@ -1,7 +1,7 @@
 
 from django.urls import path, re_path
 
-from clinic import  NurseView, editView
+from clinic import  NurseView
 
 
 
@@ -46,7 +46,7 @@ urlpatterns = [
         path('get_unit_price/',NurseView.get_unit_price, name="nurse_get_unit_price"),
         path('ambulance_order_view/',NurseView.ambulance_order_view, name="nurse_ambulance_order_view"),     
         path('add_remoteprescription/',NurseView.add_remoteprescription, name="nurse_add_remoteprescription"),
-        path('save_patient_vital/',NurseView.save_patient_vital, name="nurse_save_patient_vital"),
+ 
         path('add_prescription/',NurseView.add_prescription, name="nurse_add_prescription"),
         path('save_edited_patient/',NurseView.save_edited_patient, name="nurse_save_edited_patient"),
         path('add_patient_visit/',NurseView.add_patient_visit, name="nurse_add_patient_visit"),      
@@ -60,10 +60,10 @@ urlpatterns = [
         path('patient/<int:patient_id>/', NurseView.patient_detail, name='nurse_patient_detail'),
         path('view-patient/<int:patient_id>/', NurseView.view_patient, name='nurse_view_patient'),  
         path('save_service_data/',NurseView.save_service_data, name="nurse_save_service_data"),      
-        path('get_item_quantity/',NurseView.get_item_quantity, name="nurse_get_item_quantity"),  
+ 
         path('resa/patient_vital_all_listt/', NurseView.patient_vital_all_list, name='nurse_patient_vital_all_list'),
         path('patient_consultation_detail/<int:patient_id>/<int:visit_id>/', NurseView.patient_consultation_detail, name='nurse_patient_consultation_detail'),
-        path('patient/<int:patient_id>/visit/<int:visit_id>/', NurseView.patient_visit_details_view, name='nurse_patient_visit_details_view'),
+      
         path('patient_health_record/<int:patient_id>/<int:visit_id>/', NurseView.patient_health_record, name='nurse_patient_health_record'),
         path('patient_vital_visit_list/<int:patient_id>/<int:visit_id>/', NurseView.patient_vital_visit_list, name='nurse_patient_vital_visit_list'),
         path('patient_visit_history/<int:patient_id>/', NurseView.patient_visit_history_view, name='nurse_patient_visit_history_view'),       
@@ -83,11 +83,7 @@ urlpatterns = [
         path('change_referral_status/', NurseView.change_referral_status, name='nurse_change_referral_status'),       
         # imports urls 
                     
-        # edit urls        
-        path('update_consultation_data/<int:appointment_id>/', editView.update_consultation_data, name='nurse_update_consultation_data'), 
-        path('Patient/<int:patient_id>/edit/', editView.edit_patient, name='nurse_edit_patient'),
-        path('edit_procedure/', editView.edit_procedure, name='nurse_edit_procedure'), 
-        path('edit_referral/', editView.edit_referral, name='nurse_edit_referral'), 
+
         path('appointment_view/', NurseView.appointment_view, name='nurse_appointment_view'), 
         path('patient-procedure-history/<str:mrn>/view/', NurseView.patient_procedure_history_view, name='nurse_patient_procedure_history_view_mrn'), 
 

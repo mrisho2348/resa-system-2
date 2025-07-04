@@ -1,167 +1,110 @@
-{% extends 'kahama_template/download_base.html' %}
-{% load customfilter %}
-{% block title %}
-PRESCRIPTION NOTES
-{% endblock title %}
-{% block main_content %}
 {% load static %}
-
-<!-- Link to custom CSS file -->
-<link rel="stylesheet" type="text/css" href="{% static 'css/invoice_style.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prescription Notes - {{ patient.full_name }}</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            font-size: 13px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        .container-fluid {
+            padding: 20px;
+        }
+        .header img {
+            width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            background-color: #343a40;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .info-table, .prescription-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .info-table td, .prescription-table th, .prescription-table td {
+            padding: 6px 10px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        .summary-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0 10px;
+        }
+    </style>
+</head>
+<body>
 
 <div class="container-fluid">
-    <!-- Header Section -->
+
+    <!-- Header -->
     <header class="header">
-        <div class="container-fluid p-0">
-            <div class="row">
-                <div class="col-12">
-                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
-                </div>                   
-            </div>
-        </div>
+        <img src="{% static 'img/divineheader.jpg' %}" alt="Clinic Header">
     </header>
 
-    <!-- Prescription Form Title -->
-    <div class="row my-2">
-        <div class="col-md-12">
-            <h2 class="text-center">PRESCRIPTION FORM</h2>
-        </div>
+    <!-- Patient Details -->
+    <div>
+        <div class="section-title">Patient Details</div>
+        <table class="info-table">
+            <tr>
+                <td><strong>Patient:</strong> {{ patient }}</td>
+                <td><strong>DOB:</strong> {{ patient.dob|date:'d-m-Y' }} &nbsp;&nbsp; [<strong>Age:</strong> {{ patient.age }}]</td>
+                <td><strong>Sex:</strong> {{ patient.gender }}</td>
+                <td><strong>File No:</strong> {{ patient.mrn }}</td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>Company:</strong>
+                         {{ patient.company }}
+                </td>
+                <td colspan="2"><strong>Visit Number:</strong> {{ visit.vst }}</td>
+            </tr>
+        </table>
     </div>
 
-    <!-- Patient Details Section -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="container-fluid">
-                <div class="card">
-                    <div class="card-header card-primary">
-                        <h6 class="header-title mt-0 mb-1 text-uppercase">Patient Details</h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-borderless">
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div><strong>PATIENT:</strong> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>DOB:</strong> {{ patient.dob|date:'d-m-Y' }} 
-                                            [ Age: 
-                                            {% if patient.dob %}
-                                                <script>
-                                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                    var now = new Date();
-                                                    var ageYears = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
-                                                    document.write(ageYears + ' years');
-                                                </script>
-                                            {% else %}
-                                                {{ patient.age }}
-                                            {% endif %}
-                                            ]
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div><strong>SEX:</strong> {{ patient.gender }}</div>
-                                    </td>
-                                    <td>
-                                        <div><strong>FILE NO:</strong> {{ patient.mrn }}</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div><strong>Company:</strong> {{ patient.company }}</div>
-                                    </td>
-                                    <td>
-                                        <div><strong>Visit Number:</strong> {{ visit.vst }}</div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>        
-            </div>
-        </div>
+    <!-- Title -->
+    <div class="summary-title">Prescription Notes</div>
+
+    <!-- Prescription Table -->
+    <div>
+        <div class="section-title" style="background-color:#6c757d;">Prescription Details</div>
+        <table class="prescription-table">
+            <thead>
+                <tr>
+                    <th>Drug</th>
+                    <th>Dose</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prescription in prescriptions %}
+                <tr>
+                    <td>{{ prescription.medicine.drug_name }}</td>
+                    <td>{{ prescription.dose }}</td>
+                    <td>{{ prescription.frequency }}</td>
+                    <td>{{ prescription.duration }}</td>
+                    <td>{{ prescription.quantity_used }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Prescription Notes Section -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h6 class="header-title mt-0 mb-1 text-uppercase">Prescription Notes</h6>
-                </div>
-                <div class="card-body">
-                    <!-- Prescription Table -->
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="table-responsive">
-                                <table class="table table-hover text-nowrap table-bordered table-striped table-sm">
-                                    <thead>
-                                        <tr>                                   
-                                            <th>Drug</th>                                                      
-                                            <th>Dose</th>
-                                            <th>Frequency</th>
-                                            <th>Duration</th>
-                                            <th>Amount</th>                                              
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for prescription in prescriptions %}
-                                        <tr>                                   
-                                            <td>{{ prescription.medicine.drug_name }}</td>
-                                            <td>{{ prescription.dose }} {{ prescription.medicine.unit_only }}</td>                                                       
-                                            <td>
-                                                {% if prescription.frequency.name == "STAT" %}
-                                                    {{ prescription.frequency }}
-                                                {% else %}
-                                                    {{ prescription.frequency.interval }}
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ prescription.duration }} days</td>
-                                            <td>{{ prescription.quantity_used }}</td>                                               
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>   
-
-                    <!-- Prescriber Details Section -->
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <h6 class="text-uppercase"><strong>Prescriber Details:</strong></h6>
-                            <table class="table table-borderless">
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Prescriber Name:</strong> Dr. {{ prescriber }}</td>
-                                        <td><strong>Signature:</strong> {{ prescriber.signature }}</td>
-                                        <td><strong>Date:</strong> {{ visit.created_at|date:"d-m-Y" }}</td>
-                                        <td><strong>MCT No:</strong> {{ prescriber.mct_no }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>      
-
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
-
-
-
-<div class="container-fluid">
-    <div class="btn-group btn-group-sm d-print-none"> 
-        <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
-            <i class="fa fa-print"></i> Print
-        </a> 
-        <a href="#" id="download" class="btn btn-light border text-black-50 shadow-none">
-            <i class="fa fa-download"></i> Download
-        </a> 
-    </div>
-</div>
-
-{% endblock main_content %}
+</body>
+</html>

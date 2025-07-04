@@ -4,27 +4,22 @@ import os
 from django.urls import reverse
 from django.utils import timezone
 import logging
-from django.db.models import F
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
-from django.db.models import F, Window
 from django.core.exceptions import ValidationError
-from django.db.models.functions import RowNumber
 from clinic.forms import CounselingForm, DischargesNotesForm, LaboratoryOrderForm, ObservationRecordForm
 from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
-from django.contrib.contenttypes.models import ContentType
-from .models import AmbulanceOrder, ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination,ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InventoryItem, LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
+from .models import AmbulanceOrder, ClinicChiefComplaint, ConsultationNotes, ConsultationOrder, Counseling, Country,  Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency,  Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from django.db.models import Max,Sum,Q,Count
-from django.db.models import OuterRef, Subquery
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
@@ -530,7 +525,7 @@ def save_patient_vital(request):
         gcs = request.POST.get('gcs')
         avpu = request.POST.get('avpu')
 
-        # Retrieve the corresponding InventoryItem
+        # Retrieve the corresponding 
         patient = Patients.objects.get(id=patient_id)
         visit = PatientVisits.objects.get(id=visit_id)
         recorded_by = request.user.staff
@@ -567,52 +562,7 @@ def save_patient_vital(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
     
-@login_required
-def patient_visit_details_view(request, patient_id, visit_id):
-    try:        
-        visit = PatientVisits.objects.get(id=visit_id)
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        chief_complaints = ClinicChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        primary_physical_examination = ClinicPrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        secondary_physical_examination = ClinicSecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = ConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        vitals = PatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
-        referral_records  = Referral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
-        counseling_records = Counseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
-        procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        imaging_records = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
-        discharge_notes = DischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
-        observation_records = ObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
-        lab_tests = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
-        procedure = Procedure.objects.filter(patient=patient_id, visit=visit_id).first()    
-        diagnosis_record = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(Patients, id=patient_id)
 
-        context = {
-            'primary_physical_examination': primary_physical_examination,
-            'secondary_physical_examination': secondary_physical_examination,
-            'visit': visit,
-            'counseling_records': counseling_records,
-            'observation_records': observation_records,
-            'patient': patient,
-            'referral_records ': referral_records ,
-            'chief_complaints': chief_complaints,              
-            'prescriptions': prescriptions,           
-            'consultation_notes': consultation_notes,     
-            'diagnosis_record': diagnosis_record,            
-            'vitals': vitals,     
-            'lab_tests': lab_tests,
-            'procedures': procedures,
-            'procedure': procedure,
-            'imaging_records': imaging_records,
-            'discharge_notes': discharge_notes,
-        }
-
-        return render(request, 'receptionist_template/manage_patient_visit_detail_record.html', context)
-    except Patients.DoesNotExist:
-        raise Http404("Patient does not exist")
-    except Exception as e:
-        return render(request, '404.html', {'error_message': str(e)})
 
 @csrf_exempt
 @require_POST
@@ -1726,20 +1676,7 @@ def save_service_data(request):
     return HttpResponseBadRequest("Invalid request method.")   
 
 
-@csrf_exempt
-def get_item_quantity(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('itemId')  # Use request.POST.get() instead of request.GET.get()
-        print(item_id)      
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            quantity = item.quantity
-            print(quantity)
-            return JsonResponse({'quantity': quantity})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'error': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)  
+
 
 
 

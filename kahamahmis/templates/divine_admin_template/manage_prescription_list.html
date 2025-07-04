@@ -1,57 +1,145 @@
 {% extends 'divine_admin_template/base_template.html' %}
-
-{% block title %}
-Prescription List
-{% endblock title %}
-
-{% block breadcrumb %}
-{% include "divine_admin_template/modal_form.html" %}
-{% endblock breadcrumb %}
-
 {% load static %}
 
-{% block main_content %}
+{% block title %}Prescription List{% endblock title %}
 
+{% block breadcrumb %}
+    {% include "divine_admin_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription List</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Visit Number</th>
-                                    <th>Patient</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for visit_data_item in visit_data %}
-                                    <tr>
-                                        <td>{{ visit_data_item.created_at|date:"d-m-Y" }}</td> <!-- Format date as dd/mm/yyyy -->
-                                        <td>{{ visit_data_item.visit_number }}</td> <!-- Display visit number -->
-                                        <td>{{ visit_data_item.patient_name }}</td> <!-- Display patient name -->
-                                        <td>
-                                            <a class="btn btn-success" href="{% url 'divine_prescription_notes' visit_data_item.visit_id visit_data_item.patient_id %}">
-                                                <i class="fas fa-notes-medical"></i> Prescription Notes
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription List</h6>
         </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered table-striped table-sm display" id="example" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Visit Number</th>
+                  <th>Patient</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group in visit_groups %}
+                  <tr>
+                    <td>{{ group.visit.created_at|date:"d-m-Y" }}</td>
+                    <td>{{ group.visit.vst }}</td>
+                    <td>{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
+                    <td>
+                      <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#prescriptionNotesModal{{ group.visit.id }}">
+                        <i class="fas fa-notes-medical"></i> Prescription Notes
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
-{% include 'divine_admin_template/datatable.html' %}
+<!-- Modals -->
+{% for group in visit_groups %}
+<div class="modal fade" id="prescriptionNotesModal{{ group.visit.id }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionNotesModalLabel{{ group.visit.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="prescriptionNotesModalLabel{{ group.visit.id }}">Prescription Notes</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <header class="header mb-3">
+            <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image">
+          </header>
+
+          <!-- Patient Details -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+              <h6 class="mb-0 text-uppercase">Patient Details</h6>
+            </div>
+            <div class="card-body">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td><strong>Patient:</strong> {{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
+                  <td><strong>DOB:</strong> {{ group.visit.patient.dob|date:"d-m-Y" }}</td>
+                  <td><strong>Gender:</strong> {{ group.visit.patient.gender }}</td>
+                  <td><strong>File No:</strong> {{ group.visit.patient.mrn }}</td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <strong>Payment Form:</strong>
+                     {{ group.visit.patient.company }}
+                  </td>
+                  <td colspan="2"><strong>Visit Number:</strong> {{ group.visit.vst }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Prescription Table -->
+          <div class="card">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0 text-uppercase">Prescription Notes</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-sm">
+                  <thead>
+                    <tr>
+                      <th>Drug</th>
+                      <th>Dose</th>
+                      <th>Frequency</th>
+                      <th>Duration</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for prescription in group.prescriptions %}
+                    <tr>
+                      <td>{{ prescription.medicine.drug_name }}</td>
+                      <td>{{ prescription.dose }}</td>
+                      <td>{{ prescription.frequency }}</td>
+                      <td>{{ prescription.duration }} days</td>
+                      <td>{{ prescription.quantity_used }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PDF Download -->
+          <div class="row mt-3">
+            <div class="col-md-12 text-right">
+              <a href="{% url 'divine_download_prescription_notes_pdf' group.visit.patient.id group.visit.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fa fa-download"></i> Download PDF
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% include 'divine_admin_template/datatable.html' %}
 {% endblock main_content %}

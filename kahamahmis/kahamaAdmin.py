@@ -1,22 +1,22 @@
 import calendar
-from datetime import  datetime
+from datetime import  datetime,date
 from django.utils import timezone
 import logging
 from kahamahmis.forms import StaffProfileForm
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse 
+from django.http import  HttpResponse 
 from django.shortcuts import render
 from django.urls import reverse
-from django.db.models import F
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
-from clinic.models import ChiefComplaint, FamilyMedicalHistory, Country, CustomUser,InsuranceCompany, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, SecondaryPhysicalExamination,Staffs
+from clinic.models import ChiefComplaint, FamilyMedicalHistory, Country, CustomUser, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency,  Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteImagingRecord, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReferral, RemoteService, Staffs
 from django.template.loader import render_to_string
-
+from weasyprint import HTML
+import os
 from django.db.models import Max
 from django.views.decorators.http import require_POST
 from django.db.models import OuterRef, Subquery
@@ -116,10 +116,6 @@ def manage_staff(request):
     staffs=Staffs.objects.all()  
     return render(request,"kahama_template/manage_staff.html",{"staffs":staffs})  
 
-@login_required
-def manage_insurance(request):
-    insurance_companies=InsuranceCompany.objects.all() 
-    return render(request,"kahama_template/manage_insurance.html",{"insurance_companies":insurance_companies})
 
 @login_required
 def resa_report(request):
@@ -414,36 +410,45 @@ def edit_meeting(request, appointment_id):
 
 
 
-
-
 @login_required
 def patient_procedure_view(request):
-    # Retrieve distinct patient and visit combinations from RemoteProcedure
-    patient_procedures = (
-        RemoteProcedure.objects.values('patient__mrn', 'visit__vst',
-                                       'doctor__admin__first_name',
-                                          'doctor__middle_name',
-                                          'doctor__role',
-                                          'doctor__admin__first_name',
-                                       ) 
-        .annotate(
-            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
-            procedure_name=Subquery(
-                RemoteProcedure.objects.filter(
-                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
-                    visit__vst=OuterRef('visit__vst')       # Match visit number
-                )
-                .order_by('-created_at')  # Order by most recent procedure
-                .values('name__name')[:1]  # Retrieve the latest procedure name
-            )
-        )
-        .order_by('-latest_date')  # Order by the latest procedure date
+    # Get all distinct (patient, visit) pairs that have at least one procedure
+    distinct_procedure_sets = (
+        RemoteProcedure.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
+
+    # Prepare data structure for template
+    patient_procedures = []
+
+    for entry in distinct_procedure_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        procedures = RemoteProcedure.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'doctor__admin', 'name')
+
+        if procedures.exists():
+            first_proc = procedures.first()
+            patient_procedures.append({
+                'patient': first_proc.patient,
+                'visit': first_proc.visit,
+                'latest_date': latest_date,
+                'doctor': first_proc.doctor,
+                'procedure_done_by':first_proc.doctor,
+                'procedures': procedures  # All procedures for that visit
+            })
 
     context = {
         'patient_procedures': patient_procedures,
     }
     return render(request, 'kahama_template/manage_procedure.html', context)
+
 
 @login_required
 def patient_procedure_detail_view(request, mrn, visit_number):
@@ -549,98 +554,35 @@ def patient_visit_history_view(request, patient_id):
         })
 
 
-   
-    
-@login_required
-def patient_visit_details_view(request, patient_id, visit_id):
-    try:        
-        visit = RemotePatientVisits.objects.get(id=visit_id)
-        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit=visit_id)
-        chief_complaints = ChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        primary_physical_examination = PrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        secondary_physical_examination = SecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = RemoteConsultationNotes.objects.get(patient_id=patient_id, visit=visit_id)  
-        vitals = RemotePatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
-        referral_records  = RemoteReferral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
-        counseling_records = RemoteCounseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
-        procedures = RemoteProcedure.objects.filter(patient=patient_id, visit=visit_id)        
-        discharge_notes = RemoteDischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
-        observation_records = RemoteObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
-        lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)         
-        diagnosis_record = RemotePatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(RemotePatient, id=patient_id)        
-        context = {
-            'primary_physical_examination': primary_physical_examination,
-            'secondary_physical_examination': secondary_physical_examination,
-            'visit': visit,
-            'counseling_records': counseling_records,
-            'observation_records': observation_records,
-            'patient': patient,
-            'referral_records ': referral_records ,
-            'chief_complaints': chief_complaints,              
-            'prescriptions': prescriptions,           
-            'consultation_notes': consultation_notes,     
-            'diagnosis_record': diagnosis_record,            
-            'vitals': vitals,     
-            'lab_tests': lab_tests,
-            'procedures': procedures,          
-          
-            'discharge_notes': discharge_notes,
-        }
-
-        return render(request, 'kahama_template/manage_patient_visit_detail_record.html', context)
-    except RemotePatient.DoesNotExist:
-        raise Http404("Patient does not exist")
-    except Exception as e:
-        return render(request, '404.html', {'error_message': str(e)})    
-    
-
-    
 
 @login_required
 def prescription_list(request):
-    # Retrieve all prescriptions with related patient and visit
-    prescriptions = RemotePrescription.objects.select_related('visit__patient').all()
+    # Step 1: Fetch all prescriptions with related fields
+    prescriptions = RemotePrescription.objects.select_related(
+        'visit', 'patient', 'medicine', 'frequency'
+    ).order_by('-visit__created_at')
 
-    # Initialize a dictionary to store visit-wise data
-    visit_data = {}
-
-    # Iterate through prescriptions to group by visit
+    # Step 2: Group prescriptions by visit
+    grouped_visits = {}
     for prescription in prescriptions:
-        visit_id = prescription.visit_id
+        visit_id = prescription.visit.id
 
-        # Check if visit_id already exists in visit_data
-        if visit_id in visit_data:
-            visit_data[visit_id]['prescriptions'].append({
-                'medicine_name': prescription.medicine.drug_name,
-                'frequency_name': prescription.frequency.name,
-                'duration': prescription.duration,
-                'quantity': prescription.quantity_used,
-                'dose': prescription.dose,
-            })
-        else:
-            # Add new entry for the visit_id
-            visit_data[visit_id] = {
-                'visit_id': visit_id,
-                'visit_number': prescription.visit.vst,  # Include visit number
-                'patient_name': f"{prescription.visit.patient.first_name} {prescription.visit.patient.last_name}",
-                'created_at': prescription.visit.created_at,
-                'patient_id': prescription.visit.patient_id,
-                'middle_name': prescription.visit.patient.middle_name,
-                'prescriptions': [{
-                    'medicine_name': prescription.medicine.drug_name,
-                    'frequency_name': prescription.frequency.name,
-                    'duration': prescription.duration,
-                    'quantity': prescription.quantity_used,
-                    'dose': prescription.dose,
-                }],
+        if visit_id not in grouped_visits:
+            grouped_visits[visit_id] = {
+                'visit': prescription.visit,
+                'patient': prescription.patient,
+                'prescriptions': [],
             }
 
-    # Convert dictionary values to list for template rendering
-    visit_data_list = list(visit_data.values())
+        grouped_visits[visit_id]['prescriptions'].append(prescription)
+
+    # Step 3: Sort visits by creation date
+    visit_groups = sorted(
+        grouped_visits.values(), key=lambda v: v['visit'].created_at, reverse=True
+    )
 
     return render(request, 'kahama_template/manage_prescription_list.html', {
-        'visit_data': visit_data_list,
+        'visit_groups': visit_groups,
     })
 
 
@@ -893,16 +835,16 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
 
     
 
-
-    
-@login_required        
+@login_required
 def consultation_notes_view(request):
-    consultation_notes = RemoteConsultationNotes.objects.all() 
+    # Get all patients who have consultation notes
+    patient_records = RemotePatient.objects.filter(
+        remoteconsultationnotes__isnull=False
+    ).distinct().order_by('-remoteconsultationnotes__updated_at')
+
     return render(request, 'kahama_template/manage_consultation_notes.html', {
-        'consultation_notes': consultation_notes,       
-        })    
-
-
+        'patient_records': patient_records
+    })
 
     
 @login_required    
@@ -1584,39 +1526,46 @@ def discharge_notes_list_view(request):
     return render(request, 'kahama_template/manage_discharge.html', {'discharge_notes': discharge_notes})
 
 
+@login_required
 def get_all_medicine_data(request):
-    """
-    Returns all medicine data in JSON format for preloading on the frontend.
-    """
     try:
-        # Query all RemoteMedicine objects
+        today = date.today()
         medicines = RemoteMedicine.objects.all()
 
-        # Prepare data to be returned as JSON
-        medicine_data = {
-            medicine.id: {
-                "drug_name": medicine.drug_name,
-                "drug_type": medicine.drug_type,
-                "formulation_unit": medicine.formulation_unit,
-                "manufacturer": medicine.manufacturer,
-                "remain_quantity": medicine.remain_quantity,
-                "quantity": medicine.quantity,
-                "dividable": medicine.dividable,
-                "batch_number": medicine.batch_number,
-                "expiration_date": medicine.expiration_date.strftime("%Y-%m-%d"),  # Convert date to string
-                "unit_cost": float(medicine.unit_cost) if medicine.unit_cost else None,
-                "buying_price": float(medicine.buying_price) if medicine.buying_price else None,
-                "total_buying_price": float(medicine.total_buying_price) if medicine.total_buying_price else None,
-            }
-            for medicine in medicines
-        }
+        medicine_data = {}
+        for medicine in medicines:
+            if medicine.is_clinic_stock:
+                if medicine.remain_quantity and medicine.remain_quantity > 0 and \
+                   medicine.expiration_date and medicine.expiration_date >= today:
+                    medicine_data[medicine.id] = {
+                        "drug_name": medicine.drug_name,
+                        "drug_type": medicine.drug_type,
+                        "formulation_unit": medicine.formulation_unit,
+                        "manufacturer": medicine.manufacturer,
+                        "remain_quantity": medicine.remain_quantity,
+                        "quantity": medicine.quantity,
+                        "dividable": medicine.is_dividable,
+                        "batch_number": medicine.batch_number,
+                        "expiration_date": medicine.expiration_date.strftime("%Y-%m-%d")
+                    }
+            else:
+                medicine_data[medicine.id] = {
+                    "drug_name": medicine.drug_name,
+                    "drug_type": medicine.drug_type,
+                    "formulation_unit": medicine.formulation_unit,
+                    "manufacturer": medicine.manufacturer,
+                    "remain_quantity": medicine.remain_quantity,
+                    "quantity": medicine.quantity,
+                    "dividable": medicine.is_dividable,
+                    "batch_number": medicine.batch_number,
+                    "expiration_date": medicine.expiration_date.strftime("%Y-%m-%d") if medicine.expiration_date else None
+                }
 
-        # Return data as JSON response
         return JsonResponse(medicine_data, safe=False, status=200)
 
     except Exception as e:
-        # Handle errors and return error response
         return JsonResponse({"error": str(e)}, status=500)
+    
     
 def get_all_frequency_data(request):
     """
@@ -1700,4 +1649,552 @@ def change_password(request):
     else:
         form = PasswordChangeForm(request.user)
 
-    return render(request, 'kahama_template/change_password.html', {'form': form})           
+    return render(request, 'kahama_template/change_password.html', {'form': form})          
+
+
+ 
+@login_required
+def download_consultation_summary_pdf(request, patient_id, visit_id):
+    # Fetch core patient and visit info
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+
+    # Query all related models for that visit
+    counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).last()
+    prescriptions = RemotePrescription.objects.filter(patient=patient, visit=visit)
+    observations = RemoteObservationRecord.objects.filter(patient=patient, visit=visit).last()
+    discharge_note = RemoteDischargesNotes.objects.filter(patient=patient, visit=visit).last()
+    referral = RemoteReferral.objects.filter(patient=patient, visit=visit).last()
+    complaints = ChiefComplaint.objects.filter(patient=patient, visit=visit)
+    vitals = RemotePatientVital.objects.filter(patient=patient, visit=visit).last()
+
+    # NEW: Add Consultation Notes
+    consultation_note = RemoteConsultationNotes.objects.filter(patient=patient, visit=visit).last()
+
+    # NEW: Add Imaging Records
+    imaging_records = RemoteImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
+
+    # NEW: Add Laboratory Orders
+    lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling': counseling,
+        'prescriptions': prescriptions,
+        'observation_record': observations,
+        'discharge_note': discharge_note,
+        'referral': referral,
+        'complaints': complaints,
+        'vitals': vitals,
+        'consultation_note': consultation_note,
+        'imaging_records': imaging_records,
+        'lab_tests': lab_tests,
+    }
+
+    # Render the HTML template
+    html_content = render_to_string('kahama_template/pdf_consultation_summary.html', context)
+
+    # Save to a temp directory
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"consultation_summary_{safe_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the file as a response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_observation_pdf(request, patient_id, visit_id):
+    # Fetch the required patient and visit
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)
+
+    # Prepare context for the template
+    context = {
+        'observation_record': observation_record,
+        'visit': visit,
+    }
+
+    # Render HTML template
+    html_content = render_to_string('kahama_template/observation_notes_detail.html', context)
+
+    # Create a temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'observation_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_discharge_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and discharge note
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'discharge_note': discharge_note,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('kahama_template/discharge_note_detail.html', context)
+
+    # Prepare file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'discharge_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response   
+
+def download_counseling_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and counseling note
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    counseling = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'counseling': counseling,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated counseling note template
+    html_content = render_to_string('kahama_template/counseling_notes_details.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'counseling_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+def download_referral_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and referral
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    referral = get_object_or_404(RemoteReferral, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'referral': referral,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated referral note template
+    html_content = render_to_string('kahama_template/view_referral.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'referral_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_prescription_notes_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+
+    # Get all prescriptions for this patient and visit
+    prescriptions = RemotePrescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('kahama_template/prescription_notes.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_notes_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve file as HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_procedure_result_pdf(request, procedure_id):
+    # Fetch procedure or return 404
+    procedure = get_object_or_404(RemoteProcedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
+
+    # Prepare context for template
+    context = {
+        'procedure': procedure,
+    }
+
+    # Render the HTML content using template
+    html_content = render_to_string('kahama_template/pdf_procedure_result.html', context)
+
+    # Create temporary directory for storing the PDF
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Define safe file name and full path
+    file_name = f"procedure_result_{procedure.patient.full_name}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove file if it already exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+@login_required
+def download_all_procedures_pdf(request, patient_mrn, visit_vst):
+    # Get patient and visit
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all related procedures
+    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit).select_related('name')
+
+    if not procedures.exists():
+        return HttpResponse("No procedures found for this visit.", status=404)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'procedures': procedures
+    }
+
+    # Render the template
+    html_content = render_to_string('kahama_template/pdf_all_procedures.html', context)
+
+    # Generate file
+    file_name = f"all_procedures_{patient.full_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Write PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+
+@login_required
+def download_lab_result_pdf(request, lab_id):
+    # Fetch the lab order or return 404 if not found
+    lab = get_object_or_404(
+        RemoteLaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+        id=lab_id
+    )
+
+    # Prepare context for PDF rendering
+    context = {
+        'lab': lab,
+    }
+
+    # Render HTML from template
+    html_content = render_to_string('kahama_template/pdf_lab_result.html', context)
+
+    # Setup temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe file name and path
+    safe_name = lab.patient.full_name.replace(" ", "_")
+    file_name = f"lab_result_{safe_name}_{lab.lab_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete if file exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the PDF as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all laboratory orders for this patient and visit
+    lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related(
+        'name', 'data_recorder'
+    )
+
+    if not lab_tests.exists():
+        return HttpResponse("No lab results found for this visit.", status=404)
+
+    # Prepare the template context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'lab_tests': lab_tests
+    }
+
+    # Render HTML template
+    html_content = render_to_string('kahama_template/pdf_all_lab_results.html', context)
+
+    # Define a safe filename and temporary path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_lab_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate the PDF file
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the file as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_imaging_result_pdf(request, imaging_id):
+    # Fetch the imaging record or return 404
+    imaging = get_object_or_404(
+        RemoteImagingRecord.objects.select_related('patient', 'visit', 'data_recorder', 'imaging'),
+        id=imaging_id
+    )
+
+    # Prepare context for rendering
+    context = {
+        'imaging': imaging,
+    }
+
+    # Render HTML content from template
+    html_content = render_to_string('kahama_template/pdf_imaging_result.html', context)
+
+    # Temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe filename
+    safe_name = imaging.patient.full_name.replace(" ", "_")
+    file_name = f"imaging_result_{safe_name}_{imaging.id}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_imaging_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit instances
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all imaging records for this visit
+    imaging_records = RemoteImagingRecord.objects.filter(patient=patient, visit=visit).select_related(
+        'imaging', 'data_recorder'
+    )
+
+    if not imaging_records.exists():
+        return HttpResponse("No imaging records found for this visit.", status=404)
+
+    # Prepare context for rendering
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'imaging_records': imaging_records
+    }
+
+    # Render HTML content
+    html_content = render_to_string('kahama_template/pdf_all_imaging_results.html', context)
+
+    # Prepare temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_imaging_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if any
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def patient_imaging_view(request):
+    # Get distinct (patient, visit) combinations with the latest imaging record date
+    distinct_imaging_sets = (
+        RemoteImagingRecord.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_imaging_data = []
+
+    for entry in distinct_imaging_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        imaging_records = RemoteImagingRecord.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin', 'imaging')
+
+        if imaging_records.exists():
+            first_imaging = imaging_records.first()
+            patient_imaging_data.append({
+                'patient': first_imaging.patient,
+                'visit': first_imaging.visit,
+                'latest_date': latest_date,
+                'imaging_done_by': first_imaging.data_recorder,
+                'imaging_records': imaging_records
+            })
+
+    context = {
+        'patient_imaging': patient_imaging_data,
+    }
+
+    return render(request, 'kahama_template/manage_imaging_result.html', context)

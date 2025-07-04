@@ -154,20 +154,6 @@ class Staffs(models.Model):
         return f"{self.admin.first_name} {self.middle_name} {self.admin.last_name}"
 
 
-class InsuranceCompany(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='insurance_companies') 
-    name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=15)
-    short_name = models.CharField(max_length=50)
-    email = models.EmailField()
-    address = models.TextField()
-    website = models.URLField(default='http://example.com')  
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()    
-    def __str__(self):
-        return self.name
-
    
 PROCEDURE = 'Procedure'
 LABORATORY = 'Laboratory'
@@ -238,68 +224,7 @@ class MedicineUnitMeasure(models.Model):
     def __str__(self):
         return self.name      
 
-class InventoryItem(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='inventory_items') 
-    name = models.CharField(max_length=100)
-    quantity = models.PositiveIntegerField()
-    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True)
-    description = models.TextField(blank=True)    
-    supplier = models.ForeignKey('Supplier', on_delete=models.SET_NULL, null=True, blank=True)
-    purchase_date = models.DateField(null=True, blank=True)
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    expiry_date = models.DateField(null=True, blank=True)   
-    min_stock_level = models.PositiveIntegerField(null=True, blank=True)
-    images_attachments = models.ImageField(upload_to='inventory/images/', null=True, blank=True)
-    condition = models.CharField(max_length=50, blank=True)
-    remain_quantity = models.PositiveIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()  
-    
-    def __str__(self):
-        return self.name
-    
-    @property
-    def total_price(self):
-        if self.purchase_price and self.quantity:
-            return self.purchase_price * self.quantity
-        return 0
-
-   
-class UsageHistory(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='usage_histories') 
-    inventory_item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
-    usage_date = models.DateField()
-    quantity_used = models.PositiveIntegerField()
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    
-    def __str__(self):
-        return f"{self.usage_date} - {self.quantity_used} units"    
-class Category(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='categories') 
-    name = models.CharField(max_length=255, unique=True)  
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return self.name    
-        
-class Supplier(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='suppliers') 
-    name = models.CharField(max_length=255, unique=True)  
-    address = models.CharField(max_length=100,default="")
-    contact_information = models.CharField(max_length=100,default="")
-    email = models.EmailField(max_length=255, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return self.name    
+ 
         
 class PathodologyRecord(models.Model):
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='pathology_records') 
@@ -922,32 +847,45 @@ class Medicine(models.Model):
 
     
 class RemoteMedicine(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_medicines') 
+    data_recorder = models.ForeignKey('Staffs', on_delete=models.CASCADE, blank=True, null=True, related_name='remote_medicines') 
     drug_name = models.CharField(max_length=100)
     drug_type = models.CharField(max_length=20, blank=True, null=True) 
-    formulation_unit = models.CharField(max_length=50)    
-    manufacturer = models.CharField(max_length=100)
-    remain_quantity = models.PositiveIntegerField(blank=True, null=True)
+    formulation_unit = models.CharField(max_length=50)  # e.g., '500mg', '5ml'
+    dividing_unit = models.PositiveIntegerField(blank=True, null=True, help_text="Smallest divisible unit in mg or ml, e.g., 125")
+    is_dividable = models.BooleanField(default=False, help_text="Is this drug divisible in smaller units?")
+    
+    is_clinic_stock = models.BooleanField(default=True, help_text="Is this drug part of clinic stock?")
+    
+    # These fields only apply if is_clinic_stock is True
+    manufacturer = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.PositiveIntegerField(blank=True, null=True)
-    dividable = models.CharField(max_length=20, blank=True, null=True)   
-    batch_number = models.CharField(max_length=20, blank=True, null=True)   
-    expiration_date = models.DateField()
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    buying_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    total_buying_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    remain_quantity = models.PositiveIntegerField(blank=True, null=True)
+    batch_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    expiration_date = models.DateField(blank=True, null=True)
+
+    minimum_stock_level = models.PositiveIntegerField(default=0, help_text="Minimum threshold before restocking")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = models.Manager()
 
-    def save(self, *args, **kwargs):
-        # Calculate total buying price before saving
-        if self.buying_price is not None and self.quantity is not None:
-            self.total_buying_price = float(self.buying_price) * self.quantity
-        super().save(*args, **kwargs)
+    def clean(self):      
+        if self.is_clinic_stock:
+            required_fields = {
+                'quantity': self.quantity,
+                'remain_quantity': self.remain_quantity,
+                'batch_number': self.batch_number,
+                'expiration_date': self.expiration_date,
+                'minimum_stock_level': self.minimum_stock_level,
+                'manufacturer': self.manufacturer,
+            }
+            for field_name, value in required_fields.items():
+                if value in [None, '']:
+                    raise ValidationError({field_name: f"{field_name.replace('_', ' ').capitalize()} is required for clinic stock."})
 
     def __str__(self):
-        return self.drug_name    
+        return self.drug_name
     
 
 
@@ -998,20 +936,7 @@ class Equipment(models.Model):
     def __str__(self):
         return self.name
     
-class EquipmentMaintenance(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='equipment_maintenance') 
-    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE)
-    maintenance_date = models.DateField()
-    technician = models.CharField(max_length=100)  # Technician who performed the maintenance
-    description = models.TextField(blank=True)  # Description of the maintenance performed
-    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Cost of maintenance
-    notes = models.TextField(blank=True)  # Additional notes or comments
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
 
-    def __str__(self):
-        return f"{self.equipment.name} - Maintenance on {self.maintenance_date}" 
     
 class Reagent(models.Model):
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='reagents') 
@@ -1036,27 +961,7 @@ class Reagent(models.Model):
             return self.price_per_unit * self.quantity_in_stock
         return 0
     
-class ReagentUsage(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='reagent_usages') 
-    reagent = models.ForeignKey(Reagent, on_delete=models.CASCADE)
-    usage_date = models.DateField()
-    quantity_used = models.PositiveIntegerField() 
-    notes = models.TextField()  # Additional field for technician notes 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()  
-    
-class QualityControl(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='quality_controls') 
-    lab_technician = models.ForeignKey('Staffs', on_delete=models.CASCADE)
-    control_date = models.DateField()
-    # Add other quality control-related information
-    control_type = models.CharField(max_length=50)  # Type of quality control performed
-    result = CKEditor5Field(config_name='extends',blank=True, null=True)   
-    remarks = models.TextField(blank=True)  # Additional remarks or comments
-
-    # Add more fields as needed         
-        
+ 
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -1103,33 +1008,9 @@ class ClinicCompany(models.Model):
         return self.name
 
 
-class Company(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='companies') 
+
+class RemoteCompany(models.Model):   
     name =  models.CharField(max_length=255, unique=True)
-    industry = models.CharField(max_length=50, default="")
-    sector = models.CharField(max_length=50, default="")
-    headquarters = models.CharField(max_length=100, default="")
-    Founded = models.CharField(max_length=10, default="")
-    Notes = models.TextField(max_length=100, default="")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return self.name
-
-# kahama
-
-   
-
-class RemoteCompany(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_companies') 
-    name =  models.CharField(max_length=255, unique=True)
-    industry = models.CharField(max_length=50, default="")
-    sector = models.CharField(max_length=50, default="")
-    headquarters = models.CharField(max_length=100, default="")
-    Founded = models.CharField(max_length=10, default="")
-    Notes = models.TextField(max_length=100, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
@@ -1243,6 +1124,14 @@ class RemotePatient(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Updated At')
     objects = models.Manager()
     
+    @property
+    def full_name(self):
+        name_parts = [self.first_name]
+        if self.middle_name:
+            name_parts.append(self.middle_name)
+        name_parts.append(self.last_name)
+        return ' '.join(name_parts)
+
     def save(self, *args, **kwargs):
         # Generate MRN only if it's not provided
         if not self.mrn:
@@ -1349,34 +1238,29 @@ class PatientDiagnosisRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
+
     
 class RemoteConsultationNotes(models.Model):
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE)
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
-    visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)  
+    patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
+    visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE, null=True, blank=True)  
+
     history_of_presenting_illness = models.TextField(null=True, blank=True)
-    type_of_illness = models.CharField(max_length=200, null=True, blank=True)  
-    nature_of_current_illness = models.CharField(max_length=200, null=True, blank=True)  
-    consultation_number = models.CharField(max_length=20, unique=True)  
-    pathology = models.ManyToManyField(PathodologyRecord, blank=True)
+    review_of_systems = models.TextField(null=True, blank=True)  # ✅ Added
+    physical_examination = models.TextField(null=True, blank=True)  # ✅ Added
     doctor_plan = models.TextField()
+    doctor_plan_note = models.TextField(null=True, blank=True)  # ✅ Added
+    pathology = models.ManyToManyField(PathodologyRecord, blank=True)
+    allergy_summary = models.TextField(null=True, blank=True)  # ✅ Added
+    known_comorbidities_summary = models.TextField(null=True, blank=True)  # ✅ Added
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     objects = models.Manager()
 
     def __str__(self):
-        return f"Consultation for {self.patient} by Dr. {self.doctor}"
-    
-    def save(self, *args, **kwargs):
-        if not self.consultation_number:
-            self.consultation_number = generate_remoteconsultation_number()
-        super().save(*args, **kwargs)   
-    
-def generate_remoteconsultation_number():
-    last_consultation_notes = RemoteConsultationNotes.objects.last()
-    last_sample_number = int(last_consultation_notes.consultation_number.split('-')[-1]) if last_consultation_notes else 0
-    new_consultation_number = last_sample_number + 1
-    return f"CTN-{new_consultation_number:07d}"       
+        return f"Consultation for {self.patient} by Dr. {self.doctor}"    
   
 class RemotePatientVisits(models.Model):
     VISIT_TYPES = (
@@ -1462,6 +1346,20 @@ class RemoteConsultationOrder(models.Model):
         return f"Consultation Order for {self.patient} - {self.data_recorder} ({self.order_date})"
 
 
+class RemoteImagingRecord(models.Model):
+    patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
+    visit = models.ForeignKey('RemotePatientVisits', on_delete=models.CASCADE)   
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_imaging_records') 
+    imaging= models.ForeignKey(Service, on_delete=models.CASCADE,blank=True, null=True) 
+    description = models.TextField(blank=True, null=True)
+    result = models.TextField(null=True, blank=True)   
+    image = models.ImageField(upload_to='imaging_records/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+    def __str__(self):
+        return f"Imaging Record for {self.patient} - {self.imaging} ({self.data_recorder})"
         
 class RemoteLaboratoryOrder(models.Model):
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
@@ -1500,115 +1398,7 @@ class RemoteHospitalVehicle(models.Model):
 
     def __str__(self):
         return self.number   
-    
-class RemoteAmbulanceRoute(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_routes') 
-    from_location = models.CharField(max_length=100)
-    to_location = models.CharField(max_length=100)
-    distance = models.FloatField()
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    profit = models.DecimalField(max_digits=10, decimal_places=2)
-    advanced_ambulance_cost = models.DecimalField(max_digits=10, decimal_places=2)
-    total = models.FloatField(editable=False)  # Make total field read-only
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def save(self, *args, **kwargs):
-        # Convert cost and profit to Decimal objects
-        cost = Decimal(str(self.cost))
-        profit = Decimal(str(self.profit))
-
-        # Calculate total using Decimal arithmetic
-        self.total = cost + profit
-
-        super(RemoteAmbulanceRoute, self).save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.from_location} to {self.to_location}"       
-    
-    
-class RemoteAmbulanceActivity(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_activities') 
-    name = models.CharField(max_length=100)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    profit = models.DecimalField(max_digits=10, decimal_places=2)
-    total = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    
-    def save(self, *args, **kwargs):
-        # Convert cost and profit to Decimal objects
-        cost = Decimal(str(self.cost))
-        profit = Decimal(str(self.profit))
-
-        # Calculate total using Decimal arithmetic
-        self.total = cost + profit
-
-        super(RemoteAmbulanceActivity, self).save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name    
-        
-class RemoteAmbulanceOrder(models.Model):
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
-    visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE, blank=True, null=True) 
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_data_recorder') 
-    service = models.CharField(max_length=100)
-    from_location = models.CharField(max_length=100)
-    to_location = models.CharField(max_length=100)
-    order_date = models.DateField(null=True, blank=True)  
-    age = models.CharField(max_length=50)
-    condition = models.CharField(max_length=100)
-    intubation = models.CharField(max_length=100)
-    pregnancy = models.CharField(max_length=100)
-    oxygen = models.CharField(max_length=100)
-    ambulance_type = models.CharField(max_length=100)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_mode = models.CharField(max_length=100)
-    duration_hours = models.IntegerField()
-    duration_days = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    ambulance_number = models.CharField(max_length=20, unique=True)  # Unique ambulance number
-    objects = models.Manager()
-    
-    def __str__(self):
-        return f"Ambulance Order for {self.patient} - Service: {self.service}"
-    
-    def save(self, *args, **kwargs):
-        if not self.ambulance_number:
-            last_ambulance = RemoteAmbulanceOrder.objects.order_by('-id').first()
-            if last_ambulance:
-                last_number = int(last_ambulance.ambulance_number.split('-')[-1])
-            else:
-                last_number = 0
-            new_number = last_number + 1
-            self.ambulance_number = f"AMB-{new_number:07}"  # Format the ambulance number
-        super().save(*args, **kwargs)
-           
-class RemoteAmbulanceVehicleOrder(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_ambulance_vehicle_orders') 
-    vehicle_type = models.CharField(max_length=100,blank=True, null=True)
-    activities = models.CharField(max_length=255,blank=True, null=True)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    ambulance_number = models.CharField(max_length=100,blank=True, null=True)
-    organization = models.CharField(max_length=255,blank=True, null=True)
-    contact_person = models.CharField(max_length=100,blank=True, null=True)
-    contact_phone = models.CharField(max_length=20,blank=True, null=True)
-    location = models.CharField(max_length=100,blank=True, null=True)
-    duration = models.IntegerField()
-    days = models.IntegerField()
-    payment_mode = models.CharField(max_length=100,blank=True, null=True)
-    order_date = models.DateField(null=True, blank=True) 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True) 
-    objects = models.Manager()
-
-    def __str__(self):
-        return f"{self.vehicle_type} - {self.organization}"
-               
+ 
 class RemoteProcedure(models.Model):
     patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
     doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE, blank=True, null=True)
@@ -1623,44 +1413,6 @@ class RemoteProcedure(models.Model):
 
     def __str__(self):
         return f"Procedure: {self.name} for {self.patient}"
-    
-
-class RemoteOrder(models.Model):
-
-    ORDER_STATUS = [
-        ('Paid', 'Paid'),
-        ('Unpaid', 'Unpaid'),
-    ]
-
-    ORDER_NUMBER_PREFIX = 'ORD'  # Prefix for the order number
-
-    order_date = models.DateField(default=timezone.now, null=True, blank=True)
-    order_type =  models.TextField(blank=True, null=True)
-    patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
-    visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
-    added_by = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
-    doctor = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_doctor')
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
-    is_read = models.BooleanField(default=False)
-    status = models.CharField(max_length=100, choices=ORDER_STATUS, default='Unpaid')
-    order_number = models.CharField(max_length=12, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True) 
-    objects = models.Manager()
-    
-    def __str__(self):
-        return f"{self.order_type} Order for {self.patient}"
-
-    def save(self, *args, **kwargs):
-        if not self.order_number:
-            last_order = RemoteOrder.objects.order_by('-id').first()
-            if last_order:
-                last_number = int(last_order.order_number.split('-')[-1])  # Extract the numeric part
-            else:
-                last_number = 0
-            new_number = last_number + 1
-            self.order_number = f"{self.ORDER_NUMBER_PREFIX}-{new_number:07}"  # Format the order number
-        super().save(*args, **kwargs)
     
 
      
@@ -1874,124 +1626,7 @@ class ClinicChiefComplaint(models.Model):
     def __str__(self):
         return f"{self.health_record.name} - {self.duration}"    
     
-class PrimaryPhysicalExamination(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='primary_physical_examinations') 
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
-    visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
-    airway = models.CharField(max_length=200,blank=True, null=True)
-    patent_airway = models.CharField(max_length=200,blank=True, null=True)
-    notpatient_explanation = models.TextField(blank=True, null=True)
-    breathing = models.CharField(max_length=200,blank=True, null=True)
-    normal_breathing = models.TextField(blank=True, null=True)
-    abnormal_breathing = models.CharField(max_length=200,blank=True, null=True)
-    circulating = models.CharField(max_length=200,blank=True, null=True)
-    normal_circulating = models.TextField(blank=True, null=True)
-    abnormal_circulating = models.CharField(max_length=200,blank=True, null=True)    
-    gcs = models.CharField(max_length=200,blank=True, null=True)
-    rbg = models.CharField(max_length=200,blank=True, null=True)
-    pupil = models.CharField(max_length=200,blank=True, null=True)
-    pain_score = models.CharField(max_length=200,blank=True, null=True)
-    avpu = models.CharField(max_length=200,blank=True, null=True)
-    exposure = models.CharField(max_length=200,blank=True, null=True)
-    normal_exposure = models.CharField(max_length=200,blank=True, null=True)
-    abnormal_exposure = models.CharField(max_length=200,blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
 
-    def __str__(self):
-        return f"Physical Examination - {self.pk}"
-    
-class ClinicPrimaryPhysicalExamination(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_primary_examinations') 
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
-    airway = models.CharField(max_length=200,blank=True, null=True)
-    patent_airway = models.CharField(max_length=200,blank=True, null=True)
-    notpatient_explanation = models.TextField(blank=True, null=True)
-    breathing = models.CharField(max_length=200,blank=True, null=True)
-    normal_breathing = models.TextField(blank=True, null=True)
-    abnormal_breathing = models.CharField(max_length=200,blank=True, null=True)
-    circulating = models.CharField(max_length=200,blank=True, null=True)
-    normal_circulating = models.TextField(blank=True, null=True)
-    abnormal_circulating = models.CharField(max_length=200,blank=True, null=True)    
-    gcs = models.CharField(max_length=200,blank=True, null=True)
-    rbg = models.CharField(max_length=200,blank=True, null=True)
-    pupil = models.CharField(max_length=200,blank=True, null=True)
-    pain_score = models.CharField(max_length=200,blank=True, null=True)
-    avpu = models.CharField(max_length=200,blank=True, null=True)
-    exposure = models.CharField(max_length=200,blank=True, null=True)
-    normal_exposure = models.CharField(max_length=200,blank=True, null=True)
-    abnormal_exposure = models.CharField(max_length=200,blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-
-    def __str__(self):
-        return f"Physical Examination - {self.pk}"
-    
-class SecondaryPhysicalExamination(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='secondary_physical_examinations') 
-    patient = models.ForeignKey(RemotePatient, on_delete=models.CASCADE)
-    visit = models.ForeignKey(RemotePatientVisits, on_delete=models.CASCADE,blank=True, null=True)
-    heent = models.CharField(max_length=50, blank=True, null=True)
-    normal_heent = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_heent = models.CharField(max_length=50, blank=True, null=True)
-    cns = models.CharField(max_length=50, blank=True, null=True)
-    normal_cns = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_cns = models.CharField(max_length=50, blank=True, null=True)
-    cvs = models.CharField(max_length=50, blank=True, null=True)
-    normal_cvs = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_cvs = models.CharField(max_length=50, blank=True, null=True)
-    rs = models.CharField(max_length=50, blank=True, null=True)
-    normal_rs = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_rs = models.CharField(max_length=50, blank=True, null=True)
-    pa = models.CharField(max_length=50, blank=True, null=True)
-    normal_pa = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_pa = models.CharField(max_length=50, blank=True, null=True)
-    gu = models.CharField(max_length=100, blank=True, null=True)
-    normal_gu = models.CharField(max_length=100, blank=True, null=True)
-    abnormal_gu = models.CharField(max_length=100, blank=True, null=True)
-    mss = models.CharField(max_length=100, blank=True, null=True)    
-    normal_mss = models.CharField(max_length=100, blank=True, null=True)    
-    abnormal_mss = models.CharField(max_length=100, blank=True, null=True)    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    
-    def __str__(self):
-        return self.pk
-class ClinicSecondaryPhysicalExamination(models.Model):
-    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='clinic_secondary_examinations') 
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    visit = models.ForeignKey(PatientVisits, on_delete=models.CASCADE,blank=True, null=True)
-    heent = models.CharField(max_length=50, blank=True, null=True)
-    cns = models.CharField(max_length=50, blank=True, null=True)
-    normal_cns = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_cns = models.CharField(max_length=50, blank=True, null=True)
-    cvs = models.CharField(max_length=50, blank=True, null=True)
-    normal_cvs = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_cvs = models.CharField(max_length=50, blank=True, null=True)
-    rs = models.CharField(max_length=50, blank=True, null=True)
-    normal_rs = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_rs = models.CharField(max_length=50, blank=True, null=True)
-    pa = models.CharField(max_length=50, blank=True, null=True)
-    normal_pa = models.CharField(max_length=50, blank=True, null=True)
-    abnormal_pa = models.CharField(max_length=50, blank=True, null=True)
-    gu = models.CharField(max_length=100, blank=True, null=True)
-    normal_gu = models.CharField(max_length=100, blank=True, null=True)
-    abnormal_gu = models.CharField(max_length=100, blank=True, null=True)
-    mss = models.CharField(max_length=100, blank=True, null=True)    
-    normal_mss = models.CharField(max_length=100, blank=True, null=True)    
-    abnormal_mss = models.CharField(max_length=100, blank=True, null=True)    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
-    
-    def __str__(self):
-        return self.pk
-
-  
 class RemoteReagent(models.Model):
     data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='remote_reagents') 
     name = models.CharField(max_length=255, unique=True)
@@ -2020,16 +1655,6 @@ class RemoteEquipment(models.Model):
         return self.name      
     
 class RemotePrescription(models.Model):
-    VERIFICATION_CHOICES = (
-        ('verified', 'Verified'),
-        ('not_verified', 'Not Verified'),
-    )
-
-    ISSUE_CHOICES = (
-        ('issued', 'Issued'),
-        ('not_issued', 'Not Issued'),
-    )
-
     patient = models.ForeignKey('RemotePatient', on_delete=models.CASCADE)
     entered_by = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True)
     medicine = models.ForeignKey(RemoteMedicine, on_delete=models.CASCADE)  # Link with Medicine model
@@ -2039,10 +1664,6 @@ class RemotePrescription(models.Model):
     frequency = models.ForeignKey(PrescriptionFrequency, on_delete=models.CASCADE, blank=True, null=True)
     duration = models.CharField(max_length=50)
     quantity_used = models.PositiveIntegerField()   
-    verified = models.CharField(max_length=20, choices=VERIFICATION_CHOICES, default='not_verified')
-    issued = models.CharField(max_length=20, choices=ISSUE_CHOICES, default='not_issued')
-    status = models.CharField(max_length=20, choices=[('paid', 'Paid'), ('unpaid', 'Unpaid')], default='unpaid')
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -2053,7 +1674,7 @@ class RemotePrescription(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.patient.fullname} - {self.drug.name}"  # Accessing drug's name   
+        return f"{self.patient.fullname} - {self.medicine.drug_name}"  # Accessing drug's name   
     
 def generate_remoteprescription_id():
     last_prescription = RemotePrescription.objects.last()

@@ -3,7 +3,7 @@
 {% block title %}
    All Referrals
 {% endblock title %}
-
+{% load static %}
 {% block breadcrumb %}
 {% include "divine_admin_template/modal_form.html" %}
 {% endblock breadcrumb %}
@@ -39,7 +39,7 @@
                             <tbody>
                                 {% for referral in referrals %}
                                     <tr>
-                                        <td>{{ referral.patient.mrn }}</td>
+                                        <td>{{ referral.patient }}</td>
                                         <td>{{ referral.created_at|date:"d-m-Y" }}</td>
                                         <td>{{ referral.created_at|time:"H:i" }}</td>                                                                                           
                                         <td>Dr. {{ referral.data_recorder }}</td>
@@ -54,14 +54,16 @@
                                             </span>
                                         </td>                                                   
                                         <td>
-                                            {% if referral.data_recorder == request.user.staff %}                                                                            
-                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" title="Change Status">
-                                                <i class="fas fa-exchange-alt"></i>
-                                            </button>
-                                            {% endif %}
-                                            <a href="{% url 'divine_view_referral' referral.id %}" class="btn btn-info btn-sm" title="View Referral">
-                                                <i class="fas fa-eye"></i>View Referral
-                                            </a>
+                                          
+                                          {% if referral.notes %}
+                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#referralModal{{ referral.id }}" title="View Referral">
+                                            <i class="fas fa-eye"></i> Referral notes
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-info btn-sm" disabled title="No Referral Details">
+                                            <i class="fas fa-eye"></i>  Referral notes
+                                        </button>
+                                        {% endif %}
                                         </td>                  
                                     </tr>
                                 {% endfor %}
@@ -73,6 +75,102 @@
         </div>
     </div>
 </div>
+
+{% for referral in referrals %}
+  {% if referral.notes %}
+    <!-- Bootstrap Modal for Referral -->
+    <div class="modal fade" id="referralModal{{ referral.id }}" tabindex="-1" role="dialog" aria-labelledby="referralModalLabel{{ referral.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="referralModalLabel{{ referral.id }}">            
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="container-fluid">
+
+              <!-- Header Image -->
+              <header class="header mb-3">
+                <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image">
+              </header>
+
+              <!-- Patient Info -->
+              <div class="card mb-3">
+                <div class="card-header bg-dark text-white">
+                  <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                </div>
+                <div class="card-body">
+                  <table class="table table-borderless table-sm">
+                    <tr>
+                      <td>PATIENT: <b>{{ referral.patient.full_name }}</b></td>
+                      <td>DOB: <b>{{ referral.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ referral.patient.age }}</b>]</td>
+                      <td>SEX: <b>{{ referral.patient.gender }}</b></td>
+                      <td>FILE NO: <b>{{ referral.patient.mrn }}</b></td>
+                    </tr>
+                    <tr>
+                      <td colspan="2">Company:
+                        <b>                          
+                            {{ referral.patient.company }}                   
+                        </b>
+                      </td>
+                      <td colspan="2">Visit Number: <b>{{ referral.visit.vst }}</b></td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Referral Info -->
+              <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                  <h6 class="mb-0 text-uppercase">Referral Information</h6>
+                </div>
+                <div class="card-body">
+                  <p><strong>Source Location:</strong> {{ referral.source_location }}</p>
+                  <p><strong>Destination Location:</strong> {{ referral.destination_location }}</p>
+                  <p><strong>Nature of Referral:</strong> {{ referral.nature_of_referral }}</p>
+                  <p><strong>Transport Mode:</strong> {{ referral.transport_model }}</p>
+                  <p><strong>Status:</strong>
+                    <span class="badge badge-{{ referral.get_status_color }}">{{ referral.get_status_display }}</span>
+                  </p>
+                  <p class="text-justify"><strong>Referral Notes:</strong><br> {{ referral.notes|safe }}</p>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row">
+                    <div class="col-md-5">
+                      <strong>Referred By:</strong>
+                      <b class="text-capitalize" style="color: blue;">
+                        {% if referral.data_recorder.role == "doctor" %}Dr.{% else %}{{ referral.data_recorder.role }}{% endif %}
+                      </b>
+                      <span class="text-muted">{{ referral.data_recorder }}</span>
+                    </div>
+                    <div class="col-md-3"><strong>Signature:</strong> {{ referral.data_recorder.signature }}</div>
+                    <div class="col-md-2"><strong>Date:</strong> {{ referral.created_at|date:"d-m-Y" }}</div>
+                    <div class="col-md-2"><strong>MCT No:</strong> {{ referral.data_recorder.mct_number }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Optional PDF download -->
+              <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                  <a href="{% url 'divine_download_referral_pdf' referral.patient.id referral.visit.id %}" 
+                    class="btn btn-outline-secondary btn-sm" >
+                    <i class="fa fa-download"></i> Download PDF
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
 
 {% include 'divine_admin_template/datatable.html' %}
 {% endblock main_content %}

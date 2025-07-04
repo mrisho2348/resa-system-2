@@ -61,7 +61,7 @@ urlpatterns = [
     path('consultation-notes/', kahamaAdmin.consultation_notes_view, name='kahama_consultation_notes'),
     path('resa/patient_vital_all_list/', kahamaAdmin.patient_vital_all_list, name='kahama_patient_vital_all_list'),
     path('details/<str:patient_mrn>/<str:visit_number>/', kahamaAdmin.patient_vital_detail, name='kahama_patient_vital_detail'),
-    path('patient_visit_details_view/<int:patient_id>/<int:visit_id>/', kahamaAdmin.patient_visit_details_view, name='kahama_patient_visit_details_view'),
+    
    
     path('patient_visit_history/<int:patient_id>/', kahamaAdmin.patient_visit_history_view, name='kahama_patient_visit_history_view'),
 
@@ -79,7 +79,6 @@ urlpatterns = [
     path('observation_notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.view_observation_notes, name='kahama_view_observation_notes'),
 
     path('resa/manage-staff/', kahamaAdmin.manage_staff, name="kahama_manage_staff"),
-    path('resa/manage-insurance/', kahamaAdmin.manage_insurance, name="kahama_manage_insurance"),
     path('resa/manage-adjustment/', kahamaAdmin.manage_adjustment, name="kahama_manage_adjustment"),
     path('download/counseling-notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_counseling_notes, name='kahama_download_counseling_notes'),
     path('edit-profile/<int:pk>/', kahamaAdmin.EditStaffProfileView.as_view(), name='kahama_edit_staff_profile'),
@@ -89,18 +88,29 @@ urlpatterns = [
     path('counseling_notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.view_counseling_notes, name='kahama_view_counseling_notes'),
 
     path('confirm_meeting/<int:appointment_id>/', kahamaAdmin.confirm_meeting, name='kahama_confirm_meeting'),
-
     path('edit_meeting/<int:appointment_id>/', kahamaAdmin.edit_meeting, name='kahama_edit_meeting'),
- 
 
     path('change_referral_status/', kahamaAdmin.change_referral_status, name='kahama_change_referral_status'),
 
     # API paths
-
     path('get_all_medicine_data/', kahamaAdmin.get_all_medicine_data, name='kahama_get_all_medicine_data'),
     path('get_all_frequency_data/', kahamaAdmin.get_all_frequency_data, name='kahama_get_all_frequency_data'),
     path('delete_health_record/', kahamaAdmin.delete_health_record, name='kahama_delete_health_record'),
     path('delete_medication_allergy/', kahamaAdmin.delete_medication_allergy_record, name='kahama_delete_medication_allergy_record'),
     path('delete_surgery_history/', kahamaAdmin.delete_surgery_history_record, name='kahama_delete_surgery_history_record'),
     path('delete_family_medical_history/', kahamaAdmin.delete_family_medical_history_record, name='kahama_delete_family_medical_history_record'),
+
+    path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_consultation_summary_pdf, name='kahama_download_consultation_summary_pdf' ),
+    path('imaging/download/<int:imaging_id>/', kahamaAdmin.download_imaging_result_pdf, name='kahama_download_imaging_result_pdf' ),
+    path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', kahamaAdmin.download_all_imaging_results_pdf, name='kahama_download_all_imaging_results_pdf'),
+    path('lab-result/download/<int:lab_id>/', kahamaAdmin.download_lab_result_pdf, name='kahama_download_lab_result_pdf'),
+    path('lab/download/all/<str:patient_mrn>/<str:visit_vst>/',kahamaAdmin.download_all_lab_results_pdf, name='kahama_download_all_lab_results_pdf'),
+    path('procedure/download/all/<str:patient_mrn>/<str:visit_vst>/', kahamaAdmin.download_all_procedures_pdf, name='kahama_download_all_procedures_pdf'),
+    path('procedure/result/download/<int:procedure_id>/', kahamaAdmin.download_procedure_result_pdf, name='kahama_download_procedure_result_pdf'),
+    path('download/prescription-notes/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_prescription_notes_pdf, name='kahama_download_prescription_notes_pdf'),
+    path('download-referral-pdf/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_referral_pdf, name='kahama_download_referral_pdf'),
+    path('download-counseling-pdf/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_counseling_pdf, name='kahama_download_counseling_pdf'),
+    path('download-discharge-pdf/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_discharge_pdf, name='kahama_download_discharge_pdf'),
+    path('download/observation/<int:patient_id>/<int:visit_id>/', kahamaAdmin.download_observation_pdf, name='kahama_download_observation_pdf'),
+    path('patient/imaging/view/', kahamaAdmin.patient_imaging_view, name="kahama_patient_imaging_view"), 
 ]

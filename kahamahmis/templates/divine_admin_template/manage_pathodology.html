@@ -9,15 +9,9 @@ Pathology
 
 {% block breadcrumb %}
 {% include "divine_admin_template/modal_form.html" %}
-<a class="btn btn-success float-right mr-2" href="{% url 'divine_pathodology_record_template_download' %}">
-    <i class="fas fa-download"></i> download excel template 
-  </a>
-    <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#pathodologyModal">
-        <i class="fas fa-plus"></i>Add
+    <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addPathologyModal">
+        <i class="fas fa-plus"></i>Add pathology
     </a>
-    <a class="btn btn-success float-right mr-2" href="{% url 'divine_import_pathodology_record_data' %}">
-        <i class="fas fa-file-import"></i> Import pathology
-      </a>
     {% load static %}
 {% endblock breadcrumb %}
 {% block main_content %}
@@ -192,6 +186,92 @@ Pathology
 </script>
 {% endfor %}
 
+
+
+<!-- ======================= ADD PATHOLOGY MODAL ======================= -->
+<div class="modal fade" id="addPathologyModal" tabindex="-1" role="dialog" aria-labelledby="addPathologyModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Add New Pathology Record</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div id="addPathologyMessageContainer" class="alert" role="alert" style="display: none;"></div>
+          <form method="post" id="addPathologyForm" novalidate>
+            {% csrf_token %}
+            <div class="row">
+              <div class="form-group col-sm-5">
+                <label for="newPathologyName">Name</label>
+                <input type="text" class="form-control" name="Name" id="newPathologyName" required>
+                <div class="invalid-feedback">Name is required</div>
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="newPathologyDescription">Description</label>
+                <input type="text" class="form-control" name="Description" id="newPathologyDescription">
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="offset-md-6 col-md-6 text-right">
+                <button type="button" class="btn btn-success" id="submitAddPathology">Add Record</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    $('#submitAddPathology').click(function () {
+      var form = document.getElementById('addPathologyForm');
+      if (form.checkValidity() === false) {
+        form.classList.add('was-validated');
+        return;
+      }
+
+      var formData = $('#addPathologyForm').serialize();
+
+      $.ajax({
+        url: '{% url "divine_add_pathodology_record" %}',  // Ensure this view handles new records
+        type: 'POST',
+        data: formData,
+        success: function (response) {
+          let container = $('#addPathologyMessageContainer');
+          if (response.success) {
+            container
+              .removeClass('alert-danger')
+              .addClass('alert-success')
+              .text(response.message)
+              .show();
+            setTimeout(() => location.reload(true), 1000);
+          } else {
+            container
+              .removeClass('alert-success')
+              .addClass('alert-danger')
+              .text(response.message)
+              .show();
+          }
+        },
+        error: function (xhr) {
+          $('#addPathologyMessageContainer')
+            .removeClass('alert-success')
+            .addClass('alert-danger')
+            .text('Error: ' + xhr.responseText)
+            .show();
+        }
+      });
+    });
+  });
+</script>
 
 <style>
     .btn-primary {

@@ -491,6 +491,15 @@ class YearMonthSelectionForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-control select2bs4'})
     )
     
+    def clean_month(self):
+        month = self.cleaned_data['month']
+        return int(month)
+
+    def clean_year(self):
+        year = self.cleaned_data['year']
+        return int(year)
+
+        
 class BankAccountForm(forms.ModelForm):
     class Meta:
         model = BankAccount

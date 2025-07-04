@@ -12,10 +12,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404, JsonResponse
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist,ValidationError
-from clinic.forms import ImagingRecordForm, LaboratoryOrderForm, ProcedureForm
-from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
+from clinic.models import  Medicine, Patients, Staffs
 from django.views.decorators.http import require_POST
-from .models import ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, ConsultationNotes, ConsultationOrder, Counseling, Country, Diagnosis, Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, HealthRecord, ImagingRecord,LaboratoryOrder, ObservationRecord,  Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Reagent, Referral, SalaryChangeRecord,Service
+from .models import    Employee, EmployeeDeduction,  PatientVisits,  Prescription, PrescriptionFrequency, Reagent,  SalaryChangeRecord
 from django.db.models import Sum
 from django.db.models import Q
 from django.db import transaction

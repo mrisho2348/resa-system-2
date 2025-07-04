@@ -1,35 +1,48 @@
 import calendar
-from datetime import  datetime
-import json
 from django.utils import timezone
 import logging
-from kahamahmis.forms import RemoteLaboratoryOrderForm, RemoteProcedureForm
-
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
-from django.urls import reverse
-from django.db.models import F
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
-from clinic.forms import  RemoteCounselingForm, RemoteDischargesNotesForm, RemoteObservationRecordForm, RemoteReferralForm
-from clinic.models import ChiefComplaint, ClinicCompany, Diagnosis,   FamilyMedicalHistory, Country, CustomUser, DiseaseRecode, HealthRecord,  InsuranceCompany, Medicine, PathodologyRecord, PatientHealthCondition, PatientLifestyleBehavior, PatientMedicationAllergy, PatientSurgery, PrescriptionFrequency, PrimaryPhysicalExamination, Referral,  RemoteCompany, RemoteConsultation, RemoteConsultationNotes, RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient, RemotePatientDiagnosisRecord, RemotePatientVisits, RemotePatientVital, RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService, SecondaryPhysicalExamination, Service,Staffs
+from clinic.models import  ChiefComplaint, ClinicCompany, Diagnosis,    Country, CustomUser, DiseaseRecode, HealthRecord,   PathodologyRecord,      RemoteCompany, RemoteConsultation, RemoteConsultationNotes,  RemoteCounseling, RemoteDischargesNotes, RemoteEquipment, RemoteImagingRecord, RemoteLaboratoryOrder, RemoteMedicine, RemoteObservationRecord, RemotePatient,  RemotePatientVisits, RemotePatientVital,  RemotePrescription, RemoteProcedure, RemoteReagent, RemoteReferral, RemoteService,  Staffs
 from django.template.loader import render_to_string
-from django.db.models import Sum, Max, Count,Q
+from django.db.models import Max, Count,OuterRef, Subquery
 from django.views.decorators.http import require_POST
-from django.db.models import OuterRef, Subquery
-from django.db.models.functions import ExtractMonth ,TruncDay
-from calendar import monthrange
-from datetime import date, timedelta
+from django.db.models.functions import ExtractMonth
+from datetime import date, datetime
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth import logout
+from django.contrib.auth import update_session_auth_hash,logout
+from weasyprint import HTML
+import os
 
+def remote_patient_list_view(request):
+    patients = RemotePatient.objects.select_related('company', 'nationality', 'data_recorder').all().order_by('-created_at')
+    context = {
+        'patients': patients
+    }
+    return render(request, 'divine_admin_template/remote_patient_list.html', context)
+
+@require_POST
+@csrf_exempt  # Optional: remove if using {% csrf_token %} properly
+def delete_remote_patient_view(request):
+    patient_id = request.POST.get('patient_id')
+
+    if not patient_id:
+        return JsonResponse({'status': 'error', 'message': 'Missing patient ID'})
+
+    try:
+        patient = RemotePatient.objects.get(id=patient_id)
+        patient.delete()
+        return JsonResponse({'status': 'success'})
+    except RemotePatient.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Patient not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})    
 
 @login_required
 def divine_dashboard(request):
@@ -150,6 +163,35 @@ def get_gender_monthly_data(request):
         return JsonResponse({'error': 'Invalid request'})
     
 
+def expired_medicine_view(request):
+    medicines = RemoteMedicine.objects.filter(
+        is_clinic_stock=True,
+        expiration_date__lt=timezone.now().date()
+    )
+    return render(request, 'divine_admin_template/expired_medicine.html', {'medicines': medicines})
+
+
+def instock_medicine_view(request):
+    medicines = RemoteMedicine.objects.filter(
+        is_clinic_stock=True,
+        quantity__gt=0,
+        expiration_date__gte=timezone.now().date()
+    )
+    return render(request, 'divine_admin_template/instock_medicine.html', {'medicines': medicines})
+
+
+def checklist_medicine_view(request):
+    medicines = RemoteMedicine.objects.filter(is_clinic_stock=False)
+    return render(request, 'divine_admin_template/checklist_medicine.html', {'medicines': medicines})
+
+
+def outofstock_medicine_view(request):
+    medicines = RemoteMedicine.objects.filter(
+        is_clinic_stock=True,
+        quantity__lte=0
+    )
+    return render(request, 'divine_admin_template/outofstock_medicine.html', {'medicines': medicines})
+
 
 @login_required
 def manage_country(request):
@@ -173,10 +215,7 @@ def manage_staff(request):
     staffs=Staffs.objects.all()  
     return render(request,"divine_admin_template/manage_staff.html",{"staffs":staffs})  
 
-@login_required
-def manage_insurance(request):
-    insurance_companies=InsuranceCompany.objects.all() 
-    return render(request,"divine_admin_template/manage_insurance.html",{"insurance_companies":insurance_companies})
+
 
 @login_required
 def resa_report(request):
@@ -274,225 +313,64 @@ def manage_pathodology(request):
 
 logger = logging.getLogger(__name__)
 
-@csrf_exempt
-@login_required
-def save_staff_view(request):
-    if request.method == 'POST':
-        try:
-            # Retrieve form data from the POST request
-            first_name = request.POST.get('firstName')
-            middle_name = request.POST.get('middleName')
-            lastname = request.POST.get('lastname')            
-            gender = request.POST.get('gender')
-            dob = request.POST.get('dob')
-            phone = request.POST.get('phone')
-            profession = request.POST.get('profession')            
-            marital_status = request.POST.get('maritalStatus')
-            email = request.POST.get('email')
-            password = request.POST.get('password')            
-            user_role = request.POST.get('userRole')
 
-            # Create a new CustomUser instance (if not exists) and link it to Staffs
-            user = CustomUser.objects.create_user(username=email, password=password, email=email, first_name=first_name, last_name=lastname, user_type=2)
-
-            # Create a new Staffs instance and link it to the user
-            
-            user.staff.middle_name = middle_name
-            user.staff.date_of_birth = dob
-            user.staff.gender = gender            
-            user.staff.phone_number = phone            
-            user.staff.marital_status = marital_status
-            user.staff.profession = profession
-            user.staff.role = user_role
-        
-            # Save the staff record
-            user.save()
-
-            # For demonstration purposes, you can log the saved data
-            logger.info(f'Data saved successfully: {user.staff.__dict__}')
-
-            # Return a success response to the user
-            return JsonResponse({'message': 'Data saved successfully'}, status=200)
-        except Exception as e:
-            # Handle exceptions and log the error
-            logger.error(f'Error saving data: {str(e)}')
-            return JsonResponse({'error': str(e)}, status=400)
-
-    # Return an error response if the request is not POST
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
-    
-
-@login_required
-def edit_staff(request, staff_id):
-    # Check if the staff with the given ID exists, or return a 404 page
-    staff = get_object_or_404(Staffs, id=staff_id)  
-    # If staff exists, proceed with the rest of the view
-    request.session['staff_id'] = staff_id
-    return render(request, "divine_admin_template/edit_staff.html", {"id": staff_id, "username": staff.admin.username, "staff": staff})   
-
-
-@login_required
-def edit_staff_save(request):
-    if request.method == "POST":
-        try:
-            # Retrieve the staff ID from the session
-            staff_id = request.session.get('staff_id')
-            if staff_id is None:
-                messages.error(request, "Staff ID not found")
-                return redirect("manage_staff")
-
-            # Retrieve the staff instance from the database
-            try:
-                staff = Staffs.objects.get(id=staff_id)
-            except ObjectDoesNotExist:
-                messages.error(request, "Staff not found")
-                return redirect("manage_staff")
-
-            # Extract the form data
-            first_name = request.POST.get('firstName')
-            middle_name = request.POST.get('middleName')
-            lastname = request.POST.get('lastname')            
-            gender = request.POST.get('gender')
-            dob = request.POST.get('date_of_birth')
-            phone = request.POST.get('phone')
-            profession = request.POST.get('profession')            
-            marital_status = request.POST.get('maritalStatus')
-            email = request.POST.get('email')                        
-            user_role = request.POST.get('userRole')    
-          
-
-            # Save the staff details
-   
-            staff.admin.first_name = first_name
-            staff.admin.last_name = lastname
-            staff.admin.email = email
-            staff.middle_name = middle_name
-            staff.role = user_role
-            staff.profession = profession
-            staff.marital_status = marital_status
-            staff.date_of_birth = dob
-            staff.phone_number = phone
-            staff.gender = gender      
-            staff.save()
-
-       
-            messages.success(request, "")
-            return redirect("manage_staff")
-        except Exception as e:
-            messages.error(request, f"Error updating staff details: {str(e)}")
-
-    return redirect("edit_staff",staff_id=staff_id)
-
-
-
-@login_required
-def single_staff_detail(request, staff_id):
-    staff = get_object_or_404(Staffs, id=staff_id)
-    # Fetch additional staff-related data  
-    context = {
-        'staff': staff,
-     
-    }
-
-    return render(request, "divine_admin_template/staff_details.html", context)
 
 
 
 @login_required
 def patient_procedure_view(request):
-    # Retrieve distinct patient and visit combinations from RemoteProcedure
-    patient_procedures = (
-        RemoteProcedure.objects.values('patient__mrn', 'visit__vst',
-                                       'doctor__admin__first_name',
-                                          'doctor__middle_name',
-                                          'doctor__role',
-                                          'doctor__admin__first_name',
-                                       )  # Group by patient MRN and visit number
-        .annotate(
-            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
-            procedure_name=Subquery(
-                RemoteProcedure.objects.filter(
-                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
-                    visit__vst=OuterRef('visit__vst')       # Match visit number
-                )
-                .order_by('-created_at')  # Order by most recent procedure
-                .values('name__name')[:1]  # Retrieve the latest procedure name
-            )
-        )
-        .order_by('-latest_date')  # Order by the latest procedure date
+    # Get all distinct (patient, visit) pairs that have at least one procedure
+    distinct_procedure_sets = (
+        RemoteProcedure.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
+
+    # Prepare data structure for template
+    patient_procedures = []
+
+    for entry in distinct_procedure_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        procedures = RemoteProcedure.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'doctor__admin', 'name')
+
+        if procedures.exists():
+            first_proc = procedures.first()
+            patient_procedures.append({
+                'patient': first_proc.patient,
+                'visit': first_proc.visit,
+                'latest_date': latest_date,
+                'doctor': first_proc.doctor,
+                'procedure_done_by':first_proc.doctor,
+                'procedures': procedures  # All procedures for that visit
+            })
 
     context = {
         'patient_procedures': patient_procedures,
     }
     return render(request, 'divine_admin_template/manage_procedure.html', context)
 
-@login_required
-def patient_procedure_detail_view(request, mrn, visit_number):
-    """ View to display procedure details for a specific patient and visit. """
-    
-    # Fetch patient and visit in one go
-    patient = get_object_or_404(RemotePatient, mrn=mrn)
-    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
-    
-    # Retrieve procedures related to this patient and visit
-    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
-
-    # Get the doctor who performed the first procedure (if exists)
-    procedure_done_by = procedures[0].doctor if procedures else None
-
-    context = {
-        'procedure_done_by': procedure_done_by,
-        'patient': patient,
-        'visit': visit,
-        'procedure': procedures,
-    }
-
-    return render(request, 'divine_admin_template/manage_procedure_detail_view.html', context)
-
-
-@login_required
-def patient_procedure_history_view(request, mrn):
-    patient = get_object_or_404(RemotePatient, mrn=mrn)
-    
-    # Retrieve all procedures for the specific patient
-    procedures = RemoteProcedure.objects.filter(patient=patient)
-    patient_procedures =  RemoteService.objects.filter(category='Procedure')
-    
-    context = {
-        'patient': patient,
-        'procedures': procedures,
-        'patient_procedures': patient_procedures,
-    }
-
-    return render(request, 'divine_admin_template/manage_patient_procedure.html', context)
-
-
-
 
 @login_required
 def manage_referral(request):
-    referrals = RemoteReferral.objects.all()
-    patients = RemotePatient.objects.all()
-    return render(request, 'divine_admin_template/manage_referral.html', {'referrals': referrals,'patients':patients})
+    referrals = RemoteReferral.objects.all()   
+    return render(request, 'divine_admin_template/manage_referral.html', {'referrals': referrals})
 
 
-def view_referral(request, referral_id):
-    referral = get_object_or_404(RemoteReferral, id=referral_id)
-    context = {
-        'referral': referral
-    }
-    return render(request, 'divine_admin_template/view_referral.html', context)
 
 @login_required
 def appointment_list_view(request):
     appointments = RemoteConsultation.objects.all() 
-    doctors = Staffs.objects.filter(role='doctor', work_place = 'kahama')
-    patients = RemotePatient.objects.all()
+    doctors = Staffs.objects.filter(role='doctor', work_place = 'kahama')   
     context = {        
         'appointments':appointments,
-        'doctors':doctors,
-        'patients':patients,
+        'doctors':doctors        
     }
     return render(request, 'divine_admin_template/manage_appointment.html', context)
 
@@ -548,119 +426,58 @@ def add_disease(request):
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
  
-@csrf_exempt
-@login_required    
-def add_insurance_company(request):
-    if request.method == 'POST':
-        try:
-            # Extract data from the request
-            company_id = request.POST.get('company_id')
-            name = request.POST.get('Name').strip()
-            phone = request.POST.get('Phone').strip()
-            short_name = request.POST.get('Short_name').strip()
-            email = request.POST.get('Email').strip()
-            address = request.POST.get('Address').strip()
-            website = request.POST.get('website').strip()
-
-            # Check if company_id is provided
-            if company_id:
-                # Get the existing insurance company object
-                insurance_company = InsuranceCompany.objects.get(pk=company_id)
-                if insurance_company:
-                    # Check if the new name conflicts with existing names
-                    if InsuranceCompany.objects.exclude(pk=company_id).filter(name=name).exists():
-                        return JsonResponse({'success': False, 'message': 'Another insurance company with the same name already exists'})
-                    
-                    # Update the insurance company details
-                    insurance_company.name = name
-                    insurance_company.data_recorder=request.user.staff 
-                    insurance_company.phone = phone
-                    insurance_company.short_name = short_name
-                    insurance_company.email = email
-                    insurance_company.address = address
-                    insurance_company.website = website
-                    insurance_company.save()
-                    return JsonResponse({'success': True, 'message': 'Insurance company divine_admin_templated successfully'})
-                else:
-                    return JsonResponse({'success': False, 'message': 'Insurance company does not exist'})
-            else:
-                # Check if an insurance company with the same name already exists
-                if InsuranceCompany.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Insurance company already exists'})
-                
-                # Save data to the model for new insurance company
-                InsuranceCompany.objects.create(
-                    name=name,
-                    phone=phone,
-                    short_name=short_name,
-                    data_recorder=request.user.staff ,
-                    email=email,
-                    address=address,
-                    website=website,
-                )
-                
-                return JsonResponse({'success': True, 'message': 'Insurance company added successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
  
+# views.py
+@require_POST
+def delete_remotecompany(request):
+    company_id = request.POST.get('company_id')
+    try:
+        RemoteCompany.objects.get(id=company_id).delete()
+        return JsonResponse({'success': True})
+    except RemoteCompany.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Company not found'})
+
 @csrf_exempt
 @login_required
 def add_company(request):
     if request.method == 'POST':
         try:
-            # Get data from the request
             company_id = request.POST.get('company_id')
-            name = request.POST.get('Name').strip()
-            industry = request.POST.get('industry', '')
-            sector = request.POST.get('sector', '')
-            headquarters = request.POST.get('headquarters', '')
-            Founded = request.POST.get('Founded', '')
-            Notes = request.POST.get('Notes', '')
+            name = request.POST.get('name', '').strip()
 
-            # Check if company_id is provided
+            if not name:
+                return JsonResponse({'success': False, 'message': 'Company name is required.'})
+
+            # Editing an existing company
             if company_id:
-                # Fetch the existing company object
-                company = RemoteCompany.objects.get(pk=company_id)
+                try:
+                    company = RemoteCompany.objects.get(pk=company_id)
 
-                # Check if the new name already exists and it's not the same as the current name
-                if RemoteCompany.objects.filter(name=name).exclude(pk=company_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Company with the provided name already exists'})
+                    # Ensure no duplicate names
+                    if RemoteCompany.objects.filter(name=name).exclude(pk=company_id).exists():
+                        return JsonResponse({'success': False, 'message': 'Company name already exists.'})
 
-                # Update company data
-                company.name = name
-                company.industry = industry
-                company.sector = sector
-                company.headquarters = headquarters
-                company.data_recorder=request.user.staff 
-                company.Founded = Founded
-                company.Notes = Notes
-                company.save()
+                    company.name = name
+                    company.save()
 
-                return JsonResponse({'success': True, 'message': 'Company divine_admin_templated successfully'})
+                    return JsonResponse({'success': True, 'message': 'Company updated successfully.'})
+                except RemoteCompany.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Company not found.'})
+
+            # Adding a new company
             else:
-                # Check if a company with the given name already exists
                 if RemoteCompany.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Company already exists'})
+                    return JsonResponse({'success': False, 'message': 'Company already exists.'})
 
-                # Save new company data
-                RemoteCompany.objects.create(
-                    name=name,
-                    industry=industry,
-                    sector=sector,
-                    headquarters=headquarters,
-                    data_recorder=request.user.staff ,
-                    Founded=Founded,
-                    Notes=Notes,
-                )
+                RemoteCompany.objects.create(name=name)
+                return JsonResponse({'success': True, 'message': 'Company added successfully.'})
 
-                return JsonResponse({'success': True, 'message': 'Company added successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
     
   
  
@@ -705,263 +522,54 @@ def add_pathodology_record(request):
     else:
         return JsonResponse({'success': False, 'message': 'Invalid request method'})
 
-def out_of_stock_medicines(request):
-    try:
-        # Query the database for the count of out-of-stock medicines
-        out_of_stock_count = Medicine.objects.filter(remain_quantity=0).count()
-        
-        # Return the count in JSON format
-        return JsonResponse({'count': out_of_stock_count})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return JsonResponse({'error': str(e)}, status=500)    
-
-@login_required    
-def out_of_stock_medicines_view(request):
-    try:
-        # Query the database for out-of-stock medicines
-        out_of_stock_medicines = Medicine.objects.filter(remain_quantity=0)
-        
-        # Render the template with the out-of-stock medicines data
-        return render(request, 'divine_admin_template/manage_out_of_stock_medicines.html', {'out_of_stock_medicines': out_of_stock_medicines})
-    
-    except Exception as e:
-        # Handle any errors and return an error response
-        return render(request, '404.html', {'error_message': str(e)}) 
-
-
-    
-@login_required    
-def in_stock_medicines_view(request):
-    # Retrieve medicines with inventory levels above zero
-    in_stock_medicines = Medicine.objects.filter(remain_quantity__gt=0)
-
-    return render(request, 'divine_admin_template/manage_in_stock_medicines.html', {'in_stock_medicines': in_stock_medicines})  
 
 
 
-@login_required
-def patient_visit_history_view(request, patient_id):
-    # Retrieve visit history for the specified patient
-    visit_history = RemotePatientVisits.objects.filter(patient_id=patient_id)
-    current_date = timezone.now().date()
-    doctors = Staffs.objects.filter(role='doctor', work_place = 'kahama')
-    patient = RemotePatient.objects.get(id=patient_id)   
-    return render(request, 'divine_admin_template/manage_patient_visit_history.html', {
-        'visit_history': visit_history,
-        'patient':patient,        
-        'doctors': doctors,
-        })
 
 
-   
-    
-@login_required
-def patient_visit_details_view(request, patient_id, visit_id):
-    try:        
-        visit = RemotePatientVisits.objects.get(id=visit_id)
-        prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit=visit_id)
-        chief_complaints = ChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        primary_physical_examination = PrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        secondary_physical_examination = SecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = RemoteConsultationNotes.objects.get(patient_id=patient_id, visit=visit_id)  
-        vitals = RemotePatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
-        referral_records  = RemoteReferral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
-        counseling_records = RemoteCounseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
-        procedures = RemoteProcedure.objects.filter(patient=patient_id, visit=visit_id)        
-        discharge_notes = RemoteDischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
-        observation_records = RemoteObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
-        lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)         
-        diagnosis_record = RemotePatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(RemotePatient, id=patient_id)        
-        context = {
-            'primary_physical_examination': primary_physical_examination,
-            'secondary_physical_examination': secondary_physical_examination,
-            'visit': visit,
-            'counseling_records': counseling_records,
-            'observation_records': observation_records,
-            'patient': patient,
-            'referral_records ': referral_records ,
-            'chief_complaints': chief_complaints,              
-            'prescriptions': prescriptions,           
-            'consultation_notes': consultation_notes,     
-            'diagnosis_record': diagnosis_record,            
-            'vitals': vitals,     
-            'lab_tests': lab_tests,
-            'procedures': procedures,          
-          
-            'discharge_notes': discharge_notes,
-        }
-
-        return render(request, 'divine_admin_template/manage_patient_visit_detail_record.html', context)
-    except RemotePatient.DoesNotExist:
-        raise Http404("Patient does not exist")
-    except Exception as e:
-        return render(request, '404.html', {'error_message': str(e)})    
-
-    
 
 @login_required
 def prescription_list(request):
-    # Retrieve all prescriptions with related patient and visit
-    prescriptions = RemotePrescription.objects.select_related('visit__patient').all()
+    # Step 1: Fetch all prescriptions with related fields
+    prescriptions = RemotePrescription.objects.select_related(
+        'visit', 'patient', 'medicine', 'frequency'
+    ).order_by('-visit__created_at')
 
-    # Initialize a dictionary to store visit-wise data
-    visit_data = {}
-
-    # Iterate through prescriptions to group by visit
+    # Step 2: Group prescriptions by visit
+    grouped_visits = {}
     for prescription in prescriptions:
-        visit_id = prescription.visit_id
+        visit_id = prescription.visit.id
 
-        # Check if visit_id already exists in visit_data
-        if visit_id in visit_data:
-            visit_data[visit_id]['prescriptions'].append({
-                'medicine_name': prescription.medicine.drug_name,
-                'frequency_name': prescription.frequency.name,
-                'duration': prescription.duration,
-                'quantity': prescription.quantity_used,
-                'dose': prescription.dose,
-            })
-        else:
-            # Add new entry for the visit_id
-            visit_data[visit_id] = {
-                'visit_id': visit_id,
-                'visit_number': prescription.visit.vst,  # Include visit number
-                'patient_name': f"{prescription.visit.patient.first_name} {prescription.visit.patient.last_name}",
-                'created_at': prescription.visit.created_at,
-                'patient_id': prescription.visit.patient_id,
-                'middle_name': prescription.visit.patient.middle_name,
-                'prescriptions': [{
-                    'medicine_name': prescription.medicine.drug_name,
-                    'frequency_name': prescription.frequency.name,
-                    'duration': prescription.duration,
-                    'quantity': prescription.quantity_used,
-                    'dose': prescription.dose,
-                }],
+        if visit_id not in grouped_visits:
+            grouped_visits[visit_id] = {
+                'visit': prescription.visit,
+                'patient': prescription.patient,
+                'prescriptions': [],
             }
 
-    # Convert dictionary values to list for template rendering
-    visit_data_list = list(visit_data.values())
+        grouped_visits[visit_id]['prescriptions'].append(prescription)
+
+    # Step 3: Sort visits by creation date
+    visit_groups = sorted(
+        grouped_visits.values(), key=lambda v: v['visit'].created_at, reverse=True
+    )
 
     return render(request, 'divine_admin_template/manage_prescription_list.html', {
-        'visit_data': visit_data_list,
+        'visit_groups': visit_groups,
     })
 
 
-@login_required
-def prescription_notes(request, visit_id, patient_id):
-    patient = RemotePatient.objects.get(id=patient_id)
-    visit = RemotePatientVisits.objects.get(id=visit_id)
-    prescriptions = RemotePrescription.objects.filter(visit__id=visit_id, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient,
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit.vst,
-        'visit': visit,
-    }
-    return render(request, "divine_admin_template/prescription_notes.html", context)
-
-
-
 
 @login_required
-def patient_vital_all_list(request):
-    # Retrieve distinct patient and visit combinations
-    patient_vitals = (
-        RemotePatientVital.objects.values('patient__mrn', 'visit__vst',
-                                          'doctor__admin__first_name',
-                                          'doctor__middle_name',
-                                          'doctor__role',
-                                          'doctor__admin__first_name')
-        .annotate(
-            latest_date=Max('recorded_at')  # Get the latest record date for each patient and visit
-        )
-        .order_by('-latest_date')
-    )
-    
-    context = {      
-        'patient_vitals': patient_vitals,
-    }
-    return render(request, 'divine_admin_template/manage_all_patient_vital.html', context) 
-
-@login_required
-def patient_vital_detail(request, patient_mrn, visit_number):
-    # Get the patient instance
-    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
-
-    # Get the visit instance
-    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
-
-    # Get vitals related to the patient and visit
-    vitals = RemotePatientVital.objects.filter(patient=patient, visit=visit).select_related('doctor')
-
-    # Ensure we retrieve the doctor correctly
-    vital_done_by = vitals.first().doctor if vitals.exists() and vitals.first().doctor else None
-
-    context = {
-        'vitals': vitals,
-        'patient': patient,
-        'patient_mrn': patient_mrn,
-        'vital_done_by': vital_done_by,
-        'visit': visit,
-    }
-
-    return render(request, 'divine_admin_template/manage_patient_vital_list.html', context)
-
-
-    
-@login_required
-def save_remotepatient_vitals(request, patient_id, visit_id):
-    try:
-        # Retrieve the patient and visit objects
-        patient = RemotePatient.objects.get(pk=patient_id)
-        visit = RemotePatientVisits.objects.get(patient=patient, id=visit_id)
-        import numpy as np
-        # Prepare ranges for context
-        range_51 = range(51)
-        integer_range = np.arange(start=0, stop=510, step=1)
-        temps = integer_range / 10
-        range_301 = range(301)
-        range_101 = range(101)
-        range_15 = range(3, 16)
-
-        context = {
-            'patient': patient,
-            'range_51': range_51,
-            'range_301': range_301,
-            'range_101': range_101,
-            'range_15': range_15,
-            'temps': temps,
-            'visit': visit,
-        }
-
-        # Retrieve the existing vital record, if any, for this patient and visit
-        existing_vital = RemotePatientVital.objects.filter(patient=patient, visit=visit).last()
-
-        if existing_vital:
-            # Include existing vital in the context if it exists
-            context['existing_vital'] = existing_vital
-
-        # Render the template with the patient, visit, and any existing vital data
-        return render(request, 'divine_admin_template/add_remotepatient_vital.html', context)
-
-    except Exception as e:
-        # Handle any other exceptions and display an error message
-        messages.error(request, f'Error retrieving patient vital information: {str(e)}')
-        return render(request, 'divine_admin_template/add_remotepatient_vital.html', context)
-
-    
-@login_required        
 def consultation_notes_view(request):
-    consultation_notes = RemoteConsultationNotes.objects.all() 
+    # Get all patients who have consultation notes
+    patient_records = RemotePatient.objects.filter(
+        remoteconsultationnotes__isnull=False
+    ).distinct().order_by('-remoteconsultationnotes__updated_at')
+
     return render(request, 'divine_admin_template/manage_consultation_notes.html', {
-        'consultation_notes': consultation_notes,       
-        })    
+        'patient_records': patient_records
+    })
 
 
 def diagnosis_list(request):
@@ -1018,118 +626,6 @@ def save_diagnosis(request):
         return JsonResponse({'success': False, 'message': str(e)})
 
 
-
-@login_required
-def patients_list(request):
-    patients =RemotePatient.objects.order_by('-created_at')    
-    doctors = Staffs.objects.filter(role='doctor', work_place = 'kahama')
-    return render(request, 'divine_admin_template/manage_remotepatients_list.html',
-                  {
-                      'patients': patients,
-                      'doctors': doctors,
-                      })
-
-@login_required
-def save_patient_visit_save(request, patient_id, visit_id=None):
-    # Retrieve the patient object or handle the error if it does not exist
-    patient = get_object_or_404(RemotePatient, pk=patient_id)
-
-    # Retrieve the visit object if editing an existing visit
-    if visit_id:
-        visit = get_object_or_404(RemotePatientVisits, pk=visit_id)
-    else:
-        visit = None
-
-    # Render the template with patient and visit data (no POST request handling)
-    return render(request, 'divine_admin_template/add_patient_visit.html', {
-        'patient': patient,
-        'visit': visit,
-    })
-
-
-
-@login_required
-def patient_info_form_edit(request, patient_id):    
-    try:
-        # Retrieve the patient object
-        patient = RemotePatient.objects.get(pk=patient_id)    
-    except RemotePatient.DoesNotExist:
-        # Handle the case where the patient does not exist
-        return HttpResponse("Patient not found", status=404)
-
-    # Retrieve necessary data for the form (no POST request handling)
-    all_country = Country.objects.all()
-    all_company = RemoteCompany.objects.all()
-    range_121 = range(1, 121)
-
-    # Render the template with the patient data and additional required data
-    return render(request, 'divine_admin_template/edit_remotepatient.html', {
-        'patient': patient,
-        'all_country': all_country,
-        'all_company': all_company,
-        'range_121': range_121,
-    })
-
-
-@login_required
-def health_info_edit(request, patient_id):
-    try:
-        # Retrieve the patient object
-        patient = get_object_or_404(RemotePatient, pk=patient_id)
-        try:
-            all_medicines = RemoteMedicine.objects.all()
-        except RemoteMedicine.DoesNotExist:
-            # Handle the case where no medicines are found
-            all_medicines = []
-        
-        # Retrieve existing health records for the patient
-        try:
-            patient_health_records = PatientHealthCondition.objects.filter(patient_id=patient_id)
-        except PatientHealthCondition.DoesNotExist:
-            patient_health_records = None
-        
-        try:
-            medication_allergies = PatientMedicationAllergy.objects.filter(patient_id=patient_id)
-        except PatientMedicationAllergy.DoesNotExist:
-            medication_allergies = None
-        
-        try:
-            surgery_history = PatientSurgery.objects.filter(patient_id=patient_id)
-        except PatientSurgery.DoesNotExist:
-            surgery_history = None
-        
-        try:
-            lifestyle_behavior = PatientLifestyleBehavior.objects.get(patient_id=patient_id)
-        except PatientLifestyleBehavior.DoesNotExist:
-            lifestyle_behavior = None
-        
-        try:
-            family_medical_history = FamilyMedicalHistory.objects.filter(patient=patient)
-        except FamilyMedicalHistory.DoesNotExist:
-            family_medical_history = None
-        
-        context = {
-            'patient': patient,
-            'patient_health_records': patient_health_records,
-            'medication_allergies': medication_allergies,
-            'lifestyle_behavior': lifestyle_behavior,
-            'family_medical_history': family_medical_history,
-            'surgery_history': surgery_history,
-            'all_medicines': all_medicines,
-        }
-        
-        # Render the template with the prepared context
-        return render(request, 'divine_admin_template/edit_patient_health_condition_form.html', context)
-    
-    except Exception as e:
-        # Handle any exceptions and display error messages
-        messages.error(request, f'Error retrieving patient health records: {str(e)}')
-        
-        # If an exception occurs, still render the template with available context
-        return render(request, 'divine_admin_template/edit_patient_health_condition_form.html', context)
-
-
-
 @login_required
 def remoteservice_list(request):
     # Retrieve all services from the database
@@ -1181,65 +677,21 @@ def save_remote_service(request):
         return JsonResponse({'success': False, 'message': str(e)})
    
 
-@login_required
-def generatePDF(request, patient_id, visit_id):
-    pass
-
 
 def counseling_list_view(request):
     counselings = RemoteCounseling.objects.all().order_by('-created_at')
     return render(request, 'divine_admin_template/manage_counselling.html', {'counselings': counselings})    
 
-def view_counseling_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
-    patient = get_object_or_404(RemotePatient, id=patient_id) 
-    counseling_note = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
-    
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'counseling_note': counseling_note,
-    }
-    return render(request, 'divine_admin_template/counseling_notes_details.html', context)     
+   
 
 def observation_record_list_view(request):
     observation_records = RemoteObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'divine_admin_template/manage_observation_record.html', {'observation_records': observation_records})
 
-def view_observation_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)  
-    patient = get_object_or_404(RemotePatient, id=patient_id)  
-    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)      
-    
-    return render(request, 'divine_admin_template/observation_notes_detail.html', {
-        'observation_record': observation_record,
-        'visit': visit,
-    })    
 
 def discharge_notes_list_view(request):
     discharge_notes = RemoteDischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'divine_admin_template/manage_discharge.html', {'discharge_notes': discharge_notes})
-
-@login_required
-def discharge_details_view(request, patient_id, visit_id):
-    # Fetch the patient
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-
-    # Fetch the visit
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    
-    # Fetch the discharge note related to this visit
-    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
-
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'consultation_notes': consultation_notes,
-        'discharge_note': discharge_note,
-    }
-
-    return render(request, 'divine_admin_template/discharge_details.html', context)
 
 
 @login_required
@@ -1308,323 +760,6 @@ def delete_healthrecord(request):
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
     
 
-  
-@login_required
-def fetch_existing_data(request):
-    try:
-        # Extract patient_id and visit_id from the request parameters
-        patient_id = request.GET.get('patient_id')
-        visit_id = request.GET.get('visit_id')
-
-        # Query the database to fetch existing chief complaints based on patient_id and visit_id
-        existing_data = ChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id).values()
-        
-        # Create a list to hold the modified data with unified information
-        modified_data = []
-
-        # Iterate through each entry in the existing data
-        for entry in existing_data:
-            # Determine the information to display based on whether the health record is null or not
-            display_info = None
-            if entry['health_record_id'] is not None:
-                try:
-                    health_record = HealthRecord.objects.get(pk=entry['health_record_id'])
-                    display_info = health_record.name
-                except ObjectDoesNotExist:
-                    # Handle the case where the HealthRecord object does not exist
-                    display_info = "Unknown Health Record"
-            else:
-                # Use the "other complaint" field if health record is null
-                display_info = entry['other_complaint'] if entry['other_complaint'] else "Unknown"
-        
-            # Create a modified entry with unified information under the 'health_record' key
-            modified_entry = {
-                'id': entry['id'],
-                'patient_id': entry['patient_id'],
-                'visit_id': entry['visit_id'],
-                'health_record': display_info,
-                'health_record_id': health_record.id,
-                'duration': entry['duration'],
-                'created_at': entry['created_at'],
-                'updated_at': entry['updated_at']
-            }
-
-            # Add the modified entry to the list
-            modified_data.append(modified_entry)
-
-        # Return the modified data as a JSON response
-        return JsonResponse(modified_data, safe=False)
-    
-    except Exception as e:
-        # If an error occurs, return an error response with status code 500
-        return JsonResponse({'error': str(e)}, status=500)
-    
-
-@csrf_exempt
-def delete_chief_complaint(request, chief_complaint_id):
-    try:
-        # Fetch the ChiefComplaint object to delete
-        chief_complaint = get_object_or_404(ChiefComplaint, id=chief_complaint_id)
-        
-        # Delete the ChiefComplaint
-        chief_complaint.delete()
-        
-        # Return a success response
-        return JsonResponse({'message': 'Chief complaint deleted successfully'})
-    except Exception as e:
-        # If an error occurs, return an error response
-        return JsonResponse({'error': str(e)}, status=500)   
-    
-
-     
-@login_required
-def save_remotesconsultation_notes(request, patient_id, visit_id):
-    doctor = request.user.staff
-    patient = get_object_or_404(RemotePatient, pk=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, patient=patient_id, id=visit_id)
-    
-    # Initialize context variables
-    context = {
-        'secondary_examination': None,
-        'previous_counselings': None,
-        'previous_discharges': None,
-        'previous_observations': None,
-        'previous_lab_orders': None,
-        'previous_prescriptions': None,
-        'previous_referrals': None,
-        'previous_procedures': None,
-        'primary_examination': None,
-        'provisional_record': None,
-        'health_records': None,
-        'pathology_records': None,
-        'health_conditions': None,
-        'surgery_info': None,
-        'provisional_diagnoses': None,
-        'final_provisional_diagnosis': None,
-        'provisional_diagnosis_ids': None,
-        'family_history': None,
-        'behaviors': None,
-        'allergies': None,
-        'patient': patient,
-        'visit': visit,
-        'patient_vitals': None,
-        'patient_surgeries': None,
-        'consultation_note': None,
-    }
-
-    try:
-        # Query for various records associated with the patient and visit
-        health_conditions = PatientHealthCondition.objects.filter(patient_id=patient_id)
-        surgery_info = PatientSurgery.objects.filter(patient_id=patient_id)
-        family_history = FamilyMedicalHistory.objects.filter(patient_id=patient_id)
-        allergies = PatientMedicationAllergy.objects.filter(patient_id=patient_id)
-        behaviors = PatientLifestyleBehavior.objects.get(patient_id=patient_id)
-        patient_vitals = RemotePatientVital.objects.filter(patient=patient_id, visit=visit)
-        health_records = HealthRecord.objects.all()
-        patient_surgeries = PatientSurgery.objects.filter(patient=patient_id)
-
-        # Other related data retrievals
-        provisional_diagnoses = Diagnosis.objects.all()
-        consultation_note = RemoteConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
-        provisional_record, created = RemotePatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
-        provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
-        final_provisional_diagnosis = provisional_record.final_diagnosis.values_list('id', flat=True)
-        primary_examination = PrimaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit).first()
-        previous_counselings = RemoteCounseling.objects.filter(patient=patient_id, visit=visit)
-        previous_discharges = RemoteDischargesNotes.objects.filter(patient=patient_id, visit=visit)
-        previous_observations = RemoteObservationRecord.objects.filter(patient=patient_id, visit=visit)
-        previous_lab_orders = RemoteLaboratoryOrder.objects.filter(patient=patient_id, visit=visit)
-        previous_prescriptions = RemotePrescription.objects.filter(patient=patient_id, visit=visit)
-        previous_referrals = RemoteReferral.objects.filter(patient=patient_id, visit=visit)
-        previous_procedures = RemoteProcedure.objects.filter(patient=patient_id, visit=visit)
-        secondary_examination = SecondaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        pathology_records = PathodologyRecord.objects.all()
-
-        # Update context with the retrieved data
-        context.update({
-            'secondary_examination': secondary_examination,
-            'previous_counselings': previous_counselings,
-            'previous_discharges': previous_discharges,
-            'previous_observations': previous_observations,
-            'previous_lab_orders': previous_lab_orders,
-            'previous_prescriptions': previous_prescriptions,
-            'previous_referrals': previous_referrals,
-            'previous_procedures': previous_procedures,
-            'primary_examination': primary_examination,
-            'provisional_record': provisional_record,
-            'health_records': health_records,
-            'pathology_records': pathology_records,
-            'health_conditions': health_conditions,
-            'surgery_info': surgery_info,
-            'provisional_diagnoses': provisional_diagnoses,
-            'final_provisional_diagnosis': final_provisional_diagnosis,
-            'provisional_diagnosis_ids': provisional_diagnosis_ids,
-            'family_history': family_history,
-            'behaviors': behaviors,
-            'allergies': allergies,
-            'patient_vitals': patient_vitals,
-            'patient_surgeries': patient_surgeries,
-            'consultation_note': consultation_note,
-        })
-        
-    except Exception as e:
-        # Handle any exception that might occur and show an error message
-        messages.error(request, f'Error: {str(e)}')
-    
-    return render(request, 'divine_admin_template/add_consultation_notes.html', context)
-
-
-    
-
-@login_required    
-def save_counsel(request, patient_id, visit_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)              
-    data_recorder = request.user.staff
-    # Retrieve existing remote counseling record if it exists
-    remote_counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).first()
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'remote_counseling': remote_counseling,
-        'consultation_notes': consultation_notes,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = RemoteCounselingForm(request.POST, instance=remote_counseling)
-        
-        # Check if a record already exists for the patient and visit
-        if remote_counseling:
-            # If a record exists, divine_admin_template it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient
-            form.instance.data_recorder = data_recorder
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('divine_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = RemoteCounselingForm(instance=remote_counseling)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'divine_admin_template/counsel_template.html', context)
-
-@login_required
-def save_remotereferral(request, patient_id, visit_id):
-    try:
-        # Retrieve patient and visit objects
-        patient = get_object_or_404(RemotePatient, id=patient_id)
-        visit = get_object_or_404(RemotePatientVisits, id=visit_id)        
-        data_recorder = request.user.staff
-        referral = RemoteReferral.objects.filter(patient=patient, visit=visit).first()   
-        context = {'patient': patient, 'visit': visit, 'referral': referral}  
-
-        if request.method == 'POST':
-            # Process the form data if it's a POST request
-            form = RemoteReferralForm(request.POST, instance=referral)
-            
-            if form.is_valid():
-                # If a referral record exists, divine_admin_template it
-                if referral:
-                    referral = form.save(commit=False)
-                    referral.patient = patient
-                    referral.visit = visit
-                    referral.data_recorder = data_recorder
-                    referral.save()
-                    messages.success(request, '')
-                else:
-                    # If no referral record exists, create a new one
-                    form.instance.patient = patient
-                    form.instance.visit = visit
-                    form.instance.data_recorder = data_recorder
-                    form.save()
-                    messages.success(request, '')
-                
-                # Redirect to a success page or another view
-                return redirect(reverse('divine_patient_visit_details_view', args=[patient_id, visit_id]))
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If it's a GET request, initialize the form with existing data (if any)
-            form = RemoteReferralForm(instance=referral)
-        
-        context['form'] = form
-        return render(request, 'divine_admin_template/save_remotereferral.html', context)
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'divine_admin_template/save_remotereferral.html', context)
-        
-
-    
-
-
-@login_required
-def save_observation(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    data_recorder = request.user.staff
-    record_exists = RemoteObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    context = {'patient': patient, 
-               'visit': visit, 
-               'consultation_notes': consultation_notes, 
-               'record_exists': record_exists
-               }
-    if request.method == 'POST':
-        form = RemoteObservationRecordForm(request.POST)
-        if form.is_valid():
-            description = form.cleaned_data['observation_notes']
-            try:
-                if record_exists:
-                    # If a record exists, divine_admin_template it
-                    observation_record = RemoteObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
-                    observation_record.observation_notes = description
-                    observation_record.data_recorder = data_recorder
-                    observation_record.save()
-                    messages.success(request, '')
-                else:
-                    # If no record exists, create a new one
-                    RemoteObservationRecord.objects.create(
-                        patient=patient,
-                        visit=visit,
-                        data_recorder=data_recorder,
-                        observation_notes=description,
-                    )
-                    messages.success(request, '')
-                return redirect(reverse('divine_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-            except Exception as e:
-                messages.error(request, f'Error: {str(e)}')
-        else:
-            messages.error(request, 'Please fill out all required fields.')
-    else:
-        form = RemoteObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
-
-    context['form'] = form
-    return render(request, 'divine_admin_template/observation_template.html', context)
-
 
     
 @login_required
@@ -1645,197 +780,59 @@ def patient_observation_view(request):
     )
     return render(request, template_name, {'data': data})
 
-@login_required
-def patient_observation_history_view(request, mrn):
-    patient = get_object_or_404(RemotePatient, mrn=mrn)    
-    # Retrieve all procedures for the specific patient
-    observations = RemoteObservationRecord.objects.filter(patient=patient)
-    patient_observations =  Service.objects.filter(type_service='Imaging')    
-    context = {
-        'patient': patient,
-        'observations': observations,
-        'patient_observations': patient_observations,
-    }
-    return render(request, 'divine_admin_template/manage_patient_observation.html', context)
+
 
 
 @login_required
 def patient_laboratory_view(request):
-    template_name = 'divine_admin_template/manage_lab_result.html'
-
-    # Retrieve distinct patient and visit combinations from RemoteLaboratoryOrder
-    patient_lab_results = (
-        RemoteLaboratoryOrder.objects.values('patient__mrn', 
-                                            'data_recorder__admin__first_name',
-                                          'data_recorder__middle_name',
-                                          'data_recorder__role',
-                                          'data_recorder__admin__first_name',
-                                             'visit__vst',
-                                             )  
-        .annotate(
-            latest_result_date=Max('created_at')  # Annotate with the latest lab result date for each combination
-        )
-        .order_by('-latest_result_date')  # Order results by the latest date in descending order
+    # Get distinct (patient, visit) combinations with latest result date
+    distinct_lab_sets = (
+        RemoteLaboratoryOrder.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
     )
 
+    patient_lab_data = []
+
+    for entry in distinct_lab_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        lab_tests = RemoteLaboratoryOrder.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin')
+
+        if lab_tests.exists():
+            first_lab = lab_tests.first()
+            patient_lab_data.append({
+                'patient': first_lab.patient,
+                'visit': first_lab.visit,
+                'latest_date': latest_date,
+                'lab_done_by': first_lab.data_recorder,
+                'lab_tests': lab_tests
+            })
+
     context = {
-        'data': patient_lab_results,  # Pass the results as 'data' for template rendering
+        'patient_labs': patient_lab_data,
     }
 
-    return render(request, template_name, context)
+    return render(request, 'divine_admin_template/manage_lab_result.html', context)
 
-
-
-@login_required
-def patient_lab_details_view(request, mrn, visit_number):
-    # Fetch the patient with a prefetch query to reduce database hits
-    patient = get_object_or_404(RemotePatient.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
-    visit = get_object_or_404(RemotePatientVisits, vst=visit_number)
-    
-    # Retrieve lab results efficiently
-    lab_results = list(patient.remotelaboratoryorder_set.filter(visit__vst=visit_number))
-
-    # Get the first data recorder if lab results exist
-    lab_done_by = lab_results[0].data_recorder if lab_results else None
-
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'lab_done_by': lab_done_by,
-        'lab_results': lab_results,
-    }
-
-    return render(request, 'divine_admin_template/lab_details.html', context)
-
-@login_required
-def patient_lab_result_history_view(request, mrn):
-    patient = get_object_or_404(RemotePatient, mrn=mrn)    
-    # Retrieve all procedures for the specific patient
-    lab_results = RemoteLaboratoryOrder.objects.filter(patient=patient)
-    patient_lab_results =  Service.objects.filter(type_service='Laboratory')    
-    context = {
-        'patient': patient,
-        'lab_results': lab_results,
-        'patient_lab_results': patient_lab_results,
-    }
-    return render(request, 'divine_admin_template/manage_patient_lab_result.html', context)
-
-
-
-def add_service(request):
-    try:
-        if request.method == 'POST':
-            # Get form data
-            name = request.POST.get('name')
-            description = request.POST.get('description')
-            type_service = request.POST.get('type_service')
-            coverage = request.POST.get('coverage')
-            cash_cost = request.POST.get('cash_cost')
-            nhif_cost = request.POST.get('nhif_cost')
-            insurance_cost = request.POST.get('insurance_cost')
-            
-            # Check if service ID is provided (for editing existing service)
-            service_id = request.POST.get('service_id')
-            
-            if service_id:
-                service = Service.objects.get(pk=service_id)
-                # Update existing service
-                service.name = name
-                service.description = description
-                service.type_service = type_service
-                service.coverage = coverage
-                service.cash_cost = cash_cost
-                service.data_recorder = request.user.staff 
-                
-                # Add nhif_cost and insurance_cost only if coverage is insurance
-                if coverage == 'Insurance':
-                    service.nhif_cost = nhif_cost
-                    service.insurance_cost = insurance_cost
-                else:
-                    # If coverage is not insurance, set nhif_cost and insurance_cost to 0
-                    service.nhif_cost = 0
-                    service.insurance_cost = 0
-                
-                service.save()
-                return JsonResponse({'success': True, 'message': 'Service divine_admin_templated successfully'})
-            else:
-                # Check if the service name already exists
-                if Service.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Service with this name already exists'})
-                
-                # Add new service
-                new_service = Service.objects.create(name=name, 
-                                                     description=description,
-                                                     type_service=type_service,
-                                                     data_recorder = request.user.staff , 
-                                                      coverage=coverage, cash_cost=cash_cost
-                                                      )
-                # Add nhif_cost and insurance_cost only if coverage is insurance
-                if coverage == 'Insurance':
-                    new_service.nhif_cost = nhif_cost
-                    new_service.insurance_cost = insurance_cost
-                
-                else:
-                    service.nhif_cost = 0
-                    service.insurance_cost = 0  
-                      
-                new_service.save()
-                    
-                return JsonResponse({'success': True, 'message': 'Service added successfully'})
-        else:
-            return JsonResponse({'success': False, 'message': 'Invalid request method'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})    
-    
-
-  
-@csrf_exempt      
-@require_POST
-def delete_remote_patient(request, patient_id):
-    try:
-        patient_remote = get_object_or_404(RemotePatient, pk=patient_id)
-        patient_remote.delete()
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}) 
  
-@login_required    
-def save_remote_discharges_notes(request, patient_id, visit_id):
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
-    consultation_notes = RemotePatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    remote_discharges_notes = RemoteDischargesNotes.objects.filter(patient=patient, visit=visit).first()  
-    context = {
-            'patient': patient,
-            'visit': visit,
-            'consultation_notes': consultation_notes,
-            'remote_discharges_notes': remote_discharges_notes,         
-        }
-        
-    try:      
-        # Check if the request user is staff
-        data_recorder = request.user.staff      
-        # Handle form submission
-        if request.method == 'POST':
-            form = RemoteDischargesNotesForm(request.POST, instance=remote_discharges_notes)
-            if form.is_valid():
-                remote_discharges_notes = form.save(commit=False)
-                remote_discharges_notes.patient = patient
-                remote_discharges_notes.visit = visit
-                remote_discharges_notes.data_recorder = data_recorder
-                remote_discharges_notes.save()
-                messages.success(request, '')
-                return redirect(reverse('divine_patient_visit_details_view', args=[patient_id, visit_id]))  # Redirect to the next view
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            form = RemoteDischargesNotesForm(instance=remote_discharges_notes)        
-        # Prepare context for rendering the template
-        context['form'] = form
-        return render(request, 'divine_admin_template/disrcharge_template.html', context)    
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'divine_admin_template/disrcharge_template.html', context)
+@csrf_exempt
+def delete_consultation(request):
+    if request.method == 'POST':
+        appointment_id = request.POST.get('appointment_id')
+        try:
+            appointment = RemoteConsultation.objects.get(id=appointment_id)
+            appointment.delete()
+            return JsonResponse({'status': 'success'})
+        except RemoteConsultation.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Appointment not found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 @login_required    
 def patient_statistics(request):
@@ -2011,107 +1008,145 @@ def render_report(report_type, year, template):
         raise ValueError(f"Unknown report type: {report_type}")
 
 
-
-
- 
-
 @login_required
 def remotemedicine_list(request):
     medicines = RemoteMedicine.objects.all()
-    return render(request, 'divine_admin_template/remotemedicine_list.html', {'medicines': medicines})
+    today = date.today()
+        # Annotate each with days left
+    for medicine in medicines:
+        if medicine.expiration_date:
+            medicine.days_left = (medicine.expiration_date - today).days
+        else:
+            medicine.days_left = None
+    return render(request, 'divine_admin_template/remotemedicine_list.html', {'medicines': medicines,'today': date.today()})
+
 
 @login_required
 @csrf_exempt
 def add_remote_medicine(request):
     if request.method == 'POST':
         try:
-            # Retrieve data from POST request
-            drug_id = request.POST.get('drug_id')
-            drug_name = request.POST.get('drug_name').strip()
-            drug_type = request.POST.get('drug_type').strip()
-            formulation_unit = request.POST.get('formulation_unit').strip()
-            manufacturer = request.POST.get('manufacturer').strip()
-            quantity = request.POST.get('quantity').strip()
-            dividable = request.POST.get('dividable')
-            batch_number = request.POST.get('batch_number').strip()
-            expiration_date = request.POST.get('expiration_date')
-            unit_cost = request.POST.get('unit_cost').strip()
-            buying_price = request.POST.get('buying_price').strip()
-            
-            # Check if required fields are provided
-            if not (drug_name and quantity and buying_price):
-                return JsonResponse({'success': False, 'message': 'Missing required fields'})
+            post = request.POST
+            drug_id = post.get('medicine_id')
+            drug_name = post.get('drug_name', '').strip()
+            drug_type = post.get('drug_type', '').strip()
+            formulation_unit = post.get('formulation_unit', '').strip()
+            is_dividable = post.get('is_dividable') == 'true'
+            dividing_unit = post.get('dividing_unit')
+            is_clinic_stock = post.get('is_clinic_stock') == 'true'
+            manufacturer = post.get('manufacturer', '').strip()
+            quantity = post.get('quantity')
+            minimum_stock_level = post.get('minimum_stock_level')
+            batch_number = post.get('batch_number', '').strip()
+            expiration_date = post.get('expiration_date')
 
-            # Convert quantity and buying_price to integers or floats
-            try:
-                quantity = int(quantity)
-                buying_price = float(buying_price)
-            except ValueError:
-                return JsonResponse({'success': False, 'message': 'Invalid quantity or buying price'})
+            # Basic validation
+            if not drug_name or not drug_type or not formulation_unit:
+                return JsonResponse({'success': False, 'message': 'Drug name, type and formulation unit are required.'})
 
-            # If drug ID is provided, it indicates editing existing data
+            if is_clinic_stock:
+                required_fields = [manufacturer, quantity, minimum_stock_level, batch_number, expiration_date]
+                if not all(required_fields):
+                    return JsonResponse({'success': False, 'message': 'All clinic stock fields are required.'})
+                try:
+                    quantity = int(quantity)
+                    minimum_stock_level = int(minimum_stock_level)
+                except ValueError:
+                    return JsonResponse({'success': False, 'message': 'Quantity and minimum stock level must be numeric.'})
+
             if drug_id:
-                # Check if another medicine with the same name or batch number already exists
+                # Editing existing
+                try:
+                    medicine = RemoteMedicine.objects.get(pk=drug_id)
+                except RemoteMedicine.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Medicine not found for editing.'})
+
+                # Prevent duplicates on name or batch number
                 if RemoteMedicine.objects.exclude(pk=drug_id).filter(drug_name=drug_name).exists():
                     return JsonResponse({'success': False, 'message': 'Another medicine with the same name already exists'})
                 if RemoteMedicine.objects.exclude(pk=drug_id).filter(batch_number=batch_number).exists():
                     return JsonResponse({'success': False, 'message': 'Another medicine with the same batch number already exists'})
-                
-                # Get the RemoteMedicine object to edit
-                medicine = RemoteMedicine.objects.get(pk=drug_id)
-                
-                # Update fields with new values
+
+                # Update fields
                 medicine.drug_name = drug_name
                 medicine.drug_type = drug_type
                 medicine.formulation_unit = formulation_unit
-                medicine.manufacturer = manufacturer
-                medicine.quantity = quantity
-                medicine.remain_quantity = quantity
-                medicine.dividable = dividable
-                medicine.batch_number = batch_number
-                medicine.expiration_date = expiration_date
-                medicine.unit_cost = unit_cost
-                medicine.buying_price = buying_price
-                medicine.data_recorder = request.user.staff 
-                
-                # Save the changes
-                medicine.save()                
-                # Return success response
-                return JsonResponse({'success': True, 'message': 'Medicine divine_admin_templated successfully'})
-            
-            else:            
-                # Check if another medicine with the same name or batch number already exists
+                medicine.is_dividable = is_dividable
+                medicine.dividing_unit = dividing_unit if is_dividable else None
+                medicine.is_clinic_stock = is_clinic_stock
+
+                if is_clinic_stock:
+                    medicine.manufacturer = manufacturer
+                    medicine.quantity = quantity
+                    medicine.remain_quantity = quantity
+                    medicine.minimum_stock_level = minimum_stock_level
+                    medicine.batch_number = batch_number
+                    medicine.expiration_date = expiration_date
+
+                medicine.data_recorder = request.user.staff
+                medicine.save()
+                return JsonResponse({'success': True, 'message': 'Medicine updated successfully'})
+            else:
+                # Check for duplicates
                 if RemoteMedicine.objects.filter(drug_name=drug_name).exists():
                     return JsonResponse({'success': False, 'message': 'Medicine with the same name already exists'})
                 if RemoteMedicine.objects.filter(batch_number=batch_number).exists():
                     return JsonResponse({'success': False, 'message': 'Medicine with the same batch number already exists'})
-                
-                # Create RemoteMedicine object for adding new data
+
+                # Create new entry
                 medicine = RemoteMedicine(
                     drug_name=drug_name,
                     drug_type=drug_type,
                     formulation_unit=formulation_unit,
-                    manufacturer=manufacturer,
-                    quantity=quantity,
-                    remain_quantity=quantity,
-                    dividable=dividable,
-                    batch_number=batch_number,
-                    expiration_date=expiration_date,
-                    unit_cost=unit_cost,
-                    buying_price=buying_price,
-                    data_recorder = request.user.staff 
+                    is_dividable=is_dividable,
+                    dividing_unit=dividing_unit if is_dividable else None,
+                    is_clinic_stock=is_clinic_stock,
+                    manufacturer=manufacturer if is_clinic_stock else '',
+                    quantity=quantity if is_clinic_stock else 0,
+                    remain_quantity=quantity if is_clinic_stock else 0,
+                    minimum_stock_level=minimum_stock_level if is_clinic_stock else 0,
+                    batch_number=batch_number if is_clinic_stock else '',
+                    expiration_date=expiration_date if is_clinic_stock else None,
+                    data_recorder=request.user.staff
                 )
-                
-                # Save the object
-                medicine.save()                
-                # Return success response
+                medicine.save()
                 return JsonResponse({'success': True, 'message': 'Medicine added successfully'})
-        
+
         except Exception as e:
-            # Return error response if an exception occurs
-            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
-    # If request method is not POST, return error response
+            return JsonResponse({'success': False, 'message': str(e)})
+
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+def medicine_count_api(request):
+    today = timezone.now().date()
+
+    expired_count = RemoteMedicine.objects.filter(is_clinic_stock=True, expiration_date__lt=today).count()
+    instock_count = RemoteMedicine.objects.filter(is_clinic_stock=True, quantity__gt=0, expiration_date__gte=today).count()
+    checklist_count = RemoteMedicine.objects.filter(is_clinic_stock=False).count()
+    outofstock_count = RemoteMedicine.objects.filter(is_clinic_stock=True, quantity__lte=0).count()
+    total_count = RemoteMedicine.objects.all().count()
+
+    return JsonResponse({
+        "expired": expired_count,
+        "instock": instock_count,
+        "checklist": checklist_count,
+        "outofstock": outofstock_count,
+        "all": total_count
+    })
+
+@csrf_exempt
+@login_required
+def delete_remote_medicine(request):
+  if request.method == 'POST':
+    medicine_id = request.POST.get('medicine_id')
+    try:
+      medicine = get_object_or_404(RemoteMedicine, pk=medicine_id)
+      medicine.delete()
+      return JsonResponse({'success': True, 'message': 'Medicine deleted successfully.'})
+    except Exception as e:
+      return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+  return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 
 
@@ -2177,122 +1212,7 @@ def company_registration_view(request):
         return render(request, 'divine_admin_template/company_registration.html')
 
     
-    
-@login_required    
-def edit_lab_result(request, patient_id, visit_id, lab_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)            
-
-    procedures = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = RemoteLaboratoryOrderForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, divine_admin_template it
-            if form.is_valid():
-                try:
-                    # Track the user who edited the record
-                    procedures.data_recorder = request.user.staff   # Set the staff member who edited
-                    form.save()  # Save the divine_admin_templated record
-                    messages.success(request, 'Laboratory result divine_admin_templated successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            form.instance.data_recorder = request.user.staff   # Set the staff member who added the record
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Laboratory result added successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('divine_patient_lab_result_history_view', args=[patient.mrn]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = RemoteLaboratoryOrderForm(instance=procedures)   
-    
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'divine_admin_template/edit_lab_result.html', context)
-
-
-@login_required    
-def edit_procedure_result(request, patient_id, visit_id, procedure_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(RemotePatient, id=patient_id)
-    visit = get_object_or_404(RemotePatientVisits, id=visit_id)            
-
-    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit, id=procedure_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = RemoteProcedureForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, divine_admin_template it
-            if form.is_valid():
-                try:
-                    # Track the user who edited the record
-                    procedures.data_recorder = request.user.staff   # Set the staff member who edited
-                    form.save()  # Save the divine_admin_templated record
-                    messages.success(request, 'Procedure result divine_admin_templated successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            form.instance.data_recorder = request.user.staff   # Set the staff member who added the record
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Procedure result added successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('divine_patient_procedure_history_view_mrn', args=[patient.mrn]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = RemoteProcedureForm(instance=procedures)   
-    
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'divine_admin_template/edit_procedure_result.html', context)
-
+ 
 
 @login_required
 def remote_equipment_list(request):
@@ -2454,33 +1374,548 @@ def delete_reagent(request):
 
     return JsonResponse({'status': 'false', 'message': 'Invalid request method'})
 
-        
-def update_staff_status(request):
-    try:
-        if request.method == 'POST':
-            # Get the user_id and is_active values from POST data
-            user_id = request.POST.get('user_id')
-            is_active = request.POST.get('is_active')
+ 
+@login_required
+def download_consultation_summary_pdf(request, patient_id, visit_id):
+    # Fetch core patient and visit info
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
 
-            # Retrieve the staff object or return a 404 response if not found
-            staff = get_object_or_404(CustomUser, id=user_id)
+    # Query all related models for that visit
+    counseling = RemoteCounseling.objects.filter(patient=patient, visit=visit).last()
+    prescriptions = RemotePrescription.objects.filter(patient=patient, visit=visit)
+    observations = RemoteObservationRecord.objects.filter(patient=patient, visit=visit).last()
+    discharge_note = RemoteDischargesNotes.objects.filter(patient=patient, visit=visit).last()
+    referral = RemoteReferral.objects.filter(patient=patient, visit=visit).last()
+    complaints = ChiefComplaint.objects.filter(patient=patient, visit=visit)
+    vitals = RemotePatientVital.objects.filter(patient=patient, visit=visit).last()
 
-            # Toggle the is_active status based on the received value
-            if is_active == '1':
-                staff.is_active = False
-            elif is_active == '0':
-                staff.is_active = True
-            else:
-                messages.error(request, 'Invalid request')
-                return redirect('manage_staff')  # Make sure 'manage_staffs' is the name of your staff list URL
+    # NEW: Add Consultation Notes
+    consultation_note = RemoteConsultationNotes.objects.filter(patient=patient, visit=visit).last()
 
-            staff.save()
-            messages.success(request, '')
-        else:
-            messages.error(request, 'Invalid request method')
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
+    # NEW: Add Imaging Records
+    imaging_records = RemoteImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
 
-    # Redirect back to the staff list page
-    return redirect('manage_staff')  # Make sure 'manage_staffs' is the name of your staff list URL        
+    # NEW: Add Laboratory Orders
+    lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
 
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'counseling': counseling,
+        'prescriptions': prescriptions,
+        'observation_record': observations,
+        'discharge_note': discharge_note,
+        'referral': referral,
+        'complaints': complaints,
+        'vitals': vitals,
+        'consultation_note': consultation_note,
+        'imaging_records': imaging_records,
+        'lab_tests': lab_tests,
+    }
+
+    # Render the HTML template
+    html_content = render_to_string('divine_admin_template/pdf_consultation_summary.html', context)
+
+    # Save to a temp directory
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"consultation_summary_{safe_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the file as a response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_observation_pdf(request, patient_id, visit_id):
+    # Fetch the required patient and visit
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    observation_record = get_object_or_404(RemoteObservationRecord, patient=patient, visit=visit)
+
+    # Prepare context for the template
+    context = {
+        'observation_record': observation_record,
+        'visit': visit,
+    }
+
+    # Render HTML template
+    html_content = render_to_string('divine_admin_template/observation_notes_detail.html', context)
+
+    # Create a temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'observation_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete old file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file as response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+def download_discharge_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and discharge note
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    discharge_note = get_object_or_404(RemoteDischargesNotes, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'discharge_note': discharge_note,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('divine_admin_template/discharge_note_detail.html', context)
+
+    # Prepare file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'discharge_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response   
+
+def download_counseling_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and counseling note
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    counseling = get_object_or_404(RemoteCounseling, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'counseling': counseling,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated counseling note template
+    html_content = render_to_string('divine_admin_template/counseling_notes_details.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'counseling_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+def download_referral_pdf(request, patient_id, visit_id):
+    # Fetch patient, visit, and referral
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    referral = get_object_or_404(RemoteReferral, patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'referral': referral,
+        'patient': patient,
+        'visit': visit,
+    }
+
+    # Render HTML content from a dedicated referral note template
+    html_content = render_to_string('divine_admin_template/view_referral.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'referral_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing PDF if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF as download
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+def download_prescription_notes_pdf(request, patient_id, visit_id):
+    # Fetch patient and visit
+    patient = get_object_or_404(RemotePatient, id=patient_id)
+    visit = get_object_or_404(RemotePatientVisits, id=visit_id)
+
+    # Get all prescriptions for this patient and visit
+    prescriptions = RemotePrescription.objects.filter(patient=patient, visit=visit)
+
+    # Prepare context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'prescriptions': prescriptions,
+    }
+
+    # Render HTML content using a dedicated template
+    html_content = render_to_string('divine_admin_template/prescription_notes.html', context)
+
+    # Prepare PDF file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_name = f'prescription_notes_{patient.full_name}_{visit.vst}.pdf'
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove old file if exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve file as HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_procedure_result_pdf(request, procedure_id):
+    # Fetch procedure or return 404
+    procedure = get_object_or_404(RemoteProcedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
+
+    # Prepare context for template
+    context = {
+        'procedure': procedure,
+    }
+
+    # Render the HTML content using template
+    html_content = render_to_string('divine_admin_template/pdf_procedure_result.html', context)
+
+    # Create temporary directory for storing the PDF
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Define safe file name and full path
+    file_name = f"procedure_result_{procedure.patient.full_name}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove file if it already exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return the PDF as downloadable response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+@login_required
+def download_all_procedures_pdf(request, patient_mrn, visit_vst):
+    # Get patient and visit
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all related procedures
+    procedures = RemoteProcedure.objects.filter(patient=patient, visit=visit).select_related('name')
+
+    if not procedures.exists():
+        return HttpResponse("No procedures found for this visit.", status=404)
+
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'procedures': procedures
+    }
+
+    # Render the template
+    html_content = render_to_string('divine_admin_template/pdf_all_procedures.html', context)
+
+    # Generate file
+    file_name = f"all_procedures_{patient.full_name}_{visit.vst}.pdf"
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Write PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Return file
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response    
+
+
+@login_required
+def download_lab_result_pdf(request, lab_id):
+    # Fetch the lab order or return 404 if not found
+    lab = get_object_or_404(
+        RemoteLaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+        id=lab_id
+    )
+
+    # Prepare context for PDF rendering
+    context = {
+        'lab': lab,
+    }
+
+    # Render HTML from template
+    html_content = render_to_string('divine_admin_template/pdf_lab_result.html', context)
+
+    # Setup temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe file name and path
+    safe_name = lab.patient.full_name.replace(" ", "_")
+    file_name = f"lab_result_{safe_name}_{lab.lab_number}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete if file exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF with WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the PDF as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit objects
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all laboratory orders for this patient and visit
+    lab_tests = RemoteLaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related(
+        'name', 'data_recorder'
+    )
+
+    if not lab_tests.exists():
+        return HttpResponse("No lab results found for this visit.", status=404)
+
+    # Prepare the template context
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'lab_tests': lab_tests
+    }
+
+    # Render HTML template
+    html_content = render_to_string('divine_admin_template/pdf_all_lab_results.html', context)
+
+    # Define a safe filename and temporary path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_lab_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Remove existing file if it exists
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate the PDF file
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve the file as an HTTP response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_imaging_result_pdf(request, imaging_id):
+    # Fetch the imaging record or return 404
+    imaging = get_object_or_404(
+        RemoteImagingRecord.objects.select_related('patient', 'visit', 'data_recorder', 'imaging'),
+        id=imaging_id
+    )
+
+    # Prepare context for rendering
+    context = {
+        'imaging': imaging,
+    }
+
+    # Render HTML content from template
+    html_content = render_to_string('divine_admin_template/pdf_imaging_result.html', context)
+
+    # Temporary directory
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Safe filename
+    safe_name = imaging.patient.full_name.replace(" ", "_")
+    file_name = f"imaging_result_{safe_name}_{imaging.id}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if present
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF using WeasyPrint
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+
+@login_required
+def download_all_imaging_results_pdf(request, patient_mrn, visit_vst):
+    # Fetch patient and visit instances
+    patient = get_object_or_404(RemotePatient, mrn=patient_mrn)
+    visit = get_object_or_404(RemotePatientVisits, vst=visit_vst)
+
+    # Fetch all imaging records for this visit
+    imaging_records = RemoteImagingRecord.objects.filter(patient=patient, visit=visit).select_related(
+        'imaging', 'data_recorder'
+    )
+
+    if not imaging_records.exists():
+        return HttpResponse("No imaging records found for this visit.", status=404)
+
+    # Prepare context for rendering
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'imaging_records': imaging_records
+    }
+
+    # Render HTML content
+    html_content = render_to_string('divine_admin_template/pdf_all_imaging_results.html', context)
+
+    # Prepare temporary directory and file path
+    temp_dir = os.path.join(os.path.expanduser("~"), "pdf_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    safe_name = patient.full_name.replace(" ", "_")
+    file_name = f"all_imaging_results_{safe_name}_{visit.vst}.pdf"
+    file_path = os.path.join(temp_dir, file_name)
+
+    # Delete existing file if any
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Generate PDF
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(file_path)
+
+    # Serve PDF response
+    with open(file_path, 'rb') as f:
+        pdf_data = f.read()
+
+    response = HttpResponse(pdf_data, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
+
+@login_required
+def patient_imaging_view(request):
+    # Get distinct (patient, visit) combinations with the latest imaging record date
+    distinct_imaging_sets = (
+        RemoteImagingRecord.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_imaging_data = []
+
+    for entry in distinct_imaging_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        imaging_records = RemoteImagingRecord.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin', 'imaging')
+
+        if imaging_records.exists():
+            first_imaging = imaging_records.first()
+            patient_imaging_data.append({
+                'patient': first_imaging.patient,
+                'visit': first_imaging.visit,
+                'latest_date': latest_date,
+                'imaging_done_by': first_imaging.data_recorder,
+                'imaging_records': imaging_records
+            })
+
+    context = {
+        'patient_imaging': patient_imaging_data,
+    }
+
+    return render(request, 'divine_admin_template/manage_imaging_result.html', context)

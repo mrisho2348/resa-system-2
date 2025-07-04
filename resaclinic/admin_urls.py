@@ -13,16 +13,14 @@ urlpatterns = [
     path('admin/add-medicine-route/', AdminViews.add_medicine_route, name="admin_add_medicine_route"),
     path('admin/medicine-routes/', AdminViews.medicine_routes, name="admin_medicine_routes"),
     path('admin/medicine-unit-measures/', AdminViews.medicine_unit_measures, name="admin_medicine_unit_measures"),
-    path('admin/add-service/', AdminViews.add_service, name="admin_add_service"),
-    path('admin/new-consultation-order/', AdminViews.new_consultation_order, name="admin_new_consultation_order"),
-    path('prescriptions-billing/<str:visit_number>/<int:patient_id>/', AdminViews.prescription_billing, name='admin_prescription_billing'),
-    path('prescriptions-notes/<str:visit_number>/<int:patient_id>/', AdminViews.prescription_notes, name='admin_prescription_notes'),
+    path('admin/add-service/', AdminViews.add_service, name="admin_add_service"),  
+   
     path('admin/fetch-prescription-counts/', AdminViews.fetch_prescription_counts_view, name="admin_fetch_prescription_counts"),
     path('admin/fetch-order-counts/', AdminViews.fetch_order_counts_view, name="admin_fetch_order_counts"),
     path('admin/fetch-radiology-order-counts/', AdminViews.fetch_radiology_order_counts_view, name="admin_fetch_radiology_order_counts"),
     path('admin/fetch-procedure-order-counts/', AdminViews.fetch_procedure_order_counts_view, name="admin_fetch_procedure_order_counts"),
-    path('admin/new-radiology-order/', AdminViews.new_radiology_order, name="admin_new_radiology_order"),
-    path('admin/new-procedure-order/', AdminViews.new_procedure_order, name="admin_new_procedure_order"),
+   
+   
     path('admin/save-diagnosis/', AdminViews.save_diagnosis, name="admin_save_diagnosis"),
     path('admin/delete-ambulance-activity/', AdminViews.delete_ambulance_activity, name="admin_delete_ambulance_activity"),
     path('admin/add-ambulance-activity/', AdminViews.add_ambulance_activity, name="admin_add_ambulance_activity"),
@@ -30,13 +28,12 @@ urlpatterns = [
     path('admin/dashboard/', AdminViews.dashboard, name="admin_dashboard"),
     path('admin/employee-detail/', AdminViews.employee_detail, name="admin_employee_detail"),
     path('admin/add-disease/', AdminViews.add_disease, name="admin_add_disease"),    
-    path('admin/add-insurance-company/', AdminViews.add_insurance_company, name="admin_add_insurance_company"),
+
     path('admin/add-pathology-record/', AdminViews.add_pathodology_record, name="admin_add_pathology_record"),
     path('admin/update-equipment-status/', AdminViews.update_equipment_status, name="admin_update_equipment_status"),
-    path('admin/save-usage-history/', AdminViews.save_usage_history, name="admin_save_usage_history"),
-    path('admin/add-category/', AdminViews.add_category, name="admin_add_category"),
-    re_path(r'^admin/staff-detail/(?P<staff_id>\d+)/$', AdminViews.single_staff_detail, name="admin_single_staff_detail"),
-    re_path(r'^admin/view-patient/(?P<patient_id>\d+)/$', AdminViews.view_patient, name="admin_view_patient"),
+
+
+  
     re_path(r'^admin/edit-staff/(?P<staff_id>\w+)/$', AdminViews.edit_staff, name="admin_edit_staff"),
     path('admin/edit-staff-save/', AdminViews.edit_staff_save, name="admin_edit_staff_save"),
     path('admin/delete-ambulance-route/', AdminViews.delete_ambulance_route, name="admin_delete_ambulance_route"),
@@ -44,23 +41,16 @@ urlpatterns = [
     path('admin/ambulance-routes/', AdminViews.ambulance_route_list, name="admin_ambulance_routes"),
     path('admin/update-staff-status/', AdminViews.update_staff_status, name="admin_update_staff_status"),
     path('admin/update-vehicle-status/', AdminViews.update_vehicle_status, name="admin_update_vehicle_status"),
-    path('admin/add-supplier/', AdminViews.add_supplier, name="admin_add_supplier"),
-    path('admin/save-service-data/', AdminViews.save_service_data, name="admin_save_service_data"),
+
+   
     path('admin/save-staff-view/', AdminViews.save_staff_view, name="admin_save_staff_view"),
-    path('admin/get-item-quantity/', AdminViews.get_item_quantity, name="admin_get_item_quantity"),
-    path('admin/increase-inventory-stock/', AdminViews.increase_inventory_stock, name="admin_increase_inventory_stock"),
-    path('admin/add-inventory-item/', AdminViews.add_inventory_item, name="admin_add_inventory_item"),
-    path('admin/get-items-below-min-stock/', AdminViews.get_items_below_min_stock, name="admin_get_items_below_min_stock"),
+
     path('admin/add-equipment/', AdminViews.add_equipment, name="admin_add_equipment"),
-    path('admin/use-inventory-item/', AdminViews.use_inventory_item, name="admin_use_inventory_item"),
+
     path('admin/add-reagent/', AdminViews.add_reagent, name="admin_add_reagent"),
-    path('admin/use-reagent/', AdminViews.use_reagent_item, name="admin_use_reagent_item"),
-    path('admin/save-use/reagent/item/', AdminViews.save_use_reagent_item, name="admin_save_use_reagent_item"),
-    path('admin/increase-reagent-stock/', AdminViews.increase_reagent_stock, name="admin_increase_reagent_stock"),
-    path('admin/add-reagent-used/', AdminViews.add_reagent_used, name="admin_add_reagent_used"),
-    path('admin/add-maintenance/', AdminViews.add_maintenance, name="admin_add_maintenance"),
-    path('admin/add-quality-control/', AdminViews.add_quality_control, name="admin_add_quality_control"),
-    path('admin/quality-control-list/', AdminViews.quality_control_list, name="admin_quality_control_list"),
+
+
+ 
     path('admin/resa-report/', AdminViews.resa_report, name="admin_resa_report"),
     path('admin/reports-adjustments/', AdminViews.reports_adjustments, name="admin_reports_adjustments"),
     path('admin/reports-by-visit/', AdminViews.reports_by_visit, name="admin_reports_by_visit"),
@@ -73,37 +63,25 @@ urlpatterns = [
     path('admin/reports-orders/', AdminViews.reports_orders, name="admin_reports_orders"),
     path('admin/individual-visit/', AdminViews.individual_visit, name="admin_individual_visit"),
     path('admin/product-summary/', AdminViews.product_summary, name="admin_product_summary"),
-    path('admin/get-out-of-stock-count/', AdminViews.get_out_of_stock_count, name="admin_get_out_of_stock_count"),
-    path('admin/in-stock-reagent-view/', AdminViews.in_stock_reagent_view, name="admin_in_stock_reagent_view"),
-    path('admin/out-of-stock-reagent-view/', AdminViews.out_of_stock_reagent_view, name="admin_out_of_stock_reagent_view"),
+
+  
     path('admin/add-frequency/', AdminViews.add_frequency, name="admin_add_frequency"),
     path('admin/delete-frequency/', AdminViews.delete_frequency, name="admin_delete_frequency"),
     re_path(r'^admin/orders/(?P<date>[\w-]+)/$', AdminViews.orders_by_date, name="admin_orders_by_date"),
     path('admin/prescription-frequencies/', AdminViews.prescription_frequency_list, name="admin_prescription_frequency_list"),
     path('admin/diagnosis/', AdminViews.diagnosis_list, name="admin_diagnosis_list"),
     path('admin/all-orders-view/', AdminViews.all_orders_view, name="admin_all_orders_view"),
-    re_path(r'^admin/generate-invoice-bill/(?P<order_id>\d+)/$', AdminViews.generate_invoice_bill, name="admin_generate_invoice_bill"),
-    path('admin/patient-vital-list/', AdminViews.patient_vital_all_list, name="admin_patient_vital_all_list"),
-    path('admin/reagent-usage-list/', AdminViews.reagent_usage_list, name="admin_reagent_usage_list"),
-    path('admin/equipment-maintenance-list/', AdminViews.equipment_maintenance_list, name="admin_equipment_maintenance_list"),
+  
     path('admin/equipment-list/', AdminViews.equipment_list, name="admin_equipment_list"),
-    re_path(r'^admin/patient-vital-list/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', AdminViews.patient_vital_list, name="admin_patient_vital_list"),
-    re_path(r'^admin/patient-visit-details-view/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', AdminViews.patient_visit_details_view, name="admin_patient_visit_details_view"),
-    re_path(r'^admin/patient-detail/(?P<patient_id>\d+)/$', AdminViews.patient_detail, name="admin_patient_detail"),
-    re_path(r'^admin/patient-health-record/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', AdminViews.patient_health_record_view, name="admin_patient_health_record"),
-    re_path(r'^admin/patient-visit-history/(?P<patient_id>\d+)/$', AdminViews.patient_visit_history_view, name="admin_patient_visit_history"),
-    path('prescriptions/<str:visit_number>/<int:patient_id>/', AdminViews.prescription_detail, name="admin_prescription_detail"),
+  
     path('admin/reagent-list/', AdminViews.reagent_list, name="admin_reagent_list"),
     path('admin/prescription-list/', AdminViews.prescription_list, name="admin_prescription_list"),
-    path('admin/in-stock-items/', AdminViews.in_stock_items, name="admin_in_stock_items"),
-    path('admin/out-of-stock-items/', AdminViews.out_of_stock_items, name="admin_out_of_stock_items"),
+
     path('admin/manage-referral/', AdminViews.manage_referral, name="admin_manage_referral"),
     path('admin/patient-procedure-view/', AdminViews.patient_procedure_view, name="admin_patient_procedure_view"),
-    path('admin/suppliers/', AdminViews.supplier_list, name="admin_supplier_list"),
-    path('admin/inventory/', AdminViews.inventory_list, name="admin_inventory_list"),
-    path('admin/ambulance-order-view/', AdminViews.ambulance_order_view, name="admin_ambulance_order_view"),
-    re_path(r'^admin/ambulance-order-detail/(?P<order_id>\d+)/$', AdminViews.ambulance_order_detail, name="admin_ambulance_order_detail"),
-    re_path(r'^admin/patients/(?P<patient_id>\d+)/visits/(?P<visit_id>\d+)/ambulance-order/(?P<ambulance_id>\d+)/$', AdminViews.save_ambulance_order, name="admin_edit_ambulance_order"),
+
+    path('admin/ambulance-order-view/', AdminViews.ambulance_order_view, name="admin_ambulance_order_view"), 
+
     path('admin/delete-ambulance-card-order/', AdminViews.delete_ambulancecardorder, name="admin_delete_ambulance_card_order"),
     path('admin/delete-ambulance-order/', AdminViews.delete_ambulancedorder, name="admin_delete_ambulance_order"),
     path('admin/hospital-vehicles/', AdminViews.hospital_vehicle_list, name="admin_hospital_vehicle_list"),
@@ -112,13 +90,13 @@ urlpatterns = [
     path('admin/activity-list/', AdminViews.ambulance_activity_list, name="admin_ambulance_activity_list"),
     path('admin/out-of-stock-medicines/', AdminViews.out_of_stock_medicines_view, name="admin_out_of_stock_medicines_view"),
     path('admin/vehicle-ambulance-view/', AdminViews.vehicle_ambulance_view, name="admin_vehicle_ambulance_view"),
-    path('admin/usage-history/', AdminViews.usage_history_list, name="admin_usage_history_list"),
+
     path('admin/manage-patients/', AdminViews.manage_patient, name="admin_manage_patient"),
-    path('admin/category-list/', AdminViews.category_list, name="admin_category_list"),
-    path('admin/manage-company/', AdminViews.manage_company, name="admin_manage_company"),
+
+
     path('admin/manage-disease/', AdminViews.manage_disease, name="admin_manage_disease"),
     path('admin/manage-staff/', AdminViews.manage_staff, name="admin_manage_staff"),
-    path('admin/manage-insurance/', AdminViews.manage_insurance, name="admin_manage_insurance"),
+
     path('admin/manage-service/', AdminViews.manage_service, name="admin_manage_service"),
     path('admin/manage-pathology/', AdminViews.manage_pathodology, name="admin_manage_pathology"),
     path('admin/appointments/', AdminViews.appointment_list_view, name="admin_appointment_list"),
@@ -126,7 +104,7 @@ urlpatterns = [
     re_path(r'^admin/save-health-record/$', AdminViews.save_health_record, name='admin_save_health_record'),
     re_path(r'^admin/delete-health-record/$', AdminViews.delete_healthrecord, name='admin_delete_health_record'),
     path('admin/in-stock-medicines/', AdminViews.in_stock_medicines_view, name="admin_in_stock_medicines_view"),
-    re_path(r'^admin/generate-bill/(?P<procedure_id>\d+)/$', AdminViews.generate_billing, name="admin_generate_billing"),
+  
     path('admin/medicine-list/', AdminViews.medicine_list, name="admin_medicine_list"),
     path('admin/medicine-expired-list/', AdminViews.medicine_expired_list, name="admin_medicine_expired_list"),
     path('admin/add-medicine/', AdminViews.add_medicine, name="admin_add_medicine"),
@@ -139,11 +117,25 @@ urlpatterns = [
     path('counseling/', AdminViews.counseling_list_view, name='admin_counseling_list'),
     path('discharge_notes/', AdminViews.discharge_notes_list_view, name='admin_discharge_notes_list'),
     path('observation_records/', AdminViews.observation_record_list_view, name='admin_observation_record_list'),  
-    path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', AdminViews.save_remote_discharges_notes, name='admin_save_remote_discharges_notes'),
-    path('discharge/details/<int:patient_id>/<int:visit_id>/', AdminViews.discharge_details_view, name='admin_discharge_details_view'),
-    path('save_counsel/<int:patient_id>/<int:visit_id>/', AdminViews.save_counsel, name='admin_save_remote_counseling'),
-    path('counseling_notes/<int:patient_id>/<int:visit_id>/', AdminViews.view_counseling_notes, name='admin_view_counseling_notes'),
-    path('save_observation/<int:patient_id>/<int:visit_id>/', AdminViews.save_observation, name='admin_save_observation'),
-    path('observation_notes/<int:patient_id>/<int:visit_id>/', AdminViews.view_observation_notes, name='admin_view_observation_notes'),
+
+    path('admin/download-invoice/<int:patient_id>/<int:visit_id>/', AdminViews.download_invoice_bill_pdf, name='admin_download_invoice_bill'),
+    path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', AdminViews.download_consultation_summary_pdf, name='admin_download_consultation_summary_pdf' ),
+    path('imaging/download/<int:imaging_id>/', AdminViews.download_imaging_result_pdf, name='admin_download_imaging_result_pdf' ),
+    path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', AdminViews.download_all_imaging_results_pdf, name='admin_download_all_imaging_results_pdf'),
+    path('lab-result/download/<int:lab_id>/', AdminViews.download_lab_result_pdf, name='admin_download_lab_result_pdf'),
+    path('lab/download/all/<str:patient_mrn>/<str:visit_vst>/',AdminViews.download_all_lab_results_pdf, name='admin_download_all_lab_results_pdf'),
+    path('procedure/download/all/<str:patient_mrn>/<str:visit_vst>/', AdminViews.download_all_procedures_pdf, name='admin_download_all_procedures_pdf'),
+    path('procedure/result/download/<int:procedure_id>/', AdminViews.download_procedure_result_pdf, name='admin_download_procedure_result_pdf'),
+    path('download/prescription-bill/<int:patient_id>/<int:visit_id>/', AdminViews.download_prescription_bill_pdf, name='admin_download_prescription_bill_pdf'),
+    path('download/prescription-notes/<int:patient_id>/<int:visit_id>/', AdminViews.download_prescription_notes_pdf, name='admin_download_prescription_notes_pdf'),
+    path('download-referral-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_referral_pdf, name='admin_download_referral_pdf'),
+    path('download-counseling-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_counseling_pdf, name='admin_download_counseling_pdf'),
+    path('download-discharge-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_discharge_pdf, name='admin_download_discharge_pdf'),
+    path('download/observation/<int:patient_id>/<int:visit_id>/', AdminViews.download_observation_pdf, name='admin_download_observation_pdf'),
+    path('consultation-notes/', AdminViews.consultation_notes_view, name='admin_consultation_notes'), 
+    path('patient/imaging/view/', AdminViews.patient_imaging_view, name="admin_patient_imaging_view"),  
+    path('resa/patient-procedure-view/', AdminViews.patient_procedure_view, name='admin_patient_procedure_view'),
+     path('patient_laboratory_view/', AdminViews.patient_laboratory_view, name="admin_patient_laboratory_view"),
+   
 ]
 

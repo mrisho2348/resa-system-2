@@ -6,15 +6,8 @@
 
 {% block breadcrumb %}
 {% include "divine_admin_template/modal_form.html" %}
-<a class="btn btn-success float-right mr-2" href="{% url 'divine_disease_recode_template_download' %}">
-    <i class="fas fa-download"></i> download excel template 
-  </a>
-<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#diseaseModal">
+<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addDiseaseModal">
     <i class="fas fa-plus"></i> New disease
-</a>
-<!-- Add Import Staff link and modal trigger -->
-<a class="btn btn-success float-right mr-2" href="{% url 'divine_import_disease_recode_data' %}">
-  <i class="fas fa-file-import"></i> Import disease
 </a>
 {% endblock breadcrumb %}
 
@@ -182,6 +175,92 @@
     });
 </script>
 {% endfor %}
+
+
+<!-- ======================= ADD DISEASE MODAL ======================= -->
+<div class="modal fade" id="addDiseaseModal" tabindex="-1" role="dialog" aria-labelledby="addDiseaseModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Add New Disease</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div id="addDiseaseMessageContainer" class="alert" role="alert" style="display: none;"></div>
+          <form method="post" id="addDiseaseForm" novalidate>
+            {% csrf_token %}
+            <div class="row">
+              <div class="form-group col-sm-6">
+                <label for="newDiseaseName">Disease Name</label>
+                <input type="text" class="form-control" name="Disease" id="newDiseaseName" required>
+              </div>
+              <div class="form-group col-sm-6">
+                <label for="newDiseaseCode">Code</label>
+                <input type="text" class="form-control" name="Code" id="newDiseaseCode" required>
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="col-md-12">
+                <button type="button" class="btn btn-success btn-block" id="submitAddDisease">Add Disease</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  $(document).ready(function () {
+    $('#submitAddDisease').click(function (event) {
+      var form = document.getElementById('addDiseaseForm');
+      if (form.checkValidity() === false) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        var formData = $('#addDiseaseForm').serialize();
+
+        $.ajax({
+          url: '{% url "divine_add_disease" %}',  // Django view should handle both add and edit
+          type: 'POST',
+          data: formData,
+          success: function (response) {
+            let container = $('#addDiseaseMessageContainer');
+            if (response.success) {
+              container
+                .removeClass('alert-danger')
+                .addClass('alert-success')
+                .text(response.message)
+                .show();
+              setTimeout(() => location.reload(true), 1000);
+            } else {
+              container
+                .removeClass('alert-success')
+                .addClass('alert-danger')
+                .text(response.message)
+                .show();
+            }
+          },
+          error: function () {
+            $('#addDiseaseMessageContainer')
+              .removeClass('alert-success')
+              .addClass('alert-danger')
+              .text('AJAX request failed')
+              .show();
+          }
+        });
+      }
+
+      form.classList.add('was-validated');
+    });
+  });
+</script>
 
 {% include 'divine_admin_template/datatable.html' %}
 {% endblock main_content %}

@@ -11,6 +11,8 @@ from openpyxl.utils import get_column_letter
 from django.db.models.functions import TruncDay
 from calendar import  monthrange
 import calendar
+import traceback
+from django.contrib import messages
 
 def fetch_pathology_reports(year):
     # Get all distinct Pathology Record names for the given year
@@ -354,39 +356,64 @@ def render_patient_laboratory_reports(sheet, year):
         
 # Update render_comprehensive_report function to include pathology report
 def render_comprehensive_report(year):
-    # Create a new Excel workbook
     wb = Workbook()
+    errors = []
 
-    # Add company wise report
-    company_wise_sheet = wb.active
-    company_wise_sheet.title = f'Consult. Per Status Report {year}'
-    render_patient_company_wise_reports(company_wise_sheet, year)
+    # 1. Company wise report
+    try:
+        company_wise_sheet = wb.active
+        company_wise_sheet.title = f'Consult. Per Status Report {year}'
+        render_patient_company_wise_reports(company_wise_sheet, year)
+    except Exception as e:
+        errors.append(f"Company report error: {str(e)}")
 
-    # Add pathology report
-    pathology_sheet = wb.create_sheet(title=f'Consult. Per Pathology {year}')
-    render_pathology_report(pathology_sheet, year)
+    # 2. Pathology report
+    try:
+        pathology_sheet = wb.create_sheet(title=f'Consult. Per Pathology {year}')
+        render_pathology_report(pathology_sheet, year)
+    except Exception as e:
+        errors.append(f"Pathology report error: {str(e)}")
 
-     # Add procedure report
-    procedure_sheet = wb.create_sheet(title=f'Nursing Procedure Report {year}')
-    render_procedure_reports(procedure_sheet, year)
-    
-     # Add laboratory result report
-    laboratory_sheet = wb.create_sheet(title=f'Laboratory Tests Report {year}')
-    render_patient_laboratory_reports(laboratory_sheet, year)
-    
-      # Add patient type report
-    patient_type_sheet = wb.create_sheet(title=f'Patient Type Report {year}')
-    render_patient_type_wise_reports(patient_type_sheet, year)
-    
-    # Add patient referral report
-    referral_sheet = wb.create_sheet(title=f'Referral & MedEvac Report {year}')
-    render_patient_referral_reports(referral_sheet, year)
-    # Prepare response to return the Excel workbook
+    # 3. Procedure report
+    try:
+        procedure_sheet = wb.create_sheet(title=f'Nursing Procedure Report {year}')
+        render_procedure_reports(procedure_sheet, year)
+    except Exception as e:
+        errors.append(f"Procedure report error: {str(e)}")
+
+    # 4. Laboratory results report
+    try:
+        laboratory_sheet = wb.create_sheet(title=f'Laboratory Tests Report {year}')
+        render_patient_laboratory_reports(laboratory_sheet, year)
+    except Exception as e:
+        errors.append(f"Laboratory report error: {str(e)}")
+
+    # 5. Patient type report
+    try:
+        patient_type_sheet = wb.create_sheet(title=f'Patient Type Report {year}')
+        render_patient_type_wise_reports(patient_type_sheet, year)
+    except Exception as e:
+        errors.append(f"Patient type report error: {str(e)}")
+
+    # 6. Referral report
+    try:
+        referral_sheet = wb.create_sheet(title=f'Referral & MedEvac Report {year}')
+        render_patient_referral_reports(referral_sheet, year)
+    except Exception as e:
+        errors.append(f"Referral report error: {str(e)}")
+
+    # If any errors occurred, show them in an Excel sheet and return that
+    if errors:
+        error_sheet = wb.create_sheet(title='Errors')
+        for i, err in enumerate(errors, start=1):
+            error_sheet.cell(row=i, column=1, value=err)
+
+    # Return the Excel file as a response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="comprehensive_report_{year}.xlsx"'
     wb.save(response)
-
     return response
+
 
 def fetch_patient_company_wise_reports(year):
     # Get all distinct company names
@@ -674,39 +701,42 @@ def render_patient_referral_reports(sheet, year):
 def generate_year_month_report(request):
     try:
         if request.method == 'POST':
-            # Use YearMonthSelectionForm for both year and month selection
             form = YearMonthSelectionForm(request.POST)
-            
+
             if form.is_valid():
                 year = int(form.cleaned_data['year'])
-                month = int(form.cleaned_data['month'])  # This can be None if not selected
+                month = form.cleaned_data['month']  # Could be 0 or None
+
+                # Yearly Report
+                if month == 0 or month is None:
+                    try:
+                        response = render_comprehensive_report(year)
+                        messages.success(request, f"Yearly report for {year} generated successfully.")
+                        return response
+                    except Exception as e:
+                        messages.error(request, f"Failed to generate yearly report for {year}. Reason: {str(e)}")
                 
-                if month is 0:
-                    # Year-only selection (Yearly report)
-                    response = render_comprehensive_report(year)
+                # Monthly Report
                 else:
-                    # Year and Month selection (Monthly report)
-                    response = render_daily_comprehensive_report(year, month)
-                
-                return response
+                    try:
+                        response = render_daily_comprehensive_report(year, month)
+                        messages.success(request, f"Monthly report for {year}-{month:02} generated successfully.")
+                        return response
+                    except Exception as e:
+                        messages.error(request, f"Failed to generate monthly report for {year}-{month:02}. Reason: {str(e)}")
+
             else:
-                # If form is not valid, raise a ValueError
-                raise ValueError("Form validation failed.")
-        
+                messages.error(request, "Invalid input: Please select a valid year and month.")
         else:
-            # Default to YearMonthSelectionForm
             form = YearMonthSelectionForm()
 
         return render(request, 'divine_admin_template/generate_year_month_report.html', {'form': form})
 
-    except ValueError as e:
-        # Handle form validation errors
-        return render(request, 'divine_admin_template/generate_year_month_report.html', {'error': str(e)})
-
     except Exception as e:
-        # Handle any other unexpected errors
-        return render(request, 'divine_admin_template/generate_year_month_report.html', {'error': 'An unexpected error occurred: ' + str(e)})
-
+        print(traceback.format_exc())  # Or use logging
+        messages.error(request, f"An unexpected error occurred: {str(e)}")
+        form = YearMonthSelectionForm()
+        return render(request, 'divine_admin_template/generate_year_month_report.html', {'form': form})
 
 
 

@@ -5,45 +5,24 @@ urlpatterns = [
     # Data retrieval paths
     path('get_patient_data_by_company/', divine_Admin.get_patient_data_by_company, name="divine_get_patient_data_by_company"),
     path('get_gender_yearly_data/', divine_Admin.get_gender_yearly_data, name="divine_get_gender_yearly_data"),
-    path('get_gender_monthly_data/', divine_Admin.get_gender_monthly_data, name="divine_get_gender_monthly_data"),
-    
+    path('get_gender_monthly_data/', divine_Admin.get_gender_monthly_data, name="divine_get_gender_monthly_data"),    
     # Management paths
     path('manage_country/', divine_Admin.manage_country, name="divine_manage_country"),
-    path('save_remote_service/', divine_Admin.save_remote_service, name="divine_save_remote_service"),
-      # URL for adding a new visit (no visit_id)
-    path('save_patient_visit/<int:patient_id>/', divine_Admin.save_patient_visit_save, name='divine_save_patient_visit_save'),
-    # URL for editing an existing visit (with visit_id)
-    path('save_patient_visit/<int:patient_id>/<int:visit_id>/', divine_Admin.save_patient_visit_save, name='divine_save_patient_visit_edit'),    
-    path('individual_visit/<int:patient_id>/', divine_Admin.individual_visit, name="divine_individual_visit"),
-    path('patient_info_form_edit/<int:patient_id>/', divine_Admin.patient_info_form_edit, name="divine_patient_info_form_edit"),
-    path('health_info_edit/<int:patient_id>/', divine_Admin.health_info_edit, name="divine_health_info_edit"),
+    path('save_remote_service/', divine_Admin.save_remote_service, name="divine_save_remote_service"),  
+   
+    path('individual_visit/<int:patient_id>/', divine_Admin.individual_visit, name="divine_individual_visit"),   
     path('save_diagnosis/', divine_Admin.save_diagnosis, name="divine_save_diagnosis"),
     path('admin/profile/', divine_Admin.admin_profile, name='divine_profile'),
-    path('kahama/admin/change-password/', divine_Admin.change_password, name='divine_change_password'),
-
-    # Remote patient vitals
-
-    path('save_remotepatient_vitals/<int:patient_id>/<int:visit_id>/', divine_Admin.save_remotepatient_vitals, name='divine_save_remotepatient_vitals'),
+    path('kahama/admin/change-password/', divine_Admin.change_password, name='divine_change_password'),  
 
     # Dashboard paths
-    path('resa/dashboard/', divine_Admin.divine_dashboard, name="divine_dashboard"),
-    
+    path('resa/dashboard/', divine_Admin.divine_dashboard, name="divine_dashboard"),    
     # Add data paths
-    path('add_disease/', divine_Admin.add_disease, name='divine_add_disease'),
-    path('add_insurance_company/', divine_Admin.add_insurance_company, name='divine_add_insurance_company'),
-    path('add_company/', divine_Admin.add_company, name='divine_add_company'),
+    path('add_disease/', divine_Admin.add_disease, name='divine_add_disease'),   
+    path('company/delete', divine_Admin.delete_remotecompany, name='divine_delete_remotecompany'),
+    path('company/add', divine_Admin.add_company, name='divine_add_company'),
     path('add_pathodology_record/', divine_Admin.add_pathodology_record, name='divine_add_pathodology_record'),
 
-    # Staff paths
-    path('staff_detail/<int:staff_id>/', divine_Admin.single_staff_detail, name='divine_single_staff_detail'),
-    path('edit_staff/<str:staff_id>/', divine_Admin.edit_staff, name='divine_edit_staff'),
-    path('edit_staff_save/', divine_Admin.edit_staff_save, name='divine_edit_staff_save'),
-    path('resa/update-staff-status/', divine_Admin.update_staff_status, name="divine_update_staff_status"),
-    path('save_staff_view/', divine_Admin.save_staff_view, name="divine_save_staff_view"),
-    
-    # Consultation data
-
-    path('patient_procedure_history_view/<str:mrn>/', divine_Admin.patient_procedure_history_view, name="divine_patient_procedure_history_view_mrn"),
 
     # Report paths
     path('resa/resa-report/', divine_Admin.resa_report, name="divine_resa_report"),
@@ -58,48 +37,34 @@ urlpatterns = [
     path('resa/reports-orders/', divine_Admin.reports_orders, name="divine_reports_orders"),
     path('resa/individual-visit/', divine_Admin.individual_visit, name="divine_individual_visit"),
     path('resa/product-summary/', divine_Admin.product_summary, name="divine_product_summary"),
-
-    # Manage paths
-    path('patients/', divine_Admin.patients_list, name='divine_patients_list'),
+  
     path('diagnosis/', divine_Admin.diagnosis_list, name='divine_diagnosis_list'),
-    path('generatePDF/<int:patient_id>/<int:visit_id>/', divine_Admin.generatePDF, name='divine_generatePDF'),
+
     path('remoteservice_list/', divine_Admin.remoteservice_list, name='divine_remoteservice_list'),
-    path('consultation-notes/', divine_Admin.consultation_notes_view, name='divine_consultation_notes'),
-    path('resa/patient_vital_all_list/', divine_Admin.patient_vital_all_list, name='divine_patient_vital_all_list'),
-    path('details/<str:patient_mrn>/<str:visit_number>/', divine_Admin.patient_vital_detail, name='divine_patient_vital_detail'),
+    path('consultation-notes/', divine_Admin.consultation_notes_view, name='divine_consultation_notes'),  
 
-    path('patient_visit_details_view/<int:patient_id>/<int:visit_id>/', divine_Admin.patient_visit_details_view, name='divine_patient_visit_details_view'),
-   
-    path('patient_visit_history/<int:patient_id>/', divine_Admin.patient_visit_history_view, name='divine_patient_visit_history_view'),
 
-    path('prescription-notes/<str:visit_id>/<int:patient_id>/', divine_Admin.prescription_notes, name='divine_prescription_notes'),
     path('prescriptions/', divine_Admin.prescription_list, name='divine_prescription_list'),
     path('counseling/', divine_Admin.counseling_list_view, name='divine_counseling_list'),
-    path('counseling_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.view_counseling_notes, name='divine_view_counseling_notes'),
+   
     path('discharge_notes/', divine_Admin.discharge_notes_list_view, name='divine_discharge_notes_list'),
-    path('discharge/details/<int:patient_id>/<int:visit_id>/', divine_Admin.discharge_details_view, name='divine_discharge_details_view'),
+   
     path('observation_records/', divine_Admin.observation_record_list_view, name='divine_observation_record_list'),
-    path('observation_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.view_observation_notes, name='divine_view_observation_notes'),
 
     # Referral paths
     path('resa/manage-referral/', divine_Admin.manage_referral, name='divine_manage_referral'),
-    path('referral/view/<int:referral_id>/',divine_Admin.view_referral, name='divine_view_referral'),
+  
     path('resa/patient-procedure-view/', divine_Admin.patient_procedure_view, name='divine_patient_procedure_view'),
-    path('procedure/detail/<str:mrn>/<str:visit_number>/', divine_Admin.patient_procedure_detail_view, name='divine_patient_procedure_detail_view'),
-    path('out_of_stock_medicines_view/', divine_Admin.out_of_stock_medicines_view, name='divine_out_of_stock_medicines_view'),
 
     path('resa/manage-company/', divine_Admin.manage_company, name="divine_manage_company"),
     path('resa/manage-disease/', divine_Admin.manage_disease, name="divine_manage_disease"),
     path('resa/manage-staff/', divine_Admin.manage_staff, name="divine_manage_staff"),
-    path('resa/manage-insurance/', divine_Admin.manage_insurance, name="divine_manage_insurance"),
+
     path('resa/manage-adjustment/', divine_Admin.manage_adjustment, name="divine_manage_adjustment"),
     path('resa/manage-pathodology/', divine_Admin.manage_pathodology, name="divine_manage_pathodology"),
 
     # Appointment paths
-    path('resa/appointments/', divine_Admin.appointment_list_view, name='divine_appointment_list'),
-    path('in_stock_medicines_view/', divine_Admin.in_stock_medicines_view, name='divine_in_stock_medicines_view'),
-    # API paths
-    path('api/out-of-stock-medicines/', divine_Admin.out_of_stock_medicines, name='divine_out_of_stock_medicines'),    
+    path('resa/appointments/', divine_Admin.appointment_list_view, name='divine_appointment_list'),   
       # Company related URLs
     path('company/add/', divine_Admin.company_registration_view, name='divine_add_clinic_company'),
 
@@ -114,11 +79,6 @@ urlpatterns = [
     path('search_report/', divine_Admin.search_report, name='divine_search_report'),
     path('patient_statistics/', divine_Admin.patient_statistics, name='divine_patient_statistics'),
 
-    # Service related URLs
-    path('add_service/', divine_Admin.add_service, name='divine_add_service'),
-
-    # Patient related URLs
-    path('delete_remote_patient/<int:patient_id>/', divine_Admin.delete_remote_patient, name='divine_delete_remote_patient'),
 
 
     # Remote Equipment URLs
@@ -126,19 +86,12 @@ urlpatterns = [
     path('add-remote-equipment/', divine_Admin.add_or_edit_remote_equipment, name='divine_add_or_edit_remote_equipment'),
     path('delete_remote_equipment/', divine_Admin.delete_remote_equipment, name='divine_delete_remote_equipment'),
 
-    # Patient Observation and Lab Result URLs
-    path('patient_observation_history_view/<str:mrn>/view/', divine_Admin.patient_observation_history_view, name="divine_patient_observation_history_view"),
-    path('patient_lab_result_history_view/<str:mrn>/view/', divine_Admin.patient_lab_result_history_view, name="divine_patient_lab_result_history_view"),
+   
     path('patient_laboratory_view/', divine_Admin.patient_laboratory_view, name="divine_patient_laboratory_view"),
 
-    path('lab-details/<str:mrn>/<str:visit_number>/', divine_Admin.patient_lab_details_view, name='divine_patient_lab_details_view'),
+   
     path('patient_observation_view/', divine_Admin.patient_observation_view, name="divine_patient_observation_view"),
-    
-    # Chief Complaint URLs
 
-    path('delete_chief_complaint/<int:chief_complaint_id>/', divine_Admin.delete_chief_complaint, name='divine_delete_chief_complaint'),
-
-    
     # Health Record URLs
     path('health_record_list/', divine_Admin.health_record_list, name="divine_health_record_list"),
     path('save_health_record/', divine_Admin.save_health_record, name="divine_save_health_record"),
@@ -149,21 +102,30 @@ urlpatterns = [
     path('add_or_edit_reagent/', divine_Admin.add_or_edit_reagent, name="divine_add_or_edit_reagent"),
     path('delete_reagent/', divine_Admin.delete_reagent, name="divine_delete_reagent"),
     
-    # Remote Procedure, Referral, Discharge URLs
   
-    path('save_remotereferral/<int:patient_id>/<int:visit_id>/', divine_Admin.save_remotereferral, name='divine_save_remotereferral'),
-    path('save_counsel/<int:patient_id>/<int:visit_id>/', divine_Admin.save_counsel, name='divine_save_remote_counseling'),
-    path('save_observation/<int:patient_id>/<int:visit_id>/', divine_Admin.save_observation, name='divine_save_observation'),   
-    path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.save_remote_discharges_notes, name='divine_save_remote_discharges_notes'),
-    
-    # Remote Consultation Notes URLs
-    path('save_remotesconsultation_notes/<int:patient_id>/<int:visit_id>/', divine_Admin.save_remotesconsultation_notes, name="divine_save_remotesconsultation_notes"),
-    
-    
-    # Miscellaneous
 
-    path('fetch-existing-data/', divine_Admin.fetch_existing_data, name='divine_endpoint_to_fetch_existing_data'),    
-    path('edit_procedure_result/<int:patient_id>/<int:visit_id>/<int:procedure_id>/', divine_Admin.edit_procedure_result, name='divine_edit_procedure_result'),
-    path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', divine_Admin.edit_lab_result, name='divine_edit_lab_result'),
+    path('delete-remote-medicine/', divine_Admin.delete_remote_medicine, name='divine_delete_remote_medicine'),
+
+    path('expired-medicine/', divine_Admin.expired_medicine_view, name='divine_expired_medicine_view'),
+    path('in-stock-medicine/', divine_Admin.instock_medicine_view, name='divine_instock_medicine_view'),
+    path('checklist-medicine/', divine_Admin.checklist_medicine_view, name='divine_checklist_medicine_view'),
+    path('out-of-stock-medicine/', divine_Admin.outofstock_medicine_view, name='divine_outofstock_medicine_view'),
+    path('api/medicine-counts/', divine_Admin.medicine_count_api, name='divine_medicine_count_api'),
+    path('remote/patients/', divine_Admin.remote_patient_list_view, name='divine_patient_list'),
+    path('delete-remote-patient/', divine_Admin.delete_remote_patient_view, name='divine_delete_remote_patient'),
+    path('delete-appointment/', divine_Admin.delete_consultation, name='divine_delete_consultation'),   
+    path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', divine_Admin.download_consultation_summary_pdf, name='divine_download_consultation_summary_pdf' ),
+    path('imaging/download/<int:imaging_id>/', divine_Admin.download_imaging_result_pdf, name='divine_download_imaging_result_pdf' ),
+    path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', divine_Admin.download_all_imaging_results_pdf, name='divine_download_all_imaging_results_pdf'),
+    path('lab-result/download/<int:lab_id>/', divine_Admin.download_lab_result_pdf, name='divine_download_lab_result_pdf'),
+    path('lab/download/all/<str:patient_mrn>/<str:visit_vst>/',divine_Admin.download_all_lab_results_pdf, name='divine_download_all_lab_results_pdf'),
+    path('procedure/download/all/<str:patient_mrn>/<str:visit_vst>/', divine_Admin.download_all_procedures_pdf, name='divine_download_all_procedures_pdf'),
+    path('procedure/result/download/<int:procedure_id>/', divine_Admin.download_procedure_result_pdf, name='divine_download_procedure_result_pdf'),
+    path('download/prescription-notes/<int:patient_id>/<int:visit_id>/', divine_Admin.download_prescription_notes_pdf, name='divine_download_prescription_notes_pdf'),
+    path('download-referral-pdf/<int:patient_id>/<int:visit_id>/', divine_Admin.download_referral_pdf, name='divine_download_referral_pdf'),
+    path('download-counseling-pdf/<int:patient_id>/<int:visit_id>/', divine_Admin.download_counseling_pdf, name='divine_download_counseling_pdf'),
+    path('download-discharge-pdf/<int:patient_id>/<int:visit_id>/', divine_Admin.download_discharge_pdf, name='divine_download_discharge_pdf'),
+    path('download/observation/<int:patient_id>/<int:visit_id>/', divine_Admin.download_observation_pdf, name='divine_download_observation_pdf'),
+    path('patient/imaging/view/', divine_Admin.patient_imaging_view, name="divine_patient_imaging_view"), 
   
 ]

@@ -5,7 +5,7 @@ from datetime import datetime
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
-from clinic.models import AmbulanceOrder, AmbulanceVehicleOrder, ConsultationOrder, EquipmentMaintenance, ImagingRecord, LaboratoryOrder, Medicine, Prescription, Procedure, Reagent, SalaryPayment
+from clinic.models import AmbulanceOrder, AmbulanceVehicleOrder, ConsultationOrder,  ImagingRecord, LaboratoryOrder, Medicine, Prescription, Procedure, Reagent, SalaryPayment
 
 @require_GET
 def get_financial_data(request):
@@ -47,8 +47,7 @@ def calculate_yearly_income(year):
 
 def calculate_yearly_expenditures(year):
     expenditure_models = {
-        'Medicine': ('total_buying_price', Medicine),
-        'EquipmentMaintenance': ('cost', EquipmentMaintenance),
+        'Medicine': ('total_buying_price', Medicine),  
         'Reagent': ('price_per_unit', 'quantity_in_stock', Reagent),
         'SalaryPayment': ('payroll__total_salary', SalaryPayment),
     }
@@ -104,8 +103,7 @@ def calculate_monthly_income(year):
 
 def calculate_yearly_expenditure():
     expenditure_models = {
-        'Medicine': ('total_buying_price', Medicine),
-        'EquipmentMaintenance': ('cost', EquipmentMaintenance),
+        'Medicine': ('total_buying_price', Medicine),       
         'Reagent': ('price_per_unit', 'quantity_in_stock', Reagent),
         'SalaryPayment': ('payroll__total_salary', SalaryPayment),
     }

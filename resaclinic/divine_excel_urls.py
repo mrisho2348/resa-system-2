@@ -7,10 +7,9 @@ urlpatterns = [
     path('download-health-template/', divineExcel.download_health_record_excel_template, name='divine_health_record_template_download'),
     path('download-remote-company-template/', divineExcel.download_remote_company_excel_template, name='divine_remote_company_template_download'),
     path('download-pathodology-template/', divineExcel.download_pathodology_record_excel_template, name='divine_pathodology_record_template_download'),
-    path('download-supplier-template/', divineExcel.download_supplier_excel_template, name='divine_supplier_template_download'),
-    path('download-category-template/', divineExcel.download_category_excel_template, name='divine_category_template_download'),
+   
     path('download-service-template/', divineExcel.download_service_excel_template, name='divine_service_template_download'),
-    path('download-insurance-company-template/', divineExcel.download_insurance_company_excel_template, name='divine_insurance_company_template_download'),
+    
     path('download-staffs-template/', divineExcel.download_staffs_excel_template, name='divine_staffs_template_download'),
     path('download-prescription-frequency-template/', divineExcel.download_prescription_frequency_excel_template, name='divine_prescription_frequency_template_download'),
     path('download-ambulance-route-template/', divineExcel.download_ambulance_route_excel_template, name='divine_ambulance_route_template_download'),

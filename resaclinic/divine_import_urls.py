@@ -3,7 +3,7 @@ from kahamahmis import divineImport
 
 urlpatterns = [
     # Import URLs
-    path('import_insurance_company_data/', divineImport.import_insurance_company_data, name='divine_import_insurance_company_data'),
+   
     path('import-disease-data/', divineImport.import_disease_recode_data, name='divine_import_disease_recode_data'),
     path('import-remote-medicine-data/', divineImport.import_remote_medicine_data, name='divine_import_remote_medicine_data'),
     path('import-health-record-data/', divineImport.import_health_record_data, name='divine_import_health_record_data'),

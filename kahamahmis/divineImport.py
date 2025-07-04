@@ -3,57 +3,11 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib import messages
-from clinic.models import Country, Diagnosis, DiseaseRecode, HealthRecord, InsuranceCompany, PathodologyRecord, RemoteCompany, RemoteEquipment, RemoteMedicine, RemoteReagent, RemoteService
+from clinic.models import Country, Diagnosis, DiseaseRecode, HealthRecord,  PathodologyRecord, RemoteCompany, RemoteEquipment, RemoteMedicine, RemoteReagent, RemoteService
 from .forms import CountryImportForm, DiagnosisImportForm, DiseaseRecodeImportForm, HealthRecordImportForm, ImportInsuranceCompanyForm, PathodologyRecordImportForm, RemoteCompanyImportForm, RemoteEquipmentForm, RemoteMedicineImportForm, RemoteReagentForm,  RemoteServiceImportForm
 from django.db.utils import IntegrityError
 
-def import_insurance_company_data(request):
-    if request.method == 'POST':
-        form = ImportInsuranceCompanyForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = form.cleaned_data['file']
-            try:
-                workbook = openpyxl.load_workbook(file)
-                sheet = workbook.active
 
-                # Read headers
-                headers = [cell.value.strip() for cell in sheet[1]]  # Trim headers
-                required_headers = ['name', 'phone', 'short_name', 'email', 'address', 'website']
-
-                # Validate headers
-                if headers[:len(required_headers)] != required_headers:
-                    messages.error(request, 'Invalid file format')
-                    return render(request, 'divineImport/import_insurance_company.html', {'form': form})
-
-                # Read data from rows
-                for row in sheet.iter_rows(min_row=2, values_only=True):
-                    try:
-                        # Ensure each header is mapped to a value, defaulting to an empty string if necessary
-                        data = dict(zip(headers, (cell.strip() if isinstance(cell, str) else cell for cell in row)))  # Trim data
-                        InsuranceCompany.objects.create(
-                            name=data['name'],
-                            phone=data['phone'],
-                            short_name=data['short_name'],
-                            email=data['email'],
-                            address=data['address'],
-                            website=data['website']
-                        )
-                    except IntegrityError:
-                        # Skip duplicate entries and continue
-                        continue
-                    except Exception as e:
-                        messages.error(request, f"Failed to import row data: {str(e)}")
-                        continue
-
-                return HttpResponseRedirect(reverse('divine_manage_insurance'))
-
-            except Exception as e:
-                messages.error(request, f"Failed to import data: {str(e)}")
-                return render(request, 'divineImport/import_insurance_company.html', {'form': form})
-    else:
-        form = ImportInsuranceCompanyForm()
-
-    return render(request, 'divineImport/import_insurance_company.html', {'form': form})
 
 
 

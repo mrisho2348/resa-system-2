@@ -1,6 +1,6 @@
-from django.urls import include, path, re_path
+from django.urls import path, re_path
 
-from clinic import DoctorView, delete, editView, imports
+from clinic import DoctorView
 
 urlpatterns = [
     re_path(r'^doctor/doctor_dashboard/$', DoctorView.doctor_dashboard, name='doctor_dashboard'),
@@ -23,9 +23,9 @@ urlpatterns = [
 
     re_path(r'^doctor_/radiology_order/$', DoctorView.radiology_order, name='doctor_radiology_order'),
 
-    path('patient/<int:patient_id>/', DoctorView.patient_detail, name='doctor_patient_detail'),
-    re_path(r'^doctor/unread_appointments/$', DoctorView.unread_appointments_view, name='doctor_unread_appointments'),
-    re_path(r'^doctor/read_appointments/$', DoctorView.read_appointments_view, name='doctor_read_appointments'),
+ 
+   
+ 
     path('prescriptions/<str:visit_number>/<int:patient_id>/',  DoctorView.prescription_detail, name='doctor_prescription_detail'),
     re_path(r'^doctor/prescriptions-billing/(?P<visit_number>[\w-]+)/(?P<patient_id>\d+)/$', DoctorView.prescription_billing, name='doctor_prescription_billing'),
     re_path(r'^doctor/prescriptions-notes/(?P<visit_number>[\w-]+)/(?P<patient_id>\d+)/$', DoctorView.prescription_notes, name='doctor_prescription_notes'),
@@ -40,9 +40,8 @@ urlpatterns = [
   
     re_path(r'^doctor/manage_laboratory/$', DoctorView.manage_laboratory, name='doctor_manage_laboratory'),
     path('save_remotesconsultation_notes_next/<int:patient_id>/<int:visit_id>/',DoctorView.save_remotesconsultation_notes_next, name="doctor_save_remotesconsultation_notes_next"),
-    re_path(r'^doctor/staff_detail/(?P<staff_id>\d+)/$', DoctorView.single_staff_detail, name='doctor_single_staff_detail'),
-    re_path(r'^doctor/view-patient/(?P<patient_id>\d+)/$', DoctorView.view_patient, name='doctor_view_patient'),
-    re_path(r'^doctor/get_item_quantity/$', DoctorView.get_item_quantity, name='doctor_get_item_quantity'),    
+
+    
     path('save_remotereferral/<int:patient_id>/<int:visit_id>/', DoctorView.save_remotereferral, name='doctor_save_remotereferral'),
     path('procedure/detail/<str:mrn>/<str:visit_number>/', DoctorView.patient_procedure_detail_view, name='doctor_patient_procedure_detail_view'),
     path('add/radiology/<int:patient_id>/<int:visit_id>/', DoctorView.add_radiology, name='doctor_add_radiology'),
@@ -70,8 +69,8 @@ urlpatterns = [
     re_path(r'^doctor/save_remoteprocedure/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_remoteprocedure, name='doctor_save_remoteprocedure'),
     re_path(r'^doctor/save_observation/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_observation, name='doctor_save_observation'),
     re_path(r'^doctor/save_remotesconsultation_notes/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_remotesconsultation_notes, name='doctor_save_remotesconsultation_notes'),
-    re_path(r'^doctor/patient_consultation_detail/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.save_remotesconsultation_notes, name='doctor_save_remotesconsultation_notes'),
-    re_path(r'^doctor/patient_vital_list/(?P<patient_id>\d+)/$', DoctorView.patient_vital_list, name='doctor_patient_vital_list'),
+
+  
     re_path(r'^doctor/patient_health_record_view/(?P<patient_id>\d+)/(?P<visit_id>\d+)/$', DoctorView.patient_health_record_view, name='doctor_patient_health_record_view'),
     re_path(r'^doctor/patient_visit_history/(?P<patient_id>\d+)/$', DoctorView.patient_visit_history_view, name='doctor_patient_visit_history_view'),
 
@@ -84,34 +83,21 @@ urlpatterns = [
 
     path('observation_records/', DoctorView.observation_record_list_view, name='doctor_observation_record_list'),   
     re_path(r'^doctor/confirm_meeting/(?P<appointment_id>\d+)/$', DoctorView.confirm_meeting, name='doctor_confirm_meeting'),
-    re_path(r'^doctor/generate-bill/(?P<procedure_id>\d+)/$', DoctorView.generate_billing, name='doctor_generate_billing'),
+  
     re_path(r'^doctor/edit_meeting/(?P<appointment_id>\d+)/$', DoctorView.edit_meeting, name='doctor_edit_meeting'),
     re_path(r'^doctor/save_radiology/$', DoctorView.save_radiology, name='doctor_save_radiology'),
     re_path(r'^doctor/save_procedure/$', DoctorView.save_procedure, name='doctor_save_procedure'),  
     re_path(r'^doctor/change_referral_status/$', DoctorView.change_referral_status, name='doctor_change_referral_status'),
-    path('patient/<int:patient_id>/visit/<int:visit_id>/', DoctorView.patient_visit_details_view, name='doctor_patient_visit_details_view'),
+   
     path('employee_detail/', DoctorView.employee_detail, name='doctor_employee_detail'),
-    path('patient/<int:patient_id>/', DoctorView.patient_detail, name='doctor_patient_detail'), 
+
  
 
     # edit urls
-    re_path(r'^doctor/pathodology/(?P<pathodology_id>\d+)/edit/$', editView.edit_pathodology, name='doctor_edit_pathodology'),
-    re_path(r'^doctor/update_consultation_data/(?P<appointment_id>\d+)/$', editView.update_consultation_data, name='doctor_update_consultation_data'),
-    re_path(r'^doctor/edit_procedure/$', editView.edit_procedure, name='doctor_edit_procedure'),
-    re_path(r'^doctor/edit_referral/$', editView.edit_referral, name='doctor_edit_referral'),
+
     re_path(r'^doctor/appointment_view/(?P<patient_id>\d+)/$', DoctorView.appointment_view_remote, name='doctor_appointment_view_remote'),
     re_path(r'^doctor/patient-procedure-history/(?P<mrn>[\w-]+)/view/$', DoctorView.patient_procedure_history_view, name='doctor_patient_procedure_history_view_mrn'),
 
-    # delete urls
-    re_path(r'^doctor/delete_ConsultationNotes/(?P<consultation_id>\d+)/$', delete.delete_ConsultationNotes, name='doctor_delete_ConsultationNotes'),
-    re_path(r'^doctor/delete_patient_vital/(?P<vital_id>\d+)/$', delete.delete_patient_vital, name='doctor_delete_patient_vital'),
-    re_path(r'^doctor/delete_prescription/(?P<prescription_id>\d+)/$', delete.delete_prescription, name='doctor_delete_prescription'),
-    re_path(r'^doctor/delete-consultation/(?P<appointment_id>\d+)/$', delete.delete_consultation, name='doctor_delete_consultation'),
-    re_path(r'^doctor/pathodology/(?P<pathodology_id>\d+)/delete/$', delete.delete_pathodology, name='doctor_delete_pathodology'),
-    re_path(r'^doctor/delete-patient/(?P<patient_id>\d+)/$', delete.delete_patient, name='doctor_delete_patient'),
-    re_path(r'^doctor/delete_procedure/$', delete.delete_procedure, name='doctor_delete_procedure'),
-    re_path(r'^doctor/delete_referral/$', delete.delete_referral, name='doctor_delete_referral'),
-    re_path(r'^doctor/delete_patient_visit/(?P<patient_visit_id>\d+)/$', delete.delete_patient_visit, name='doctor_delete_patient_visit'),
 
     path('resa/doctor/change-password/', DoctorView.change_password, name='doctor_change_password'),
 ]

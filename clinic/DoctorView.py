@@ -19,10 +19,10 @@ from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm
 from django.core.exceptions import ValidationError
-from clinic.models import  Consultation,  DiseaseRecode, Medicine, PathodologyRecord, Patients, Procedure, Staffs
+from clinic.models import  Consultation,   Medicine,   Staffs
 from django.views.decorators.http import require_POST
 from django.contrib.contenttypes.models import ContentType
-from .models import ClinicChiefComplaint, ClinicPrimaryPhysicalExamination, ClinicSecondaryPhysicalExamination, ConsultationNotes,  ConsultationOrder, Counseling, Country, CustomUser, Diagnosis,Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord, InsuranceCompany, InventoryItem,LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients, Reagent, Referral, SalaryChangeRecord,Service
+from .models import ClinicChiefComplaint,   ConsultationNotes,  ConsultationOrder, Counseling, Country, CustomUser, Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Referral, SalaryChangeRecord,Service
 from django.views.decorators.http import require_GET
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
@@ -246,12 +246,10 @@ def manage_patient(request):
 
 @login_required
 def manage_consultation(request):
-    patients=Patients.objects.all() 
-    pathology_records=PathodologyRecord.objects.all() 
+    patients=Patients.objects.all()
     doctors=Staffs.objects.filter(role='doctor')
     context = {
-        'patients':patients,
-        'pathology_records':pathology_records,
+        'patients':patients,   
         'doctors':doctors,
     }
     return render(request,"doctor_template/manage_consultation.html",context)
@@ -269,31 +267,6 @@ def manage_laboratory(request):
 
 
 logger = logging.getLogger(__name__)
-
-
-
-
-@login_required
-def single_staff_detail(request, staff_id):
-    staff = get_object_or_404(Staffs, id=staff_id)
-    # Fetch additional staff-related data  
-    context = {
-        'staff': staff,
-     
-    }
-
-    return render(request, "doctor_template/staff_details.html", context)
-
-@login_required
-def view_patient(request, patient_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    # Fetch additional staff-related data  
-    context = {
-        'patient': patient,
-     
-    }
-
-    return render(request, "doctor_template/patients_detail.html", context)
 
 
     
@@ -486,15 +459,7 @@ def manage_referral(request):
     return render(request, 'doctor_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
 
-@login_required
-def generate_billing(request, procedure_id):
-    procedure = get_object_or_404(Procedure, id=procedure_id)
 
-    context = {
-        'procedure': procedure,
-    }
-
-    return render(request, 'doctor_template/billing_template.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -526,58 +491,7 @@ def fetch_consultation_counts(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
-
-@login_required
-def unread_appointments_view(request):
-    try:
-        # Get the logged-in doctor
-        doctor = request.user.staff
-        print(f"Doctor: {doctor}")
-
-        # Get today's date
-        today = timezone.now().date()
-
-        # Fetching all consultations for today associated with the doctor
-        appointments = Consultation.objects.filter(doctor=doctor, created_at__date=today)
-
-        # Context data to pass to the template
-        context = {
-            'appointments': appointments,
-        }
-    except Staffs.DoesNotExist:
-        context = {
-            'error': "Doctor not found."
-        }
-    except Exception as e:
-        context = {
-            'error': str(e)
-        }
-    
-    return render(request, 'doctor_template/unread_appointments.html', context)
-
-@login_required
-def read_appointments_view(request):
-    doctor = request.user.staff
-    # Fetching all read consultations associated with the doctor
-    read_appointments = Consultation.objects.filter(doctor=doctor)    
-    return render(request, 'doctor_template/read_appointments.html', {'appointments': read_appointments})
-
-
-@csrf_exempt
-def get_item_quantity(request):
-    if request.method == 'POST':
-        item_id = request.POST.get('itemId')  # Use request.POST.get() instead of request.GET.get()
-          
-        try:
-            item = InventoryItem.objects.get(id=item_id)
-            quantity = item.quantity
-            
-            return JsonResponse({'quantity': quantity})
-        except InventoryItem.DoesNotExist:
-            return JsonResponse({'error': 'Item not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-    
+  
 
 @csrf_exempt
 def save_chief_complaint(request):
@@ -1837,21 +1751,6 @@ def prescription_notes(request, visit_number, patient_id):
         }
     return render(request, "doctor_template/prescription_notes.html", context)
 
-  
-@login_required    
-def patient_vital_list(request, patient_id):
-    # Retrieve the patient object
-    patient = Patients.objects.get(pk=patient_id)  
-    patient_vitals = PatientVital.objects.filter(patient=patient).order_by('-recorded_at')
-
-    # Render the template with the patient's vital information
-    context = {  
-        'patient': patient, 
-        'patient_vitals': patient_vitals
-    }
-    
-    return render(request, 'doctor_template/manage_patient_vital_list.html', context) 
-
 
 
 @login_required
@@ -2301,32 +2200,6 @@ def observation_record_list_view(request):
 
 
 @login_required
-def patient_detail(request, patient_id):
-    # Retrieve the patient object using the patient_id
-    patient = get_object_or_404(Patients, id=patient_id)
-    
-    # Context to be passed to the template
-    context = {
-        'patient': patient,
-    }
-    
-    # Render the patient_detail template with the context
-    return render(request, 'doctor_template/patient_detail.html', context)
-
-
-
-@login_required
-def patient_detail(request, patient_id):
-    # Retrieve the patient object using the patient_id
-    patient = get_object_or_404(Patients, id=patient_id)    
-    # Context to be passed to the template
-    context = {
-        'patient': patient,
-    }    
-    # Render the patient_detail template with the context
-    return render(request, 'doctor_template/patient_detail.html', context)  
-
-@login_required
 def employee_detail(request):
     try:
         # Get the logged-in staff member
@@ -2358,58 +2231,4 @@ def employee_detail(request):
         }
     
     return render(request, 'doctor_template/employee_detail.html', context)
-
-@login_required
-def patient_visit_details_view(request, patient_id, visit_id):
-    try:        
-        visit = PatientVisits.objects.get(id=visit_id)
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        chief_complaints = ClinicChiefComplaint.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        primary_physical_examination = ClinicPrimaryPhysicalExamination.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        secondary_physical_examination = ClinicSecondaryPhysicalExamination.objects.filter(patient=patient_id, visit=visit_id).first()
-        consultation_notes = ConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        vitals = PatientVital.objects.filter(patient=patient_id, visit=visit_id).order_by('-recorded_at')
-        referral_records  = Referral.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')
-        counseling_records = Counseling.objects.filter(patient=patient_id, visit=visit_id).order_by('-created_at')        
-        procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)
-        imaging_records = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
-        discharge_notes = DischargesNotes.objects.filter(patient=patient_id, visit=visit_id)
-        observation_records = ObservationRecord.objects.filter(patient=patient_id, visit=visit_id)
-        lab_tests = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
-        procedure = Procedure.objects.filter(patient=patient_id, visit=visit_id).first()    
-        diagnosis_record = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-        patient = get_object_or_404(Patients, id=patient_id)
-
-        context = {
-            'primary_physical_examination': primary_physical_examination,
-            'secondary_physical_examination': secondary_physical_examination,
-            'visit': visit,
-            'counseling_records': counseling_records,
-            'observation_records': observation_records,
-            'patient': patient,
-            'referral_records ': referral_records ,
-            'chief_complaints': chief_complaints,              
-            'prescriptions': prescriptions,           
-            'consultation_notes': consultation_notes,     
-            'diagnosis_record': diagnosis_record,            
-            'vitals': vitals,     
-            'lab_tests': lab_tests,
-            'procedures': procedures,
-            'procedure': procedure,
-            'imaging_records': imaging_records,
-            'discharge_notes': discharge_notes,
-        }
-
-        return render(request, 'doctor_template/manage_patient_visit_detail_record.html', context)
-    except Patients.DoesNotExist:
-        raise Http404("Patient does not exist")
-    except Exception as e:
-        return render(request, '404.html', {'error_message': str(e)})
-
-     
-
-
-
-
-
 
