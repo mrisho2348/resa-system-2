@@ -1,25 +1,107 @@
-{% extends 'labtechnician_template/base_template.html' %}
-{% load static %}
+{% extends 'labtechnician_template/base_template.html' %} {# Inherit from base template #}
+{% load static %} {# Load static files #}
 
-{% block title %}Lab Result{% endblock title %}
+{% block title %}Lab Result{% endblock title %} {# Set page title #}
 
-{% block page_title %}Lab Result{% endblock page_title %}
+{% block page_title %}Lab Result{% endblock page_title %} {# Set page header #}
 
 {% block breadcrumb %}
-{% include "labtechnician_template/modal_form.html" %}
+  {% include "labtechnician_template/modal_form.html" %} {# Include modal form for breadcrumbs #}
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+/* --- Select2 Styling Fixes for Card Header --- */
+.card-header .select2-container--bootstrap4 .select2-selection--single {
+  background-color: #ffffff !important; /* white input background */
+  color: #000000 !important;            /* black text */
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  height: 38px;
+  font-size: 0.9rem;
+}
+.card-header .select2-container--bootstrap4 .select2-selection__arrow {
+  top: 6px !important;
+}
+.select2-container--bootstrap4 .select2-results__option {
+  color: #000000 !important;
+  background-color: #ffffff;
+}
+.select2-container--bootstrap4 .select2-results__option--highlighted {
+  background-color: #007bff;
+  color: #fff;
+}
+</style>
+
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-12">
-      <div class="card">
+
+      <div class="card shadow">
+        <!-- Card Header with Filters -->
         <div class="card-header bg-primary text-white">
-          <h5 class="text-center text-uppercase mb-0">Laboratory Results</h5>
+          <h5 class="text-uppercase text-center mb-3">Laboratory Results</h5>
+
+          <!-- Filter Row -->
+          <div class="row">
+            <!-- Test Name Filter -->
+            <div class="col-md-3 mb-2">
+              <label for="filterTestName" class="small font-weight-bold">Test Name</label>
+              <select id="filterTestName" class="form-control select2bs4" style="width: 100%;">
+                <option value="">All Test Names</option>
+                {% for name in test_names %}
+                  <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Month Filter -->
+            <div class="col-md-2 mb-2">
+              <label for="filterMonth" class="small font-weight-bold">Month</label>
+              <select id="filterMonth" class="form-control select2bs4" style="width: 100%;">
+                <option value="">All Months</option>
+                {% for num, name in months %}
+                  <option value="{{ num }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Year Filter -->
+            <div class="col-md-2 mb-2">
+              <label for="filterYear" class="small font-weight-bold">Year</label>
+              <select id="filterYear" class="form-control select2bs4" style="width: 100%;">
+                <option value="">All Years</option>
+                {% for year in years %}
+                  <option value="{{ year }}">{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Payment Form Filter -->
+            <div class="col-md-3 mb-2">
+              <label for="filterPayment" class="small font-weight-bold">Payment Form</label>
+              <select id="filterPayment" class="form-control select2bs4" style="width: 100%;">
+                <option value="">All Payment Forms</option>
+                <option value="Cash">Cash</option>
+                <option value="Insurance">Insurance</option>
+                <option value="NHIF">NHIF</option>
+                <!-- Add more as needed -->
+              </select>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <div class="col-md-2 mb-2 d-flex align-items-end">
+              <button type="button" id="clearFilters" class="btn btn-outline-light btn-block">
+                <i class="fas fa-eraser"></i> Clear Filters
+              </button>
+            </div>
+          </div>
         </div>
+
+        <!-- Card Body with Table -->
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm display text-nowrap" id="example" style="width:100%">
+            <table class="table table-hover table-bordered table-striped table-sm display text-nowrap" id="examples" style="width:100%">
               <thead class="thead-dark">
                 <tr>
                   <th>Lab Number</th>
@@ -37,7 +119,19 @@
                 {% for lab in lab_records %}
                 <tr>
                   <td>{{ lab.lab_number }}</td>
-                  <td>{{ lab.patient.first_name }} {{ lab.patient.middle_name }} {{ lab.patient.last_name }}</td>
+                    <td>
+                    <div>
+                      <strong>{{ lab.patient.first_name }} {{ lab.patient.middle_name }} {{ lab.patient.last_name }}</strong>
+                    </div>
+                    <div class="small text-muted">
+                      {% if lab.patient.payment_form == "Insurance" %}
+                      <span class="badge badge-info">{{ lab.patient.payment_form }}</span>
+                      <span class="ml-1">{{ lab.patient.insurance_name }}</span>
+                      {% else %}
+                      <span class="badge badge-secondary">{{ lab.patient.payment_form }}</span>
+                      {% endif %}
+                    </div>
+                    </td>
                   <td>{{ lab.visit.vst }}</td>
                   <td>{{ lab.name.name }}</td>
                   <td>{{ lab.description }}</td>
@@ -51,8 +145,8 @@
                   </td>
                   <td>{{ lab.cost }}</td>
                   <td>
-                    <button class="btn btn-sm btn-info" data-toggle="modal"  data-target="#labResultModal{{ lab.id }}">
-                      <i class="fas fa-eye"></i> View Result
+                    <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#labResultModal{{ lab.id }}">
+                      <i class="fas fa-eye"></i> View
                     </button>
                     <a href="{% url 'lab_edit_lab_result' lab.id %}" class="btn btn-sm btn-primary">
                       <i class="fas fa-edit"></i> Edit
@@ -64,12 +158,398 @@
             </table>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 </div>
+{% include 'labtechnician_template/datatable.html' %} {# Include DataTable JS/CSS #}
+<script>
+  let dataTableInstance = null;
 
+  // Helper to build dynamic title from filters
+  function getDynamicTitle() {
+    const testName = $('#filterTestName option:selected').text();
+    const month = $('#filterMonth option:selected').text();
+    const year = $('#filterYear option:selected').text();
+    const payment = $('#filterPayment option:selected').text();
 
+    let title = "Laboratory Results";
+    let filters = [];
+
+    if ($('#filterTestName').val()) filters.push(testName);
+    if ($('#filterMonth').val()) filters.push(month);
+    if ($('#filterYear').val()) filters.push(year);
+    if ($('#filterPayment').val()) filters.push(payment);
+
+    if (filters.length > 0) {
+      title += " - " + filters.join(", ");
+    }
+    return title;
+  }
+
+  function updateHeaderTitle() {
+    $('#labResultsHeader').text(getDynamicTitle());
+  }
+
+  function addExcelJsExportButton() {
+    // Remove existing button first
+    $('#exceljs-export-btn').remove();
+
+    // Add Export Button
+    const btn = $('<button id="exceljs-export-btn" class="btn btn-success btn-sm ml-2"><i class="fas fa-file-excel"></i> Export to Excel (ExcelJS)</button>');
+    $('.dt-buttons').append(btn);
+
+    btn.on('click', async function () {
+      // Load ExcelJS if not loaded
+      if (typeof ExcelJS === 'undefined') {
+        await $.getScript('https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js');
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Lab Results');
+
+      // Title and styling
+      const headers = [
+        'Lab Number', 'Patient', 'Visit', 'Test Name', 'Description',
+        'Order Date', 'Status', 'Cost (TZS)'
+      ];
+
+      const title = getDynamicTitle();
+      worksheet.mergeCells(1, 1, 1, headers.length);
+      const titleCell = worksheet.getCell(1, 1);
+      titleCell.value = title;
+      titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.alignment = { horizontal: 'center' };
+      titleCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0070C0' },
+      };
+
+      worksheet.addRow([]); // Row 2: empty space
+
+      let totalCost = 0;
+      let totalRows = 0;
+      let dataRows = [];
+
+      // Fetch data from table
+      $('#examples tbody tr').each(function () {
+        const tds = $(this).find('td');
+        if (tds.length < 8) return;
+
+        const cost = parseFloat($(tds[7]).text().replace(/[^\d.]/g, '')) || 0;
+        totalCost += cost;
+        totalRows++;
+
+        const rowData = [
+          $(tds[0]).text().trim(),
+          $(tds[1]).text().trim().replace(/\s+/g, ' '),
+          $(tds[2]).text().trim(),
+          $(tds[3]).text().trim(),
+          $(tds[4]).text().trim(),
+          $(tds[5]).text().trim(),
+          $(tds[6]).text().trim(),
+          $(tds[7]).text().trim()
+        ];
+        dataRows.push(rowData);
+      });
+
+      // Row 3: Totals
+      worksheet.addRow([
+        '', '', '', '', '', '', 'Total Cost:', totalCost.toLocaleString()
+      ]);
+      const totalsRow = worksheet.getRow(3);
+      totalsRow.getCell(7).font = { bold: true, color: { argb: 'FF0070C0' } };
+      totalsRow.getCell(8).font = { bold: true, color: { argb: 'FF0070C0' } };
+      totalsRow.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+      totalsRow.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+
+      // Add headers at row 4
+      worksheet.addRow(headers);
+      const headerRow = worksheet.getRow(4);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+        cell.alignment = { horizontal: 'center' };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' }
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+      });
+
+      // Add data starting row 5
+      dataRows.forEach(row => worksheet.addRow(row));
+
+      // Add Excel Table starting from A4
+      worksheet.addTable({
+        name: 'LabResultsTable',
+        ref: 'A4',
+        headerRow: true,
+        style: {
+          theme: 'TableStyleMedium9',
+          showRowStripes: true
+        },
+        columns: headers.map(h => ({ name: h })),
+        rows: dataRows
+      });
+
+      // Add Total Records info in Row 3, Column 1
+      worksheet.getCell('A3').value = `Total Records: ${totalRows}`;
+      worksheet.getCell('A3').font = { italic: true, color: { argb: 'FF7030A0' }, size: 12 };
+
+      // Auto column width
+      worksheet.columns.forEach(col => {
+        let maxLength = 10;
+        col.eachCell({ includeEmpty: true }, cell => {
+          if (cell.value)
+            maxLength = Math.max(maxLength, cell.value.toString().length);
+        });
+        col.width = maxLength + 2;
+      });
+
+      // Download
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'Lab_Results.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    });
+  }
+
+  function addPdfExportButton() {
+    // Remove existing button first
+    $('#pdf-export-btn').remove();
+
+    // Add Export Button
+    const btn = $('<button id="pdf-export-btn" class="btn btn-danger btn-sm ml-2"><i class="fas fa-file-pdf"></i> Export to PDF (jsPDF)</button>');
+    $('.dt-buttons').append(btn);
+
+    btn.on('click', async function () {
+      // Load jsPDF and autotable if not loaded
+      function loadScript(url) {
+        return new Promise(function(resolve, reject) {
+          const script = document.createElement('script');
+          script.src = url;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      }
+      if (typeof window.jspdf_autotable === 'undefined' && (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined' || typeof window.jspdf.jsPDF.API.autoTable === 'undefined')) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.7.0/jspdf.plugin.autotable.min.js');
+      }
+
+      // Access jsPDF from window.jspdf
+      const jsPDFConstructor = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : window.jsPDF;
+      const doc = new jsPDFConstructor('l', 'pt', 'a4');
+      const headers = [
+        'Lab Number', 'Patient', 'Visit', 'Test Name', 'Description',
+        'Order Date', 'Status', 'Cost (TZS)'
+      ];
+
+      // Title and filters
+      const title = getDynamicTitle();
+      doc.setFontSize(18);
+      doc.setTextColor(255,255,255);
+      doc.setFillColor(0,112,192);
+      doc.rect(0, 10, doc.internal.pageSize.getWidth(), 30, 'F');
+      doc.text(title, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+
+      // Gather data
+      let totalCost = 0;
+      let totalRows = 0;
+      let dataRows = [];
+      $('#examples tbody tr').each(function () {
+        const tds = $(this).find('td');
+        if (tds.length < 8) return;
+        const cost = parseFloat($(tds[7]).text().replace(/[^\d.]/g, '')) || 0;
+        totalCost += cost;
+        totalRows++;
+        const rowData = [
+          $(tds[0]).text().trim(),
+          $(tds[1]).text().trim().replace(/\s+/g, ' '),
+          $(tds[2]).text().trim(),
+          $(tds[3]).text().trim(),
+          $(tds[4]).text().trim(),
+          $(tds[5]).text().trim(),
+          $(tds[6]).text().trim(),
+          $(tds[7]).text().trim()
+        ];
+        dataRows.push(rowData);
+      });
+
+      // Totals row
+      const totalsRow = [
+        '', '', '', '', '', '', 'Total Cost:', totalCost.toLocaleString()
+      ];
+
+      // Info row
+      const infoRow = [
+        `Total Records: ${totalRows}`, '', '', '', '', '', '', ''
+      ];
+
+      // Build table data
+      // const tableData = [totalsRow, infoRow, headers, ...dataRows];
+
+      // AutoTable
+      doc.autoTable({
+        startY: 50,
+        head: [headers],
+        body: dataRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [68, 114, 196],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        didDrawPage: function (data) {
+          // Totals row
+          doc.setFontSize(12);
+          doc.setTextColor(112,48,160);
+          doc.text(`Total Records: ${totalRows}`, data.settings.margin.left, data.cursor.y + 20);
+          doc.text(`Total Cost: ${totalCost.toLocaleString()}`, data.settings.margin.left + 200, data.cursor.y + 20);
+        }
+      });
+
+      doc.save('Lab_Results.pdf');
+    });
+  }
+
+  function initializeDataTable(titleText) {
+    if (dataTableInstance) {
+      dataTableInstance.destroy();
+    }
+    // Remove default DataTables export buttons (like pdf) and use only custom ones
+    dataTableInstance = new DataTable('#examples', {
+      dom: 'Bfrtip',
+      buttons: [], // No default export buttons
+      retrieve: true,
+      destroy: true
+    });
+
+    // Add custom export buttons
+    addExcelJsExportButton();
+    addPdfExportButton();
+  }
+
+  $(document).ready(function() {
+    // Add id to header for dynamic update
+    $('h5.text-uppercase.text-center.mb-3').attr('id', 'labResultsHeader');
+
+    let initialTitle = getDynamicTitle();
+    initializeDataTable(initialTitle);
+
+    const filterTestName = $('#filterTestName');
+    const filterMonth = $('#filterMonth');
+    const filterYear = $('#filterYear');
+    const filterPayment = $('#filterPayment');
+    const tbody = $('#examples tbody');
+    const filterUrl = "{% url 'lab_filter_lab_results_api' %}";
+
+    function fetchAndRender() {
+      const params = new URLSearchParams({
+        test_name: filterTestName.val(),
+        month: filterMonth.val(),
+        year: filterYear.val(),
+        payment_form: filterPayment.val(),
+      });
+
+      fetch(`${filterUrl}?${params.toString()}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (dataTableInstance) {
+          dataTableInstance.clear().draw();
+        }
+        if (data.lab_records.length === 0) {
+          if (dataTableInstance) {
+            dataTableInstance.row.add([
+              '<td colspan="9" class="text-center text-muted">No records found.</td>',
+              '', '', '', '', '', '', '', ''
+            ]).draw();
+          } else {
+            tbody.html('<tr><td colspan="9" class="text-center text-muted">No records found.</td></tr>');
+          }
+        } else {
+          data.lab_records.forEach(lab => {
+            let patientCell = `
+              <div>
+                <strong>${lab.patient_name}</strong>
+              </div>
+              <div class="small text-muted">
+                ${lab.payment_form === "Insurance"
+                  ? `<span class="badge badge-info">${lab.payment_form}</span><span class="ml-1">${lab.insurance_name}</span>`
+                  : `<span class="badge badge-secondary">${lab.payment_form}</span>`
+                }
+              </div>
+            `;
+            let statusBadge = `<span class="badge ${lab.status === 'Completed' ? 'badge-success' : 'badge-warning'}">${lab.status}</span>`;
+            let actions = `
+              <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#labResultModal${lab.id}">
+                <i class="fas fa-eye"></i> View
+              </button>
+              <a href="/lab/lab/edit/${lab.id}/" class="btn btn-sm btn-primary">
+                <i class="fas fa-edit"></i> Edit
+              </a>
+            `;
+            if (dataTableInstance) {
+              dataTableInstance.row.add([
+                lab.lab_number,
+                patientCell,
+                lab.visit,
+                lab.test_name,
+                lab.description,
+                lab.order_date,
+                statusBadge,
+                lab.cost,
+                actions
+              ]).draw(false);
+            }
+          });
+        }
+        // Update DataTable export button titles and header
+        let dynamicTitle = getDynamicTitle();
+        updateHeaderTitle();
+        initializeDataTable(dynamicTitle);
+      });
+    }
+
+    // Listen to Select2 change events
+    filterTestName.on('change', fetchAndRender);
+    filterMonth.on('change', fetchAndRender);
+    filterYear.on('change', fetchAndRender);
+    filterPayment.on('change', fetchAndRender);
+
+    // Clear filters button
+    $('#clearFilters').on('click', function() {
+      filterTestName.val('').trigger('change');
+      filterMonth.val('').trigger('change');
+      filterYear.val('').trigger('change');
+      filterPayment.val('').trigger('change');
+      fetchAndRender();
+    });
+  });
+</script>
+
+{# Render a modal for each lab record #}
 {% for lab in lab_records %}
 <!-- Lab Result Modal -->
 <div class="modal fade" id="labResultModal{{ lab.id }}" tabindex="-1" role="dialog" aria-labelledby="labResultModalLabel{{ lab.id }}" aria-hidden="true">
@@ -176,14 +656,13 @@
 {% endfor %}
 
 <style>
+  /* Limit modal body height for scrollable content */
   .modal-dialog-scrollable .modal-body {
-  max-height: 60vh; /* 60% of viewport height */
-  overflow-y: auto;
-}
-
+    max-height: 60vh; /* 60% of viewport height */
+    overflow-y: auto;
+  }
 </style>
 
-{% include 'labtechnician_template/datatable.html' %}
 
 
 {% endblock main_content %}

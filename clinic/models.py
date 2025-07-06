@@ -203,7 +203,6 @@ class Service(models.Model):
     cash_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     insurance_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     nhif_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # New field for cost
-    department = models.CharField(max_length=200, blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()

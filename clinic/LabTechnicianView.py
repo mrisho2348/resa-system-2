@@ -1,3 +1,4 @@
+from calendar import month_name
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -7,13 +8,17 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
 from django.views import View
 from django.utils.decorators import method_decorator
-from datetime import timedelta, date
+from django.db.models import Q
+from datetime import datetime, timedelta, date
 from clinic.forms import LaboratoryOrderForm
 from clinic.models import (
-    LaboratoryOrder, Reagent, Staffs, Employee, EmployeeDeduction,
-    SalaryChangeRecord, PatientVisits
+    LaboratoryOrder, Reagent, Service, Staffs, Employee, EmployeeDeduction,
+    SalaryChangeRecord
 )
 from kahamahmis.forms import StaffProfileForm
+
+import logging
+logger = logging.getLogger(__name__)
 
 # ------------------------------
 # LAB TECHNICIAN DASHBOARD VIEW
@@ -150,10 +155,96 @@ def edit_lab_result(request, lab_id):
 # ------------------------------
 # ALL LAB RESULTS VIEW
 # ------------------------------
-@login_required
 def lab_results_view(request):
+    # Fetch lab records as usual
     lab_records = LaboratoryOrder.objects.select_related('patient', 'visit', 'name').order_by('-created_at')
-    return render(request, 'labtechnician_template/lab_results.html', {'lab_records': lab_records})
+
+    # 1. Generate years range: (current_year - 5) to (current_year + 1)
+    current_year = datetime.now().year
+    years = list(range(current_year - 5, current_year + 2))  # +2 to include next year
+
+    # 2. Generate months list like [(1, 'January'), ..., (12, 'December')]
+    months = [(i, month_name[i]) for i in range(1, 13)]
+
+    # 3. Fetch test names from Service model where department = 'Laboratory'
+    test_names = Service.objects.filter(type_service="Laboratory").values_list('name', flat=True).distinct()
+    
+    context = {
+        'lab_records': lab_records,
+        'years': years,
+        'months': months,
+        'test_names': test_names,
+    }
+    return render(request, 'labtechnician_template/lab_results.html', context)
+
+
+@login_required
+def filter_lab_results_api(request):
+    """
+    Handles AJAX requests to filter laboratory results based on provided query parameters.
+
+    This API endpoint accepts GET parameters to filter laboratory orders by test name, month, year, and payment form.
+    It returns a JSON response containing the filtered lab records or an error message if the request is invalid or an exception occurs.
+
+    Args:
+        request (HttpRequest): The HTTP request object, expected to be an AJAX (XMLHttpRequest) GET request.
+
+    Query Parameters:
+        test_name (str, optional): Partial or full name of the laboratory test to filter by.
+        month (int, optional): Month (1-12) to filter laboratory orders by order date.
+        year (int, optional): Year to filter laboratory orders by order date.
+        payment_form (str, optional): Payment form to filter laboratory orders by patient's payment method.
+
+    Returns:
+        JsonResponse: 
+            - On success: JSON object with a list of filtered lab records under the 'lab_records' key.
+            - On error: JSON object with an 'error' key and appropriate HTTP status code.
+    """
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            test_name = request.GET.get('test_name')
+            month = request.GET.get('month')
+            year = request.GET.get('year')
+            payment_form = request.GET.get('payment_form')
+
+            filters = Q()
+            if test_name:
+                filters &= Q(name__name__icontains=test_name)
+            # Only filter by month if year is also provided
+            if year:
+                filters &= Q(order_date__year=int(year))
+                if month:
+                    filters &= Q(order_date__month=int(month))
+            elif month:
+                # If year is not provided, ignore month filter to avoid ambiguity
+                pass
+            if payment_form:
+                filters &= Q(patient__payment_form__icontains=payment_form)
+
+            labs = LaboratoryOrder.objects.filter(filters).select_related('patient', 'visit', 'name')
+
+            data = []
+            for lab in labs:
+                data.append({
+                    'lab_number': lab.lab_number,
+                    'patient_name': f"{lab.patient.first_name} {lab.patient.middle_name} {lab.patient.last_name}",
+                    'payment_form': lab.patient.payment_form,
+                    'insurance_name': lab.patient.insurance_name,
+                    'visit': lab.visit.vst,
+                    'test_name': lab.name.name,
+                    'description': lab.description,
+                    'order_date': lab.order_date.strftime('%Y-%m-%d'),
+                    'status': 'Completed' if lab.result else 'Pending',
+                    'cost': str(lab.cost),
+                    'id': lab.id,
+                })
+            return JsonResponse({'lab_records': data})
+
+        except Exception as e:
+            logger.error(f"[FilterLabAPI] Error: {str(e)}", exc_info=True)
+            return JsonResponse({'error': 'Something went wrong while filtering lab records.'}, status=500)
+
+    return JsonResponse({'error': 'Invalid request type'}, status=400)
 
 # ------------------------------
 # TODAY'S LAB RESULTS VIEW
