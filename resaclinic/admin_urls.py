@@ -1,141 +1,181 @@
-from django.urls import  path, re_path
-from clinic import AdminViews
+from django.urls import path
+from clinic.AdminViews import *
+from clinic.resa_delete import *
+
 
 urlpatterns = [
-    path('admin/delete-medicine-route/', AdminViews.delete_medicine_route, name="admin_delete_medicine_route"),
-    path('admin/profile/', AdminViews.admin_profile, name='admin_profile'),
-    path('resa/pharmacist/change-password/', AdminViews.change_password, name='admin_change_password'),
-    path('edit-profile/<int:pk>/', AdminViews.EditStaffProfileView.as_view(), name='admin_edit_staff_profile'),
-    path('admin/get-gender-yearly-data/', AdminViews.get_gender_yearly_data, name="admin_get_gender_yearly_data"),
-    path('admin/get-gender-monthly-data/', AdminViews.get_gender_monthly_data, name="admin_get_gender_monthly_data"),
-    path('admin/delete-medicine-unit-measure/', AdminViews.delete_medicine_unit_measure, name="admin_delete_medicine_unit_measure"),
-    path('admin/add-medicine-unit-measure/', AdminViews.add_medicine_unit_measure, name="admin_add_medicine_unit_measure"),
-    path('admin/add-medicine-route/', AdminViews.add_medicine_route, name="admin_add_medicine_route"),
-    path('admin/medicine-routes/', AdminViews.medicine_routes, name="admin_medicine_routes"),
-    path('admin/medicine-unit-measures/', AdminViews.medicine_unit_measures, name="admin_medicine_unit_measures"),
-    path('admin/add-service/', AdminViews.add_service, name="admin_add_service"),  
-   
-    path('admin/fetch-prescription-counts/', AdminViews.fetch_prescription_counts_view, name="admin_fetch_prescription_counts"),
-    path('admin/fetch-order-counts/', AdminViews.fetch_order_counts_view, name="admin_fetch_order_counts"),
-    path('admin/fetch-radiology-order-counts/', AdminViews.fetch_radiology_order_counts_view, name="admin_fetch_radiology_order_counts"),
-    path('admin/fetch-procedure-order-counts/', AdminViews.fetch_procedure_order_counts_view, name="admin_fetch_procedure_order_counts"),
-   
-   
-    path('admin/save-diagnosis/', AdminViews.save_diagnosis, name="admin_save_diagnosis"),
-    path('admin/delete-ambulance-activity/', AdminViews.delete_ambulance_activity, name="admin_delete_ambulance_activity"),
-    path('admin/add-ambulance-activity/', AdminViews.add_ambulance_activity, name="admin_add_ambulance_activity"),
-    path('admin/ambulance-route-list/', AdminViews.ambulance_route_list, name="admin_ambulance_route_list"),
-    path('admin/dashboard/', AdminViews.dashboard, name="admin_dashboard"),
-    path('admin/employee-detail/', AdminViews.employee_detail, name="admin_employee_detail"),
-    path('admin/add-disease/', AdminViews.add_disease, name="admin_add_disease"),    
+    # Dashboard and reports
+    path('resa_admin/dashboard/', dashboard, name='resa_admin_dashboard'),
+    path('resa_admin/earnings-data/', get_earnings_data, name='resa_admin_earnings_data'),
+    path('api/financial-chart-data/', financial_chart_data, name='resa_financial_chart_data'),
+    path('api/today-activities/', TodayActivitiesView.as_view(), name='resa_admin_today_activities'),
+    path('resa_admin/monthly-earnings/', get_monthly_earnings_by_year, name='resa_admin_monthly_earnings'),
+    path('activity_log/', ActivityLogView.as_view(), name='resa_admin_activity_log'),
+    path('restock_medicine/', restock_medicine, name='resa_admin_restock_medicine'),
+    
+    path('medicine-types/', medicine_types_management, name='resa_admin_manage_medicine_types'),
+    path('add-medicine-type/', add_medicine_type, name='resa_admin_add_medicine_type'),
+    path('edit-medicine-type/', edit_medicine_type, name='resa_admin_edit_medicine_type'),
+    path('delete-medicine-type/', delete_medicine_type, name='resa_admin_delete_medicine_type'),
 
-    path('admin/add-pathology-record/', AdminViews.add_pathodology_record, name="admin_add_pathology_record"),
-    path('admin/update-equipment-status/', AdminViews.update_equipment_status, name="admin_update_equipment_status"),
+    path('medicine/<int:medicine_id>/dosages/', medicine_dosage_management, name='resa_admin_medicine_dosage_management'),
+    path('add_dosage/', add_dosage, name='resa_admin_add_dosage'),
+    path('edit_dosage/', edit_dosage, name='resa_admin_edit_dosage'),
+    path('delete_dosage/', delete_dosage, name='resa_admin_delete_dosage'),
+    path('set_default_dosage/', set_default_dosage, name='resa_admin_set_default_dosage'),
+    # Profile management
+    path('resa_admin/profile/', admin_profile, name='resa_admin_profile'),
+    path('resa_admin/change-password/', change_password, name='resa_admin_change_password'),
+    path('resa_admin/edit-staff-profile/<int:pk>/', EditStaffProfileView.as_view(), name='resa_admin_edit_staff_profile'),
+    
+    # Patient management
+    path('resa_admin/manage-patients/', manage_patient, name='resa_admin_manage_patient'),
+    path('resa_admin/gender-yearly-data/', get_gender_yearly_data, name='resa_admin_gender_yearly_data'),
+    path('resa_admin/gender-monthly-data/', get_gender_monthly_data, name='resa_admin_gender_monthly_data'),
+    
+    # Medical records
+    path('resa_admin/manage-disease/', manage_disease, name='resa_admin_manage_disease'),
+    path('resa_admin/manage-pathodology/', manage_pathodology, name='resa_admin_manage_pathodology'),
+    path('resa_admin/health-records/', health_record_list, name='resa_admin_health_record_list'),
+    
+    # Staff management
+    path('resa_admin/manage-staff/', manage_staff, name='resa_admin_manage_staff'),
+    path('resa_admin/edit-staff/<int:staff_id>/', edit_staff, name='resa_admin_edit_staff'),
+    path('resa_admin/edit-staff-save/', edit_staff_save, name='resa_admin_edit_staff_save'),
+    path('resa_admin/update-staff-status/', update_staff_status, name='resa_admin_update_staff_status'),
+    
+    # Medicine management
+    path('resa_admin/manage-medicine/', medicine_list, name='resa_admin_medicine_list'),
+    path('resa_admin/out-of-stock-medicines/', out_of_stock_medicines_view, name='resa_admin_out_of_stock_medicines'),
+    path('resa_admin/in-stock-medicines/', in_stock_medicines_view, name='resa_admin_in_stock_medicines'),
+    
+    # Services management
+    path('resa_admin/manage-service/', manage_service, name='resa_admin_manage_service'),
+    
+    # Reports
+    path('resa_admin/reports/adjustments/', reports_adjustments, name='resa_admin_reports_adjustments'),
+    path('resa_admin/reports/by-visit/', reports_by_visit, name='resa_admin_reports_by_visit'),
+    path('resa_admin/reports/comprehensive/', reports_comprehensive, name='resa_admin_reports_comprehensive'),
+    path('resa_admin/reports/patients-visit-summary/', reports_patients_visit_summary, name='resa_admin_reports_patients_visit_summary'),
+    path('resa_admin/reports/patients/', reports_patients, name='resa_admin_reports_patients'),
+    path('resa_admin/reports/service/', reports_service, name='resa_admin_reports_service'),
+    path('resa_admin/reports/stock-ledger/', reports_stock_ledger, name='resa_admin_reports_stock_ledger'),
+    path('resa_admin/reports/stock-level/', reports_stock_level, name='resa_admin_reports_stock_level'),
+    path('resa_admin/reports/orders/', reports_orders, name='resa_admin_reports_orders'),
+    path('resa_admin/reports/individual-visit/', individual_visit, name='resa_admin_individual_visit'),
+    path('resa_admin/reports/product-summary/', product_summary, name='resa_admin_product_summary'),
+    
+    # Orders and prescriptions
+    path('resa_admin/orders/', all_orders_view, name='resa_admin_all_orders'),
+    path('resa_admin/orders-by-date/<str:date>/', orders_by_date, name='resa_admin_orders_by_date'),
+    path('resa_admin/prescriptions/', prescription_list, name='resa_admin_prescription_list'),
+    
+    path('walkin-prescriptions/', walkin_prescription_list, name='resa_admin_walkin_prescription_list'),  
+    path('generate_walkin_receipt_pdf/<int:visit_id>/', generate_walkin_receipt_pdf, name='resa_admin_generate_walkin_receipt_pdf'),
+    path('download_prescription_notes/<int:visit_id>/', download_prescription_notes, name='resa_admin_download_prescription_notes'),
+    # Diagnostics
+    path('resa_admin/procedures/', patient_procedure_view, name='resa_admin_patient_procedure'),
+    path('resa_admin/lab-results/', patient_laboratory_view, name='resa_admin_patient_laboratory'),
+    path('resa_admin/imaging-results/', patient_imaging_view, name='resa_admin_patient_imaging'),
+    
+    # Vehicles and ambulance
+    path('resa_admin/vehicles/', hospital_vehicle_list, name='resa_admin_hospital_vehicle_list'),
+    path('resa_admin/ambulance-orders/', ambulance_order_view, name='resa_admin_ambulance_order'),
+    path('resa_admin/ambulance-activities/', ambulance_activity_list, name='resa_admin_ambulance_activity_list'),
+    path('resa_admin/ambulance-routes/', ambulance_route_list, name='resa_admin_ambulance_route_list'),
+    
+    # Consultation records
+    path('resa_admin/consultation-notes/', consultation_notes_view, name='resa_admin_consultation_notes'),
+    path('resa_admin/counseling/', counseling_list_view, name='resa_admin_counseling_list'),
+    path('resa_admin/discharges/', discharge_notes_list_view, name='resa_admin_discharge_list'),
+    path('resa_admin/observations/', observation_record_list_view, name='resa_admin_observation_list'),
+    path('resa_admin/referrals/', manage_referral, name='resa_admin_referral_list'),
+    path('resa_admin/appointments/', appointment_list_view, name='resa_admin_appointment_list'),
+    
+    # Employee management
+    path('resa_admin/employee-detail/', employee_detail, name='resa_admin_employee_detail'),
+    
+    # Medicine configuration
+    path('resa_admin/medicine-routes/', medicine_routes, name='resa_admin_medicine_routes'),
+    path('resa_admin/medicine-unit-measures/', medicine_unit_measures, name='resa_admin_medicine_unit_measures'),
 
+    path('medicine-dosages/', medicine_dosage_managements, name='resa_admin_medicine_dosage_management'),
+    path('add-medicine-dosage/', add_medicine_dosage, name='resa_admin_add_medicine_dosage'),
+    path('update-medicine-dosage/', update_medicine_dosage, name='resa_admin_update_medicine_dosage'),
+    path('set-default-dosage/', set_default_dosages, name='resa_admin_set_default_dosage'),
+    path('delete-medicine-dosage/', delete_medicine_dosage, name='resa_admin_delete_medicine_dosage'),
+    
+    # PDF reports
+    path('resa_admin/download-observation-pdf/<int:patient_id>/<int:visit_id>/', download_observation_pdf, name='resa_admin_download_observation_pdf'),
+    path('resa_admin/download-discharge-pdf/<int:patient_id>/<int:visit_id>/', download_discharge_pdf, name='resa_admin_download_discharge_pdf'),
+    path('resa_admin/download-counseling-pdf/<int:patient_id>/<int:visit_id>/', download_counseling_pdf, name='resa_admin_download_counseling_pdf'),
+    path('resa_admin/download-referral-pdf/<int:patient_id>/<int:visit_id>/', download_referral_pdf, name='resa_admin_download_referral_pdf'),
+    path('resa_admin/download-prescription-notes/<int:patient_id>/<int:visit_id>/', download_prescription_notes_pdf, name='resa_admin_download_prescription_notes'),
+    path('resa_admin/download-prescription-bill/<int:patient_id>/<int:visit_id>/', download_prescription_bill_pdf, name='resa_admin_download_prescription_bill'),
+    path('resa_admin/download-procedure-result/<int:procedure_id>/', download_procedure_result_pdf, name='resa_admin_download_procedure_result'),
+    path('resa_admin/download-all-procedures/<str:patient_mrn>/<str:visit_vst>/', download_all_procedures_pdf, name='resa_admin_download_all_procedures'),
+    path('resa_admin/download-lab-result/<int:lab_id>/', download_lab_result_pdf, name='resa_admin_download_lab_result'),
+    path('resa_admin/download-all-lab-results/<str:patient_mrn>/<str:visit_vst>/', download_all_lab_results_pdf, name='resa_admin_download_all_lab_results'),
+    path('resa_admin/download-imaging-result/<int:imaging_id>/', download_imaging_result_pdf, name='resa_admin_download_imaging_result'),
+    path('resa_admin/download-all-imaging-results/<str:patient_mrn>/<str:visit_vst>/', download_all_imaging_results_pdf, name='resa_admin_download_all_imaging_results'),
+    path('resa_admin/download-consultation-summary/<int:patient_id>/<int:visit_id>/', download_consultation_summary_pdf, name='resa_admin_download_consultation_summary'),
+    path('resa_admin/download-invoice/<int:patient_id>/<int:visit_id>/', download_invoice_bill_pdf, name='resa_admin_download_invoice'),
+    
+    # AJAX handlers
+    path('financial-analytics/', financial_analytics, name='resa_admin_financial_analytics'),
+    path('export-financial-report/', export_financial_report, name='resa_admin_export_financial_report'),
+    path('resa_admin/save-health-record/', save_health_record, name='resa_admin_save_health_record'),
+    path('resa_admin/delete-health-record/', delete_healthrecord, name='resa_admin_delete_health_record'),
+    path('resa_admin/save-staff/', save_staff_view, name='resa_admin_save_staff'),
+    path('resa_admin/add-medicine/', add_medicine, name='resa_admin_add_medicine'),
+    path('resa_admin/add-disease/', add_disease, name='resa_admin_add_disease'),
+    path('resa_admin/add-pathodology/', add_pathodology_record, name='resa_admin_add_pathodology'),
+    path('resa_admin/add-equipment/', add_equipment, name='resa_admin_add_equipment'),
+    path('resa_admin/equipment_list/', equipment_list, name='resa_admin_equipment_list'),
+    path('resa_admin/add-reagent/', add_reagent, name='resa_admin_add_reagent'),
+    path('resa_admin/reagent_list/', reagent_list, name='resa_admin_reagent_list'),
+    path('resa_admin/add-service/', add_service, name='resa_admin_add_service'),
+    path('resa_admin/add-vehicle/', add_vehicle, name='resa_admin_add_vehicle'),
+    path('resa_admin/update-vehicle-status/', update_vehicle_status, name='resa_admin_update_vehicle_status'),
+    path('resa_admin/update-equipment-status/', update_equipment_status, name='resa_admin_update_equipment_status'),
+    path('resa_admin/add-ambulance-route/', add_or_edit_ambulance_route, name='resa_admin_add_ambulance_route'),
+    path('resa_admin/add-ambulance-activity/', add_ambulance_activity, name='resa_admin_add_ambulance_activity'),
+    path('resa_admin/add-medicine-route/', add_medicine_route, name='resa_admin_add_medicine_route'),
+    path('resa_admin/add-medicine-unit/', add_medicine_unit_measure, name='resa_admin_add_medicine_unit'),
+    path('resa_admin/delete-ambulance-order/', delete_ambulancedorder, name='resa_admin_delete_ambulance_order'),
+    path('resa_admin/delete-ambulance-vehicle-order/', delete_ambulancecardorder, name='resa_admin_delete_ambulance_vehicle_order'),
+    path('resa_admin/delete-ambulance-route/', delete_ambulance_route, name='resa_admin_delete_ambulance_route'),
+    path('resa_admin/delete-ambulance-activity/', delete_ambulance_activity, name='resa_admin_delete_ambulance_activity'),
+    path('resa_admin/delete-medicine-route/', delete_medicine_route, name='resa_admin_delete_medicine_route'),
+    path('resa_admin/delete-medicine-unit/', delete_medicine_unit_measure, name='resa_admin_delete_medicine_unit'),
+    path('resa_admin/delete-vehicle/', delete_vehicle, name='resa_admin_delete_vehicle'),
+    path('resa_admin/add-frequency/', add_frequency, name='resa_admin_add_frequency'),
+    path('resa_admin/delete-frequency/', delete_frequency, name='resa_admin_delete_frequency'),
+    path('resa_admin/save-diagnosis/', save_diagnosis, name='resa_admin_save_diagnosis'),
+    path('resa_admin/diagnosis-list/', diagnosis_list, name='resa_admin_diagnosis_list'),
+    path('resa_admin/requency/', prescription_frequency_list, name='resa_admin_prescription_frequency_list'),
+    
+    # Data endpoints
+    path('resa_admin/out-of-stock-count/', out_of_stock_medicines, name='resa_admin_out_of_stock_count'),
+    path('resa_admin/reagent-out-of-stock-count/', get_out_of_stock_count_reagent, name='resa_admin_reagent_out_of_stock_count'),
+    path('resa_admin/fetch-order-counts/', fetch_order_counts_view, name='resa_admin_fetch_order_counts'),
+    path('resa_admin/fetch-radiology-order-counts/', fetch_radiology_order_counts_view, name='resa_admin_fetch_radiology_order_counts'),
+    path('resa_admin/fetch-procedure-order-counts/', fetch_procedure_order_counts_view, name='resa_admin_fetch_procedure_order_counts'),
+    path('resa_admin/fetch-prescription-counts/', fetch_prescription_counts_view, name='resa_admin_fetch_prescription_counts'),
 
-  
-    re_path(r'^admin/edit-staff/(?P<staff_id>\w+)/$', AdminViews.edit_staff, name="admin_edit_staff"),
-    path('admin/edit-staff-save/', AdminViews.edit_staff_save, name="admin_edit_staff_save"),
-    path('admin/delete-ambulance-route/', AdminViews.delete_ambulance_route, name="admin_delete_ambulance_route"),
-    path('admin/add-or-edit-ambulance-route/', AdminViews.add_or_edit_ambulance_route, name="admin_add_or_edit_ambulance_route"),
-    path('admin/ambulance-routes/', AdminViews.ambulance_route_list, name="admin_ambulance_routes"),
-    path('admin/update-staff-status/', AdminViews.update_staff_status, name="admin_update_staff_status"),
-    path('admin/update-vehicle-status/', AdminViews.update_vehicle_status, name="admin_update_vehicle_status"),
-
-   
-    path('admin/save-staff-view/', AdminViews.save_staff_view, name="admin_save_staff_view"),
-
-    path('admin/add-equipment/', AdminViews.add_equipment, name="admin_add_equipment"),
-
-    path('admin/add-reagent/', AdminViews.add_reagent, name="admin_add_reagent"),
-
-
- 
-    path('admin/resa-report/', AdminViews.resa_report, name="admin_resa_report"),
-    path('admin/reports-adjustments/', AdminViews.reports_adjustments, name="admin_reports_adjustments"),
-    path('admin/reports-by-visit/', AdminViews.reports_by_visit, name="admin_reports_by_visit"),
-    path('admin/reports-comprehensive/', AdminViews.reports_comprehensive, name="admin_reports_comprehensive"),
-    path('admin/reports-patients-visit-summary/', AdminViews.reports_patients_visit_summary, name="admin_reports_patients_visit_summary"),
-    path('admin/reports-patients/', AdminViews.reports_patients, name="admin_reports_patients"),
-    path('admin/reports-service/', AdminViews.reports_service, name="admin_reports_service"),
-    path('admin/reports-stock-ledger/', AdminViews.reports_stock_ledger, name="admin_reports_stock_ledger"),
-    path('admin/reports-stock-level/', AdminViews.reports_stock_level, name="admin_reports_stock_level"),
-    path('admin/reports-orders/', AdminViews.reports_orders, name="admin_reports_orders"),
-    path('admin/individual-visit/', AdminViews.individual_visit, name="admin_individual_visit"),
-    path('admin/product-summary/', AdminViews.product_summary, name="admin_product_summary"),
-
-  
-    path('admin/add-frequency/', AdminViews.add_frequency, name="admin_add_frequency"),
-    path('admin/delete-frequency/', AdminViews.delete_frequency, name="admin_delete_frequency"),
-    re_path(r'^admin/orders/(?P<date>[\w-]+)/$', AdminViews.orders_by_date, name="admin_orders_by_date"),
-    path('admin/prescription-frequencies/', AdminViews.prescription_frequency_list, name="admin_prescription_frequency_list"),
-    path('admin/diagnosis/', AdminViews.diagnosis_list, name="admin_diagnosis_list"),
-    path('admin/all-orders-view/', AdminViews.all_orders_view, name="admin_all_orders_view"),
-  
-    path('admin/equipment-list/', AdminViews.equipment_list, name="admin_equipment_list"),
-  
-    path('admin/reagent-list/', AdminViews.reagent_list, name="admin_reagent_list"),
-    path('admin/prescription-list/', AdminViews.prescription_list, name="admin_prescription_list"),
-
-    path('admin/manage-referral/', AdminViews.manage_referral, name="admin_manage_referral"),
-    path('admin/patient-procedure-view/', AdminViews.patient_procedure_view, name="admin_patient_procedure_view"),
-
-    path('admin/ambulance-order-view/', AdminViews.ambulance_order_view, name="admin_ambulance_order_view"), 
-
-    path('admin/delete-ambulance-card-order/', AdminViews.delete_ambulancecardorder, name="admin_delete_ambulance_card_order"),
-    path('admin/delete-ambulance-order/', AdminViews.delete_ambulancedorder, name="admin_delete_ambulance_order"),
-    path('admin/hospital-vehicles/', AdminViews.hospital_vehicle_list, name="admin_hospital_vehicle_list"),
-    path('admin/delete-vehicle/', AdminViews.delete_vehicle, name="admin_delete_vehicle"),
-    path('admin/add-vehicle/', AdminViews.add_vehicle, name="admin_add_vehicle"),
-    path('admin/activity-list/', AdminViews.ambulance_activity_list, name="admin_ambulance_activity_list"),
-    path('admin/out-of-stock-medicines/', AdminViews.out_of_stock_medicines_view, name="admin_out_of_stock_medicines_view"),
-    path('admin/vehicle-ambulance-view/', AdminViews.vehicle_ambulance_view, name="admin_vehicle_ambulance_view"),
-
-    path('admin/manage-patients/', AdminViews.manage_patient, name="admin_manage_patient"),
-
-
-    path('admin/manage-disease/', AdminViews.manage_disease, name="admin_manage_disease"),
-    path('admin/manage-staff/', AdminViews.manage_staff, name="admin_manage_staff"),
-
-    path('admin/manage-service/', AdminViews.manage_service, name="admin_manage_service"),
-    path('admin/manage-pathology/', AdminViews.manage_pathodology, name="admin_manage_pathology"),
-    path('admin/appointments/', AdminViews.appointment_list_view, name="admin_appointment_list"),
-    re_path(r'^admin/health-record-list/$', AdminViews.health_record_list, name='admin_health_record_list'),
-    re_path(r'^admin/save-health-record/$', AdminViews.save_health_record, name='admin_save_health_record'),
-    re_path(r'^admin/delete-health-record/$', AdminViews.delete_healthrecord, name='admin_delete_health_record'),
-    path('admin/in-stock-medicines/', AdminViews.in_stock_medicines_view, name="admin_in_stock_medicines_view"),
-  
-    path('admin/medicine-list/', AdminViews.medicine_list, name="admin_medicine_list"),
-    path('admin/medicine-expired-list/', AdminViews.medicine_expired_list, name="admin_medicine_expired_list"),
-    path('admin/add-medicine/', AdminViews.add_medicine, name="admin_add_medicine"),
-    re_path(r'^admin/vehicle-detail/(?P<order_id>\d+)/$', AdminViews.vehicle_detail, name="admin_vehicle_detail"),
-    path('api/admin/out-of-stock-medicines/', AdminViews.out_of_stock_medicines, name="api_admin_out_of_stock_medicines"),
-    path('api/admin/out-of-stock-reagent-count/', AdminViews.get_out_of_stock_count_reagent, name="admin_get_out_of_stock_count_reagent"),
-
-    path('api/earnings/', AdminViews.get_earnings_data, name='admin_get_earnings_data'),
-    path('earnings/monthly-by-year/', AdminViews.get_monthly_earnings_by_year, name='admin_monthly_earnings_by_year'),
-    path('counseling/', AdminViews.counseling_list_view, name='admin_counseling_list'),
-    path('discharge_notes/', AdminViews.discharge_notes_list_view, name='admin_discharge_notes_list'),
-    path('observation_records/', AdminViews.observation_record_list_view, name='admin_observation_record_list'),  
-
-    path('admin/download-invoice/<int:patient_id>/<int:visit_id>/', AdminViews.download_invoice_bill_pdf, name='admin_download_invoice_bill'),
-    path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', AdminViews.download_consultation_summary_pdf, name='admin_download_consultation_summary_pdf' ),
-    path('imaging/download/<int:imaging_id>/', AdminViews.download_imaging_result_pdf, name='admin_download_imaging_result_pdf' ),
-    path('imaging/download/all/<str:patient_mrn>/<str:visit_vst>/', AdminViews.download_all_imaging_results_pdf, name='admin_download_all_imaging_results_pdf'),
-    path('lab-result/download/<int:lab_id>/', AdminViews.download_lab_result_pdf, name='admin_download_lab_result_pdf'),
-    path('lab/download/all/<str:patient_mrn>/<str:visit_vst>/',AdminViews.download_all_lab_results_pdf, name='admin_download_all_lab_results_pdf'),
-    path('procedure/download/all/<str:patient_mrn>/<str:visit_vst>/', AdminViews.download_all_procedures_pdf, name='admin_download_all_procedures_pdf'),
-    path('procedure/result/download/<int:procedure_id>/', AdminViews.download_procedure_result_pdf, name='admin_download_procedure_result_pdf'),
-    path('download/prescription-bill/<int:patient_id>/<int:visit_id>/', AdminViews.download_prescription_bill_pdf, name='admin_download_prescription_bill_pdf'),
-    path('download/prescription-notes/<int:patient_id>/<int:visit_id>/', AdminViews.download_prescription_notes_pdf, name='admin_download_prescription_notes_pdf'),
-    path('download-referral-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_referral_pdf, name='admin_download_referral_pdf'),
-    path('download-counseling-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_counseling_pdf, name='admin_download_counseling_pdf'),
-    path('download-discharge-pdf/<int:patient_id>/<int:visit_id>/', AdminViews.download_discharge_pdf, name='admin_download_discharge_pdf'),
-    path('download/observation/<int:patient_id>/<int:visit_id>/', AdminViews.download_observation_pdf, name='admin_download_observation_pdf'),
-    path('consultation-notes/', AdminViews.consultation_notes_view, name='admin_consultation_notes'), 
-    path('patient/imaging/view/', AdminViews.patient_imaging_view, name="admin_patient_imaging_view"),  
-    path('resa/patient-procedure-view/', AdminViews.patient_procedure_view, name='admin_patient_procedure_view'),
-     path('patient_laboratory_view/', AdminViews.patient_laboratory_view, name="admin_patient_laboratory_view"),
-   
+     # Delete views
+    path('resa_admin/delete-medicine/', delete_medicine, name='resa_admin_delete_medicine'),
+    path('resa_admin/delete-patient/', delete_patient, name='resa_admin_delete_patient'),
+    path('resa_admin/delete-procedure/', delete_procedure, name='resa_admin_delete_procedure'),
+    path('resa_admin/delete-referral/', delete_referral, name='resa_admin_delete_referral'),
+    path('resa_admin/delete-service/', delete_service, name='resa_admin_delete_service'),
+    path('resa_admin/delete-equipment/', delete_equipment, name='resa_admin_delete_equipment'),
+    path('resa_admin/delete-patient-visit/', delete_patient_visit, name='resa_admin_delete_patient_visit'),
+    path('resa_admin/delete-prescription/<int:prescription_id>/', delete_prescription, name='resa_admin_delete_prescription'),
+    path('resa_admin/delete-pathology/', delete_pathology_record, name='resa_admin_delete_pathology'),
+    path('resa_admin/delete-reagent/', delete_reagent, name='resa_admin_delete_reagent'),
+    path('resa_admin/delete-patient-vital/', delete_patient_vital, name='resa_admin_delete_patient_vital'),
+    path('resa_admin/delete-diagnosis/', delete_diagnosis, name='resa_admin_delete_diagnosis'),
+    path('delete-disease/', delete_disease, name='resa_admin_delete_disease'),
+    path('resa_admin/delete-consultation/<int:consultation_id>/', delete_ConsultationNotes, name='resa_admin_delete_consultation'),
 ]
-

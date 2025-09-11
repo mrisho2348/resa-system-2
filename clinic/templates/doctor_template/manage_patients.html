@@ -1,75 +1,704 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
 {% block title %}
-   List of all patients    
+   Premium Patient Management    
 {% endblock title %}
-{% block breadcrumb %}
-{% include "doctor_template/modal_form.html" %} 
 
+{% block breadcrumb %}
+{% include "doctor_template/modal_form.html" %}
 {% endblock breadcrumb %}
 {% block main_content %}
-
+<style>
+    /* Premium styling with unique patient-specific class names */
+    .pat-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pat-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pat-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .pat-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pat-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .pat-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .pat-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .pat-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .pat-prem-input-group label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .pat-prem-input-group .form-control {
+        border: 1px solid #BBDEFB;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pat-prem-input-group .form-control:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.25);
+    }
+    
+    .pat-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .pat-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pat-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pat-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .pat-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pat-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pat-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pat-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-badge-primary {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-badge-insurance {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .pat-prem-badge-cash {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .pat-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pat-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .pat-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pat-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pat-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-status="insurance"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-status="cash"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-gender="all"] {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-gender="male"] {
+        background: linear-gradient(120deg, #1e3c72, #2a5298);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-gender="female"] {
+        background: linear-gradient(120deg, #c2185b, #e91e63);
+        color: white;
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Animation for view switching */
+    @keyframes patPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pat-prem-animated {
+        animation: patPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pat-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pat-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pat-prem-flip-card:hover .pat-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-card-front, .pat-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pat-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Enhanced modal styles */
+    .pat-prem-modal-body {
+        padding: 2rem;
+    }
+    
+    .pat-prem-modal-section {
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .pat-prem-modal-section-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .pat-prem-modal-section-body {
+        padding: 1.5rem;
+        background: white;
+    }
+    
+    .pat-prem-patient-container {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid #0d47a1;
+    }
+    
+    /* Premium ribbon for patients */
+    .pat-prem-ribbon {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 110px;
+        height: 110px;
+        overflow: hidden;
+    }
+    
+    .pat-prem-ribbon span {
+        position: absolute;
+        top: 20px;
+        right: -30px;
+        transform: rotate(45deg);
+        width: 150px;
+        padding: 5px 0;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Premium glow effect for important elements */
+    .pat-prem-glow {
+        box-shadow: 0 0 15px rgba(13, 71, 161, 0.3);
+    }
+    
+    /* Premium progress bars */
+    .pat-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .pat-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        transition: width 0.6s ease;
+    }
+    
+    /* Premium chart container */
+    .pat-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    /* Patient details modal specific styles */
+    .pat-details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .pat-detail-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.2rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border-left: 4px solid #1a2a6c;
+    }
+    
+    .pat-detail-card h6 {
+        color: #1a2a6c;
+        font-weight: 600;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .pat-detail-card h6 i {
+        margin-right: 8px;
+        color: #1a2a6c;
+    }
+    
+    .pat-detail-item {
+        margin-bottom: 0.7rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .pat-detail-label {
+        font-weight: 600;
+        color: #555;
+        flex: 1;
+    }
+    
+    .pat-detail-value {
+        flex: 2;
+        text-align: right;
+        color: #333;
+    }
+    
+    .pat-prem-avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0 auto 1.5rem;
+    }
+</style>
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1  text-uppercase"> List of all patients </h6>
+            <div class="card pat-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Management</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">    
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-2">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Total Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="total-patients">{{ patients|length }}</div>
+                                    <div class="pat-prem-summary-label">All Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-shield-alt mr-2"></i>Insurance</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="insurance-patients">0</div>
+                                    <div class="pat-prem-summary-label">Insurance</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Cash</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="cash-patients">0</div>
+                                    <div class="pat-prem-summary-label">Cash Payments</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-male mr-2"></i>Male</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="male-patients">0</div>
+                                    <div class="pat-prem-summary-label">Male Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-female mr-2"></i>Female</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="female-patients">0</div>
+                                    <div class="pat-prem-summary-label">Female Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pat-prem-flip-card">
+                                <div class="pat-prem-flip-card-inner">
+                                    <div class="pat-prem-flip-card-front">
+                                        <div class="pat-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Patient Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pat-prem-flip-card-back">
+                                        <div class="pat-prem-flip-icon">
+                                            <i class="fas fa-gem"></i>
+                                        </div>
+                                        <h4>Premium Insights</h4>
+                                        <p>Advanced demographic analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Patient Distribution Chart (Mini) -->
+                    <div class="pat-prem-chart-container mb-4">
+                        <h6 class="mb-3"><i class="fas fa-chart-bar mr-2"></i>Patient Distribution</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Payment Type</h6>
+                                <div class="pat-prem-progress mb-2">
+                                    <div class="pat-prem-progress-bar" id="payment-progress" style="width: 65%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small>Insurance: <span id="chart-insurance">0</span></small>
+                                    <small>Cash: <span id="chart-cash">0</span></small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Gender Distribution</h6>
+                                <div class="pat-prem-progress mb-2">
+                                    <div class="pat-prem-progress-bar" id="gender-progress" style="width: 45%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small>Male: <span id="chart-male">0</span></small>
+                                    <small>Female: <span id="chart-female">0</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pat-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pat-prem-status-filter">
+                                <span class="filter-section-label">Payment:</span>
+                                <button class="pat-prem-status-btn active" data-filter-type="payment" data-filter-value="all">All Patients</button>
+                                <button class="pat-prem-status-btn" data-filter-type="payment" data-filter-value="insurance">Insurance</button>
+                                <button class="pat-prem-status-btn" data-filter-type="payment" data-filter-value="cash">Cash</button>
+                                
+                                <span class="filter-section-label">Gender:</span>
+                                <button class="pat-prem-status-btn active" data-filter-type="gender" data-filter-value="all">All Genders</button>
+                                <button class="pat-prem-status-btn" data-filter-type="gender" data-filter-value="male">Male</button>
+                                <button class="pat-prem-status-btn" data-filter-type="gender" data-filter-value="female">Female</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search patients..." id="patPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn pat-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pat-prem-table-container">
+                        <table class="table table-hover text-nowrap pat-prem-table" id="patientTable">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>mrn</th>
-                                    <th>Name</th>
-                                    <th>Age</th>
-                                    <th>Gender</th>
-                                    <th>Payment form</th>
-                                    <th>Phone</th>             
-                                    <th>Added At</th>             
-                                    <th>Action</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>MRN</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient Details</th>
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-flag mr-2"></i>Nationality</th>
+                                    <th><i class="fas fa-phone mr-2"></i>Phone</th>
+                                    <th><i class="fas fa-id-card mr-2"></i>NIDA Number</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created At</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for patient in patient_records %}
-                                    <tr>
-                                        <td>{{ patient.id }}</td>
-                                        <td>{{ patient.mrn }}</td>
-                                        <td class="text-uppercase">{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</td>   
-                                        <td> {% if patient.dob %}
-                                            <script>
-                                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                var now = new Date();
-                                                var ageMilliseconds = now - dob;
-                                                var ageSeconds = ageMilliseconds / 1000;
-                                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                                document.write(ageYears + ' years');
-                                            </script>
-                                            {% else %}
-                                            {{ patient.age }}
-                                            {% endif %}
+                                {% for patient in patients %}
+                                <tr data-status="{% if patient.payment_form == 'Insurance' %}insurance{% else %}cash{% endif %}" data-gender="{{ patient.gender|lower }}">
+                                    <td>{{ patient.mrn }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="pat-prem-avatar">
+                                                {{ patient.full_name|slice:":1" }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ patient.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if patient.payment_form == "Insurance" %}
+                                                    {{ patient.payment_form }} - {{ patient.insurance_name|default:"N/A" }}
+                                                    {% else %}
+                                                    {{ patient.payment_form }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
                                     </td>
-                                        <td>{{ patient.gender }}</td>
-                                        <!-- Add more cells for other fields -->
-                                        <td>{{ patient.payment_form }}</td>
-                                        <td>{{ patient.phone }}</td>                                   
-                                        <td>{{ patient.created_at|date:"d-m-Y" }}</td>                                   
-                                        <td>  
-                                          <!-- Trigger: View Patient Details Modal -->
-                                        <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#patientDetailModal{{ patient.id }}" title="Open patient details">
-                                         patient details
-                                        </button>                
-                                            <a href="{% url 'doctor_patient_visit_history_view' patient.id %}" data-toggle="tooltip" title="open visit History">
-                                            <button type="button" class="btn btn-success btn-sm">visit History</button>
-                                        </a>   
-
-                                     </td>
-                                    </tr>
-                    
-                                  
+                                    <td>{{ patient.gender }}</td>
+                                    <td>
+                                        {% if patient.dob %}
+                                            {{ patient.dob|date:'d-m-Y' }}
+                                            <br>
+                                            <small class="text-muted">
+                                                <script>
+                                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                    var now = new Date();
+                                                    var age = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                                                    document.write(age + " years");
+                                                </script>
+                                            </small>
+                                        {% else %}
+                                            {{ patient.age }} years
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ patient.nationality.name }}</td>
+                                    <td>{{ patient.phone }}</td>
+                                    <td>
+                                        {% if patient.nida_number %}
+                                            {{ patient.nida_number }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <b class="text-capitalize" style="color: blue;">
+                                            {% if patient.data_recorder %}
+                                                {% if patient.data_recorder.role == "doctor" %}Dr.{% else %}{{ patient.data_recorder.role }}{% endif %}
+                                                <span class="text-muted">{{ patient.data_recorder }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </b>
+                                    </td>
+                                    <td>{{ patient.created_at|date:"d-m-Y" }}</td>
+                                    <td class="text-center">
+                                        <!-- View Details Button -->
+                                        <button class="btn pat-prem-btn-action" data-toggle="modal" data-target="#viewPatientDetailsModal{{ patient.id }}" title="View Details">
+                                            <i class="fas fa-user"></i> Details
+                                        </button>
+                                         <a href="{% url 'doctor_patient_visit_history_view' patient.id %}" class="btn pat-prem-btn-action"  title="Visit History">
+                                              <i class="fa fa-eye"></i>  Visits
+                                          </a>                                        
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                            </tbody>
+                            </tbody>                
                         </table>
                     </div>
                 </div>
@@ -78,83 +707,323 @@
     </div>
 </div>
 
-{% for patient in patient_records %}
-<!-- Patient Details Modal -->
-<div class="modal fade" id="patientDetailModal{{ patient.id }}" tabindex="-1" aria-labelledby="patientDetailModalLabel{{ patient.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-
-      <!-- Modal Header -->
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="patientDetailModalLabel{{ patient.id }}">Patient Details</h5>
-         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <div class="container-fluid">
-          <div class="row g-4">
-
-            <!-- Personal Information -->
-            <div class="col-md-6">
-              <div class="border p-3 rounded shadow-sm h-100">
-                <h6 class="mb-3 text-primary">Personal Information</h6>
-                <p><strong>MRN:</strong> {{ patient.mrn }}</p>
-                <p><strong>Full Name:</strong> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</p>
-                <p><strong>Gender:</strong> {{ patient.gender }}</p>
-                <p><strong>Age:</strong> {{ patient.age }}</p>
-                <p><strong>Date of Birth:</strong> {{ patient.dob }}</p>
-                <p><strong>Phone:</strong> {{ patient.phone }}</p>
-                <p><strong>Address:</strong> {{ patient.address }}</p>
-                <p><strong>Nationality:</strong> {{ patient.nationality.name }}</p>
-              </div>
+<!-- Patient Details Modals -->
+{% for patient in patients %}
+<div class="modal fade" id="viewPatientDetailsModal{{ patient.id }}" tabindex="-1" role="dialog" aria-labelledby="viewPatientDetailsModalLabel{{ patient.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content pat-prem-modal-content">
+            <div class="modal-header pat-prem-modal-header">
+                <h5 class="modal-title" id="viewPatientDetailsModalLabel{{ patient.id }}">
+                    <i class="fas fa-user-injured mr-2"></i>Patient Details
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-
-            <!-- Emergency and Payment Information -->
-            <div class="col-md-6">
-              <div class="border p-3 rounded shadow-sm h-100">
-                <h6 class="mb-3 text-danger">Emergency Contact</h6>
-                <p><strong>Name:</strong> {{ patient.emergency_contact_name }}</p>
-                <p><strong>Relation:</strong> {{ patient.emergency_contact_relation }}</p>
-                <p><strong>Phone:</strong> {{ patient.emergency_contact_phone }}</p>
-
-                <hr>
-
-                <h6 class="mb-3 text-success">Payment Information</h6>
-                <p><strong>Payment Form:</strong> {{ patient.payment_form }}</p>
-                {% if patient.payment_form == 'Insurance' %}
-                  <p><strong>Insurance Name:</strong> {{ patient.insurance_name }}</p>
-                  <p><strong>Insurance Number:</strong> {{ patient.insurance_number }}</p>
-                {% endif %}
-              </div>
+            <div class="modal-body pat-prem-modal-body">
+                <div class="text-center mb-4">
+                    <div class="pat-prem-avatar-lg">
+                        {{ patient.full_name|slice:":1" }}
+                    </div>
+                    <h3 class="mb-1">{{ patient.full_name }}</h3>
+                    <p class="text-muted">Medical Record Number: {{ patient.mrn }}</p>
+                    <span class="pat-prem-badge {% if patient.payment_form == 'Insurance' %}pat-prem-badge-insurance{% else %}pat-prem-badge-cash{% endif %}">
+                        {{ patient.payment_form }}
+                    </span>
+                </div>
+                
+                <div class="pat-details-grid">
+                    <!-- Personal Information -->
+                    <div class="pat-detail-card">
+                        <h6><i class="fas fa-user-circle"></i> Personal Information</h6>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Gender:</span>
+                            <span class="pat-detail-value">{{ patient.gender }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Date of Birth:</span>
+                            <span class="pat-detail-value">
+                                {% if patient.dob %}
+                                    {{ patient.dob|date:"d M Y" }}
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Age:</span>
+                            <span class="pat-detail-value">
+                                {% if patient.dob %}
+                                    <script>
+                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var age = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                                        document.write(age + " years");
+                                    </script>
+                                {% else %}
+                                    {{ patient.age|default:"Not specified" }} years
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Nationality:</span>
+                            <span class="pat-detail-value">{{ patient.nationality.name }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <div class="pat-detail-card">
+                        <h6><i class="fas fa-address-book"></i> Contact Information</h6>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Phone:</span>
+                            <span class="pat-detail-value">{{ patient.phone }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Address:</span>
+                            <span class="pat-detail-value">{{ patient.address }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Information -->
+                    <div class="pat-detail-card">
+                        <h6><i class="fas fa-credit-card"></i> Payment Information</h6>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Payment Form:</span>
+                            <span class="pat-detail-value">{{ patient.payment_form }}</span>
+                        </div>
+                        {% if patient.payment_form == "Insurance" %}
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Insurance Name:</span>
+                            <span class="pat-detail-value">{{ patient.insurance_name|default:"Not specified" }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Insurance Number:</span>
+                            <span class="pat-detail-value">{{ patient.insurance_number|default:"Not specified" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="pat-detail-card">
+                        <h6><i class="fas fa-info-circle"></i> Additional Information</h6>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">NIDA Number:</span>
+                            <span class="pat-detail-value">{{ patient.nida_number|default:"Not provided" }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Data Recorder:</span>
+                            <span class="pat-detail-value">
+                                {% if patient.data_recorder %}
+                                    {{ patient.data_recorder.first_name }} {{ patient.data_recorder.last_name }}
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Created At:</span>
+                            <span class="pat-detail-value">{{ patient.created_at|date:"d M Y, H:i" }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Last Updated:</span>
+                            <span class="pat-detail-value">{{ patient.updated_at|date:"d M Y, H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Emergency Contact -->
+                    {% if patient.emergency_contact_name %}
+                    <div class="pat-detail-card">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Emergency Contact</h6>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Name:</span>
+                            <span class="pat-detail-value">{{ patient.emergency_contact_name }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Relationship:</span>
+                            <span class="pat-detail-value">{{ patient.emergency_contact_relation|default:"Not specified" }}</span>
+                        </div>
+                        <div class="pat-detail-item">
+                            <span class="pat-detail-label">Phone:</span>
+                            <span class="pat-detail-value">{{ patient.emergency_contact_phone|default:"Not specified" }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-
-          </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn pat-prem-btn-action">
+                    <i class="fas fa-print mr-1"></i> Print Details
+                </button>
+            </div>
         </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer bg-light d-block">
-        <div class="row">       
-          <div class="col-md-6 text-md-end">
-            <p class="mb-1"><strong>Created At:</strong> {{ patient.created_at|date:"d M Y, H:i" }}</p>
-            <p class="mb-1"><strong>Updated At:</strong> {{ patient.updated_at|date:"d M Y, H:i" }}</p>
-          </div>
-        </div>
-      </div>
-
     </div>
-  </div>
 </div>
+
 {% endfor %}
 
+{% include 'doctor_template/datatable.html' %}   
 
+<script>
+    // Initialize DataTable
+    new DataTable('#patientTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[8, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search patients...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
- 
-
-{% include 'doctor_template/datatable.html' %}
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let insuranceCount = 0;
+        let cashCount = 0;
+        let maleCount = 0;
+        let femaleCount = 0;
+        
+        document.querySelectorAll('#patientTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            const gender = row.getAttribute('data-gender');
+            
+            // Count insurance vs cash patients
+            if (status === 'insurance') {
+                insuranceCount++;
+            } else {
+                cashCount++;
+            }
+            
+            // Count gender
+            if (gender === 'male') {
+                maleCount++;
+            } else if (gender === 'female') {
+                femaleCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('insurance-patients').textContent = insuranceCount;
+        document.getElementById('cash-patients').textContent = cashCount;
+        document.getElementById('male-patients').textContent = maleCount;
+        document.getElementById('female-patients').textContent = femaleCount;
+        
+        // Update chart values
+        document.getElementById('chart-insurance').textContent = insuranceCount;
+        document.getElementById('chart-cash').textContent = cashCount;
+        document.getElementById('chart-male').textContent = maleCount;
+        document.getElementById('chart-female').textContent = femaleCount;
+        
+        // Update progress bars
+        const totalPatients = insuranceCount + cashCount;
+        const insurancePercentage = totalPatients > 0 ? (insuranceCount / totalPatients) * 100 : 0;
+        document.getElementById('payment-progress').style.width = `${insurancePercentage}%`;
+        
+        const totalGender = maleCount + femaleCount;
+        const malePercentage = totalGender > 0 ? (maleCount / totalGender) * 100 : 0;
+        document.getElementById('gender-progress').style.width = `${malePercentage}%`;
+    }
     
+    // Initialize summary stats
+    calculateSummaryStats();
 
+    // Track active filters
+    let activePaymentFilter = 'all';
+    let activeGenderFilter = 'all';
+
+    // Status filter functionality
+    document.querySelectorAll('.pat-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filterType = this.getAttribute('data-filter-type');
+            const filterValue = this.getAttribute('data-filter-value');
+            
+            // Update active filters
+            if (filterType === 'payment') {
+                activePaymentFilter = filterValue;
+                
+                // Toggle active class for payment buttons
+                document.querySelectorAll('.pat-prem-status-btn[data-filter-type="payment"]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+            } else if (filterType === 'gender') {
+                activeGenderFilter = filterValue;
+                
+                // Toggle active class for gender buttons
+                document.querySelectorAll('.pat-prem-status-btn[data-filter-type="gender"]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+            }
+            
+            filterPatients();
+        });
+    });
+
+    // Filter patients by status and gender
+    function filterPatients() {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowGender = row.getAttribute('data-gender');
+            
+            const paymentMatch = activePaymentFilter === 'all' || rowStatus === activePaymentFilter;
+            const genderMatch = activeGenderFilter === 'all' || rowGender === activeGenderFilter;
+            
+            if (paymentMatch && genderMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('patPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterPatientsWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('patPremSearch').value.toLowerCase();
+        
+        filterPatientsWithSearch(searchText);
+    });
+
+    // Filter patients by both status and search text
+    function filterPatientsWithSearch(searchText) {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowGender = row.getAttribute('data-gender');
+            const rowText = row.textContent.toLowerCase();
+            
+            const paymentMatch = activePaymentFilter === 'all' || rowStatus === activePaymentFilter;
+            const genderMatch = activeGenderFilter === 'all' || rowGender === activeGenderFilter;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (paymentMatch && genderMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

@@ -1,0 +1,786 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% load static %}
+{% block title %}
+Premium Lab Results Management
+{% endblock title %}
+{% block breadcrumb %}
+{% include "pembaadmin_template/modal_form.html" %}
+{% endblock breadcrumb %}
+{% block main_content %}
+<style>
+    /* Premium Lab Results Management Styles - Unique to this template */
+    .lab-prem-gradient {
+        background: linear-gradient(120deg, #3F2B96, #A8C0FF);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(63, 43, 150, 0.15);
+        border: none;
+    }
+    
+    .lab-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .lab-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .lab-prem-table th {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        color: #7B1FA2;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #f3e5f5;
+    }
+    
+    .lab-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .lab-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(123, 31, 162, 0.1);
+        background: #faf4ff;
+    }
+    
+    .btn-prem-lab {
+        background: linear-gradient(120deg, #3F2B96, #A8C0FF);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(63, 43, 150, 0.2);
+    }
+    
+    .btn-prem-lab:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(63, 43, 150, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-lab-view {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-lab-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-lab-download {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-lab-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .lab-prem-modal-header {
+        background: linear-gradient(120deg, #3F2B96, #A8C0FF);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .lab-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .lab-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .lab-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #faf4ff, #f3e5f5);
+        color: #7B1FA2;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e1bee7;
+    }
+    
+    .lab-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .lab-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #7B1FA2;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lab-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .lab-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-badge-available {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .lab-prem-badge-pending {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    .lab-prem-filter-bar {
+        background: linear-gradient(120deg, #faf4ff, #f3e5f5);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .lab-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .lab-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .lab-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .lab-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #3F2B96, #A8C0FF);
+        color: white;
+    }
+    
+    .lab-prem-status-btn[data-status="completed"] {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .lab-prem-status-btn[data-status="pending"] {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    .lab-prem-status-btn[data-status="recent"] {
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes labPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .lab-prem-animated {
+        animation: labPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .lab-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .lab-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .lab-prem-flip-card:hover .lab-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .lab-prem-flip-card-front, .lab-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .lab-prem-flip-card-front {
+        background: linear-gradient(120deg, #3F2B96, #A8C0FF);
+        color: white;
+    }
+    
+    .lab-prem-flip-card-back {
+        background: linear-gradient(120deg, #A8C0FF, #3F2B96);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .lab-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Date styling */
+    .lab-prem-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    /* Patient name styling */
+    .lab-prem-patient {
+        font-weight: 600;
+        color: #3F2B96;
+    }
+    
+    /* Modal table styling */
+    .lab-prem-modal-table th {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        color: #7B1FA2;
+        font-weight: 600;
+        padding: 0.75rem;
+    }
+    
+    .lab-prem-modal-table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    /* Patient details card */
+    .lab-prem-patient-card {
+        background: linear-gradient(120deg, #faf4ff, #f3e5f5);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .lab-prem-patient-detail {
+        display: flex;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lab-prem-patient-label {
+        font-weight: 600;
+        min-width: 120px;
+        color: #7B1FA2;
+    }
+    
+    .lab-prem-patient-value {
+        color: #555;
+    }
+    
+    /* Lab result status */
+    .lab-prem-result-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card lab-prem-gradient shadow-lg">
+        <div class="card-header py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 text-white"><i class="fas fa-flask mr-2"></i>Premium Lab Results Management</h5>                       
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Summary Cards -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-flask mr-2"></i>Total Lab Records</h6>
+                </div>
+                <div class="card-body text-center">
+                  <div class="lab-prem-summary-value" id="total-lab-records">{{ patient_labs|length }}</div>
+                  <div class="lab-prem-summary-label">All Records</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Completed Tests</h6>
+                </div>
+                <div class="card-body text-center">
+                  <div class="lab-prem-summary-value" id="completed-tests">0</div>
+                  <div class="lab-prem-summary-label">Results Available</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Pending Tests</h6>
+                </div>
+                <div class="card-body text-center">
+                  <div class="lab-prem-summary-value" id="pending-tests">0</div>
+                  <div class="lab-prem-summary-label">Awaiting Results</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="lab-prem-flip-card">
+                <div class="lab-prem-flip-card-inner">
+                  <div class="lab-prem-flip-card-front">
+                    <div class="lab-prem-flip-icon">
+                      <i class="fas fa-crown"></i>
+                    </div>
+                    <h4>Premium Analytics</h4>
+                    <p>Hover to reveal</p>
+                  </div>
+                  <div class="lab-prem-flip-card-back">
+                    <div class="lab-prem-flip-icon">
+                      <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h4>Lab Insights</h4>
+                    <p>Advanced tracking</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Filter Bar -->
+          <div class="lab-prem-filter-bar">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+              <div class="lab-prem-status-filter">
+                <button class="lab-prem-status-btn active" data-status="all">All Records</button>
+                <button class="lab-prem-status-btn" data-status="completed">Completed</button>
+                <button class="lab-prem-status-btn" data-status="pending">Pending</button>
+                <button class="lab-prem-status-btn" data-status="recent">Recent</button>
+              </div>
+            </div>
+            <div class="input-group mt-2">
+              <input type="text" class="form-control" placeholder="Search lab records..." id="labPremSearch">
+              <div class="input-group-append">
+                <button class="btn btn-prem-lab" type="button" id="searchButton">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Table View -->
+          <div class="table-responsive lab-prem-table-container">
+            <table class="table table-hover text-nowrap lab-prem-table" id="labTable">
+              <thead>
+                <tr>
+                  <th><i class="fas fa-user mr-2"></i>Patient</th>
+                  <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                  <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                  <th><i class="fas fa-calendar-day mr-2"></i>Date</th>
+                  <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in patient_labs %}
+                <tr data-date="{{ record.latest_date|date:'Y-m-d' }}" data-patient="{{ record.patient.first_name|lower }} {{ record.patient.last_name|lower }}" data-status="{% if record.has_completed_tests %}completed{% else %}pending{% endif %}">
+                  <td class="lab-prem-patient">{{ record.patient }}</td>
+                  <td>{{ record.visit.vst }}</td>
+                  <td>
+                    <strong class="text-primary text-capitalize">{{ record.lab_done_by.role }}</strong><br>
+                    <span class="text-muted">
+                      {{ record.lab_done_by.admin.first_name }} {{ record.lab_done_by.middle_name }} {{ record.lab_done_by.admin.last_name }}
+                    </span>
+                  </td>
+                  <td class="lab-prem-date">{{ record.latest_date|date:"d-m-Y" }}</td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-prem-lab-view"
+                            data-toggle="modal"
+                            data-target="#labModal{{ record.patient.mrn }}{{ record.visit.vst }}">
+                      <i class="fas fa-flask"></i> View Lab Info
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for record in patient_labs %}
+<!-- Lab Modal -->
+<div class="modal fade" id="labModal{{ record.patient.mrn }}{{ record.visit.vst }}" tabindex="-1" role="dialog" aria-labelledby="labModalLabel{{ record.patient.mrn }}{{ record.visit.vst }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content lab-prem-modal-content">
+      <div class="modal-header lab-prem-modal-header">
+        <h5 class="modal-title text-white" id="labModalLabel{{ record.patient.mrn }}{{ record.visit.vst }}"><i class="fas fa-flask mr-2"></i>Lab Results</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="container-fluid">
+          <!-- Header Image -->
+          <div class="mb-3">
+            <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image" style="border-radius: 8px;">
+          </div>
+
+          <!-- Patient Full Details -->
+          <div class="lab-prem-patient-card">
+            <h6 class="mb-3 text-uppercase" style="color: #7B1FA2; font-weight: 600;">Patient Details</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">Patient:</span>
+                  <span class="lab-prem-patient-value">{{ record.patient.first_name }} {{ record.patient.middle_name }} {{ record.patient.last_name }}</span>
+                </div>
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">DOB:</span>
+                  <span class="lab-prem-patient-value">{{ record.patient.dob|date:'d-m-Y' }}</span>
+                </div>
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">Gender:</span>
+                  <span class="lab-prem-patient-value">{{ record.patient.gender }}</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">File No:</span>
+                  <span class="lab-prem-patient-value">{{ record.patient.mrn }}</span>
+                </div>
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">Company:</span>
+                  <span class="lab-prem-patient-value">{{ record.patient.company }}</span>
+                </div>
+                <div class="lab-prem-patient-detail">
+                  <span class="lab-prem-patient-label">Visit Number:</span>
+                  <span class="lab-prem-patient-value">{{ record.visit.vst }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lab Result Summary -->
+          <div class="card">
+            <div class="card-header" style="background: linear-gradient(120deg, #f3e5f5, #e1bee7); color: #7B1FA2;">
+              <h6 class="mb-0 text-uppercase">Lab Result Summary</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-sm lab-prem-modal-table">
+                  <thead>
+                    <tr>
+                      <th>Test Name</th>
+                      <th>Result</th>                        
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for lab in record.lab_tests %}
+                    <tr>
+                      <td>{{ lab.name.name }}</td>
+                      <td>
+                        {% if lab.result %}
+                          <span class="lab-prem-result-status lab-prem-badge-available">Available</span>
+                          <button type="button" class="btn btn-link p-0" data-toggle="modal" data-target="#labResultModal{{ lab.id }}">
+                            View Result
+                          </button>
+                        {% else %}
+                          <span class="lab-prem-result-status lab-prem-badge-pending">Pending</span>
+                        {% endif %}
+                      </td>                    
+                      <td>{{ lab.description|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted">No lab results found for this visit.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Lab Performed By Footer -->
+            <div class="card-footer">
+              <table class="table table-borderless table-sm mb-0">
+                <tbody>
+                  <tr>
+                    <td><strong>Recorded By:</strong> {{ record.lab_done_by }}</td>
+                    <td><strong>Signature:</strong> {{ record.lab_done_by.signature }}</td>
+                    <td><strong>Date:</strong> {{ record.visit.created_at|date:"d-m-Y" }}</td>
+                    <td><strong>MCT No:</strong> {{ record.lab_done_by.mct_number }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PDF Download Button -->
+          <div class="row mt-3">
+            <div class="col-md-12 text-right">
+              <a href="{% url 'pemba_admin_laboratory_download_all_results' record.patient.mrn record.visit.vst %}" class="btn btn-prem-lab-download">
+                <i class="fas fa-download mr-2"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for record in patient_labs %}
+  {% for lab in record.lab_tests %}
+    <!-- Lab Result Modal -->
+    <div class="modal fade" id="labResultModal{{ lab.id }}" tabindex="-1" role="dialog" aria-labelledby="labResultModalLabel{{ lab.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content lab-prem-modal-content">
+          <div class="modal-header lab-prem-modal-header">
+            <h5 class="modal-title text-white" id="labResultModalLabel{{ lab.id }}">
+              <i class="fas fa-flask mr-2"></i>Lab Result - {{ lab.name.name }}
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            {% if lab.result %}
+              {{ lab.result|safe }}
+            {% else %}
+              <p class="text-muted">No result available for this test.</p>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            {% if lab.result %}
+              <a href="{% url 'pemba_admin_laboratory_download_result' lab.id %}" class="btn btn-prem-lab-download">
+                <i class="fas fa-download mr-2"></i> Download Result
+              </a>
+            {% endif %}
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endfor %}
+
+{% include 'pembaadmin_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#labTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search lab records...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let completedCount = 0;
+        let pendingCount = 0;
+        
+        document.querySelectorAll('#labTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            
+            if (status === 'completed') {
+                completedCount++;
+            } else if (status === 'pending') {
+                pendingCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('completed-tests').textContent = completedCount;
+        document.getElementById('pending-tests').textContent = pendingCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Filter functionality
+    document.querySelectorAll('.lab-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.lab-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterLabRecords(status);
+        });
+    });
+
+    // Filter lab records
+    function filterLabRecords(status) {
+        const rows = document.querySelectorAll('#labTable tbody tr');
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const date = new Date(row.getAttribute('data-date'));
+            
+            if (status === 'all') {
+                row.style.display = '';
+                visibleCount++;
+            } else if (status === 'completed' && rowStatus === 'completed') {
+                row.style.display = '';
+                visibleCount++;
+            } else if (status === 'pending' && rowStatus === 'pending') {
+                row.style.display = '';
+                visibleCount++;
+            } else if (status === 'recent' && date >= sevenDaysAgo) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-lab-records').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('labPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.lab-prem-status-btn.active').getAttribute('data-status');
+        
+        filterLabRecordsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('labPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.lab-prem-status-btn.active').getAttribute('data-status');
+        
+        filterLabRecordsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter lab records by both status and search text
+    function filterLabRecordsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#labTable tbody tr');
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const date = new Date(row.getAttribute('data-date'));
+            const patientName = row.getAttribute('data-patient');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'completed' && rowStatus === 'completed') {
+                statusMatch = true;
+            } else if (status === 'pending' && rowStatus === 'pending') {
+                statusMatch = true;
+            } else if (status === 'recent' && date >= sevenDaysAgo) {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || patientName.includes(searchText) || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-lab-records').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}

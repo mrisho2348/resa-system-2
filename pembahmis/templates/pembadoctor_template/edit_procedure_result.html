@@ -1,0 +1,528 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Procedure Results Editing
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Procedure Edit Styles - Unique to this template */
+    .procedure-edit-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .procedure-edit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .procedure-edit-prem-patient-panel {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(26, 42, 108, 0.2);
+    }
+    
+    .procedure-edit-prem-patient-panel h5 {
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .procedure-edit-prem-patient-panel h5 i {
+        margin-right: 10px;
+        font-size: 1.5rem;
+    }
+    
+    .procedure-edit-prem-patient-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .procedure-edit-prem-patient-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .procedure-edit-prem-patient-info-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-bottom: 0.3rem;
+    }
+    
+    .procedure-edit-prem-patient-info-value {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .procedure-edit-prem-form-container {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    .procedure-edit-prem-form-header {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #1a2a6c;
+    }
+    
+    .procedure-edit-prem-form-header h6 {
+        margin: 0;
+        color: #1a2a6c;
+        font-weight: 600;
+    }
+    
+    .procedure-edit-prem-form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .procedure-edit-prem-form-group label {
+        font-weight: 600;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .procedure-edit-prem-form-control {
+        border: 1px solid #ffd89b;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .procedure-edit-prem-form-control:focus {
+        border-color: #1a2a6c;
+        box-shadow: 0 0 0 0.2rem rgba(26, 42, 108, 0.25);
+    }
+    
+    .btn-prem-procedure-save {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+        display: block;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-prem-procedure-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #1a2a6c, #fdbb2d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(253, 187, 45, 0.2);
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(253, 187, 45, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .procedure-edit-prem-alert {
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid;
+    }
+    
+    .procedure-edit-prem-alert-error {
+        background-color: #ffebee;
+        color: #c62828;
+        border-left-color: #c62828;
+    }
+    
+    .procedure-edit-prem-alert-success {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border-left-color: #2e7d32;
+    }
+    
+    .procedure-edit-prem-rich-text-container {
+        border: 1px solid #ffd89b;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .django-ckeditor-widget {
+        width: 100% !important;
+    }
+    
+    /* Animation for alerts */
+    @keyframes procedureEditPremFadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .procedure-edit-prem-animated {
+        animation: procedureEditPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Status indicator */
+    .procedure-edit-prem-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .procedure-edit-prem-status-pending {
+        background: linear-gradient(120deg, #ff5e62, #ff9966);
+        color: white;
+    }
+    
+    .procedure-edit-prem-status-completed {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    /* Procedure details panel */
+    .procedure-edit-prem-procedure-details {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .procedure-edit-prem-procedure-details h6 {
+        color: #1a2a6c;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .procedure-edit-prem-procedure-details h6 i {
+        margin-right: 10px;
+    }
+    
+    .procedure-edit-prem-procedure-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .procedure-edit-prem-procedure-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .procedure-edit-prem-procedure-info-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 0.3rem;
+    }
+    
+    .procedure-edit-prem-procedure-info-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a2a6c;
+    }
+    
+    /* Image preview styling */
+    .procedure-edit-prem-image-preview {
+        border: 2px dashed #ffd89b;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .procedure-edit-prem-image-preview img {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Back Button -->
+    <a class="btn-prem-back" href="{% url 'pemba_doctor_procedure_history' patient.mrn %}">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Procedure History
+    </a>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Patient Information Panel -->
+            <div class="procedure-edit-prem-patient-panel">
+                <h5><i class="fas fa-user-injured"></i> Patient Information</h5>
+                <div class="procedure-edit-prem-patient-info">
+                    <div class="procedure-edit-prem-patient-info-item">
+                        <span class="procedure-edit-prem-patient-info-label">PATIENT</span>
+                        <span class="procedure-edit-prem-patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</span>
+                    </div>
+                    <div class="procedure-edit-prem-patient-info-item">
+                        <span class="procedure-edit-prem-patient-info-label">DATE OF BIRTH</span>
+                        <span class="procedure-edit-prem-patient-info-value">{{ patient.dob|date:'d-m-Y' }} 
+                            [Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
+                            {% else %}
+                                {{ patient.age }}
+                            {% endif %}]
+                        </span>
+                    </div>
+                    <div class="procedure-edit-prem-patient-info-item">
+                        <span class="procedure-edit-prem-patient-info-label">GENDER</span>
+                        <span class="procedure-edit-prem-patient-info-value">{{ patient.gender }}</span>
+                    </div>
+                    <div class="procedure-edit-prem-patient-info-item">
+                        <span class="procedure-edit-prem-patient-info-label">FILE NO</span>
+                        <span class="procedure-edit-prem-patient-info-value">{{ patient.mrn }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Procedure Details Panel -->
+            <div class="procedure-edit-prem-procedure-details">
+                <h6><i class="fas fa-procedures"></i> Procedure Details</h6>
+                <div class="procedure-edit-prem-procedure-info">
+                    <div class="procedure-edit-prem-procedure-info-item">
+                        <span class="procedure-edit-prem-procedure-info-label">COMPANY</span>
+                        <span class="procedure-edit-prem-procedure-info-value">{{ patient.company }}</span>
+                    </div>
+                    <div class="procedure-edit-prem-procedure-info-item">
+                        <span class="procedure-edit-prem-procedure-info-label">VISIT NUMBER</span>
+                        <span class="procedure-edit-prem-procedure-info-value">{{ visit.vst }}</span>
+                    </div>
+                    <div class="procedure-edit-prem-procedure-info-item">
+                        <span class="procedure-edit-prem-procedure-info-label">PROCEDURE</span>
+                        <span class="procedure-edit-prem-procedure-info-value">{{ procedures.name }}</span>
+                    </div>
+                    <div class="procedure-edit-prem-procedure-info-item">
+                        <span class="procedure-edit-prem-procedure-info-label">CURRENT STATUS</span>
+                        <span class="procedure-edit-prem-procedure-info-value">
+                            {% if procedures.result %}
+                                <span class="procedure-edit-prem-status procedure-edit-prem-status-completed">
+                                    <i class="fas fa-check-circle mr-1"></i> Completed
+                                </span>
+                            {% else %}
+                                <span class="procedure-edit-prem-status procedure-edit-prem-status-pending">
+                                    <i class="fas fa-clock mr-1"></i> Pending
+                                </span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card procedure-edit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-edit mr-2"></i>Premium Procedure Results Editor</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="procedure-edit-prem-form-container">
+                        <!-- Messages/Alerts -->
+                        {% if messages %}
+                        <div class="procedure-edit-prem-animated">
+                            {% for message in messages %}
+                            {% if message.tags == 'error' %}
+                            <div class="procedure-edit-prem-alert procedure-edit-prem-alert-error">
+                                <i class="fas fa-exclamation-circle mr-2"></i> {{ message }}
+                            </div>
+                            {% elif message.tags == 'success' %}
+                            <div class="procedure-edit-prem-alert procedure-edit-prem-alert-success">
+                                <i class="fas fa-check-circle mr-2"></i> {{ message }}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Form Header -->
+                        <div class="procedure-edit-prem-form-header">
+                            <h6><i class="fas fa-procedures mr-2"></i>Edit Procedure Results</h6>
+                        </div>
+                        
+                        <!-- Form -->
+                        <form method="POST" action="{% url 'pemba_doctor_procedure_edit' patient.id visit.id procedures.id %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="procedure-edit-prem-form-group">
+                                <label for="{{ form.result.id_for_label }}">Procedure Results</label>
+                                <div class="procedure-edit-prem-rich-text-container">
+                                    {{ form.media }}
+                                    {{ form.result }}
+                                </div>
+                                {% if form.result.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.result.errors %}
+                                    <small><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if form.image %}
+                            <div class="procedure-edit-prem-form-group">
+                                <label for="{{ form.image.id_for_label }}">Procedure Image</label>
+                                {{ form.image }}
+                                {% if form.image.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.image.errors %}
+                                    <small><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                {% if procedures.image %}
+                                <div class="procedure-edit-prem-image-preview">
+                                    <p class="mb-2"><strong>Current Image:</strong></p>
+                                    <img src="{{ procedures.image.url }}" alt="Procedure Image">
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if procedures.doctor == request.user.staff %}
+                            <button type="submit" class="btn-prem-procedure-save">
+                                <i class="fas fa-save mr-2"></i> Save Results
+                            </button>
+                            {% else %}
+                            <div class="alert alert-warning text-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i> 
+                                You can only edit results that you recorded.
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                    
+                    <!-- Preview Section -->
+                    <div class="procedure-edit-prem-form-container">
+                        <div class="procedure-edit-prem-form-header">
+                            <h6><i class="fas fa-eye mr-2"></i>Result Preview</h6>
+                        </div>
+                        <div class="bg-light p-3 border-radius-8">
+                            {% if procedures.result %}
+                                <div class="result-preview">
+                                    {{ procedures.result|safe }}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-procedures fa-3x mb-3"></i>
+                                    <p>No results available yet. Enter results above and they will appear here.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.procedure-edit-prem-alert').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+    
+    // Add styling to CKEditor to match the theme
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for CKEditor to initialize
+        setTimeout(function() {
+            const editorContainers = document.querySelectorAll('.django-ckeditor-widget');
+            editorContainers.forEach(container => {
+                const iframe = container.querySelector('iframe');
+                if (iframe) {
+                    iframe.onload = function() {
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            body {
+                                background-color: #fff9f0;
+                                color: #1a2a6c;
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            }
+                            .cke_editable {
+                                padding: 1rem;
+                                min-height: 300px;
+                            }
+                        `;
+                        iframe.contentDocument.head.appendChild(style);
+                    };
+                }
+            });
+        }, 1000);
+        
+        // Enhance file input with preview
+        const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Create or update preview
+                        let previewContainer = document.querySelector('.procedure-edit-prem-image-preview');
+                        if (!previewContainer) {
+                            previewContainer = document.createElement('div');
+                            previewContainer.className = 'procedure-edit-prem-image-preview';
+                            imageInput.parentNode.appendChild(previewContainer);
+                        }
+                        
+                        previewContainer.innerHTML = `
+                            <p class="mb-2"><strong>New Image Preview:</strong></p>
+                            <img src="${e.target.result}" alt="Image preview">
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
+{% endblock main_content %}

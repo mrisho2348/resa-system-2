@@ -3,32 +3,388 @@
 {% block title %}
 {{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }} Vital
 {% endblock title %}
+
 {% block page_title %}   
-    <a class="btn btn-primary" type="button"  href="{% url 'kahama_save_patient_visit_edit' patient.id visit.id %}" class="breadcrumb-link">
+    <a class="btn btn-prem-vital-nav" type="button"  href="{% url 'kahama_doctor_visit_edit' patient.id visit.id %}" class="breadcrumb-link">
         <i class="fas fa-arrow-left"></i> Back
     </a>
         <!-- Breadcrumb content can be added here if needed -->
          {% if existing_vital %}
-         <a class="btn btn-success" type="button"  href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %}" class="breadcrumb-link">
+         <a class="btn btn-prem-vital-nav" type="button"  href="{% url 'kahama_doctor_consultation_save' patient.id visit.id %}" class="breadcrumb-link">
             <i class="fas fa-arrow-right"></i> Forward
         </a>
          {% endif %}
        
 {% endblock page_title %}
+
 {% block breadcrumb %}
 Patient Vital
-
 {% endblock breadcrumb %}
 
 {% block main_content %}
+    {% load static %}             
+
+    <style>
+        /* Premium Patient Vital Styles - Unique to this template */
+        .vital-prem-gradient {
+            background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+            border: none;
+        }
+        
+        .vital-prem-gradient .card-header {
+            background: rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 1.2rem 1.5rem;
+        }
+        
+        .vital-prem-form-container {
+            border-radius: 10px;
+            overflow: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+            padding: 2rem;
+            background: white;
+        }
+        
+        .vital-prem-input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .vital-prem-input-group label {
+            font-weight: 600;
+            color: #006064;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .vital-prem-input-group .form-control {
+            border: 1px solid #b2ebf2;
+            padding: 0.75rem 1rem;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .vital-prem-input-group .form-control:focus {
+            border-color: #006064;
+            box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+        }
+        
+        .btn-prem-vital {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+            width: 100%;
+        }
+        
+        .btn-prem-vital:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+            color: white;
+        }
+        
+        .btn-prem-vital-nav {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+            margin-right: 10px;
+        }
+        
+        .btn-prem-vital-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+            color: white;
+        }
+        
+        .vital-prem-modal-header {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border-radius: 0;
+            padding: 1.2rem 1.5rem;
+        }
+        
+        .vital-prem-summary-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        }
+        
+        .vital-prem-summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .vital-prem-summary-card .card-header {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #b2ebf2;
+        }
+        
+        .vital-prem-summary-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .vital-prem-summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #006064;
+            margin-bottom: 0.5rem;
+        }
+        
+        .vital-prem-summary-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .vital-prem-modal-content {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .vital-prem-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .vital-prem-badge-required {
+            background: linear-gradient(120deg, #F44336, #EF5350);
+            color: white;
+        }
+        
+        .vital-prem-section-title {
+            color: #006064;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #b2ebf2;
+        }
+        
+        /* Flip card effect for premium feature */
+        .vital-prem-flip-card {
+            perspective: 1000px;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+        
+        .vital-prem-flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        
+        .vital-prem-flip-card:hover .vital-prem-flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .vital-prem-flip-card-front, .vital-prem-flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .vital-prem-flip-card-front {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+        }
+        
+        .vital-prem-flip-card-back {
+            background: linear-gradient(120deg, #203A43, #0F2027);
+            color: white;
+            transform: rotateY(180deg);
+        }
+        
+        .vital-prem-flip-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Animation for form sections */
+        @keyframes vitalPremFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .vital-prem-animated {
+            animation: vitalPremFadeIn 0.5s ease forwards;
+        }
+        
+        /* Premium select2 styling */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #b2ebf2;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            height: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #006064;
+            box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+        }
+        
+        .vital-prem-alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .vital-prem-alert-success {
+            background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+            color: white;
+            border: none;
+        }
+        
+        .vital-prem-alert-error {
+            background: linear-gradient(120deg, #F44336, #EF5350);
+            color: white;
+            border: none;
+        }
+        
+        /* Form section styling */
+        .vital-prem-form-section {
+            background: #f8fdff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid #e0f7fa;
+        }
+        
+        /* Patient info card styling */
+        .vital-prem-patient-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: none;
+            margin-bottom: 20px;
+            background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        }
+        
+        .vital-prem-patient-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .vital-prem-patient-info {
+            font-size: 0.9rem;
+            color: #006064;
+            margin-bottom: 0.5rem;
+        }
+        
+        .vital-prem-patient-info b {
+            color: #0F2027;
+        }
+        
+        /* Vital status indicators */
+        .vital-prem-status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .vital-prem-status-normal {
+            background-color: #4CAF50;
+        }
+        
+        .vital-prem-status-warning {
+            background-color: #FFC107;
+        }
+        
+        .vital-prem-status-danger {
+            background-color: #F44336;
+        }
+        
+        /* BMI status indicators */
+        .vital-prem-bmi-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .vital-prem-bmi-underweight {
+            background-color: #FFC107;
+            color: #000;
+        }
+        
+        .vital-prem-bmi-normal {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .vital-prem-bmi-overweight {
+            background-color: #FF9800;
+            color: white;
+        }
+        
+        .vital-prem-bmi-obese {
+            background-color: #F44336;
+            color: white;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .vital-prem-form-container {
+                padding: 1rem;
+            }
+            
+            .btn-prem-vital-nav {
+                margin-bottom: 10px;
+                width: 100%;
+            }
+        }
+    </style>
+
     <div class="container-fluid">
+        <!-- Patient Information Card -->
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card vital-prem-patient-card">
                     <div class="card-body">
-                        <div class="row" style="font-size:13px;">
+                        <div class="row vital-prem-patient-info">
                             <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
-                            <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                            <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
                                 <script>
                                     var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                     var now = new Date();
@@ -43,7 +399,7 @@ Patient Vital
                             <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
                             <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
                         </div>
-                        <div class="row mt-3">
+                        <div class="row vital-prem-patient-info">
                             <div class="col-md-3">Visit number: <b>{{ visit.vst }}</b></div>
                             <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
                         </div>
@@ -51,127 +407,221 @@ Patient Vital
                 </div>
             </div>
         </div>
-
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">Add  Patient Vital</div>
-                    <div class="card-body">
-                        <form method="post" method="{% url 'kahama_save_remotepatient_vitals' patient.id visit.id %}">
-                            {% csrf_token %}
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="respiratory_rate">Respiratory Rate (breaths per minute)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="respiratoryRate" name="respiratory_rate" required>
-                                        <option value=""></option>
-                                        {% for rate in range_15 %}                                            
-                                            <option value="{{ rate }}" {% if rate == existing_vital.respiratory_rate %} selected {% endif %}>{{ rate }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="pulse_rate">Pulse Rate (beats per minute)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="pulseRate" name="pulse_rate" required>
-                                        <option value=""></option>
-                                        {% for rate in range_301 %}                                          
-                                            <option value="{{ rate }}" {% if rate == existing_vital.pulse_rate %} selected {% endif %}>{{ rate }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+        
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card vital-prem-summary-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Vital Status</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="vital-prem-summary-value">{% if existing_vital %}Recorded{% else %}New{% endif %}</div>
+                        <div class="vital-prem-summary-label">Vital Signs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card vital-prem-summary-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="vital-prem-summary-value">9</div>
+                        <div class="vital-prem-summary-label">Vital Parameters</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="vital-prem-flip-card">
+                    <div class="vital-prem-flip-card-inner">
+                        <div class="vital-prem-flip-card-front">
+                            <div class="vital-prem-flip-icon">
+                                <i class="fas fa-heartbeat"></i>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="sbp">Systolic Blood Pressure (mmHg)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="sbp" name="sbp" required>
-                                        <option value=""></option>
-                                        {% for sbp in range_301 %}                                           
-                                            <option value="{{ sbp }}" {% if sbp == existing_vital.sbp %} selected {% endif %}>{{ sbp }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="dbp">Diastolic Blood Pressure (mmHg)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="dbp" name="dbp" required>
-                                        <option value=""></option>
-                                        {% for dbp in range_301 %}                                          
-                                            <option value="{{ dbp }}" {% if dbp == existing_vital.dbp %} selected {% endif %}>{{ dbp }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                            <h4>Vital Signs</h4>
+                            <p>Hover to reveal</p>
+                        </div>
+                        <div class="vital-prem-flip-card-back">
+                            <div class="vital-prem-flip-icon">
+                                <i class="fas fa-lungs"></i>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="avpu">AVPU Scale</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="avpu" name="avpu" required>
-                                        <option value=""></option>                                       
-                                        <option value="Alert" {% if 'Alert' == existing_vital.avpu %} selected {% endif %}>Alert</option>
-                                        <option value="Verbal" {% if 'Verbal' == existing_vital.avpu %} selected {% endif %}>Verbal</option>
-                                        <option value="Pain" {% if 'Pain' == existing_vital.avpu %} selected {% endif %}>Pain</option>
-                                        <option value="Unresponsive" {% if 'Unresponsive' == existing_vital.avpu %} selected {% endif %}>Unresponsive</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="spo2">SPO2 (%)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="spo2" name="spo2" required>
-                                        <option value=""></option>
-                                        {% for percentage in range_101 %}                                         
-                                            <option value="{{ percentage }}" {% if percentage == existing_vital.spo2 %} selected {% endif %}>{{ percentage }}%</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label for="temperature">Temperature (°C)</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="temperature" name="temperature" required>
-                                        <option value=""></option>
-                                        {% for temp in temps %}                                           
-                                            <option value="{{ temp }}" {% if temp == existing_vital.temperature %} selected {% endif %}>{{ temp }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label for="gcs">Glasgow Coma Scale</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="gcs" name="gcs" required>
-                                        <option value=""></option>
-                                        {% for score in range_15  %}                                         
-                                            <option value="{{ score }}" {% if score == existing_vital.gcs %} selected {% endif %}>{{ score }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                {% if messages %}
-                                    <div class="row">
-                                        <div class="col-12">
-                                            {% for message in messages %}
-                                                {% if message.tags == 'error' %}
-                                                    <div class="alert alert-danger alert-message">{{ message }}</div>
-                                                {% elif message.tags == 'success' %}
-                                                    <div class="alert alert-primary alert-message">{{ message }}</div>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            {% if existing_vital %}
-                                {% if existing_vital.doctor == request.user.staff %}
-                                <button type="submit" class="btn btn-primary btn-block">Save to continue</button>
-                                {% endif %}
-                           {% else %} 
-                           <button type="submit" class="btn btn-primary btn-block">Save to continue</button>
-                            {% endif %}
-                         
-                        
-                        </form>
+                            <h4>Health Metrics</h4>
+                            <p>Monitor patient health</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Patient Vital Card -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-12">
+                <div class="card vital-prem-gradient shadow-lg">
+                    <div class="card-header py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-white">
+                                <i class="fas fa-heartbeat mr-2"></i>
+                                {% if existing_vital %}
+                                    Edit Patient Vital
+                                {% else %}
+                                    Add Patient Vital
+                                {% endif %}
+                            </h5>                       
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="vital-prem-form-container">
+                            <form method="post" action="{% url 'kahama_doctor_vitals_save' patient.id visit.id %}">
+                                {% csrf_token %}
+                                <div class="vital-prem-form-section vital-prem-animated">
+                                    <h4 class="vital-prem-section-title">
+                                        <i class="fas fa-heartbeat mr-2"></i>Vital Signs
+                                    </h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="respiratory_rate">Respiratory Rate (breaths per minute) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="respiratoryRate" name="respiratory_rate" required>
+                                                    <option value=""></option>
+                                                    {% for rate in range_15 %}                                            
+                                                        <option value="{{ rate }}" {% if rate|stringformat:"s" == existing_vital.respiratory_rate|stringformat:"s" %} selected {% endif %}>{{ rate }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="pulse_rate">Pulse Rate (beats per minute) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="pulseRate" name="pulse_rate" required>
+                                                    <option value=""></option>
+                                                    {% for rate in range_301 %}                                          
+                                                        <option value="{{ rate }}" {% if rate|stringformat:"s" == existing_vital.pulse_rate|stringformat:"s" %} selected {% endif %}>{{ rate }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="sbp">Systolic Blood Pressure (mmHg) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="sbp" name="sbp" required>
+                                                    <option value=""></option>
+                                                    {% for sbp in range_301 %}                                           
+                                                        <option value="{{ sbp }}" {% if sbp|stringformat:"s" == existing_vital.sbp|stringformat:"s" %} selected {% endif %}>{{ sbp }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="dbp">Diastolic Blood Pressure (mmHg) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="dbp" name="dbp" required>
+                                                    <option value=""></option>
+                                                    {% for dbp in range_301 %}                                          
+                                                        <option value="{{ dbp }}" {% if dbp|stringformat:"s" == existing_vital.dbp|stringformat:"s" %} selected {% endif %}>{{ dbp }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="spo2">SPO2 (%) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="spo2" name="spo2" required>
+                                                    <option value=""></option>
+                                                    {% for percentage in range_101 %}                                         
+                                                        <option value="{{ percentage }}" {% if percentage|stringformat:"s" == existing_vital.spo2|stringformat:"s" %} selected {% endif %}>{{ percentage }}%</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="temperature">Temperature (°C) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <input type="number" class="form-control" id="temperature" name="temperature" step="0.1" min="0" max="50" value="{% if existing_vital %}{{ existing_vital.temperature }}{% endif %}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="vital-prem-input-group">
+                                                <label for="gcs">Glasgow Coma Scale <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="gcs" name="gcs" required>
+                                                    <option value=""></option>
+                                                    {% for score in range_15  %}                                         
+                                                        <option value="{{ score }}" {% if score|stringformat:"s" == existing_vital.gcs|stringformat:"s" %} selected {% endif %}>{{ score }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- New row for height, weight, and BMI -->
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="vital-prem-input-group">
+                                                <label for="height">Height (cm) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <input type="number" class="form-control" id="height" name="height" step="0.1" min="0" max="250" value="{% if existing_vital %}{{ existing_vital.height }}{% endif %}" required oninput="calculateBMI()">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="vital-prem-input-group">
+                                                <label for="weight">Weight (kg) <span class="vital-prem-badge vital-prem-badge-required">Required</span></label>
+                                                <input type="number" class="form-control" id="weight" name="weight" step="0.1" min="0" max="300" value="{% if existing_vital %}{{ existing_vital.weight }}{% endif %}" required oninput="calculateBMI()">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="vital-prem-input-group">
+                                                <label for="bmi">BMI</label>
+                                                <input type="text" class="form-control" id="bmi" name="bmi"  value="{% if existing_vital %}{{ existing_vital.bmi }}{% endif %}"  readonly>
+                                                <span id="bmi_status" class="vital-prem-bmi-status"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            {% if existing_vital %}
+                                                {% if existing_vital.doctor == request.user.staff %}
+                                                <button type="submit" class="btn btn-prem-vital" name="save_continue_health">
+                                                    <i class="fas fa-save mr-2"></i> Save to continue
+                                                </button>
+                                                {% endif %}
+                                           {% else %} 
+                                           <button type="submit" class="btn btn-prem-vital" name="save_continue_health">
+                                                <i class="fas fa-save mr-2"></i> Save to continue
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Messages -->
+                        <div class="card-footer">
+                            {% if messages %}
+                                <div class="row">
+                                    <div class="col-12">
+                                        {% for message in messages %}
+                                            {% if message.tags == 'error' %}
+                                                <div class="alert vital-prem-alert vital-prem-alert-error alert-message">{{ message }}</div>
+                                            {% elif message.tags == 'success' %}
+                                                <div class="alert vital-prem-alert vital-prem-alert-success alert-message">{{ message }}</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
     </div>
-    
-    <script>
+     <script>
     // Fade out alerts after 5 seconds (5000ms)
     setTimeout(function() {
         document.querySelectorAll('.alert-message').forEach(function(el) {
@@ -180,6 +630,59 @@ Patient Vital
             setTimeout(() => el.style.display = 'none', 500);
         });
     }, 5000);
-</script>
+    
+    // Function to calculate BMI
+    function calculateBMI() {
+        const height = parseFloat(document.getElementById('height').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        const bmiField = document.getElementById('bmi');
+        const bmiStatus = document.getElementById('bmi_status');
+        
+        if (height && weight && height > 0 && weight > 0) {
+            // Convert height from cm to meters
+            const heightInMeters = height / 100;
+            // Calculate BMI
+            const bmi = weight / (heightInMeters * heightInMeters);
+            // Round to 1 decimal place
+            const roundedBMI = bmi.toFixed(1);
+            
+            // Set BMI value
+            bmiField.value = roundedBMI;
+            
+            // Determine BMI status
+            let status = '';
+            let statusClass = '';
+            
+            if (bmi < 18.5) {
+                status = 'Underweight';
+                statusClass = 'vital-prem-bmi-underweight';
+            } else if (bmi >= 18.5 && bmi < 25) {
+                status = 'Normal';
+                statusClass = 'vital-prem-bmi-normal';
+            } else if (bmi >= 25 && bmi < 30) {
+                status = 'Overweight';
+                statusClass = 'vital-prem-bmi-overweight';
+            } else {
+                status = 'Obese';
+                statusClass = 'vital-prem-bmi-obese';
+            }
+            
+            // Set BMI status
+            bmiStatus.textContent = status;
+            bmiStatus.className = 'vital-prem-bmi-status ' + statusClass;
+        } else {
+            bmiField.value = '';
+            bmiStatus.textContent = '';
+            bmiStatus.className = 'vital-prem-bmi-status';
+        }
+    }
+    
+    // Calculate BMI on page load if values exist
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if existing_vital and existing_vital.height and existing_vital.weight %}
+            calculateBMI();
+        {% endif %}
+    });
+    </script>
     {% include 'kahama_template/datatable.html' %}     
 {% endblock main_content %}

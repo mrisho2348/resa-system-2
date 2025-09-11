@@ -1,5 +1,157 @@
-<div class="table-responsive">
-    <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+{% load customfilter %}
+<style>
+    /* Premium Pathology Report Styles - Unique to this template */
+    .pathology-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        margin: 20px 0;
+        background: white;
+    }
+    
+    .pathology-prem-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    
+    .pathology-prem-table th {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.5rem;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+    }
+    
+    .pathology-prem-table th:first-child {
+        text-align: left;
+        background: linear-gradient(120deg, #4a00e0, #8e2de2);
+    }
+    
+    .pathology-prem-table td {
+        padding: 0.8rem 0.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e8eaf6;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+    
+    .pathology-prem-table td:first-child {
+        text-align: left;
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .pathology-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pathology-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 63, 159, 0.1);
+        background: #f5f6ff;
+    }
+    
+    .pathology-prem-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .pathology-prem-table tbody tr:nth-child(even):hover {
+        background-color: #f5f6ff;
+    }
+    
+    .pathology-prem-value {
+        border-radius: 4px;
+        padding: 4px 8px;
+        display: inline-block;
+        min-width: 30px;
+        font-weight: 500;
+    }
+    
+    .pathology-prem-high-value {
+        background: linear-gradient(120deg, #4CAF50, #81C784);
+        color: white;
+    }
+    
+    .pathology-prem-medium-value {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+    }
+    
+    .pathology-prem-low-value {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .pathology-prem-total-row {
+        background: linear-gradient(120deg, #2c3e50, #34495e) !important;
+        color: white;
+        font-weight: 700;
+    }
+    
+    .pathology-prem-total-row td {
+        font-weight: 700;
+        border-top: 2px solid #6a11cb;
+    }
+    
+    .pathology-prem-total-row td:first-child {
+        background: transparent;
+        color: white;
+    }
+    
+    /* Animation for row appearance */
+    @keyframes pathologyPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pathology-prem-animated-row {
+        animation: pathologyPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Heatmap styling for values */
+    .pathology-prem-heatmap-0 { background-color: #f8f9fa; }
+    .pathology-prem-heatmap-1 { background-color: #e3f2fd; }
+    .pathology-prem-heatmap-2 { background-color: #bbdefb; }
+    .pathology-prem-heatmap-3 { background-color: #90caf9; }
+    .pathology-prem-heatmap-4 { background-color: #64b5f6; }
+    .pathology-prem-heatmap-5 { background-color: #42a5f5; color: white; }
+    .pathology-prem-heatmap-6 { background-color: #2196f3; color: white; }
+    .pathology-prem-heatmap-7 { background-color: #1e88e5; color: white; }
+    .pathology-prem-heatmap-8 { background-color: #1976d2; color: white; }
+    .pathology-prem-heatmap-9 { background-color: #1565c0; color: white; }
+    .pathology-prem-heatmap-10 { background-color: #0d47a1; color: white; }
+    
+    /* Sparkline container */
+    .pathology-prem-sparkline {
+        height: 20px;
+        width: 100%;
+        margin-top: 5px;
+    }
+    
+    /* Procedure icon styling */
+    .pathology-prem-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        border-radius: 4px;
+        object-fit: contain;
+        vertical-align: middle;
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        padding: 3px;
+    }
+</style>
+
+<div class="pathology-prem-table-container">
+    <table class="pathology-prem-table" id="pathologyReportTable">
         <thead>
             <tr>
                 <th>CONSULTATIONS / PATHOLOGY</th>
@@ -15,19 +167,430 @@
                 <th>October</th>
                 <th>November</th>
                 <th>December</th>
+                <th>Trend</th> <!-- Added Trend column to match header count -->
             </tr>
         </thead>
         <tbody>
             {% for record_name, patient_counts in pathology_record_reports.items %}
-                <tr>
-                    <td>{{ record_name }}</td>
+                <tr class="pathology-prem-animated-row">
+                    <td>
+                        <i class="fas fa-microscope pathology-prem-icon"></i>
+                        {{ record_name }}
+                    </td>
                     {% for count in patient_counts %}
-                        <td>{{ count }}</td>
+                        <td class="pathology-prem-heatmap-{{ count|heatmap_class }}">
+                            <span class="pathology-prem-value 
+                                {% if count > 50 %}pathology-prem-high-value
+                                {% elif count > 20 %}pathology-prem-medium-value
+                                {% elif count > 0 %}pathology-prem-low-value
+                                {% endif %}">
+                                {{ count }}
+                            </span>
+                        </td>
                     {% endfor %}
+                    <!-- Ensure we have exactly 12 month columns -->
+                    {% if patient_counts|length < 12 %}
+                        {% for i in patient_counts|length|get_range:12 %}
+                            <td class="pathology-prem-heatmap-0">
+                                <span class="pathology-prem-value">0</span>
+                            </td>
+                        {% endfor %}
+                    {% endif %}
+                    <td>
+                        <div class="pathology-prem-sparkline" id="sparkline-{{ forloop.counter }}"></div>
+                    </td>
                 </tr>
             {% endfor %}
+            <!-- Total row will be added by JavaScript -->
+            <tr class="pathology-prem-total-row">
+                <td>Total</td>
+                {% for total in monthly_totals %}
+                    <td>{{ total }}</td>
+                {% endfor %}
+                <!-- Ensure we have exactly 12 month columns in total row -->
+                {% if monthly_totals|length < 12 %}
+                    {% for i in monthly_totals|length|get_range:12 %}
+                        <td>0</td>
+                    {% endfor %}
+                {% endif %}
+                <td></td>
+            </tr>
         </tbody>         
     </table>
 </div>
-{% include 'kahama_template/datatable.html' %}   
 
+<!-- Loading overlay for exports -->
+<div id="exportLoading" class="export-loading" style="display: none;">
+    <div class="text-center">
+        <i class="fas fa-spinner fa-spin fa-3x"></i>
+        <p class="mt-3">Generating report, please wait...</p>
+    </div>
+</div>
+
+<!-- Include required libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+{% include 'divine_admin_template/datatable.html' %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable with explicit column definitions
+        var table = $('#pathologyReportTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'colvis',
+                    className: 'btn-premium-export',
+                    text: '<i class="fas fa-columns mr-2"></i> Columns'
+                }
+            ],
+            responsive: true,
+            pageLength: 10,
+            order: [[0, 'asc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search pathology types...",
+                lengthMenu: "Show _MENU_ entries"
+            },
+            columnDefs: [
+                { targets: 0, width: '20%' }, // Procedure column
+                { targets: '_all', width: '6%' } // All other columns
+            ],
+            initComplete: function() {
+                // Add animation delay to rows for staggered effect
+                $('#pathologyReportTable tbody tr').each(function(index) {
+                    $(this).css('animation-delay', (index * 0.05) + 's');
+                });
+                
+                // Calculate and add monthly totals if not already provided
+                if ($('#pathologyReportTable tbody tr.pathology-prem-total-row').length === 0) {
+                    let monthlyTotals = Array(12).fill(0);
+                    
+                    $('#pathologyReportTable tbody tr:not(.pathology-prem-total-row)').each(function() {
+                        $(this).find('td:not(:first, :last)').each(function(index) {
+                            let count = parseInt($(this).text()) || 0;
+                            monthlyTotals[index] += count;
+                        });
+                    });
+                    
+                    // Add total row
+                    let totalRow = '<tr class="pathology-prem-total-row"><td>Total</td>';
+                    monthlyTotals.forEach(total => {
+                        totalRow += `<td>${total}</td>`;
+                    });
+                    totalRow += '<td></td></tr>';
+                    
+                    $('#pathologyReportTable tbody').append(totalRow);
+                }
+                
+                // Add heatmap effect based on values
+                $('#pathologyReportTable tbody td:not(:first, :last)').each(function() {
+                    let value = parseInt($(this).text()) || 0;
+                    let heatmapClass = 'pathology-prem-heatmap-' + Math.min(10, Math.floor(value / 5));
+                    $(this).addClass(heatmapClass);
+                });
+                
+                // Generate sparklines for trends
+                generateSparklines();
+                
+                // Add custom export buttons
+                addCustomExportButtons();
+            },
+            createdRow: function(row, data, dataIndex) {
+                // Add animation class to new rows
+                $(row).addClass('pathology-prem-animated-row');
+            }
+        });
+        
+        // Function to generate sparklines
+        function generateSparklines() {
+            $('#pathologyReportTable tbody tr:not(.pathology-prem-total-row)').each(function(index) {
+                let values = [];
+                $(this).find('td:not(:first, :last)').each(function() {
+                    values.push(parseInt($(this).text()) || 0);
+                });
+                
+                // Create a simple SVG sparkline
+                if (values.length > 0) {
+                    const maxValue = Math.max(...values);
+                    const minValue = Math.min(...values);
+                    const range = maxValue - minValue;
+                    const svgHeight = 20;
+                    const svgWidth = 100;
+                    
+                    let sparklineSvg = `<svg width="${svgWidth}" height="${svgHeight}" class="pathology-prem-sparkline">`;
+                    
+                    if (range > 0) {
+                        // Draw line
+                        sparklineSvg += '<polyline fill="none" stroke="#6a11cb" stroke-width="2" points="';
+                        values.forEach((value, i) => {
+                            const x = (i / (values.length - 1)) * svgWidth;
+                            const y = svgHeight - ((value - minValue) / range) * (svgHeight - 2);
+                            sparklineSvg += `${x},${y} `;
+                        });
+                        sparklineSvg += '"/>';
+                    }
+                    
+                    sparklineSvg += '</svg>';
+                    
+                    $(this).find('.pathology-prem-sparkline').html(sparklineSvg);
+                }
+            });
+        }
+        
+        // Function to add custom export buttons
+        function addCustomExportButtons() {
+            // Add custom buttons to the DataTable buttons container
+            $('.dt-buttons').prepend(
+                '<button class="btn-premium-export" id="exportPdf">' +
+                    '<i class="fas fa-file-pdf mr-2"></i> Export PDF' +
+                '</button>' +
+                '<button class="btn-premium-export" id="exportExcel">' +
+                    '<i class="fas fa-file-excel mr-2"></i> Export Excel' +
+                '</button>'
+            );
+            
+            // Add event handlers
+            $('#exportPdf').on('click', function() {
+                exportToPdf();
+            });
+            
+            $('#exportExcel').on('click', function() {
+                exportToExcel();
+            });
+        }
+        
+        // Function to show loading overlay
+        function showLoading() {
+            $('#exportLoading').fadeIn();
+        }
+        
+        // Function to hide loading overlay
+        function hideLoading() {
+            $('#exportLoading').fadeOut();
+        }
+        
+        // Function to export to PDF using pdfmake
+        function exportToPdf() {
+            showLoading();
+            
+            try {
+                // Get table data
+                const table = document.getElementById('pathologyReportTable');
+                const headers = [];
+                const data = [];
+                
+                // Get headers
+                $(table).find('thead th').each(function() {
+                    headers.push({
+                        text: $(this).text().trim(),
+                        style: 'tableHeader',
+                        alignment: 'center'
+                    });
+                });
+                
+                // Get rows data
+                $(table).find('tbody tr').each(function() {
+                    const rowData = [];
+                    $(this).find('td').each(function() {
+                        // Remove any HTML tags and get text only
+                        const text = $(this).text().trim();
+                        rowData.push({
+                            text: text,
+                            alignment: 'center'
+                        });
+                    });
+                    data.push(rowData);
+                });
+                
+                // Create document definition
+                const docDefinition = {
+                    pageOrientation: 'landscape',
+                    content: [
+                        {
+                            text: 'Pathology Consultations Report',
+                            style: 'header',
+                            alignment: 'center',
+                            margin: [0, 0, 0, 20]
+                        },
+                        {
+                            table: {
+                                headerRows: 1,
+                                widths: Array(headers.length).fill('*'),
+                                body: [headers, ...data]
+                            },
+                            layout: {
+                                fillColor: function(rowIndex) {
+                                    if (rowIndex === 0) {
+                                        return '#6a11cb';
+                                    }
+                                    return (rowIndex % 2 === 0) ? '#f5f5f5' : null;
+                                }
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            color: '#6a11cb'
+                        },
+                        tableHeader: {
+                            bold: true,
+                            fontSize: 12,
+                            color: 'white',
+                            fillColor: '#6a11cb'
+                        }
+                    },
+                    defaultStyle: {
+                        fontSize: 10
+                    }
+                };
+                
+                // Generate PDF
+                pdfMake.createPdf(docDefinition).download('Pathology_Consultations_Report.pdf');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // Function to export to Excel using ExcelJS
+        function exportToExcel() {
+            showLoading();
+            
+            try {
+                // Create workbook and worksheet
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Pathology Consultations');
+                
+                // Get table data
+                const table = document.getElementById('pathologyReportTable');
+                
+                // Add title row
+                worksheet.mergeCells('A1:N1');
+                const titleRow = worksheet.getRow(1);
+                titleRow.getCell(1).value = 'Pathology Consultations Report';
+                titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF6A11CB' } };
+                titleRow.getCell(1).alignment = { horizontal: 'center' };
+                titleRow.height = 25;
+                
+                // Add headers
+                const headerRow = worksheet.addRow([]);
+                $(table).find('thead th').each(function(index) {
+                    const cell = headerRow.getCell(index + 1);
+                    cell.value = $(this).text().trim();
+                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF6A11CB' }
+                    };
+                    cell.alignment = { horizontal: 'center' };
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+                
+                // Add data rows
+                $(table).find('tbody tr').each(function() {
+                    const rowData = [];
+                    $(this).find('td').each(function() {
+                        // Remove any HTML tags and get text only
+                        const text = $(this).text().trim();
+                        rowData.push(text);
+                    });
+                    
+                    const row = worksheet.addRow(rowData);
+                    row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                        cell.alignment = { horizontal: 'center' };
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                    });
+                });
+                
+                // Style the worksheet
+                worksheet.columns = worksheet.columns.map(function(column, i) {
+                    if (i === 0) {
+                        return { width: 30 }; // First column (procedure names) wider
+                    }
+                    return { width: 10 }; // Other columns
+                });
+                
+                // Add conditional formatting for values (heatmap effect)
+                for (let col = 2; col <= 13; col++) {
+                    for (let row = 3; row <= worksheet.rowCount; row++) {
+                        const cell = worksheet.getCell(row, col);
+                        const value = parseInt(cell.value) || 0;
+                        
+                        if (value > 50) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FF4CAF50' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        } else if (value > 20) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFFF9800' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        } else if (value > 0) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFF44336' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        }
+                    }
+                }
+                
+                // Generate Excel file
+                workbook.xlsx.writeBuffer().then(function(buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Pathology_Consultations_Report.xlsx');
+                });
+            } catch (error) {
+                console.error('Error generating Excel:', error);
+                alert('Error generating Excel. Please try again.');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // Add category filter dropdown
+        $('.dataTables_wrapper').prepend(
+            '<div class="row mb-3">' +
+                '<div class="col-md-3">' +
+                    '<select id="categoryFilter" class="form-control form-control-sm">' +
+                        '<option value="all">All Tests</option>' +
+                        '<option value="Blood">Blood Tests</option>' +
+                        '<option value="Urine">Urine Tests</option>' +
+                        '<option value="Culture">Cultures</option>' +
+                        '<option value="Imaging">Imaging</option>' +
+                    '</select>' +
+                '</div>' +
+            '</div>'
+        );
+        
+        $('#categoryFilter').on('change', function() {
+            if (this.value === 'all') {
+                $('#pathologyReportTable').DataTable().search('').draw();
+            } else {
+                $('#pathologyReportTable').DataTable().search(this.value).draw();
+            }
+        });
+    });
+</script>

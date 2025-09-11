@@ -1,129 +1,323 @@
 {% extends 'labtechnician_template/base_template.html' %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Lab Results
 {% endblock title %}
 
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h4 class="page-title-premium mb-0">Patient Lab Results</h4>
+    <a href="{% url 'labtechnician_dashboard' %}" class="btn reagent-prem-btn-action">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock page_title %}
+
 {% block breadcrumb %}
-    {% include "labtechnician_template/modal_form.html" %}
+{% include "labtechnician_template/modal_form.html" %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>Comprehensive Patient Lab Result Management</span>
+    <span class="badge reagent-prem-badge-primary">Patient: {{ patient.first_name }} {{ patient.last_name }}</span>
+</div>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium styling for patient lab results */
+    .patient-prem-gradient {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 105, 92, 0.15);
+        border: none;
+        margin-bottom: 20px;
+    }
+    
+    .patient-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-prem-info-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9);
+    }
+    
+    .patient-prem-info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .patient-prem-info-card .card-header {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .patient-prem-info-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .patient-prem-info-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.2rem;
+    }
+    
+    .patient-prem-info-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2E7D32;
+        margin-bottom: 1rem;
+    }
+    
+    .patient-prem-btn-action {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
+        margin: 2px;
+    }
+    
+    .patient-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 105, 92, 0.3);
+        color: white;
+    }
+    
+    .patient-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-prem-badge-primary {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+    }
+    
+    .patient-prem-form-container {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        margin-bottom: 2rem;
+    }
+    
+    .patient-prem-form-label {
+        font-weight: 600;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-prem-alert {
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        border: none;
+    }
+    
+    .patient-prem-alert-success {
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9);
+        color: #2E7D32;
+    }
+    
+    .patient-prem-alert-error {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        color: #c62828;
+    }
+    
+    .page-title-premium {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .patient-prem-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .patient-prem-detail-item {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    @keyframes patientPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-prem-animated {
+        animation: patientPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <h5 class="card-title text-center text-uppercase">Patient Lab result</h5>
+    <!-- Patient Information Card -->
+    <div class="card patient-prem-gradient shadow-lg patient-prem-animated">
+        <div class="card-header">
+            <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Patient Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="patient-prem-detail-grid">
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">PATIENT NAME</div>
+                    <div class="patient-prem-info-value">{{ lab_order.patient.first_name }} {{ lab_order.patient.middle_name }} {{ lab_order.patient.last_name }}</div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">                              
-                                <div class="card-body">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <label for="chief_complaints">Patient Information</label>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    PATIENT:   <b>{{ lab_order.patient.first_name }} {{ lab_order.patient.middle_name }} {{ lab_order.patient.last_name }}</b>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    DOB:  <b>{{ lab_order.patient.dob|date:'d-m-Y' }} [ Age: {% if lab_order.patient.dob %} 
-                                                        <script>
-                                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                            var now = new Date();
-                                                            var ageMilliseconds = now - dob;
-                                                            var ageSeconds = ageMilliseconds / 1000;
-                                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                                            document.write(ageYears + ' years');
-                                                        </script>
-                                                        {% else %}
-                                                        {{ patient.age }}
-                                                        {% endif %}]
-                                                    </b>
-                                                   
-                                                </div>
-                                                <div class="col-md-3">
-                                                    SEX:  <b>{{ lab_order.patient.gender }}</b> 
-                                                </div>
-                                                <div class="col-md-3">
-                                                    FILE NO:   <b>{{ lab_order.patient.mrn }}</b>
-                                                </div>
-                                            </div>
-                                            <br>
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    Payment form:   <b>{% if lab_order.patient.payment_form == "Insurance"  %}
-                                                            {{ lab_order.patient.payment_form }}- {{ lab_order.patient.insurance_name }}   
-                                                            {% else  %}   
-                                                            {{ lab_order.patient.payment_form }}                  
-                                                        {% endif %}</b>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    Visit Number:  <b>{{ lab_order.visit.vst }}</b>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    Lab service name:   <b>{{ lab_order.name }}</b>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">DATE OF BIRTH</div>
+                    <div class="patient-prem-info-value">{{ lab_order.patient.dob|date:'d-m-Y' }} 
+                        [Age: {% if lab_order.patient.dob %} 
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                        {% else %}
+                            {{ patient.age }}
+                        {% endif %}]
                     </div>
-                    <br>
-                    <div class="container-fluid">                        
-                        <form method="POST" action="{% url 'lab_edit_lab_result' lab_order.id %}">
-                            {% csrf_token %}
-                            <div class="card">                           
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-group">                                     
-                                                {{ form.media }}
-                                                {{ form.as_p }}
-                                            </div>
-                                        </div>                 
-                                    </div>  
-                                </div>
-                                <div class="card-footer">
-                                    {% if messages %}
-                                    <div class="row">
-                                        <div class="col-12">
-                                            {% for message in messages %}
-                                            {% if message.tags == 'error' %}
-                                            <div class="alert alert-danger alert-message ">{{ message }}</div>
-                                            {% elif message.tags == 'success' %}
-                                            <div class="alert alert-primary alert-message">{{ message }}</div>
-                                            {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block mt-3">Save to proceed</button>
-                        </form>
+                </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">GENDER</div>
+                    <div class="patient-prem-info-value">{{ lab_order.patient.gender }}</div>
+                </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">MEDICAL RECORD NUMBER</div>
+                    <div class="patient-prem-info-value">{{ lab_order.patient.mrn }}</div>
+                </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">PAYMENT METHOD</div>
+                    <div class="patient-prem-info-value">
+                        {% if lab_order.patient.payment_form == "Insurance"  %}
+                            {{ lab_order.patient.payment_form }} - {{ lab_order.patient.insurance_name }}   
+                        {% else  %}   
+                            {{ lab_order.patient.payment_form }}                  
+                        {% endif %}
                     </div>
+                </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">VISIT NUMBER</div>
+                    <div class="patient-prem-info-value">{{ lab_order.visit.vst }}</div>
+                </div>
+                
+                <div class="patient-prem-detail-item">
+                    <div class="patient-prem-info-label">LAB SERVICE</div>
+                    <div class="patient-prem-info-value">{{ lab_order.lab_test }}</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Lab Results Form -->
+    <div class="card patient-prem-gradient shadow-lg patient-prem-animated">
+        <div class="card-header">
+            <h5 class="card-title mb-0 text-white"><i class="fas fa-flask mr-2"></i>Lab Results Entry</h5>
+        </div>
+        <div class="card-body">
+            <div class="patient-prem-form-container">
+                {% if messages %}
+                <div class="row">
+                    <div class="col-12">
+                        {% for message in messages %}
+                        {% if message.tags == 'error' %}
+                        <div class="patient-prem-alert patient-prem-alert-error">
+                            <i class="fas fa-exclamation-circle mr-2"></i>{{ message }}
+                        </div>
+                        {% elif message.tags == 'success' %}
+                        <div class="patient-prem-alert patient-prem-alert-success">
+                            <i class="fas fa-check-circle mr-2"></i>{{ message }}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="POST" action="{% url 'lab_edit_lab_result' lab_order.id %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        {{ form.media }}
+                        {{ form.as_p }}
+                    </div>
+                    
+                    <button type="submit" class="btn patient-prem-btn-action btn-block mt-4">
+                        <i class="fas fa-save mr-2"></i> Save Results
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
-    <script>
+
+<script>
     // Fade out alerts after 5 seconds (5000ms)
     setTimeout(function() {
-        document.querySelectorAll('.alert-message').forEach(function(el) {
+        document.querySelectorAll('.patient-prem-alert').forEach(function(el) {
             el.style.transition = 'opacity 0.5s ease-out';
             el.style.opacity = '0';
             setTimeout(() => el.style.display = 'none', 500);
         });
     }, 5000);
+    
+    // Enhance form styling
+    document.addEventListener('DOMContentLoaded', function() {
+        // Style form labels
+        const labels = document.querySelectorAll('label');
+        labels.forEach(label => {
+            label.classList.add('patient-prem-form-label');
+        });
+        
+        // Style form inputs
+        const inputs = document.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.classList.add('form-control');
+            input.style.borderRadius = '8px';
+            input.style.border = '1px solid #C8E6C9';
+        });
+        
+        // Style the submit button
+        const submitButton = document.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.classList.add('patient-prem-btn-action');
+            submitButton.style.width = '100%';
+            submitButton.style.padding = '12px';
+            submitButton.style.fontSize = '1.1rem';
+        }
+    });
 </script>
+
 {% include 'labtechnician_template/datatable.html' %}
 {% endblock main_content %}

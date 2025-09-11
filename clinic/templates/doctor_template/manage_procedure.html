@@ -1,62 +1,436 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+
 {% block title %}
-all Procedure    
+Premium Procedure Records
 {% endblock title %}
+
+{% block page_title %}
+<a href="{% url 'doctor_dashboard' %}" class="btn pat-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+</a>
+{% endblock page_title%}
+
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-
+Premium Procedure Records
 {% endblock breadcrumb %}
+
 {% block main_content %}
-  <div class="container-fluid">
+<style>
+    /* Premium styling for procedures */
+    .procedure-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .procedure-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .procedure-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .procedure-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .procedure-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .procedure-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .procedure-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .procedure-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .procedure-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .procedure-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .procedure-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .procedure-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .procedure-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .procedure-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+        margin: 2px;
+    }
+    
+    .procedure-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .procedure-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .procedure-prem-badge-mrn {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .procedure-prem-badge-visit {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .procedure-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes procedurePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .procedure-prem-animated {
+        animation: procedurePremFadeIn 0.5s ease forwards;
+    }
+    
+    .procedure-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .procedure-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .procedure-prem-flip-card:hover .procedure-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .procedure-prem-flip-card-front, .procedure-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .procedure-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .procedure-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .procedure-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .procedure-prem-doctor-badge {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-3">
+            <div class="card procedure-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Total Procedures</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="procedure-prem-summary-value" id="total-procedures">{{ patient_procedures|length }}</div>
+                    <div class="procedure-prem-summary-label">All Procedures</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card procedure-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="procedure-prem-summary-value" id="unique-patients">0</div>
+                    <div class="procedure-prem-summary-label">Unique Patients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card procedure-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Doctors</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="procedure-prem-summary-value" id="unique-doctors">0</div>
+                    <div class="procedure-prem-summary-label">Unique Doctors</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="procedure-prem-flip-card">
+                <div class="procedure-prem-flip-card-inner">
+                    <div class="procedure-prem-flip-card-front">
+                        <div class="procedure-prem-flip-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h4>Procedure Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="procedure-prem-flip-card-back">
+                        <div class="procedure-prem-flip-icon">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <h4>Premium Insights</h4>
+                        <p>Advanced procedure analytics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="procedure-prem-filter-bar">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search procedures by MRN, visit number, or doctor..." id="procedurePremSearch">
+            <div class="input-group-append">
+                <button class="btn procedure-prem-btn-action" type="button" id="searchButton">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase">All Procedures</h5>
+            <div class="card procedure-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-procedures mr-2"></i>Premium Procedure Records</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <div class="table-responsive procedure-prem-table-container">
+                        <table class="table table-hover text-nowrap procedure-prem-table" id="procedureTable">
                             <thead>
-                                <tr>                
-                                    <th>Patient MRN</th>
-                                    <th>Visit Number</th>
-                                    <th>Procedure done by</th>
-                                    <th>Date</th>                             
-                                    <th>Action</th>
+                                <tr>
+                                    <th><i class="fas fa-id-card mr-2"></i>Patient MRN</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Procedure Done By</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>                             
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
-                            <!-- Update the patient name field in your table -->
-                                <tbody>
-                                    {% for record in patient_procedures %}
-                                        <tr>
-                                            <td>{{ record.patient__mrn }}</td>
-                                            <td>{{ record.visit__vst }}</td>
-                                            <td><b style="color: blue;" class="text-capitalize">Dr.</b> 
-                                                <span  class="text-muted">
-                                                  {{ record.doctor__admin__first_name }} 
-                                                  {{ record.doctor__middle_name }} 
-                                                  {{ record.doctor__admin__first_name }}
-                                              </span>
-                                          </td>
-                                            <td>{{ record.latest_date|date:"d-m-Y" }}</td>                               
-                                            <td>                                         
-                                                                                                <!-- Add more action links as needed -->
-                                                <a href="{% url 'doctor_patient_procedure_history_view_mrn' record.patient__mrn %}" data-toggle="tooltip" title="View Procedure History">
-                                                    <button type="button" class="btn btn-primary btn-sm"><i class="fa fa-eye text-dark"></i>Procedure History</button>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>                  
+                            <tbody>
+                                {% for record in patient_procedures %}
+                                    <tr>
+                                        <td>
+                                            <span class="procedure-prem-badge procedure-prem-badge-mrn">
+                                                {{ record.patient__mrn }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="procedure-prem-badge procedure-prem-badge-visit">
+                                                {{ record.visit__vst }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="procedure-prem-doctor-badge">
+                                                <b>Dr.</b> 
+                                                {{ record.doctor__admin__first_name }} 
+                                                {{ record.doctor__middle_name }} 
+                                                {{ record.doctor__admin__last_name }}
+                                            </span>
+                                        </td>
+                                        <td>{{ record.latest_date|date:"d-m-Y" }}</td>                               
+                                        <td class="text-center">                                         
+                                            <a href="{% url 'doctor_patient_procedure_history_view_mrn' record.patient__mrn %}" data-toggle="tooltip" title="View Procedure History">
+                                                <button type="button" class="btn procedure-prem-btn-action">
+                                                    <i class="fa fa-eye mr-1"></i>Procedure History
+                                                </button>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>                  
                         </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-  </div>
 </div>
-{% include 'doctor_template/datatable.html' %}    
 
+{% include 'doctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#procedureTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search procedures...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const uniquePatients = new Set();
+        const uniqueDoctors = new Set();
+        
+        document.querySelectorAll('#procedureTable tbody tr').forEach(row => {
+            const mrn = row.cells[0].textContent.trim();
+            const doctor = row.cells[2].textContent.trim();
+            
+            uniquePatients.add(mrn);
+            uniqueDoctors.add(doctor);
+        });
+        
+        // Update summary cards
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+        document.getElementById('unique-doctors').textContent = uniqueDoctors.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('procedurePremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterProcedures(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('procedurePremSearch').value.toLowerCase();
+        
+        filterProcedures(searchText);
+    });
+
+    // Filter procedures by search text
+    function filterProcedures(searchText) {
+        const rows = document.querySelectorAll('#procedureTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-procedures').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

@@ -1,48 +1,567 @@
 {% extends 'kahama_template/base_template.html' %}
 {% load static %}
 
-{% block title %}Prescription List{% endblock title %}
+{% block title %}Premium Prescription Management{% endblock title %}
 
 {% block breadcrumb %}
     {% include "kahama_template/modal_form.html" %}
+    <a class="btn btn-prem-prescription-analytics float-right mr-2" type="button" data-toggle="modal" data-target="#prescriptionAnalyticsModal">
+        <i class="fas fa-chart-pie"></i> Prescription Analytics
+    </a>   
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium Prescription Management Styles - Unique to this template */
+    .prescription-prem-gradient {
+        background: linear-gradient(120deg, #0f4c75, #3282b8, #bbe1fa);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 76, 117, 0.15);
+        border: none;
+    }
+    
+    .prescription-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prescription-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .prescription-prem-table th {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prescription-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .prescription-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .prescription-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 76, 117, 0.1);
+        background: #f0f9ff;
+    }
+    
+    .btn-prem-prescription {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.2);
+    }
+    
+    .btn-prem-prescription:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 76, 117, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-prescription-analytics {
+        background: linear-gradient(120deg, #0f4c75, #bbe1fa);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(187, 225, 250, 0.2);
+    }
+    
+    .btn-prem-prescription-analytics:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(187, 225, 250, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-prescription-view {
+        background: linear-gradient(120deg, #3282b8, #bbe1fa);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(50, 130, 184, 0.2);
+    }
+    
+    .btn-prem-prescription-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(50, 130, 184, 0.3);
+        color: white;
+    }
+    
+    .prescription-prem-modal-header {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prescription-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .prescription-prem-input-group label {
+        font-weight: 600;
+        color: #0f4c75;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .prescription-prem-input-group .form-control {
+        border: 1px solid #bbe1fa;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .prescription-prem-input-group .form-control:focus {
+        border-color: #0f4c75;
+        box-shadow: 0 0 0 0.2rem rgba(15, 76, 117, 0.25);
+    }
+    
+    .prescription-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prescription-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prescription-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f0f9ff, #bbe1fa);
+        color: #0f4c75;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #bbe1fa;
+    }
+    
+    .prescription-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prescription-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f4c75;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prescription-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prescription-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .prescription-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prescription-prem-filter-bar {
+        background: linear-gradient(120deg, #f0f9ff, #bbe1fa);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .prescription-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .prescription-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .prescription-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .prescription-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+    }
+    
+    .prescription-prem-status-btn[data-status="recent"] {
+        background: linear-gradient(120deg, #3282b8, #bbe1fa);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes prescriptionPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .prescription-prem-animated {
+        animation: prescriptionPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .prescription-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .prescription-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .prescription-prem-flip-card:hover .prescription-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .prescription-prem-flip-card-front, .prescription-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .prescription-prem-flip-card-front {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+    }
+    
+    .prescription-prem-flip-card-back {
+        background: linear-gradient(120deg, #3282b8, #0f4c75);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .prescription-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Custom modal styling */
+    .prescription-prem-modal-xl {
+        max-width: 90%;
+    }
+    
+    /* Doctor signature styling */
+    .doctor-signature {
+        border-top: 2px solid #0f4c75;
+        padding-top: 10px;
+        margin-top: 20px;
+        font-style: italic;
+        color: #0f4c75;
+    }
+    
+    /* Drug category styling */
+    .drug-category-badge {
+        background: linear-gradient(120deg, #3282b8, #bbe1fa);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    /* Analytics specific styles */
+    .analytics-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+    }
+    
+    .analytics-error {
+        color: #dc3545;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .analytics-empty {
+        color: #6c757d;
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription List</h6>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prescription-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-prescription mr-2"></i>Premium Prescription Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-prescription mr-2"></i>Total Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="total-prescriptions">{{ visit_groups|length }}</div>
+                                    <div class="prescription-prem-summary-label">All Prescriptions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Drugs</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="total-drugs">0</div>
+                                    <div class="prescription-prem-summary-label">Drugs Prescribed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="total-patients">0</div>
+                                    <div class="prescription-prem-summary-label">Unique Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="prescription-prem-flip-card">
+                                <div class="prescription-prem-flip-card-inner">
+                                    <div class="prescription-prem-flip-card-front">
+                                        <div class="prescription-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Prescription Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="prescription-prem-flip-card-back">
+                                        <div class="prescription-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Drug Usage Insights</h4>
+                                        <p>Advanced prescription tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="prescription-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="prescription-prem-status-filter">
+                                <button class="prescription-prem-status-btn active" data-status="all">All Prescriptions</button>
+                                <button class="prescription-prem-status-btn" data-status="recent">Recent (7 days)</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search prescriptions..." id="prescriptionPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-prescription" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive prescription-prem-table-container">
+                        <table class="table table-hover text-nowrap prescription-prem-table" id="prescriptionTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-pills mr-2"></i>Drugs Count</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in visit_groups %}
+                                  <tr data-date="{{ group.visit.created_at|date:'Y-m-d' }}">
+                                    <td>{{ group.visit.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ group.visit.vst }}</td>
+                                    <td>{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
+                                    <td>{{ group.prescriptions|length }}</td>
+                                    <td class="text-center">  
+                                      <button type="button" class="btn btn-prem-prescription-view" data-toggle="modal" data-target="#prescriptionNotesModal{{ group.visit.id }}">
+                                        <i class="fas fa-notes-medical"></i> Prescription Details
+                                      </button>
+                                    </td>
+                                  </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm display" id="example" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Visit Number</th>
-                  <th>Patient</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for group in visit_groups %}
-                  <tr>
-                    <td>{{ group.visit.created_at|date:"d-m-Y" }}</td>
-                    <td>{{ group.visit.vst }}</td>
-                    <td>{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
-                    <td>
-                      <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#prescriptionNotesModal{{ group.visit.id }}">
-                        <i class="fas fa-notes-medical"></i> Prescription Notes
-                      </button>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="prescriptionAnalyticsModal" tabindex="-1" role="dialog" aria-labelledby="prescriptionAnalyticsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content prescription-prem-modal-content">
+      <div class="modal-header prescription-prem-modal-header">
+        <h5 class="modal-title text-white" id="prescriptionAnalyticsModalLabel"><i class="fas fa-chart-pie mr-2"></i>Prescription Analytics</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="analyticsLoading" class="analytics-loading">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading analytics...</span>
+          </div>
+          <p class="ml-3 mb-0">Generating prescription analytics...</p>
+        </div>
+        
+        <div id="analyticsContent" style="display: none;">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card prescription-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Prescription Trends</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="prescriptionTrendChart" height="200"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card prescription-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Top Prescribed Drugs</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="topDrugsChart" height="200"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-12">
+              <div class="card prescription-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Prescribing Pattern</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="prescriptionPatternChart" height="150"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <div class="card prescription-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-calendar-alt mr-2"></i>Monthly Overview</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="monthlyOverviewChart" height="200"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card prescription-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Patient Demographics</h6>
+                </div>
+                <div class="card-body">
+                  <canvas id="patientDemographicsChart" height="200"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+        
+        <div id="analyticsError" class="analytics-error" style="display: none;">
+          <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+          <h5>Unable to Load Analytics</h5>
+          <p>There was an error generating the prescription analytics. Please try again later.</p>
+        </div>
+        
+        <div id="analyticsEmpty" class="analytics-empty" style="display: none;">
+          <i class="fas fa-chart-pie fa-3x mb-3"></i>
+          <h5>No Prescription Data Available</h5>
+          <p>There is not enough prescription data to generate analytics at this time.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-prem-prescription-analytics" id="exportAnalytics" style="display: none;">
+          <i class="fas fa-download mr-2"></i> Export Report
+        </button>
       </div>
     </div>
   </div>
@@ -51,10 +570,10 @@
 <!-- Modals -->
 {% for group in visit_groups %}
 <div class="modal fade" id="prescriptionNotesModal{{ group.visit.id }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionNotesModalLabel{{ group.visit.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="prescriptionNotesModalLabel{{ group.visit.id }}">Prescription Notes</h5>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable prescription-prem-modal-xl" role="document">
+    <div class="modal-content prescription-prem-modal-content">
+      <div class="modal-header prescription-prem-modal-header">
+        <h5 class="modal-title text-white" id="prescriptionNotesModalLabel{{ group.visit.id }}">Prescription Details</h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -65,41 +584,48 @@
 
           <!-- Header Image -->
           <header class="header mb-3">
-            <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image">
+            <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100 prescription-prem-modal-header-img" alt="Header Image">
           </header>
 
           <!-- Patient Details -->
-          <div class="card mb-3">
-            <div class="card-header bg-dark text-white">
-              <h6 class="mb-0 text-uppercase">Patient Details</h6>
+          <div class="card mb-3 prescription-prem-summary-card">
+            <div class="card-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
             </div>
             <div class="card-body">
-              <table class="table table-borderless table-sm">
-                <tr>
-                  <td><strong>Patient:</strong> {{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
-                  <td><strong>DOB:</strong> {{ group.visit.patient.dob|date:"d-m-Y" }}</td>
-                  <td><strong>Gender:</strong> {{ group.visit.patient.gender }}</td>
-                  <td><strong>File No:</strong> {{ group.visit.patient.mrn }}</td>
-                </tr>
-                <tr>
-                  <td colspan="2">
-                    <strong>Payment Form:</strong>
-                     {{ group.visit.patient.company }}
-                  </td>
-                  <td colspan="2"><strong>Visit Number:</strong> {{ group.visit.vst }}</td>
-                </tr>
-              </table>
+              <div class="row">
+                <div class="col-md-3">
+                  <p><strong>Patient:</strong><br>{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</p>
+                </div>
+                <div class="col-md-2">
+                  <p><strong>DOB:</strong><br>{{ group.visit.patient.dob|date:"d-m-Y" }}</p>
+                </div>
+                <div class="col-md-2">
+                  <p><strong>Gender:</strong><br>{{ group.visit.patient.gender }}</p>
+                </div>
+                <div class="col-md-2">
+                  <p><strong>File No:</strong><br>{{ group.visit.patient.mrn }}</p>
+                </div>
+                <div class="col-md-3">
+                  <p><strong>Visit Number:</strong><br>{{ group.visit.vst }}</p>
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-md-12">
+                  <p><strong>Payment Form:</strong> {{ group.visit.patient.company }}</p>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Prescription Table -->
-          <div class="card">
-            <div class="card-header bg-secondary text-white">
-              <h6 class="mb-0 text-uppercase">Prescription Notes</h6>
+          <div class="card prescription-prem-summary-card">
+            <div class="card-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-prescription mr-2"></i>Prescription Details</h6>
             </div>
             <div class="card-body">
               <div class="table-responsive">
-                <table class="table table-hover table-bordered table-sm">
+                <table class="table table-hover table-bordered table-sm prescription-prem-table">
                   <thead>
                     <tr>
                       <th>Drug</th>
@@ -112,7 +638,10 @@
                   <tbody>
                     {% for prescription in group.prescriptions %}
                     <tr>
-                      <td>{{ prescription.medicine.drug_name }}</td>
+                      <td>
+                        {{ prescription.medicine.drug_name }}
+                        <span class="drug-category-badge ml-2">{{ prescription.medicine.category|default:"General" }}</span>
+                      </td>
                       <td>{{ prescription.dose }}</td>
                       <td>{{ prescription.frequency }}</td>
                       <td>{{ prescription.duration }} days</td>
@@ -128,8 +657,8 @@
           <!-- PDF Download -->
           <div class="row mt-3">
             <div class="col-md-12 text-right">
-              <a href="{% url 'divine_download_prescription_notes_pdf' group.visit.patient.id group.visit.id %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fa fa-download"></i> Download PDF
+              <a href="{% url 'kahama_doctor_prescription_download_notes' group.visit.patient.id group.visit.id %}" class="btn btn-prem-prescription-analytics">
+                <i class="fa fa-download"></i> Download PDF Report
               </a>
             </div>
           </div>
@@ -142,4 +671,518 @@
 {% endfor %}
 
 {% include 'kahama_template/datatable.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+<script>
+    // Initialize DataTable
+    new DataTable('#prescriptionTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search prescriptions...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let totalDrugs = 0;
+        let uniquePatients = new Set();
+        
+        document.querySelectorAll('#prescriptionTable tbody tr').forEach(row => {
+            const drugsCount = parseInt(row.cells[3].textContent);
+            totalDrugs += drugsCount;
+            
+            const patientName = row.cells[2].textContent.trim();
+            uniquePatients.add(patientName);
+        });
+        
+        // Update summary cards
+        document.getElementById('total-drugs').textContent = totalDrugs;
+        document.getElementById('total-patients').textContent = uniquePatients.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.prescription-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.prescription-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterPrescriptions(status);
+        });
+    });
+
+    // Filter prescriptions by status
+    function filterPrescriptions(status) {
+        const rows = document.querySelectorAll('#prescriptionTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            if (status === 'all' || (status === 'recent' && diffDays <= 7)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-prescriptions').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('prescriptionPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.prescription-prem-status-btn.active').getAttribute('data-status');
+        
+        filterPrescriptionsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('prescriptionPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.prescription-prem-status-btn.active').getAttribute('data-status');
+        
+        filterPrescriptionsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter prescriptions by both status and search text
+    function filterPrescriptionsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#prescriptionTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || (status === 'recent' && diffDays <= 7);
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-prescriptions').textContent = visibleCount;
+    }
+
+    // Collect prescription data for analytics
+    function collectPrescriptionData() {
+        const prescriptionData = {
+            visits: [],
+            drugs: [],
+            dates: [],
+            patients: []
+        };
+        
+        // Extract data from the modals
+        {% for group in visit_groups %}
+            prescriptionData.visits.push({
+                date: "{{ group.visit.created_at|date:'Y-m-d' }}",
+                patient: "{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}",
+                patient_gender: "{{ group.visit.patient.gender }}",
+                patient_dob: "{{ group.visit.patient.dob|date:'Y-m-d' }}",
+                drugs_count: {{ group.prescriptions|length }},
+                drugs: [
+                    {% for prescription in group.prescriptions %}
+                    {
+                        name: "{{ prescription.medicine.drug_name }}",
+                        dose: "{{ prescription.dose }}",
+                        frequency: "{{ prescription.frequency }}",
+                        duration: {{ prescription.duration }},
+                        quantity: {{ prescription.quantity_used }},
+                        category: "{{ prescription.medicine.category|default:'General' }}"
+                    },
+                    {% endfor %}
+                ]
+            });
+        {% endfor %}
+        
+        return prescriptionData;
+    }
+
+    // Process data for analytics
+    function processAnalyticsData(prescriptionData) {
+        if (prescriptionData.visits.length === 0) {
+            return null;
+        }
+        
+        const analyticsData = {
+            trends: {},
+            topDrugs: {},
+            monthlyOverview: {},
+            patientDemographics: {
+                gender: {},
+                ageGroups: {}
+            },
+            prescriptionPatterns: {
+                byTimeOfDay: {},
+                byDayOfWeek: {}
+            }
+        };
+        
+        // Process trends data (by date)
+        prescriptionData.visits.forEach(visit => {
+            const date = visit.date;
+            analyticsData.trends[date] = (analyticsData.trends[date] || 0) + 1;
+            
+            // Process monthly overview
+            const month = date.substring(0, 7); // YYYY-MM format
+            analyticsData.monthlyOverview[month] = (analyticsData.monthlyOverview[month] || 0) + 1;
+            
+            // Process patient demographics
+            const gender = visit.patient_gender;
+            analyticsData.patientDemographics.gender[gender] = (analyticsData.patientDemographics.gender[gender] || 0) + 1;
+            
+            // Process age groups
+            if (visit.patient_dob) {
+                const birthDate = new Date(visit.patient_dob);
+                const visitDate = new Date(visit.date);
+                const age = Math.floor((visitDate - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+                
+                let ageGroup = '';
+                if (age < 18) ageGroup = 'Under 18';
+                else if (age < 30) ageGroup = '18-29';
+                else if (age < 40) ageGroup = '30-39';
+                else if (age < 50) ageGroup = '40-49';
+                else if (age < 60) ageGroup = '50-59';
+                else ageGroup = '60+';
+                
+                analyticsData.patientDemographics.ageGroups[ageGroup] = (analyticsData.patientDemographics.ageGroups[ageGroup] || 0) + 1;
+            }
+            
+            // Process prescription patterns by day of week
+            const dayOfWeek = new Date(visit.date).getDay();
+            analyticsData.prescriptionPatterns.byDayOfWeek[dayOfWeek] = (analyticsData.prescriptionPatterns.byDayOfWeek[dayOfWeek] || 0) + 1;
+            
+            // Process top drugs
+            visit.drugs.forEach(drug => {
+                analyticsData.topDrugs[drug.name] = (analyticsData.topDrugs[drug.name] || 0) + 1;
+            });
+        });
+        
+        return analyticsData;
+    }
+
+    // Format analytics data for charts
+    function formatAnalyticsData(analyticsData) {
+        if (!analyticsData) return null;
+        
+        const formattedData = {};
+        
+        // Format trends data
+        const sortedDates = Object.keys(analyticsData.trends).sort();
+        formattedData.trends = {
+            labels: sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }),
+            data: sortedDates.map(date => analyticsData.trends[date])
+        };
+        
+        // Format top drugs data
+        const sortedDrugs = Object.entries(analyticsData.topDrugs)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5); // Top 5 drugs
+        
+        formattedData.topDrugs = {
+            labels: sortedDrugs.map(drug => drug[0]),
+            data: sortedDrugs.map(drug => drug[1])
+        };
+        
+        // Format monthly overview
+        const sortedMonths = Object.keys(analyticsData.monthlyOverview).sort();
+        formattedData.monthlyOverview = {
+            labels: sortedMonths.map(month => {
+                const [year, monthNum] = month.split('-');
+                return `${year}-${monthNum}`;
+            }),
+            data: sortedMonths.map(month => analyticsData.monthlyOverview[month])
+        };
+        
+        // Format patient demographics
+        formattedData.patientDemographics = {
+            gender: {
+                labels: Object.keys(analyticsData.patientDemographics.gender),
+                data: Object.values(analyticsData.patientDemographics.gender)
+            },
+            ageGroups: {
+                labels: Object.keys(analyticsData.patientDemographics.ageGroups),
+                data: Object.values(analyticsData.patientDemographics.ageGroups)
+            }
+        };
+        
+        // Format prescription patterns
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        formattedData.prescriptionPatterns = {
+            byDayOfWeek: {
+                labels: daysOfWeek,
+                data: daysOfWeek.map((_, index) => analyticsData.prescriptionPatterns.byDayOfWeek[index] || 0)
+            }
+        };
+        
+        return formattedData;
+    }
+
+    // Create charts from formatted data
+    function createCharts(formattedData) {
+        // Trend chart
+        new Chart(document.getElementById('prescriptionTrendChart'), {
+            type: 'line',
+            data: {
+                labels: formattedData.trends.labels,
+                datasets: [{
+                    label: 'Prescriptions per Day',
+                    data: formattedData.trends.data,
+                    backgroundColor: 'rgba(50, 130, 184, 0.2)',
+                    borderColor: 'rgba(50, 130, 184, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Prescriptions'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Top drugs chart
+        new Chart(document.getElementById('topDrugsChart'), {
+            type: 'bar',
+            data: {
+                labels: formattedData.topDrugs.labels,
+                datasets: [{
+                    label: 'Number of Prescriptions',
+                    data: formattedData.topDrugs.data,
+                    backgroundColor: [
+                        'rgba(15, 76, 117, 0.8)',
+                        'rgba(50, 130, 184, 0.8)',
+                        'rgba(187, 225, 250, 0.8)',
+                        'rgba(33, 158, 188, 0.8)',
+                        'rgba(2, 48, 71, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(15, 76, 117, 1)',
+                        'rgba(50, 130, 184, 1)',
+                        'rgba(187, 225, 250, 1)',
+                        'rgba(33, 158, 188, 1)',
+                        'rgba(2, 48, 71, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Prescriptions'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Prescription patterns by day of week
+        new Chart(document.getElementById('prescriptionPatternChart'), {
+            type: 'bar',
+            data: {
+                labels: formattedData.prescriptionPatterns.byDayOfWeek.labels,
+                datasets: [{
+                    label: 'Prescriptions by Day of Week',
+                    data: formattedData.prescriptionPatterns.byDayOfWeek.data,
+                    backgroundColor: 'rgba(50, 130, 184, 0.7)',
+                    borderColor: 'rgba(15, 76, 117, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Prescriptions'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Monthly overview chart
+        new Chart(document.getElementById('monthlyOverviewChart'), {
+            type: 'line',
+            data: {
+                labels: formattedData.monthlyOverview.labels,
+                datasets: [{
+                    label: 'Monthly Prescriptions',
+                    data: formattedData.monthlyOverview.data,
+                    backgroundColor: 'rgba(187, 225, 250, 0.2)',
+                    borderColor: 'rgba(33, 158, 188, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Prescriptions'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Patient demographics - gender
+        new Chart(document.getElementById('patientDemographicsChart'), {
+            type: 'doughnut',
+            data: {
+                labels: formattedData.patientDemographics.gender.labels,
+                datasets: [{
+                    label: 'Patients by Gender',
+                    data: formattedData.patientDemographics.gender.data,
+                    backgroundColor: [
+                        'rgba(50, 130, 184, 0.8)',
+                        'rgba(187, 225, 250, 0.8)',
+                        'rgba(15, 76, 117, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(50, 130, 184, 1)',
+                        'rgba(187, 225, 250, 1)',
+                        'rgba(15, 76, 117, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize analytics modal charts
+    $('#prescriptionAnalyticsModal').on('shown.bs.modal', function () {
+        // Show loading state
+        document.getElementById('analyticsLoading').style.display = 'flex';
+        document.getElementById('analyticsContent').style.display = 'none';
+        document.getElementById('analyticsError').style.display = 'none';
+        document.getElementById('analyticsEmpty').style.display = 'none';
+        document.getElementById('exportAnalytics').style.display = 'none';
+        
+        // Collect and process data
+        setTimeout(() => {
+            try {
+                const prescriptionData = collectPrescriptionData();
+                const analyticsData = processAnalyticsData(prescriptionData);
+                const formattedData = formatAnalyticsData(analyticsData);
+                
+                if (formattedData) {
+                    createCharts(formattedData);
+                    document.getElementById('analyticsLoading').style.display = 'none';
+                    document.getElementById('analyticsContent').style.display = 'block';
+                    document.getElementById('exportAnalytics').style.display = 'block';
+                } else {
+                    document.getElementById('analyticsLoading').style.display = 'none';
+                    document.getElementById('analyticsEmpty').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error generating analytics:', error);
+                document.getElementById('analyticsLoading').style.display = 'none';
+                document.getElementById('analyticsError').style.display = 'block';
+            }
+        }, 1000);
+    });
+
+    // Export analytics functionality
+    document.getElementById('exportAnalytics').addEventListener('click', function() {
+        // Create a temporary canvas to generate the image
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 1000;
+        const ctx = canvas.getContext('2d');
+        
+        // Set background color
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add title
+        ctx.fillStyle = '#0f4c75';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Prescription Analytics Report', canvas.width / 2, 40);
+        
+        // Add date
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#6c757d';
+        ctx.fillText('Generated on: ' + new Date().toLocaleDateString(), canvas.width / 2, 70);
+        
+        // Create a link to download the image
+        const link = document.createElement('a');
+        link.download = 'prescription-analytics-report.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+</script>
+
 {% endblock main_content %}

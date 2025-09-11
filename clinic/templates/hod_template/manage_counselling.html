@@ -1,85 +1,504 @@
 {% extends 'hod_template/base_template.html' %}
 
 {% block title %}
-Counseling Sessions
+Premium Counseling Sessions
 {% endblock title %}
+
 {% load static %}
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
 {% endblock breadcrumb %}
 
 {% block main_content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Counseling Sessions</h6>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-              <thead>
-                <tr>                                 
-                  <th>Patient</th>
-                  <th>Visit</th>
-                  <th>Counselor</th>
-                  <th>Date</th>                             
-                  <th>Time</th>
-                  <th>Session Status</th> <!-- ✅ New Column -->
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for counseling in counselings %}
-                <tr>                                  
-                  <td>{{ counseling.patient }}</td>
-                  <td>{{ counseling.visit.vst }}</td>
-                  <td>
-                    <b style="color: blue;" class="text-capitalize">
-                      {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
-                    </b>                                        
-                    <span class="text-muted">{{ counseling.data_recorder }}</span>
-                  </td>
-                  <td>{{ counseling.created_at|date:"d-m-Y"  }}</td>                                   
-                  <td>{{ counseling.created_at|date:"H:i" }}</td>
-                  <td>
-                    {% if counseling.counselling_notes %}
-                      <span class="badge badge-success">Available</span>
-                    {% else %}
-                      <span class="badge badge-warning">Pending</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if counseling.counselling_notes %}
-                      <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#counselingModal{{ counseling.id }}">
-                        View
-                      </button>
-                    {% else %}
-                      <button class="btn btn-info btn-sm" disabled>View</button>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>                      
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<style>
+    /* Premium styling with unique counseling-specific class names */
+    .counsel-prem-gradient {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(42, 45, 114, 0.15);
+        border: none;
+    }
+    
+    .counsel-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .counsel-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .counsel-prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counsel-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .counsel-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .counsel-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 53, 147, 0.1);
+        background: #f5f7ff;
+    }
+    
+    .counsel-prem-btn-action {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(42, 45, 114, 0.2);
+    }
+    
+    .counsel-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(42, 45, 114, 0.3);
+        color: white;
+    }
+    
+    .counsel-prem-modal-header {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .counsel-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .counsel-prem-input-group label {
+        font-weight: 600;
+        color: #283593;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .counsel-prem-input-group .form-control {
+        border: 1px solid #c5cae9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .counsel-prem-input-group .form-control:focus {
+        border-color: #283593;
+        box-shadow: 0 0 0 0.2rem rgba(40, 53, 147, 0.25);
+    }
+    
+    /* Three dot menu styling */
+    .counsel-prem-dropdown-menu {
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border: none;
+        padding: 0.5rem 0;
+        overflow: hidden;
+    }
+    
+    .counsel-prem-dropdown-item {
+        padding: 0.7rem 1.2rem;
+        transition: all 0.2s ease;
+    }
+    
+    .counsel-prem-dropdown-item:hover {
+        background: #f5f7ff;
+    }
+    
+    .counsel-prem-three-dots {
+        color: #283593;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .counsel-prem-three-dots:hover {
+        color: #1A237E;
+        transform: rotate(90deg);
+    }
+    
+    .counsel-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .counsel-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .counsel-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .counsel-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f7ff, #e8eaf6);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .counsel-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .counsel-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #283593;
+        margin-bottom: 0.5rem;
+    }
+    
+    .counsel-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counsel-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .counsel-prem-alert {
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .counsel-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counsel-prem-badge-primary {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+    }
+    
+    .counsel-prem-badge-available {
+        background: linear-gradient(120deg, #4caf50, #8bc34a);
+        color: white;
+    }
+    
+    .counsel-prem-badge-pending {
+        background: linear-gradient(120deg, #ff9800, #ffc107);
+        color: white;
+    }
+    
+    .counsel-prem-filter-bar {
+        background: linear-gradient(120deg, #f5f7ff, #e8eaf6);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .counsel-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .counsel-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .counsel-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .counsel-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+    }
+    
+    .counsel-prem-status-btn[data-status="available"] {
+        background: linear-gradient(120deg, #4caf50, #8bc34a);
+        color: white;
+    }
+    
+    .counsel-prem-status-btn[data-status="pending"] {
+        background: linear-gradient(120deg, #ff9800, #ffc107);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes counselPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .counsel-prem-animated {
+        animation: counselPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .counsel-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .counsel-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .counsel-prem-flip-card:hover .counsel-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .counsel-prem-flip-card-front, .counsel-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .counsel-prem-flip-card-front {
+        background: linear-gradient(120deg, #2A2D72, #1A237E);
+        color: white;
+    }
+    
+    .counsel-prem-flip-card-back {
+        background: linear-gradient(120deg, #1A237E, #2A2D72);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .counsel-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+</style>
 
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card counsel-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-comments mr-2"></i>Premium Counseling Sessions</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card counsel-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-comments mr-2"></i>Total Sessions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="counsel-prem-summary-value" id="total-sessions">{{ counselings|length }}</div>
+                                    <div class="counsel-prem-summary-label">All Sessions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card counsel-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Today's Sessions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="counsel-prem-summary-value" id="today-sessions">0</div>
+                                    <div class="counsel-prem-summary-label">Today</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card counsel-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Available Notes</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="counsel-prem-summary-value" id="available-sessions">0</div>
+                                    <div class="counsel-prem-summary-label">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="counsel-prem-flip-card">
+                                <div class="counsel-prem-flip-card-inner">
+                                    <div class="counsel-prem-flip-card-front">
+                                        <div class="counsel-prem-flip-icon">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <h4>Premium Feature</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="counsel-prem-flip-card-back">
+                                        <div class="counsel-prem-flip-icon">
+                                            <i class="fas fa-gem"></i>
+                                        </div>
+                                        <h4>Counseling Insights</h4>
+                                        <p>Professional mental health tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="counsel-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="counsel-prem-status-filter">
+                                <button class="counsel-prem-status-btn active" data-status="all">All Sessions</button>
+                                <button class="counsel-prem-status-btn" data-status="available">Available Notes</button>
+                                <button class="counsel-prem-status-btn" data-status="pending">Pending Notes</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search sessions..." id="counselPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn counsel-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive counsel-prem-table-container">
+                        <table class="table table-hover text-nowrap counsel-prem-table" id="counselTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-ticket-alt mr-2"></i>Visit</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Counselor</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Date</th>                             
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th><i class="fas fa-tasks mr-2"></i>Session Status</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for counseling in counselings %}
+                                    <tr data-status="{% if counseling.counselling_notes %}available{% else %}pending{% endif %}" data-date="{{ counseling.created_at|date:'Y-m-d' }}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="counsel-prem-avatar">
+                                                    {{ counseling.patient.first_name|first }}{{ counseling.patient.last_name|first }}
+                                                </div>
+                                                <div>
+                                                    <strong>{{ counseling.patient }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ counseling.visit.vst }}</td>
+                                        <td>
+                                            <b style="color: #283593;" class="text-capitalize">
+                                              {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                                            </b>                                        
+                                            <span class="text-muted">{{ counseling.data_recorder }}</span>
+                                        </td>
+                                        <td>{{ counseling.created_at|date:"d-m-Y"  }}</td>                                   
+                                        <td>{{ counseling.created_at|date:"H:i" }}</td>
+                                        <td>
+                                            {% if counseling.counselling_notes %}
+                                              <span class="counsel-prem-badge counsel-prem-badge-available">Available</span>
+                                            {% else %}
+                                              <span class="counsel-prem-badge counsel-prem-badge-pending">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center">
+                                                {% if counseling.counselling_notes %}
+                                                  <button class="btn counsel-prem-btn-action mx-1" data-toggle="modal" data-target="#counselingModal{{ counseling.id }}">
+                                                    <i class="fas fa-eye"></i> View
+                                                  </button>
+                                                {% else %}
+                                                  <button class="btn counsel-prem-btn-action mx-1" disabled>
+                                                    <i class="fas fa-eye-slash"></i> View
+                                                  </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% for counseling in counselings %}
   {% if counseling.counselling_notes %}
-    <!-- Bootstrap Modal for Counseling Note -->
+    <!-- Premium Modal for Counseling -->
     <div class="modal fade" id="counselingModal{{ counseling.id }}" tabindex="-1" role="dialog" aria-labelledby="counselingModalLabel{{ counseling.id }}" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title" id="counselingModalLabel{{ counseling.id }}">
-              {{ counseling.patient.full_name }} - Counseling Note
+        <div class="modal-content counsel-prem-modal-content">
+          <div class="modal-header counsel-prem-modal-header py-3">
+            <h5 class="modal-title text-white" id="counselingModalLabel{{ counseling.id }}">
+              <i class="fas fa-comments mr-2"></i>Counseling Session - {{ counseling.patient.full_name }}
             </h5>
             <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -90,83 +509,104 @@ Counseling Sessions
             <div class="container-fluid">
 
               <!-- Header Image -->
-              <header class="header mb-3">
-                <div class="row">
-                  <div class="col-12">
-                    <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
-                  </div>
-                </div>
+              <header class="header mb-3 text-center">
+                <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid" style="max-width: 100%; height: auto;" alt="Header Image">
               </header>
 
-              <!-- Patient Details Section -->
-              <div class="row mt-1">
-                <div class="col-md-12">
-                  <div class="card">
-                    <div class="card-header bg-dark text-white">
-                      <h6 class="mb-0 text-uppercase">Patient Details</h6>
+              <!-- Patient Info -->
+              <div class="card mb-3">
+                <div class="card-header bg-dark text-white">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="counsel-prem-input-group">
+                        <label>Patient Name</label>
+                        <p class="form-control-static"><b>{{ counseling.patient.full_name }}</b></p>
+                      </div>
                     </div>
-                    <div class="card-body">
-                      <table class="table table-borderless table-sm">
-                        <tbody>
-                          <tr>
-                            <td>PATIENT: <b>{{ counseling.patient }}</b></td>
-                            <td>DOB: <b>{{ counseling.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ counseling.patient.age }}</b>]</td>
-                            <td>SEX: <b>{{ counseling.patient.gender }}</b></td>
-                            <td>FILE NO: <b>{{ counseling.patient.mrn }}</b></td>
-                          </tr>
-                          <tr>
-                            <td>Payment Form: 
-                              <b>
-                                {% if counseling.patient.payment_form == "Insurance" %}
-                                  {{ counseling.patient.payment_form }} - {{ counseling.patient.insurance_name }}
-                                {% else %}
-                                  {{ counseling.patient.payment_form }}
-                                {% endif %}
-                              </b>
-                            </td>
-                            <td>Visit Number: <b>{{ counseling.visit.vst }}</b></td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div class="col-md-3">
+                      <div class="counsel-prem-input-group">
+                        <label>Date of Birth</label>
+                        <p class="form-control-static"><b>{{ counseling.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ counseling.patient.age }}</b>]</p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="counsel-prem-input-group">
+                        <label>Gender</label>
+                        <p class="form-control-static"><b>{{ counseling.patient.gender }}</b></p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="counsel-prem-input-group">
+                        <label>File No</label>
+                        <p class="form-control-static"><b>{{ counseling.patient.mrn }}</b></p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="counsel-prem-input-group">
+                        <label>Visit Number</label>
+                        <p class="form-control-static"><b>{{ counseling.visit.vst }}</b></p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <!-- Counseling Notes Section -->
-              <div class="row mt-3">
-                <div class="col-md-12">
-                  <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                      <h6 class="mb-0 text-uppercase">Counseling Notes</h6>
-                    </div>
-                    <div class="card-body">
-                      <p class="text-justify">{{ counseling.counselling_notes|safe }}</p>
-                    </div>
-                    <div class="card-footer text-muted">
-                      <div class="row">
-                        <div class="col-md-5">
-                          <strong>Counseled By:</strong>
-                          <b class="text-capitalize" style="color: blue;">
-                            {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="counsel-prem-input-group">
+                        <label>Payment Form</label>
+                        <p class="form-control-static">
+                          <b>
+                            {% if counseling.patient.payment_form == "Insurance" %}
+                              {{ counseling.patient.payment_form }} - {{ counseling.patient.insurance_name }}
+                            {% else %}
+                              {{ counseling.patient.payment_form }}
+                            {% endif %}
                           </b>
-                          <span class="text-muted">{{ counseling.data_recorder }}</span>
-                        </div>
-                        <div class="col-md-3"><strong>Signature:</strong> {{ counseling.data_recorder.signature }}</div>
-                        <div class="col-md-2"><strong>Date:</strong> {{ counseling.created_at|date:"d-m-Y" }}</div>
-                        <div class="col-md-2"><strong>MCT No:</strong> {{ counseling.data_recorder.mct_number }}</div>
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Download PDF Button -->
+              <!-- Counseling Info -->
+              <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-comments mr-2"></i>Counseling Information</h6>
+                </div>
+                <div class="card-body">
+                  <div class="counsel-prem-input-group">
+                    <label>Counseling Notes</label>
+                    <div class="card">
+                      <div class="card-body">
+                        {{ counseling.counselling_notes|safe }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row">
+                    <div class="col-md-5">
+                      <strong>Counseled By:</strong>
+                      <b class="text-capitalize" style="color: #283593;">
+                        {% if counseling.data_recorder.role == "doctor" %}Dr.{% else %}{{ counseling.data_recorder.role }}{% endif %}
+                      </b>
+                      <span class="text-muted">{{ counseling.data_recorder }}</span>
+                    </div>
+                    <div class="col-md-3"><strong>Signature:</strong> {{ counseling.data_recorder.signature }}</div>
+                    <div class="col-md-2"><strong>Date:</strong> {{ counseling.created_at|date:"d-m-Y" }}</div>
+                    <div class="col-md-2"><strong>MCT No:</strong> {{ counseling.data_recorder.mct_number }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Optional PDF download -->
               <div class="row mt-3">
                 <div class="col-md-12 text-right">
-                  <a href="{% url 'admin_download_counseling_pdf' counseling.patient.id counseling.visit.id %}" 
-                    class="btn btn-outline-secondary btn-sm" >
-                    <i class="fa fa-download"></i> Download PDF
+                  <a href="{% url 'resa_admin_download_counseling_pdf' counseling.patient.id counseling.visit.id %}" 
+                    class="btn counsel-prem-btn-action">
+                    <i class="fa fa-download mr-2"></i> Download PDF
                   </a>
                 </div>
               </div>
@@ -179,6 +619,130 @@ Counseling Sessions
   {% endif %}
 {% endfor %}
 
-{% include 'hod_template/datatable.html' %}   
+{% include 'hod_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#counselTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search sessions...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        let todayCount = 0;
+        let availableCount = 0;
+        
+        document.querySelectorAll('#counselTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            const date = row.getAttribute('data-date');
+            
+            // Count today's sessions
+            if (date === today) {
+                todayCount++;
+            }
+            
+            // Count available sessions
+            if (status === 'available') {
+                availableCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('today-sessions').textContent = todayCount;
+        document.getElementById('available-sessions').textContent = availableCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.counsel-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.counsel-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterSessions(status);
+        });
+    });
+
+    // Filter sessions by status
+    function filterSessions(status) {
+        const rows = document.querySelectorAll('#counselTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-sessions').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('counselPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.counsel-prem-status-btn.active').getAttribute('data-status');
+        
+        filterSessionsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('counselPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.counsel-prem-status-btn.active').getAttribute('data-status');
+        
+        filterSessionsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter sessions by both status and search text
+    function filterSessionsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#counselTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-sessions').textContent = visibleCount;
+    }
+
+    // Three-dot menu animation
+    document.querySelectorAll('.counsel-prem-three-dots').forEach(dot => {
+        dot.addEventListener('click', function() {
+            this.style.transform = this.style.transform === 'rotate(90deg)' ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+    });
+</script>
 {% endblock main_content %}

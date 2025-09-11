@@ -1,54 +1,371 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+
 {% block title %}
-all Procedure    
+Premium Procedure Orders
 {% endblock title %}
+
+{% block page_title %}
+<a href="{% url 'doctor_dashboard' %}" class="btn proc-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+</a>
+{% endblock page_title%}
+
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-all Procedure  
+Premium Procedure Orders
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium styling for procedure orders */
+    .proc-prem-gradient {
+        background: linear-gradient(120deg, #0F4C75, #3282B8);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 76, 117, 0.15);
+        border: none;
+    }
+    
+    .proc-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .proc-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .proc-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .proc-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e0f7fa, #E0F7FA);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #B2EBF2;
+    }
+    
+    .proc-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .proc-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .proc-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .proc-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .proc-prem-table th {
+        background: linear-gradient(120deg, #E0F7FA, #B2EBF2);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .proc-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E0F7FA;
+    }
+    
+    .proc-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .proc-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 96, 100, 0.1);
+        background: #e0f7fa;
+    }
+    
+    .proc-prem-btn-action {
+        background: linear-gradient(120deg, #0F4C75, #3282B8);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.2);
+        margin: 2px;
+    }
+    
+    .proc-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 76, 117, 0.3);
+        color: white;
+    }
+    
+    .proc-prem-btn-view {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+        margin: 2px;
+    }
+    
+    .proc-prem-btn-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .proc-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .proc-prem-badge-patient {
+        background: linear-gradient(120deg, #0F4C75, #3282B8);
+        color: white;
+    }
+    
+    .proc-prem-badge-doctor {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .proc-prem-badge-payment {
+        background: linear-gradient(120deg, #FF512F, #DD2476);
+        color: white;
+    }
+    
+    .proc-prem-filter-bar {
+        background: linear-gradient(120deg, #e0f7fa, #E0F7FA);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .proc-prem-date-badge {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .proc-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .proc-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .proc-prem-flip-card:hover .proc-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .proc-prem-flip-card-front, .proc-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .proc-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F4C75, #3282B8);
+        color: white;
+    }
+    
+    .proc-prem-flip-card-back {
+        background: linear-gradient(120deg, #3282B8, #0F4C75);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .proc-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes procPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .proc-prem-animated {
+        animation: procPremFadeIn 0.5s ease forwards;
+    }
+</style>
 
 <div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-4">
+            <div class="card proc-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Today's Procedures</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="proc-prem-summary-value" id="total-orders">{{ orders|length }}</div>
+                    <div class="proc-prem-summary-label">Procedure Orders Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card proc-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="proc-prem-summary-value" id="unique-patients">0</div>
+                    <div class="proc-prem-summary-label">Unique Patients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="proc-prem-flip-card">
+                <div class="proc-prem-flip-card-inner">
+                    <div class="proc-prem-flip-card-front">
+                        <div class="proc-prem-flip-icon">
+                            <i class="fas fa-stethoscope"></i>
+                        </div>
+                        <h4>Procedure Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="proc-prem-flip-card-back">
+                        <div class="proc-prem-flip-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h4>Premium Insights</h4>
+                        <p>Advanced procedure analytics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="proc-prem-filter-bar">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search procedures by patient, doctor, or order number..." id="procPremSearch">
+            <div class="input-group-append">
+                <button class="btn proc-prem-btn-action" type="button" id="searchButton">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase">Today Procedure Orders</h4>
+            <div class="card proc-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-procedures mr-2"></i>Premium Procedure Orders</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">                    
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm" id="example">
+                    <div class="table-responsive proc-prem-table-container">
+                        <table class="table table-hover proc-prem-table" id="procTable">
                             <thead>
                                 <tr>
-                                    <th>Order Number</th>                               
-                                    <th>Order Name</th>                               
-                                    <th>Ordered By</th>                               
-                                    <th>Patient</th>                              
-                                    <th>Order Date</th>
-                                    <th>Actions</th> <!-- Add a column for actions -->
+                                    <th><i class="fas fa-hashtag mr-2"></i>Order Number</th>
+                                    <th><i class="fas fa-tasks mr-2"></i>Procedure Name</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Ordered By</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Order Date</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for order in orders %}
-                                    <tr>
-                                        <td>{{ order.order_number }}</td>                                  
-                                        <td>{{ order.order_type  }}</td>                                  
-                                        <td>{{ order.added_by }}
-                                            <p><strong>{{ order.added_by.role }}</strong></p>
-                                        </td>                                  
-                                        <td>{{ order.patient }}
-                                            <p><strong>{{ order.patient.payment_form }}</strong></p>
-                                        </td>
-                                        <td>{{ order.order_date|date:"d-m-Y" }}</td>
-                                        <td>                                          
-                                                                 <!-- Add more action links as needed -->
-                                        <a href="{% url 'doctor_patient_procedure_view' %}" data-toggle="tooltip" title="Go to Procedure record">
-                                            <button type="button" class="btn btn-success btn-sm"><i class="fa fa-eye text-dark"></i> Procedure record</button>
-                                        </a> 
-                                        </td>
-                                    </tr>                                  
+                                <tr>
+                                    <td>
+                                        <span class="proc-prem-badge proc-prem-badge-patient">
+                                            {{ order.order_number }}
+                                        </span>
+                                    </td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>
+                                        <span class="proc-prem-badge proc-prem-badge-doctor">
+                                            {{ order.added_by }}
+                                        </span>
+                                        <div class="mt-1">
+                                            <small class="text-muted">{{ order.added_by.role }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="proc-prem-badge proc-prem-badge-patient">
+                                            {{ order.patient }}
+                                        </span>
+                                        <div class="mt-1">
+                                            <span class="proc-prem-badge proc-prem-badge-payment">
+                                                {{ order.patient.payment_form }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="proc-prem-date-badge">
+                                            {{ order.order_date|date:"d-m-Y" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'doctor_patient_procedure_view' %}" class="btn proc-prem-btn-view" data-toggle="tooltip" title="View Procedure Records">
+                                            <i class="fas fa-eye mr-1"></i>Procedure Records
+                                        </a>
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                            </tbody>
+                            </tbody>                   
                         </table>
                     </div>
                 </div>
@@ -56,7 +373,73 @@ all Procedure
         </div>
     </div>
 </div>
-{% include 'doctor_template/datatable.html' %}
-    
 
+{% include 'doctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#procTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search procedures...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const uniquePatients = new Set();
+        
+        document.querySelectorAll('#procTable tbody tr').forEach(row => {
+            const patient = row.cells[3].textContent.trim();
+            uniquePatients.add(patient);
+        });
+        
+        // Update summary cards
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('procPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterProcedureOrders(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('procPremSearch').value.toLowerCase();
+        filterProcedureOrders(searchText);
+    });
+
+    // Filter procedure orders by search text
+    function filterProcedureOrders(searchText) {
+        const rows = document.querySelectorAll('#procTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-orders').textContent = visibleCount;
+        
+        // Recalculate unique patients
+        calculateSummaryStats();
+    }
+</script>
 {% endblock main_content %}

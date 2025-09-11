@@ -1,5 +1,5 @@
 import calendar
-from datetime import  date, datetime
+from datetime import  date, datetime, timedelta
 import json
 from django.utils import timezone
 import logging
@@ -12,64 +12,70 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404, JsonResponse
-from django.db.models import Sum,Max
+from django.db.models import Sum, Max, Count
 from django.db.models import OuterRef, Subquery
 from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
-from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm
+from clinic.forms import CounselingForm, DischargesNotesForm, ImagingRecordForm, LaboratoryOrderForm, ObservationRecordForm, ProcedureForm, ReferralForm, StaffProfileForm
 from django.core.exceptions import ValidationError
 from clinic.models import  Consultation,   Medicine,   Staffs
-from django.views.decorators.http import require_POST
-from django.contrib.contenttypes.models import ContentType
-from .models import ClinicChiefComplaint,   ConsultationNotes,  ConsultationOrder, Counseling, Country, CustomUser, Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Referral, SalaryChangeRecord,Service
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_POST, require_GET
+from .models import ClinicChiefComplaint,   ConsultationNotes,  ConsultationOrder, Counseling, Country, CustomUser, Diagnosis, DischargesNotes, Employee, EmployeeDeduction, HealthRecord, ImagingRecord,  LaboratoryOrder, MedicineDosage, MedicineRoute, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Referral, SalaryChangeRecord,Service
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
-from kahamahmis.forms import StaffProfileForm
 from django.views import View
 
 @login_required
 def doctor_dashboard(request):
     try:
         today = date.today()
-        print(today)
-        # 1. Total Patients
+       
         total_patients_count = Patients.objects.count()
 
-        # 2. Today's Visits
+        # Today's Visits
         today_visits = PatientVisits.objects.filter(updated_at__date=today)
         today_total_patients = today_visits.count()
 
-        # 3. Today's Consultations
+        # Today's Consultations
         today_notes = ConsultationNotes.objects.filter(updated_at__date=today)
         completed_notes = today_notes.filter(doctor_plan__in=["Discharge", "Referral"])
         in_progress_notes = today_notes.exclude(doctor_plan__in=["Discharge", "Referral"])
         today_completed_patients = completed_notes.values('patient').distinct().count()
         today_in_progress_patients = in_progress_notes.values('patient').distinct().count()
 
-        # 4. Lab Orders
+        # Lab Orders
         today_lab_orders = LaboratoryOrder.objects.filter(created_at__date=today)
         today_lab_patients_count = today_lab_orders.values('patient').distinct().count()
         in_progress_lab_patients_count = today_lab_orders.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
         completed_lab_patients_count = today_lab_patients_count - in_progress_lab_patients_count if today_lab_patients_count else 0
 
-        # 5. Prescriptions
-        today_prescriptions = Prescription.objects.filter(created_at__date=today).count()
+        # Prescriptions
+        today_prescriptions = Prescription.objects.filter(created_at__date=today)
         today_today_prescription_count = today_prescriptions.values('patient').distinct().count()
-        # 6. Procedures
+
+        # Procedures
         today_procedures = Procedure.objects.filter(created_at__date=today)
         today_procedure_patients_count = today_procedures.values('patient').distinct().count()
         in_progress_procedure_patients_count = today_procedures.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
         completed_procedure_patients_count = today_procedure_patients_count - in_progress_procedure_patients_count if today_procedure_patients_count else 0
 
-        # 7. Imaging
+        # Imaging
         today_imagings = ImagingRecord.objects.filter(created_at__date=today)
         today_imaging_patients_count = today_imagings.values('patient').distinct().count()
         in_progress_imaging_patients_count = today_imagings.filter(Q(result__isnull=True) | Q(result__exact='')).values('patient').distinct().count()
         completed_imaging_patients_count = today_imaging_patients_count - in_progress_imaging_patients_count if today_imaging_patients_count else 0
+
+        # Recent consultations (last 10)
+        recent_consultations = ConsultationNotes.objects.select_related('patient').order_by('-created_at')[:10]
+
+        # Upcoming appointments (next 7 days)
+        upcoming_appointments = Consultation.objects.filter(
+            appointment_date__gte=today,
+            appointment_date__lte=today + timedelta(days=7)
+        ).select_related('patient').order_by('appointment_date')[:10]
 
         context = {
             # General
@@ -97,6 +103,10 @@ def doctor_dashboard(request):
             'today_imaging_patients': today_imaging_patients_count,
             'in_progress_imagings': in_progress_imaging_patients_count,
             'completed_imagings': completed_imaging_patients_count,
+
+            # Additional data for the premium dashboard
+            'recent_consultations': recent_consultations,
+            'upcoming_appointments': upcoming_appointments,
         }
 
     except Exception as e:
@@ -116,9 +126,324 @@ def doctor_dashboard(request):
             'today_imaging_patients': 0,
             'in_progress_imagings': 0,
             'completed_imagings': 0,
+            'recent_consultations': [],
+            'upcoming_appointments': [],
         }
 
     return render(request, "doctor_template/home_content.html", context)
+
+
+@login_required
+@require_GET
+def doctor_fetch_lab_stats(request):
+    """
+    View to fetch comprehensive laboratory statistics for the currently logged-in doctor.
+    Returns JSON with various lab order metrics.
+    """
+    try:
+        # Get the current doctor/staff member
+        doctor = request.user.staff
+        
+        # Calculate date ranges
+        today = timezone.now().date()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        # Base queryset for this doctor
+        doctor_orders = LaboratoryOrder.objects.filter(doctor=doctor)
+        
+        # Count lab orders by status
+        stats = {
+            # Basic counts
+            'pending_count': doctor_orders.filter(result__isnull=True).count(),
+            'completed_count': doctor_orders.filter(result__isnull=False).count(),
+            'total_count': doctor_orders.count(),
+            
+            # Time-based counts
+            'today_count': doctor_orders.filter(created_at__date=today).count(),
+            'week_count': doctor_orders.filter(created_at__date__gte=week_ago).count(),
+            'month_count': doctor_orders.filter(created_at__date__gte=month_ago).count(),
+            
+            # Financial metrics
+            'total_revenue': float(doctor_orders.aggregate(Sum('cost'))['cost__sum'] or 0),
+            'pending_revenue': float(doctor_orders.filter(result__isnull=True).aggregate(Sum('cost'))['cost__sum'] or 0),
+            'completed_revenue': float(doctor_orders.filter(result__isnull=False).aggregate(Sum('cost'))['cost__sum'] or 0),
+            
+            # Recent pending orders (for notifications)
+            'recent_pending': list(doctor_orders.filter(
+                result__isnull=True
+            ).order_by('-created_at')[:5].values(
+                'id', 'patient__first_name', 'patient__last_name', 
+                'patient__mrn', 'lab_test__name', 'created_at'
+            )),
+            
+            # Most ordered tests
+            'popular_tests': list(doctor_orders.values(
+                'lab_test__name'
+            ).annotate(
+                count=Count('id')
+            ).order_by('-count')[:5])
+        }
+        
+        return JsonResponse(stats)
+        
+    except Exception as e:
+        # Return safe default values in case of error
+        return JsonResponse({
+            'error': str(e),
+            'pending_count': 0,
+            'completed_count': 0,
+            'total_count': 0,
+            'today_count': 0,
+            'week_count': 0,
+            'month_count': 0,
+            'total_revenue': 0,
+            'pending_revenue': 0,
+            'completed_revenue': 0,
+            'recent_pending': [],
+            'popular_tests': []
+        }, status=500)
+
+@login_required
+def doctor_today_patients(request):
+    today = date.today()
+    doctor = request.user.staff  # Assuming the user is linked to Staffs model
+    
+    # Get today's patients for this doctor
+    today_patients = Patients.objects.filter(
+        Q(consultation__doctor=doctor, consultation__appointment_date=today) |
+        Q(consultationnotes__doctor=doctor, consultationnotes__created_at__date=today) |
+        Q(imagingrecord__doctor=doctor, imagingrecord__order_date=today) |
+        Q(procedure__doctor=doctor, procedure__order_date=today) |
+        Q(laboratoryorder__doctor=doctor, laboratoryorder__order_date=today)
+    ).distinct()
+    
+    context = {
+        'patients': today_patients,
+        'page_title': "Today's Patients"
+    }
+    return render(request, 'doctor_template/today_patients.html', context)
+
+@login_required
+def doctor_in_progress_consultations(request):
+    doctor = request.user.staff
+    
+    # Get in-progress consultations for this doctor
+    in_progress_consultations = ConsultationNotes.objects.filter(
+        doctor=doctor
+    ).exclude(
+        Q(doctor_plan__in=["Discharge", "Referral"])
+    ).order_by('-created_at')
+    
+    context = {
+        'consultations': in_progress_consultations,
+        'page_title': "In Progress Consultations"
+    }
+    return render(request, 'doctor_template/in_progress_consultations.html', context)
+
+@login_required
+def doctor_completed_consultations(request):
+    doctor = request.user.staff
+    today = date.today()
+    
+    # Get completed consultations for today for this doctor
+    completed_consultations = ConsultationNotes.objects.filter(
+        doctor=doctor,
+        created_at__date=today,
+        doctor_plan__in=["Discharge", "Referral"]
+    ).order_by('-created_at')
+    
+    context = {
+        'consultations': completed_consultations,
+        'page_title': "Completed Consultations"
+    }
+    return render(request, 'doctor_template/completed_consultations.html', context)
+
+@login_required
+def doctor_today_lab_orders(request):
+    doctor = request.user.staff
+    today = date.today()
+    
+    # Get today's lab orders for this doctor
+    today_lab_orders = LaboratoryOrder.objects.filter(
+        doctor=doctor,
+        order_date=today
+    ).order_by('-created_at')
+    
+    context = {
+        'lab_orders': today_lab_orders,
+        'page_title': "Today's Lab Orders"
+    }
+    return render(request, 'doctor_template/today_lab_orders.html', context)
+
+@login_required
+def doctor_today_imaging_orders(request):
+    doctor = request.user.staff
+    today = date.today()
+    
+    # Get today's imaging orders for this doctor
+    today_imaging_orders = ImagingRecord.objects.filter(
+        doctor=doctor,
+        order_date=today
+    ).order_by('-created_at')
+    
+    context = {
+        'imaging_orders': today_imaging_orders,
+        'page_title': "Today's Imaging Orders"
+    }
+    return render(request, 'doctor_template/today_imaging_orders.html', context)
+
+@login_required
+def doctor_pending_imaging(request):
+    doctor = request.user.staff
+    
+    # Get pending imaging results for this doctor
+    pending_imaging = ImagingRecord.objects.filter(
+        doctor=doctor
+    ).filter(
+        Q(result__isnull=True) | Q(result__exact='')
+    ).order_by('-created_at')
+    
+    context = {
+        'imaging_records': pending_imaging,
+        'page_title': "Pending Imaging Results"
+    }
+    return render(request, 'doctor_template/pending_imaging.html', context)
+
+@login_required
+def doctor_completed_imaging(request):
+    doctor = request.user.staff
+    
+    # Get completed imaging for this doctor
+    completed_imaging = ImagingRecord.objects.filter(
+        doctor=doctor
+    ).exclude(
+        Q(result__isnull=True) | Q(result__exact='')
+    ).order_by('-created_at')
+    
+    context = {
+        'imaging_records': completed_imaging,
+        'page_title': "Completed Imaging"
+    }
+    return render(request, 'doctor_template/completed_imaging.html', context)
+
+@login_required
+def doctor_today_procedures(request):
+    doctor = request.user.staff
+    today = date.today()
+    
+    # Get today's procedures for this doctor
+    today_procedures = Procedure.objects.filter(
+        doctor=doctor,
+        order_date=today
+    ).order_by('-created_at')
+    
+    context = {
+        'procedures': today_procedures,
+        'page_title': "Today's Procedures"
+    }
+    return render(request, 'doctor_template/today_procedures.html', context)
+
+@login_required
+def doctor_pending_procedures(request):
+    doctor = request.user.staff
+    
+    # Get pending procedures for this doctor
+    pending_procedures = Procedure.objects.filter(
+        doctor=doctor
+    ).filter(
+        Q(result__isnull=True) | Q(result__exact='')
+    ).order_by('-created_at')
+    
+    context = {
+        'procedures': pending_procedures,
+        'page_title': "Pending Procedures"
+    }
+    return render(request, 'doctor_template/pending_procedures.html', context)
+
+@login_required
+def doctor_completed_procedures(request):
+    doctor = request.user.staff
+    
+    # Get completed procedures for this doctor
+    completed_procedures = Procedure.objects.filter(
+        doctor=doctor
+    ).exclude(
+        Q(result__isnull=True) | Q(result__exact='')
+    ).order_by('-created_at')
+    
+    context = {
+        'procedures': completed_procedures,
+        'page_title': "Completed Procedures"
+    }
+    return render(request, 'doctor_template/completed_procedures.html', context)
+
+@login_required
+def doctor_consultation_list(request):
+    doctor = request.user.staff
+    
+    # Get all consultations for this doctor
+    consultations = ConsultationNotes.objects.filter(
+        doctor=doctor
+    ).order_by('-created_at')
+    
+    context = {
+        'consultations': consultations,
+        'page_title': "All Consultations"
+    }
+    return render(request, 'doctor_template/consultation_list.html', context)
+
+
+def dashboard_stats_api(request):
+    """
+    API endpoint to fetch statistics for the doctor dashboard
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        # Get today's date
+        today = timezone.now().date()
+        
+        # Count today's appointments
+        today_appointments = Consultation.objects.filter(
+            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
+            appointment_date__date=today,
+            status__in=['Scheduled', 'Confirmed']
+        ).count()
+        
+        # Count pending consultations
+        pending_consultations = ConsultationOrder.objects.filter(
+            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
+            order_status='pending'
+        ).count()
+        
+        # Count total patients (optional)
+        total_patients = Patients.objects.filter(
+            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None
+        ).count()
+        
+        # Count upcoming appointments in next 7 days
+        seven_days_later = today + timedelta(days=7)
+        upcoming_appointments = Consultation.objects.filter(
+            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
+            appointment_date__date__range=[today, seven_days_later],
+            status__in=['Scheduled', 'Confirmed']
+        ).count()
+        
+        return JsonResponse({
+            'today_appointments': today_appointments,
+            'pending_consultations': pending_consultations,
+            'total_patients': total_patients,
+            'upcoming_appointments': upcoming_appointments,
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
 
 
 @login_required
@@ -236,7 +561,7 @@ def manage_patient(request):
     all_country = Country.objects.all()
     doctors=Staffs.objects.filter(role='doctor')
     return render(request,"doctor_template/manage_patients.html", {
-        "patient_records":patient_records,
+        "patients":patient_records,
         "range_121":range_121,
         "doctors":doctors,
         "all_country":all_country,
@@ -459,15 +784,210 @@ def manage_referral(request):
     return render(request, 'doctor_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
 
-
-
-@login_required
 def appointment_list_view(request):
-    appointments = Consultation.objects.all() 
-    context = {       
-        'appointments':appointments,
+    """
+    View for displaying all appointments assigned to the current doctor
+    """
+    # Get the current doctor (staff member)
+    doctor = get_object_or_404(Staffs, admin=request.user)
+    
+    # Get all appointments for this doctor
+    appointments = Consultation.objects.filter(doctor=doctor).order_by('-appointment_date', '-created_at')
+    
+    # Get counts for different statuses
+    status_counts = {
+        'total': appointments.count(),
+        'pending': appointments.filter(status=0).count(),
+        'completed': appointments.filter(status=1).count(),
+        'canceled': appointments.filter(status=2).count(),
+        'rescheduled': appointments.filter(status=3).count(),
+        'noshow': appointments.filter(status=4).count(),
+        'in_progress': appointments.filter(status=5).count(),
+        'confirmed': appointments.filter(status=6).count(),
+        'arrived': appointments.filter(status=7).count(),
     }
+    
+    context = {
+        'appointments': appointments,
+        'status_counts': status_counts,
+    }
+    
     return render(request, 'doctor_template/manage_appointment.html', context)
+
+@require_POST
+def edit_meeting(request, appointment_id):
+    """
+    View for editing/rescheduling an appointment
+    """
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+    
+    if request.method == 'POST':
+        try:
+            # Update appointment details
+            appointment.appointment_date = request.POST.get('appointment_date')
+            appointment.start_time = request.POST.get('start_time')
+            appointment.end_time = request.POST.get('end_time')
+            appointment.save()
+            
+            messages.success(request, 'Appointment rescheduled successfully.')
+        except Exception as e:
+            messages.error(request, f'Error rescheduling appointment: {str(e)}')
+    
+    return redirect('doctor_appointment_list')
+
+@require_POST
+def confirm_meeting(request, appointment_id):
+    """
+    View for confirming an appointment status
+    """
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+    
+    if request.method == 'POST':
+        try:
+            new_status = int(request.POST.get('status'))
+            appointment.status = new_status
+            appointment.save()
+            
+            status_name = dict(Consultation.STATUS_CHOICES).get(new_status, 'Unknown')
+            messages.success(request, f'Appointment status updated to {status_name}.')
+        except (ValueError, Exception) as e:
+            messages.error(request, f'Error updating appointment status: {str(e)}')
+    
+    return redirect('doctor_appointment_list')
+
+@require_POST
+def start_consultation(request, appointment_id):
+    """
+    Starts a consultation: ensures a PatientVisits exists for this appointment,
+    then redirects to save remote consultation notes.
+    """
+    # Fetch appointment; ensure user has permission (doctor/admin)
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+
+    try:
+        # Check if a visit already exists for this appointment
+        if appointment.visit:
+            visit = appointment.visit
+        else:
+            # Create a new PatientVisits record
+            visit = PatientVisits.objects.create(
+                patient=appointment.patient,
+                data_recorder=request.user,  # if you want to track who started it
+                visit_type='Normal',         # or some default type
+                primary_service='Consultation'  # adjust as needed
+            )
+            appointment.visit = visit
+            appointment.save()
+
+        # Redirect to the remote notes saving URL
+        return redirect('doctor_save_remotesconsultation_notes', patient_id=appointment.patient.id, visit_id=visit.id)
+
+    except Exception as e:
+        messages.error(request, f'Error starting consultation: {str(e)}')
+        return redirect('doctor_appointment_list')
+
+        
+@require_POST
+def complete_consultation(request, appointment_id):
+    """
+    View for completing a consultation
+    """
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+    
+    if request.method == 'POST':
+        try:
+            # Update status to Completed
+            appointment.status = 1  # Completed
+            final_notes = request.POST.get('final_notes', '')
+            prescription = request.POST.get('prescription', '')
+            
+            # Update the patient visit record
+            if appointment.visit:
+                appointment.visit.status = 'completed'
+                appointment.visit.notes = final_notes
+                appointment.visit.prescription = prescription
+                appointment.visit.save()
+            
+            appointment.save()
+            
+            messages.success(request, 'Consultation completed successfully.')
+        except Exception as e:
+            messages.error(request, f'Error completing consultation: {str(e)}')
+    
+    return redirect('doctor_appointment_list')
+
+@require_POST
+def cancel_appointment(request, appointment_id):
+    """
+    View for canceling an appointment
+    """
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+    
+    if request.method == 'POST':
+        try:
+            # Update status to Canceled
+            appointment.status = 2  # Canceled
+            cancel_reason = request.POST.get('cancel_reason', '')
+            
+            # Store cancellation reason in description
+            if cancel_reason:
+                original_desc = appointment.description or ''
+                appointment.description = f"{original_desc}\n\nCANCELLATION REASON: {cancel_reason}"
+            
+            appointment.save()
+            
+            messages.success(request, 'Appointment canceled successfully.')
+        except Exception as e:
+            messages.error(request, f'Error canceling appointment: {str(e)}')
+    
+    return redirect('doctor_appointment_list')
+
+def get_appointment_details(request, appointment_id):
+    """
+    API view to get appointment details (for AJAX requests)
+    """
+    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
+    
+    data = {
+        'id': appointment.id,
+        'appointment_number': appointment.appointment_number,
+        'patient_name': f"{appointment.patient.first_name} {appointment.patient.last_name}",
+        'patient_mrn': appointment.patient.mrn,
+        'appointment_date': appointment.appointment_date.strftime('%d-%m-%Y'),
+        'start_time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
+        'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else '',
+        'description': appointment.description or 'No description provided',
+        'status': appointment.status,
+        'status_display': appointment.get_status_display(),
+        'created_at': appointment.created_at.strftime('%d-%m-%Y %H:%M'),
+    }
+    
+    return JsonResponse(data)
+
+@require_POST
+def bulk_update_appointments(request):
+    """
+    View for bulk updating appointment statuses
+    """
+    if request.method == 'POST':
+        try:
+            appointment_ids = request.POST.getlist('appointment_ids')
+            new_status = int(request.POST.get('status'))
+            
+            # Update all selected appointments
+            updated_count = Consultation.objects.filter(
+                id__in=appointment_ids, 
+                doctor__admin=request.user
+            ).update(status=new_status)
+            
+            status_name = dict(Consultation.STATUS_CHOICES).get(new_status, 'Unknown')
+            messages.success(request, f'Updated {updated_count} appointments to {status_name}.')
+        except (ValueError, Exception) as e:
+            messages.error(request, f'Error updating appointments: {str(e)}')
+    
+    return redirect('doctor_appointment_dashboard') 
+
+
 
 
 @login_required
@@ -1095,8 +1615,7 @@ def get_patient_details(request, patient_id):
             # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(
                 type_service='procedure'
-            ).values('id', 'name')
-        print(remote_service)
+            ).values('id', 'name')        
         return JsonResponse({'success': True, 'patient': patient, 'remote_service': list(remote_service)})
     except Patients.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Patient not found'})
@@ -1189,72 +1708,133 @@ def add_procedure(request):
             
 
 
-    
 @csrf_exempt
 @require_POST
 def add_remoteprescription(request):
     try:
         with transaction.atomic():
-            # Extract data from the request
+            # ----------------- Extract data -----------------
             patient_id = request.POST.get('patient_id')
             visit_id = request.POST.get('visit_id')
             medicines = request.POST.getlist('medicine[]')
-            doses = request.POST.getlist('dose[]')
+            formulations = request.POST.getlist('formulation[]')
+            dosages = request.POST.getlist('dosage[]')
             frequencies = request.POST.getlist('frequency[]')
             durations = request.POST.getlist('duration[]')
             quantities = request.POST.getlist('quantity[]')
-            total_price = request.POST.getlist('total_price[]')
-            entered_by = request.user.staff
+            routes = request.POST.getlist('route[]')
+            total_prices = request.POST.getlist('total_price[]')
+            entered_by = getattr(request.user, "staff", None)
 
-            # Retrieve the corresponding patient and visit
-            patient = Patients.objects.get(id=patient_id)
-            visit = PatientVisits.objects.get(id=visit_id)
+            # ----------------- Validation: Patient & Visit -----------------
+            if not all([patient_id, visit_id]):
+                return JsonResponse({'status': 'error', 'message': 'Patient and visit information are required.'})
 
-            # Save prescriptions only if inventory check passes
+            try:
+                patient = Patients.objects.get(id=patient_id)
+                visit = PatientVisits.objects.get(id=visit_id)
+            except (Patients.DoesNotExist, PatientVisits.DoesNotExist):
+                return JsonResponse({'status': 'error', 'message': 'Invalid patient or visit information.'})
+
+            # ----------------- Business Rule: Prevent adding after payment -----------------
+            existing_status = Prescription.get_visit_status(visit)
+            if existing_status.get("status") == "paid":
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'This visit is already fully paid. No additional prescriptions can be added.'
+                })
+
+            # ----------------- Validation: At least one medicine -----------------
+            if not medicines:
+                return JsonResponse({'status': 'error', 'message': 'At least one medicine is required.'})
+
+            prescriptions_to_create = []
+            today = timezone.now().date()
+
+            # ----------------- Loop through all medicines -----------------
             for i in range(len(medicines)):
-                medicine = Medicine.objects.get(id=medicines[i])
-                quantity_used_str = quantities[i]  # Get the quantity as a string
+                # Get medicine
+                try:
+                    medicine = Medicine.objects.get(id=medicines[i])
+                except Medicine.DoesNotExist:
+                    return JsonResponse({'status': 'error', 'message': f'Medicine at position {i+1} does not exist.'})
 
-                if quantity_used_str is None:
-                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity cannot be empty.')
+                # Check if expired
+                if medicine.expiration_date and medicine.expiration_date < today:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'{medicine.drug_name} is expired (Expiry: {medicine.expiration_date}).'
+                    })
+
+                # Validate quantity
+                quantity_used_str = quantities[i]
+                if not quantity_used_str:
+                    return JsonResponse({'status': 'error', 'message': f'Quantity required for {medicine.drug_name}.'})
 
                 try:
                     quantity_used = int(quantity_used_str)
                 except ValueError:
-                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a valid number.')
+                    return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.drug_name}.'})
 
-                if quantity_used < 0:
-                    raise ValueError(f'Invalid quantity for {medicine.drug_name}. Quantity must be a non-negative number.')
+                if quantity_used <= 0:
+                    return JsonResponse({'status': 'error', 'message': f'Quantity must be greater than zero for {medicine.drug_name}.'})
 
-                # Retrieve the remaining quantity of the medicine
-                remain_quantity = medicine.remain_quantity
+                if medicine.remain_quantity is not None and quantity_used > medicine.remain_quantity:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Insufficient stock for {medicine.drug_name}. Only {medicine.remain_quantity} available.'
+                    })
 
-                if remain_quantity is not None and quantity_used > remain_quantity:
-                    raise ValueError(f'Insufficient stock for {medicine.drug_name}. Only {remain_quantity} available.')
+                # Get dosage object (optional)
+                try:
+                    dosage_obj = MedicineDosage.objects.get(id=dosages[i]) if dosages[i] else None
+                except MedicineDosage.DoesNotExist:
+                    dosage_obj = None
 
-                # Reduce the remain quantity of the medicine
-                if remain_quantity is not None:
-                    medicine.remain_quantity -= quantity_used
-                    medicine.save()
+                # Get frequency object (required)
+                try:
+                    frequency_obj = PrescriptionFrequency.objects.get(id=frequencies[i])
+                except PrescriptionFrequency.DoesNotExist:
+                    return JsonResponse({'status': 'error', 'message': f'Invalid frequency for {medicine.drug_name}.'})
 
-                # Save prescription
-                Prescription.objects.create(
+                # Get route object (optional)
+                route_obj = None
+                if routes and i < len(routes) and routes[i]:
+                    try:
+                        route_obj = MedicineRoute.objects.get(id=routes[i])
+                    except MedicineRoute.DoesNotExist:
+                        route_obj = None
+
+                # ----------------- Create prescription object -----------------
+                prescription = Prescription(
                     patient=patient,
+                    visit=visit,
                     medicine=medicine,
                     entered_by=entered_by,
-                    visit=visit,
-                    dose=doses[i],
-                    frequency=PrescriptionFrequency.objects.get(id=frequencies[i]),
+                    formulation_dose=formulations[i],
+                    dosage=dosage_obj.dosage_value if dosage_obj else None,
+                    frequency=frequency_obj,
                     duration=durations[i],
                     quantity_used=quantity_used,
-                    total_price=total_price[i]
-                )
+                    total_price=total_prices[i] if total_prices and i < len(total_prices) else None,
+                    route=route_obj.name if route_obj else None,
 
-            return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
-    except ValueError as ve:
-        return JsonResponse({'status': 'error', 'message': str(ve)})
+                    # Default statuses
+                    verified="not_verified",
+                    issued="not_issued",
+                    status="unpaid",
+                )
+                prescriptions_to_create.append(prescription)
+
+            # ----------------- Save all prescriptions -----------------
+            for prescription in prescriptions_to_create:
+                prescription.save()
+
+            return JsonResponse({'status': 'success', 'message': 'Prescription saved successfully. Inventory will be deducted upon payment.'})
+
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': 'An unexpected error occurred: ' + str(e)})
+        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'})
+    
     
 @login_required
 def save_prescription(request, patient_id, visit_id):
@@ -1270,9 +1850,27 @@ def save_prescription(request, patient_id, visit_id):
         except PatientVisits.DoesNotExist:
             return render(request, '404.html', {'error_message': "Visit not found."})
 
+        # Check if prescriptions already exist and their status
+        prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
+        can_add_prescriptions = True
+        restriction_reason = ""
+        
+        if prescriptions.exists():
+            status_info = Prescription.get_visit_status(visit)
+            
+            # Check if any prescription is verified, issued, or paid
+            if status_info["verified"] != "not_verified":
+                can_add_prescriptions = False
+                restriction_reason = "Prescriptions have already been verified."
+            elif status_info["issued"] != "not_issued":
+                can_add_prescriptions = False
+                restriction_reason = "Medications have already been issued."
+            elif status_info["status"] != "unpaid":
+                can_add_prescriptions = False
+                restriction_reason = "Prescriptions have already been paid for."
+
         # Retrieve related data
         frequencies = PrescriptionFrequency.objects.all()
-        prescriptions = Prescription.objects.filter(patient=patient, visit=visit)
 
         provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
         consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
@@ -1298,6 +1896,8 @@ def save_prescription(request, patient_id, visit_id):
             'range_31': range_31,
             'prescriptions': prescriptions,
             'frequencies': frequencies,
+            'can_add_prescriptions': can_add_prescriptions,
+            'restriction_reason': restriction_reason,
         })
 
     except Exception as e:
@@ -1613,7 +2213,7 @@ def add_investigation(request):
                     visit_id=visit_id,
                     order_date=order_date,                 
                     data_recorder=doctor,
-                    name_id=investigation_names[i],
+                    lab_test_id=investigation_names[i],
                     description=descriptions[i],                 
                     cost=costs[i],
                     # Set other fields as needed
@@ -1645,61 +2245,6 @@ def patient_visit_history_view(request, patient_id):
         })
     
 
-
-
-@login_required
-def patient_health_record_view(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient     
-        visit = PatientVisits.objects.get(id=visit_id,patient_id=patient_id)        
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            consultation_notes = PatientDiagnosisRecord.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        except PatientDiagnosisRecord.DoesNotExist:
-            consultation_notes = None         
-        try:
-            vitals = PatientVital.objects.filter(patient=patient_id,visit=visit_id).order_by('-recorded_at')
-        except PatientVital.DoesNotExist:
-            vitals = None           
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id)            
-        except Procedure.DoesNotExist:
-            procedures = None          
-        try:
-            lab_tests = LaboratoryOrder.objects.filter(patient=patient_id, visit=visit_id)
-        except LaboratoryOrder.DoesNotExist:
-            lab_tests = None  
-        total_price = sum(prescription.total_price for prescription in prescriptions)   
-        patient = Patients.objects.get(id=patient_id)
-           # Calculate total amount from all procedures
-        try:
-            imaging_records = ImagingRecord.objects.filter(patient_id=patient_id, visit_id=visit_id)
-        except ImagingRecord.DoesNotExist:
-            imaging_records = None
-               
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
-        lab_tests_cost = lab_tests.aggregate(Sum('cost'))['cost__sum']   
-    
-        return render(request, 'doctor_template/manage_patient_health_record.html', {
-           
-            'patient': patient,
-            'visit': visit,          
-            'lab_tests_cost': lab_tests_cost,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'consultation_notes': consultation_notes,      
-            'vitals': vitals,          
-            'imaging_records': imaging_records,          
-            'lab_tests': lab_tests,
-            'procedures': procedures,
-      
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})
 
     
 @login_required
@@ -2157,7 +2702,6 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
 @login_required
 def patient_lab_view(request):
     template_name = 'doctor_template/lab_order_result.html'
-    doctor = request.user.staff
     # Query to retrieve the latest procedure record for each patient
     procedures = LaboratoryOrder.objects.order_by('-order_date')      
     return render(request, template_name, {'procedures': procedures})
@@ -2181,7 +2725,7 @@ def new_lab_order(request):
     current_date = timezone.now().date() 
     # Query to retrieve the latest procedure record for each patient
     procedures = LaboratoryOrder.objects.filter(data_recorder=doctor).order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures],  order_date=current_date)    
+    unread_orders = Order.objects.filter(order_type__in=[procedure.lab_test.name for procedure in procedures],  order_date=current_date)    
     orders = unread_orders 
     unread_orders.update(is_read=True)         
     return render(request, template_name, {'orders': orders})

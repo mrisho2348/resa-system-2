@@ -1,0 +1,820 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load customfilter %}
+{% block title %}
+Premium Today Dispensed Medicines
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Today Dispensed Styles - Unique to this template */
+    .pharm-dispensed-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pharm-dispensed-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-dispensed-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-dispensed-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-dispensed-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .pharm-dispensed-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-dispensed-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-pharm-dispensed {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-dispensed:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-dispensed-view {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-dispensed-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-dispensed-reverse {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 65, 108, 0.2);
+    }
+    
+    .btn-pharm-dispensed-reverse:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 65, 108, 0.3);
+        color: white;
+    }
+    
+    .pharm-dispensed-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-dispensed-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-dispensed-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-dispensed-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .pharm-dispensed-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-dispensed-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-dispensed-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-dispensed-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pharm-dispensed-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-dispensed-badge-patient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-dispensed-badge-walkin {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-dispensed-badge-paid {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-dispensed-badge-unpaid {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-dispensed-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-dispensed-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-dispensed-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-dispensed-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-dispensed-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-dispensed-status-btn[data-status="patient"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-dispensed-status-btn[data-status="walkin"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-dispensed-status-btn[data-status="paid"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-dispensed-status-btn[data-status="unpaid"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmDispensedFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-dispensed-animated {
+        animation: pharmDispensedFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-dispensed-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-dispensed-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-dispensed-flip-card:hover .pharm-dispensed-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-dispensed-flip-card-front, .pharm-dispensed-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-dispensed-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-dispensed-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-dispensed-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium modal styling */
+    .pharm-dispensed-modal-xl {
+        max-width: 90%;
+    }
+    
+    .pharm-dispensed-drug-table th {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    /* Status indicators */
+    .pharm-dispensed-status-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card pharm-dispensed-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-hand-holding-medical mr-2"></i>Premium Today Dispensed Medicines</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-dispensed-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Dispensed</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-dispensed-summary-value" id="total-dispensed">{{ dispensed_today|length }}</div>
+                                    <div class="pharm-dispensed-summary-label">Today's Dispensations</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-dispensed-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-dispensed-summary-value" id="patient-prescriptions">0</div>
+                                    <div class="pharm-dispensed-summary-label">From Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-dispensed-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Walk-in Customers</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-dispensed-summary-value" id="walkin-customers">0</div>
+                                    <div class="pharm-dispensed-summary-label">Walk-in Sales</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-dispensed-flip-card">
+                                <div class="pharm-dispensed-flip-card-inner">
+                                    <div class="pharm-dispensed-flip-card-front">
+                                        <div class="pharm-dispensed-flip-icon">
+                                            <i class="fas fa-capsules"></i>
+                                        </div>
+                                        <h4>Dispensing Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-dispensed-flip-card-back">
+                                        <div class="pharm-dispensed-flip-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <h4>Daily Reports</h4>
+                                        <p>Advanced dispensing insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-dispensed-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-dispensed-status-filter">
+                                <button class="pharm-dispensed-status-btn active" data-status="all">All Dispensed</button>
+                                <button class="pharm-dispensed-status-btn" data-status="patient">Patient Prescriptions</button>
+                                <button class="pharm-dispensed-status-btn" data-status="walkin">Walk-in Customers</button>
+                                <button class="pharm-dispensed-status-btn" data-status="paid">Paid</button>
+                                <button class="pharm-dispensed-status-btn" data-status="unpaid">Unpaid</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search dispensed items..." id="dispensedSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-dispensed" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-dispensed-table-container">
+                        <table class="table table-hover text-nowrap pharm-dispensed-table" id="dispensedTable">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Medicine</th>
+                                    <th>Patient/Customer</th>
+                                    <th>Quantity</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Action</th>               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in dispensed_today %}
+                                    <tr data-type="{% if prescription.patient %}patient{% else %}walkin{% endif %}" 
+                                        data-status="{{ prescription.status }}">  
+                                        <td>{{ prescription.updated_at|date:"H:i" }}</td>
+                                        <td>{{ prescription.medicine.drug_name }}</td>
+                                        <td>
+                                            {% if prescription.patient %}
+                                                {{ prescription.patient.first_name }} {{ prescription.patient.middle_name }} {{ prescription.patient.last_name }}
+                                                <span class="pharm-dispensed-badge pharm-dispensed-badge-patient ml-1">Patient</span>
+                                            {% else %}
+                                                Walk-in Customer
+                                                <span class="pharm-dispensed-badge pharm-dispensed-badge-walkin ml-1">Walk-in</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ prescription.quantity_used }}</td>
+                                        <td>{{ prescription.medicine.drug_type }}</td>
+                                        <td>
+                                            <span class="pharm-dispensed-status-indicator {% if prescription.status == 'Paid' %}pharm-dispensed-badge-paid{% else %}pharm-dispensed-badge-unpaid{% endif %}">
+                                                {{ prescription.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-pharm-dispensed-view mr-1" data-toggle="modal" data-target="#dispensedDetailModal{{ prescription.id }}">
+                                                <i class="fas fa-eye mr-1"></i> Details
+                                            </button>
+                                            {% if prescription.status == 'Paid' %}
+                                            <button type="button" class="btn btn-pharm-dispensed-reverse" onclick="reverseDispensation({{ prescription.id }})">
+                                                <i class="fas fa-undo mr-1"></i> Reverse
+                                            </button>
+                                            {% endif %}
+                                        </td>        
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for prescription in dispensed_today %}
+<!-- Dispensed Detail Modal -->
+<div class="modal fade" id="dispensedDetailModal{{ prescription.id }}" tabindex="-1" role="dialog" aria-labelledby="dispensedDetailModalLabel{{ prescription.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content pharm-dispensed-modal-content">
+      <div class="modal-header pharm-dispensed-modal-header">
+        <h5 class="modal-title text-white" id="dispensedDetailModalLabel{{ prescription.id }}">
+          <i class="fas fa-file-prescription mr-2"></i>Dispensation Details
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Header Image -->
+        <div class="mb-3 text-center">
+          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid rounded" alt="Header Image" style="max-height: 120px;">
+        </div>
+
+        <!-- Patient/Customer Info -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">
+              <i class="fas {% if prescription.patient %}fa-user-injured{% else %}fa-users{% endif %} mr-2"></i>
+              {% if prescription.patient %}Patient{% else %}Customer{% endif %} Details
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Name:</strong><br>
+                  {% if prescription.patient %}
+                    {{ prescription.patient.first_name }} {{ prescription.patient.middle_name }} {{ prescription.patient.last_name }}
+                  {% else %}
+                    Walk-in Customer
+                  {% endif %}
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Dispensed Time:</strong><br>{{ prescription.updated_at|date:"d-m-Y H:i" }}</p>
+              </div>
+            </div>
+            {% if prescription.patient %}
+            <div class="row mt-2">
+              <div class="col-md-6">
+                <p><strong>MRN:</strong><br>{{ prescription.patient.mrn }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Visit Number:</strong><br>{{ prescription.visit.vst }}</p>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Medicine Details -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-secondary text-white">
+            <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Medicine Details</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Medicine:</strong><br>{{ prescription.medicine.drug_name }}</p>
+                <p><strong>Dose:</strong><br>{{ prescription.dose }}</p>
+                <p><strong>Duration:</strong><br>{{ prescription.duration }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Quantity:</strong><br>{{ prescription.quantity_used }}</p>
+                <p><strong>Type:</strong><br>{{ prescription.medicine.drug_type }}</p>
+                <p><strong>Batch No:</strong><br>{{ prescription.medicine.batch_number }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial Details -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Financial Details</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Status:</strong><br>
+                  <span class="pharm-dispensed-status-indicator {% if prescription.status == 'Paid' %}pharm-dispensed-badge-paid{% else %}pharm-dispensed-badge-unpaid{% endif %}">
+                    {{ prescription.status }}
+                  </span>
+                </p>
+                <p><strong>Total Price:</strong><br>{{ prescription.total_price }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Payment Method:</strong><br>
+                  {% if prescription.patient and prescription.patient.payment_form %}
+                    {{ prescription.patient.payment_form }}
+                  {% else %}
+                    Cash
+                  {% endif %}
+                </p>
+                {% if prescription.patient and prescription.patient.insurance_name %}
+                <p><strong>Insurance:</strong><br>{{ prescription.patient.insurance_name }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-pharm-dispensed" onclick="printReceipt({{ prescription.id }})">
+          <i class="fas fa-print mr-1"></i> Print Receipt
+        </button>
+        {% if prescription.status == 'Paid' %}
+        <button type="button" class="btn btn-pharm-dispensed-reverse" onclick="reverseDispensation({{ prescription.id }})">
+          <i class="fas fa-undo mr-1"></i> Reverse Dispensation
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-dispensed-modal-content">
+      <div class="modal-header pharm-dispensed-modal-header">
+        <h5 class="modal-title text-white" id="notificationModalLabel">Notification</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="notificationModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-pharm-dispensed" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock main_content %}
+{% block customer_js %}
+{% include 'pharmacist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#dispensedTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search dispensed items...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let patientCount = 0;
+        let walkinCount = 0;
+        
+        document.querySelectorAll('#dispensedTable tbody tr').forEach(row => {
+            const type = row.getAttribute('data-type');
+            
+            // Count by type
+            if (type === 'patient') {
+                patientCount++;
+            } else if (type === 'walkin') {
+                walkinCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('patient-prescriptions').textContent = patientCount;
+        document.getElementById('walkin-customers').textContent = walkinCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pharm-dispensed-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-dispensed-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterDispensedItems(status);
+        });
+    });
+
+    // Filter dispensed items by status
+    function filterDispensedItems(status) {
+        const rows = document.querySelectorAll('#dispensedTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowType = row.getAttribute('data-type');
+            const rowStatus = row.getAttribute('data-status');
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'patient' && rowType === 'patient') {
+                showRow = true;
+            } else if (status === 'walkin' && rowType === 'walkin') {
+                showRow = true;
+            } else if (status === 'paid' && rowStatus === 'Paid') {
+                showRow = true;
+            } else if (status === 'unpaid' && rowStatus === 'Unpaid') {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-dispensed').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('dispensedSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-dispensed-status-btn.active').getAttribute('data-status');
+        
+        filterDispensedItemsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('dispensedSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-dispensed-status-btn.active').getAttribute('data-status');
+        
+        filterDispensedItemsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter dispensed items by both status and search text
+    function filterDispensedItemsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#dispensedTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowType = row.getAttribute('data-type');
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'patient' && rowType === 'patient') {
+                statusMatch = true;
+            } else if (status === 'walkin' && rowType === 'walkin') {
+                statusMatch = true;
+            } else if (status === 'paid' && rowStatus === 'Paid') {
+                statusMatch = true;
+            } else if (status === 'unpaid' && rowStatus === 'Unpaid') {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-dispensed').textContent = visibleCount;
+    }
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // Reverse dispensation function
+    function reverseDispensation(prescriptionId) {
+        if (!confirm("Are you sure you want to reverse this dispensation? This action will restore the medicine to stock.")) {
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "reverse_dispensation" %}',
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: { prescription_id: prescriptionId },
+            success: function (response) {
+                showNotification("Dispensation reversed successfully.", "success");
+                setTimeout(() => location.reload(), 1500);
+            },
+            error: function (xhr, status, error) {
+                showNotification("Failed to reverse dispensation: " + error, "error");
+            }
+        });
+    }
+
+    // Print receipt function
+    function printReceipt(prescriptionId) {
+        showNotification("Print receipt feature would be implemented here for prescription #" + prescriptionId, "info");
+        // In a real implementation, this would open a print dialog or generate a PDF
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const modalBody = document.getElementById('notificationModalBody');
+        modalBody.textContent = message;
+        
+        // Set appropriate styling based on type
+        const modalContent = document.querySelector('#notificationModal .modal-content');
+        if (type === 'success') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #00b09b, #96c93d)';
+        } else if (type === 'error') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #ff416c, #ff4b2b)';
+        } else {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #1a2a6c, #b21f1f)';
+        }
+        
+        $('#notificationModal').modal('show');
+    }
+</script>
+{% endblock %}

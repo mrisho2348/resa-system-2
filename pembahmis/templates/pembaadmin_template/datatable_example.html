@@ -1,0 +1,234 @@
+{% extends "pembaadmin_template/base_template.html" %}
+{% load static %}
+
+{% block title %}Patient List - DataTable Example{% endblock %}
+
+{% block page_title %}Patient Management{% endblock %}
+
+{% block breadcrumb %}Patients{% endblock %}
+
+{% block main_content %}
+<!-- Search and Actions Bar -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search patients...">
+            <div class="input-group-append">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 text-right">
+        <a href="{% url 'pembahmis:add_patient' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Patient
+        </a>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bulk-actions" style="display: none;">
+    <div class="row">
+        <div class="col-md-6">
+            <span>Selected: <span id="selectedCount">0</span> items</span>
+        </div>
+        <div class="col-md-6 text-right">
+            <button id="exportSelected" class="btn btn-success btn-sm">
+                <i class="fas fa-download"></i> Export Selected
+            </button>
+            <button id="deleteSelected" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- DataTable -->
+{% extends "pembaadmin_template/datatable_template.html" %}
+
+{% block table_title %}Patient List{% endblock %}
+
+{% block table_actions %}
+    <div class="btn-group">
+        <button type="button" class="btn btn-tool dropdown-toggle" data-toggle="dropdown">
+            <i class="fas fa-cog"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-right">
+            <a class="dropdown-item" href="#"><i class="fas fa-download"></i> Export All</a>
+            <a class="dropdown-item" href="#"><i class="fas fa-upload"></i> Import</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block table_id %}patientTable{% endblock %}
+
+{% block table_headers %}
+    <th width="5%">
+        <input type="checkbox" id="selectAll">
+    </th>
+    <th>Patient ID</th>
+    <th>Name</th>
+    <th>Age</th>
+    <th>Gender</th>
+    <th>Phone</th>
+    <th>Status</th>
+    <th>Registration Date</th>
+    <th width="15%">Actions</th>
+{% endblock %}
+
+{% block table_body %}
+    {% for patient in patients %}
+    <tr>
+        <td>
+            <input type="checkbox" class="row-checkbox" value="{{ patient.id }}">
+        </td>
+        <td>{{ patient.patient_id }}</td>
+        <td>
+            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+            {% if patient.email %}
+                <br><small class="text-muted">{{ patient.email }}</small>
+            {% endif %}
+        </td>
+        <td>{{ patient.age }}</td>
+        <td>
+            {% if patient.gender == 'M' %}
+                <span class="badge badge-info">Male</span>
+            {% else %}
+                <span class="badge badge-pink">Female</span>
+            {% endif %}
+        </td>
+        <td>{{ patient.phone_number }}</td>
+        <td>
+            {% if patient.status == 'active' %}
+                <span class="badge badge-success">Active</span>
+            {% elif patient.status == 'inactive' %}
+                <span class="badge badge-secondary">Inactive</span>
+            {% else %}
+                <span class="badge badge-warning">Pending</span>
+            {% endif %}
+        </td>
+        <td>{{ patient.created_at|date:"M d, Y" }}</td>
+        <td class="text-center">
+            <div class="action-buttons">
+                <a href="{% url 'pembahmis:view_patient' patient.id %}" class="btn btn-info btn-sm" title="View">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'pembahmis:edit_patient' patient.id %}" class="btn btn-warning btn-sm" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'pembahmis:delete_patient' patient.id %}" class="btn btn-danger btn-sm" title="Delete"
+                   onclick="return confirm('Are you sure you want to delete this patient?')">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </div>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="9" class="text-center">
+            <div class="py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No patients found</h5>
+                <p class="text-muted">Start by adding your first patient.</p>
+                <a href="{% url 'pembahmis:add_patient' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Patient
+                </a>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endblock %}
+
+{% block table_id_js %}patientTable{% endblock %}
+
+{% block datatable_js %}
+{{ block.super }}
+<script>
+// Additional custom JavaScript for patient table
+$(document).ready(function() {
+    // Custom column search for status
+    $('#statusFilter').on('change', function() {
+        var status = $(this).val();
+        $('#patientTable').DataTable().column(6).search(status).draw();
+    });
+    
+    // Custom date range filter
+    $('#dateRange').on('change', function() {
+        var range = $(this).val();
+        // Implement date range filtering logic
+        console.log('Date range changed:', range);
+    });
+    
+    // Quick actions
+    $('.quick-action').on('click', function(e) {
+        e.preventDefault();
+        var action = $(this).data('action');
+        var patientId = $(this).data('patient-id');
+        
+        switch(action) {
+            case 'schedule':
+                window.location.href = '/schedule-appointment/' + patientId;
+                break;
+            case 'prescribe':
+                window.location.href = '/prescribe-medication/' + patientId;
+                break;
+            case 'lab':
+                window.location.href = '/order-lab-test/' + patientId;
+                break;
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block datatable_css %}
+{{ block.super }}
+<style>
+/* Patient-specific styling */
+.patient-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.patient-email {
+    font-size: 0.8em;
+    color: #7f8c8d;
+}
+
+.status-badge {
+    font-size: 0.75em;
+    padding: 0.25em 0.5em;
+}
+
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Empty state styling */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #bdc3c7;
+    margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .action-buttons .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875em;
+    }
+}
+</style>
+{% endblock %}
+{% endblock %} 

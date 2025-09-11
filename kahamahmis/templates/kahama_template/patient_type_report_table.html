@@ -1,8 +1,306 @@
-<div class="table-responsive">
-    <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+{% load static %}
+{% load customfilter %}
+<style>
+    /* Premium Patient Report Styles - Unique to this template */
+    .patient-prem-table-container {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        margin: 25px 0;
+        background: white;
+        position: relative;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .patient-prem-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.9rem;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .patient-prem-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        padding: 1.1rem 0.7rem;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .patient-prem-table th:first-child {
+        text-align: left;
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        padding-left: 1.5rem;
+    }
+    
+    .patient-prem-table td {
+        padding: 1rem 0.7rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f7;
+        transition: all 0.3s ease;
+        text-align: center;
+        position: relative;
+    }
+    
+    .patient-prem-table td:first-child {
+        text-align: left;
+        font-weight: 600;
+        background-color: #fafafa;
+        padding-left: 1.5rem;
+        color: #4a5568;
+    }
+    
+    .patient-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .patient-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+        background: #f8f9ff;
+        z-index: 2;
+    }
+    
+    .patient-prem-table tbody tr:nth-child(even) {
+        background-color: #f9fafb;
+    }
+    
+    .patient-prem-table tbody tr:nth-child(even):hover {
+        background-color: #f6f7ff;
+    }
+    
+    .patient-prem-value {
+        border-radius: 6px;
+        padding: 6px 10px;
+        display: inline-block;
+        min-width: 36px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .patient-prem-high-value {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+    }
+    
+    .patient-prem-medium-value {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        color: white;
+    }
+    
+    .patient-prem-low-value {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        color: white;
+    }
+    
+    .patient-prem-total-row {
+        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+        color: white;
+        font-weight: 700;
+    }
+    
+    .patient-prem-total-row td {
+        font-weight: 700;
+        border-top: 2px solid #667eea;
+        font-size: 0.95rem;
+    }
+    
+    .patient-prem-total-row td:first-child {
+        background: transparent;
+        color: white;
+    }
+    
+    /* Animation for row appearance */
+    @keyframes patientPremFadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-prem-animated-row {
+        animation: patientPremFadeIn 0.6s ease forwards;
+    }
+    
+    /* Heatmap styling for values */
+    .patient-prem-heatmap-0 { background-color: #fafafa; }
+    .patient-prem-heatmap-1 { background-color: #f0f5ff; }
+    .patient-prem-heatmap-2 { background-color: #e6edff; }
+    .patient-prem-heatmap-3 { background-color: #d9e2ff; }
+    .patient-prem-heatmap-4 { background-color: #c7d5ff; }
+    .patient-prem-heatmap-5 { background-color: #b3c4ff; }
+    .patient-prem-heatmap-6 { background-color: #9eb3ff; }
+    .patient-prem-heatmap-7 { background-color: #869cff; color: white; }
+    .patient-prem-heatmap-8 { background-color: #6e85ff; color: white; }
+    .patient-prem-heatmap-9 { background-color: #5a6ff; color: white; }
+    .patient-prem-heatmap-10 { background-color: #4a56e8; color: white; }
+    
+    /* Sparkline container */
+    .patient-prem-sparkline {
+        height: 24px;
+        width: 100%;
+        margin-top: 5px;
+    }
+    
+    /* Premium export buttons */
+    .btn-patient-prem-export {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.25);
+        margin: 0 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+    }
+    
+    .btn-patient-prem-export:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
+        color: white;
+    }
+    
+    /* Loading overlay for exports */
+    .export-patient-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-size: 1.5rem;
+        backdrop-filter: blur(5px);
+    }
+    
+    /* Patient type icon styling */
+    .patient-prem-icon {
+        width: 28px;
+        height: 28px;
+        margin-right: 12px;
+        border-radius: 6px;
+        object-fit: contain;
+        vertical-align: middle;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+    }
+    
+    /* Header styling */
+    .patient-prem-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.2rem 1.5rem;
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+        border-bottom: 1px solid #eaeaff;
+    }
+    
+    .patient-prem-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #4a5568;
+        margin: 0;
+    }
+    
+    /* Filter section */
+    .patient-prem-filter {
+        padding: 1rem 1.5rem;
+        background: #f8f9ff;
+        border-bottom: 1px solid #eaeaff;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .patient-prem-filter select {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 1rem;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .patient-prem-table-container {
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .patient-prem-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .patient-prem-filter {
+            flex-wrap: wrap;
+        }
+        
+        .btn-patient-prem-export {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            margin: 5px;
+        }
+    }
+</style>
+
+<div class="patient-prem-table-container">
+    <div class="patient-prem-header">
+        <h2 class="patient-prem-title">Patient Type Consultations Report</h2>
+        <div>
+            <button class="btn-patient-prem-export" id="patientExportPdf">
+                <i class="fas fa-file-pdf mr-2"></i> Export PDF
+            </button>
+            <button class="btn-patient-prem-export" id="patientExportExcel">
+                <i class="fas fa-file-excel mr-2"></i> Export Excel
+            </button>
+        </div>
+    </div>
+    
+    <div class="patient-prem-filter">
+        <select id="patientTypeFilter">
+            <option value="all">All Patient Types</option>
+            {% for patient_type in patient_type_reports.keys %}
+                <option value="{{ patient_type }}">{{ patient_type }}</option>
+            {% endfor %}
+        </select>
+        
+        <select id="timeFrameFilter">
+            <option value="all">All Time</option>
+            <option value="q1">Q1 (Jan-Mar)</option>
+            <option value="q2">Q2 (Apr-Jun)</option>
+            <option value="q3">Q3 (Jul-Sep)</option>
+            <option value="q4">Q4 (Oct-Dec)</option>
+        </select>
+    </div>
+
+    <table class="patient-prem-table" id="patientReportTable">
         <thead>
             <tr>
-                <th>Patient Type</th>
+                <th>PATIENT TYPE</th>
                 <th>January</th>
                 <th>February</th>
                 <th>March</th>
@@ -15,21 +313,409 @@
                 <th>October</th>
                 <th>November</th>
                 <th>December</th>
+                <th>Trend</th>
             </tr>
         </thead>
         <tbody>
             {% for patient_type, patient_counts in patient_type_reports.items %}
-                <tr>
-                    <td>{{ patient_type }}</td>
+                <tr class="patient-prem-animated-row">
+                    <td>
+                        <span class="patient-prem-icon">
+                            {{ patient_type|first }}
+                        </span>
+                        {{ patient_type }}
+                    </td>
                     {% for count in patient_counts %}
-                        <td>{{ count }}</td>
+                        <td class="patient-prem-heatmap-{{ count|heatmap_class }}">
+                            <span class="patient-prem-value 
+                                {% if count > 50 %}patient-prem-high-value
+                                {% elif count > 20 %}patient-prem-medium-value
+                                {% elif count > 0 %}patient-prem-low-value
+                                {% endif %}">
+                                {{ count }}
+                            </span>
+                        </td>
                     {% endfor %}
+                    <!-- Ensure we have exactly 12 month columns -->
+                    {% if patient_counts|length < 12 %}
+                        {% for i in patient_counts|length|get_range:12 %}
+                            <td class="patient-prem-heatmap-0">
+                                <span class="patient-prem-value">0</span>
+                            </td>
+                        {% endfor %}
+                    {% endif %}
+                    <td>
+                        <div class="patient-prem-sparkline" id="patient-sparkline-{{ forloop.counter }}"></div>
+                    </td>
                 </tr>
             {% endfor %}
-        </tbody>     
+            <!-- Total row will be added by JavaScript -->
+            <tr class="patient-prem-total-row">
+                <td>Total</td>
+                {% for total in monthly_totals %}
+                    <td>{{ total }}</td>
+                {% endfor %}
+                <!-- Ensure we have exactly 12 month columns in total row -->
+                {% if monthly_totals|length < 12 %}
+                    {% for i in monthly_totals|length|get_range:12 %}
+                        <td>0</td>
+                    {% endfor %}
+                {% endif %}
+                <td></td>
+            </tr>
+        </tbody> 
     </table>
 </div>
 
-{% include 'kahama_template/datatable.html' %}   
+<!-- Loading overlay for exports -->
+<div id="exportPatientLoading" class="export-patient-loading" style="display: none;">
+    <div class="text-center">
+        <i class="fas fa-spinner fa-spin fa-3x"></i>
+        <p class="mt-3">Generating report, please wait...</p>
+    </div>
+</div>
 
-
+<!-- Include required libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+{% include 'kahama_template/datatable.html' %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable with explicit column definitions
+        var table = $('#patientReportTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'colvis',
+                    className: 'btn-patient-prem-export',
+                    text: '<i class="fas fa-columns mr-2"></i> Columns'
+                }
+            ],
+            responsive: true,
+            pageLength: 10,
+            order: [[0, 'asc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search patient types...",
+                lengthMenu: "Show _MENU_ entries"
+            },
+            columnDefs: [
+                { targets: 0, width: '20%' }, // Patient type column
+                { targets: '_all', width: '6%' } // All other columns
+            ],
+            initComplete: function() {
+                // Add animation delay to rows for staggered effect
+                $('#patientReportTable tbody tr').each(function(index) {
+                    $(this).css('animation-delay', (index * 0.05) + 's');
+                });
+                
+                // Calculate and add monthly totals if not already provided
+                if ($('#patientReportTable tbody tr.patient-prem-total-row').length === 0) {
+                    let monthlyTotals = Array(12).fill(0);
+                    
+                    $('#patientReportTable tbody tr:not(.patient-prem-total-row)').each(function() {
+                        $(this).find('td:not(:first, :last)').each(function(index) {
+                            let count = parseInt($(this).text()) || 0;
+                            monthlyTotals[index] += count;
+                        });
+                    });
+                    
+                    // Add total row
+                    let totalRow = '<tr class="patient-prem-total-row"><td>Total</td>';
+                    monthlyTotals.forEach(total => {
+                        totalRow += `<td>${total}</td>`;
+                    });
+                    totalRow += '<td></td></tr>';
+                    
+                    $('#patientReportTable tbody').append(totalRow);
+                }
+                
+                // Add heatmap effect based on values
+                $('#patientReportTable tbody td:not(:first, :last)').each(function() {
+                    let value = parseInt($(this).text()) || 0;
+                    let heatmapClass = 'patient-prem-heatmap-' + Math.min(10, Math.floor(value / 5));
+                    $(this).addClass(heatmapClass);
+                });
+                
+                // Generate sparklines for trends
+                generatePatientSparklines();
+            },
+            createdRow: function(row, data, dataIndex) {
+                // Add animation class to new rows
+                $(row).addClass('patient-prem-animated-row');
+            }
+        });
+        
+        // Function to generate sparklines
+        function generatePatientSparklines() {
+            $('#patientReportTable tbody tr:not(.patient-prem-total-row)').each(function(index) {
+                let values = [];
+                $(this).find('td:not(:first, :last)').each(function() {
+                    values.push(parseInt($(this).text()) || 0);
+                });
+                
+                // Create a simple SVG sparkline
+                if (values.length > 0) {
+                    const maxValue = Math.max(...values);
+                    const minValue = Math.min(...values);
+                    const range = maxValue - minValue;
+                    const svgHeight = 24;
+                    const svgWidth = 100;
+                    
+                    let sparklineSvg = `<svg width="${svgWidth}" height="${svgHeight}" class="patient-prem-sparkline">`;
+                    
+                    if (range > 0) {
+                        // Draw line
+                        sparklineSvg += '<polyline fill="none" stroke="#667eea" stroke-width="2" points="';
+                        values.forEach((value, i) => {
+                            const x = (i / (values.length - 1)) * svgWidth;
+                            const y = svgHeight - ((value - minValue) / range) * (svgHeight - 2);
+                            sparklineSvg += `${x},${y} `;
+                        });
+                        sparklineSvg += '"/>';
+                    }
+                    
+                    sparklineSvg += '</svg>';
+                    
+                    $(this).find('.patient-prem-sparkline').html(sparklineSvg);
+                }
+            });
+        }
+        
+        // Add event handlers for export buttons
+        $('#patientExportPdf').on('click', function() {
+            exportPatientToPdf();
+        });
+        
+        $('#patientExportExcel').on('click', function() {
+            exportPatientToExcel();
+        });
+        
+        // Function to show loading overlay
+        function showPatientLoading() {
+            $('#exportPatientLoading').fadeIn();
+        }
+        
+        // Function to hide loading overlay
+        function hidePatientLoading() {
+            $('#exportPatientLoading').fadeOut();
+        }
+        
+        // Function to export to PDF using pdfmake
+        function exportPatientToPdf() {
+            showPatientLoading();
+            
+            try {
+                // Get table data
+                const table = document.getElementById('patientReportTable');
+                const headers = [];
+                const data = [];
+                
+                // Get headers
+                $(table).find('thead th').each(function() {
+                    headers.push({
+                        text: $(this).text().trim(),
+                        style: 'tableHeader',
+                        alignment: 'center'
+                    });
+                });
+                
+                // Get rows data
+                $(table).find('tbody tr').each(function() {
+                    const rowData = [];
+                    $(this).find('td').each(function() {
+                        // Remove any HTML tags and get text only
+                        const text = $(this).text().trim();
+                        rowData.push({
+                            text: text,
+                            alignment: 'center'
+                        });
+                    });
+                    data.push(rowData);
+                });
+                
+                // Create document definition
+                const docDefinition = {
+                    pageOrientation: 'landscape',
+                    content: [
+                        {
+                            text: 'Patient Type Consultations Report',
+                            style: 'header',
+                            alignment: 'center',
+                            margin: [0, 0, 0, 20]
+                        },
+                        {
+                            table: {
+                                headerRows: 1,
+                                widths: Array(headers.length).fill('*'),
+                                body: [headers, ...data]
+                            },
+                            layout: {
+                                fillColor: function(rowIndex) {
+                                    if (rowIndex === 0) {
+                                        return '#667eea';
+                                    }
+                                    return (rowIndex % 2 === 0) ? '#f5f5f5' : null;
+                                }
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            color: '#667eea'
+                        },
+                        tableHeader: {
+                            bold: true,
+                            fontSize: 12,
+                            color: 'white',
+                            fillColor: '#667eea'
+                        }
+                    },
+                    defaultStyle: {
+                        fontSize: 10
+                    }
+                };
+                
+                // Generate PDF
+                pdfMake.createPdf(docDefinition).download('Patient_Type_Consultations_Report.pdf');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            } finally {
+                hidePatientLoading();
+            }
+        }
+        
+        // Function to export to Excel using ExcelJS
+        function exportPatientToExcel() {
+            showPatientLoading();
+            
+            try {
+                // Create workbook and worksheet
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Patient Type Consultations');
+                
+                // Get table data
+                const table = document.getElementById('patientReportTable');
+                
+                // Add title row
+                worksheet.mergeCells('A1:N1');
+                const titleRow = worksheet.getRow(1);
+                titleRow.getCell(1).value = 'Patient Type Consultations Report';
+                titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF667eea' } };
+                titleRow.getCell(1).alignment = { horizontal: 'center' };
+                titleRow.height = 25;
+                
+                // Add headers
+                const headerRow = worksheet.addRow([]);
+                $(table).find('thead th').each(function(index) {
+                    const cell = headerRow.getCell(index + 1);
+                    cell.value = $(this).text().trim();
+                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF667eea' }
+                    };
+                    cell.alignment = { horizontal: 'center' };
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+                
+                // Add data rows
+                $(table).find('tbody tr').each(function() {
+                    const rowData = [];
+                    $(this).find('td').each(function() {
+                        // Remove any HTML tags and get text only
+                        const text = $(this).text().trim();
+                        rowData.push(text);
+                    });
+                    
+                    const row = worksheet.addRow(rowData);
+                    row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                        cell.alignment = { horizontal: 'center' };
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                    });
+                });
+                
+                // Style the worksheet
+                worksheet.columns = worksheet.columns.map(function(column, i) {
+                    if (i === 0) {
+                        return { width: 30 }; // First column (patient types) wider
+                    }
+                    return { width: 10 }; // Other columns
+                });
+                
+                // Add conditional formatting for values (heatmap effect)
+                for (let col = 2; col <= 13; col++) {
+                    for (let row = 3; row <= worksheet.rowCount; row++) {
+                        const cell = worksheet.getCell(row, col);
+                        const value = parseInt(cell.value) || 0;
+                        
+                        if (value > 50) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FF48bb78' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        } else if (value > 20) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFed8936' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        } else if (value > 0) {
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFf56565' }
+                            };
+                            cell.font = { color: { argb: 'FFFFFFFF' } };
+                        }
+                    }
+                }
+                
+                // Generate Excel file
+                workbook.xlsx.writeBuffer().then(function(buffer) {
+                    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Patient_Type_Consultations_Report.xlsx');
+                });
+            } catch (error) {
+                console.error('Error generating Excel:', error);
+                alert('Error generating Excel. Please try again.');
+            } finally {
+                hidePatientLoading();
+            }
+        }
+        
+        // Add patient type filter functionality
+        $('#patientTypeFilter').on('change', function() {
+            if (this.value === 'all') {
+                $('#patientReportTable').DataTable().search('').draw();
+            } else {
+                $('#patientReportTable').DataTable().search(this.value).draw();
+            }
+        });
+        
+        // Add time frame filter functionality
+        $('#timeFrameFilter').on('change', function() {
+            // This is a simplified implementation
+            // In a real application, you would filter the data based on the selected time frame
+            alert('Time frame filtering would be implemented based on your data structure');
+        });
+    });
+</script>

@@ -2,97 +2,455 @@
 {% load static %}
 {% load customfilter %}
 {% block title %}
-Order Details
+Premium Order Management
 {% endblock title %}
 
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
-Order Details
+Premium Order Management
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium Order Management Styles */
+    .order-prem-gradient {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 115, 232, 0.15);
+        border: none;
+    }
+    
+    .order-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .order-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .order-prem-table th {
+        background: linear-gradient(120deg, #e8f0fe, #d2e3fc);
+        color: #1a73e8;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .order-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8f0fe;
+    }
+    
+    .order-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .order-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.1);
+        background: #f8fbff;
+    }
+    
+    .btn-prem-order {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.2);
+    }
+    
+    .btn-prem-order:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-order-view {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 157, 88, 0.2);
+    }
+    
+    .btn-prem-order-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 157, 88, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-order-billing {
+        background: linear-gradient(120deg, #673ab7, #9c27b0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(103, 58, 183, 0.2);
+        margin-left: 5px;
+    }
+    
+    .btn-prem-order-billing:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(103, 58, 183, 0.3);
+        color: white;
+    }
+    
+    .order-prem-modal-header {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .order-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .order-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .order-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        color: #1a73e8;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #d2e3fc;
+    }
+    
+    .order-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .order-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a73e8;
+        margin-bottom: 0.5rem;
+    }
+    
+    .order-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .order-prem-filter-bar {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .order-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #1a73e8;
+        min-width: 80px;
+    }
+    
+    .date-filter-input {
+        border: 1px solid #d2e3fc;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-paid {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .status-unpaid {
+        background: linear-gradient(120deg, #ea4335, #fbbc04);
+        color: white;
+    }
+    
+    /* Flip card effect for premium feature */
+    .order-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .order-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .order-prem-flip-card:hover .order-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .order-prem-flip-card-front, .order-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .order-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+    }
+    
+    .order-prem-flip-card-back {
+        background: linear-gradient(120deg, #4285f4, #1a73e8);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .order-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for filtering */
+    @keyframes orderPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .order-prem-animated {
+        animation: orderPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header card-primary">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Orders</h6>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card order-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-shopping-cart mr-2"></i>Premium Order Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-list-ol mr-2"></i>Total Orders</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="total-orders">{{ grouped_orders|length }}</div>
+                                    <div class="order-prem-summary-label">All Order Groups</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Paid Orders</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="paid-orders">0</div>
+                                    <div class="order-prem-summary-label">Paid Orders</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Unpaid Orders</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="unpaid-orders">0</div>
+                                    <div class="order-prem-summary-label">Unpaid Orders</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="order-prem-flip-card">
+                                <div class="order-prem-flip-card-inner">
+                                    <div class="order-prem-flip-card-front">
+                                        <div class="order-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Order Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="order-prem-flip-card-back">
+                                        <div class="order-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Revenue Insights</h4>
+                                        <p>Advanced order tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="order-prem-filter-bar">
+                        <div class="order-prem-date-filter">
+                            <div class="date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="date-filter-input" id="startDate">
+                            </div>
+                            <div class="date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-prem-order" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-prem-order" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        
+                        <div class="order-status-filter">
+                            <button class="order-status-btn active" data-status="all">All Orders</button>
+                            <button class="order-status-btn" data-status="Paid">Paid</button>
+                            <button class="order-status-btn" data-status="Unpaid">Unpaid</button>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search orders..." id="orderSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-order" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive order-prem-table-container">
+                        <table class="table table-hover text-nowrap order-prem-table" id="orderTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Order Number</th>
+                                    <th><i class="fas fa-user mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-list-ol mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-money-bill-wave mr-2"></i>Total Cost (TZS)</th>
+                                    <th><i class="fas fa-info-circle mr-2"></i>Status</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Order Date</th>
+                                    <th><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in grouped_orders %}
+                                <tr data-date="{{ group.latest_order_date|date:'Y-m-d' }}" data-status="{{ group.statuses.0 }}">
+                                    <td>
+                                        {% with latest_order=group.orders|last %}
+                                            {{ latest_order.order_number }}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {{ group.full_name }}
+                                        <br>
+                                        <small>
+                                            {% if group.patient__payment_form == "Insurance" %}
+                                            {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                                            {% else %}
+                                            {{ group.patient__payment_form }}
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>{{ group.visit__vst }}</td>
+                                    <td>{{ group.total_cost }}</td>
+                                    <td>
+                                        {% if group.statuses.0 == 'Paid' %}
+                                            <span class="status-badge status-paid">Paid</span>
+                                        {% else %}
+                                            <span class="status-badge status-unpaid">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% with latest_order=group.orders|last %}
+                                            {{ latest_order.order_date }}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-prem-order-view btn-sm" data-toggle="modal" data-target="#editStatusModal{{ group.patient__id }}_{{ group.visit__id }}">
+                                            <i class="fa fa-eye"></i> View/Pay
+                                        </button>
+                                        <button class="btn btn-prem-order-billing btn-sm" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
+                                            <i class="fa fa-file-invoice"></i> Billing
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Latest Order Number</th>
-                  <th>Patient</th>
-                  <th>Visit Number</th>
-                  <th>Total Cost (TZS)</th>
-                  <th>Status</th>
-                  <th>Order Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for group in grouped_orders %}
-                <tr>
-                  <td>
-                    {# Show latest order number per patient-visit group (fetch from group's orders) #}
-                    {% with latest_order=group.orders|last %}
-                      {{ latest_order.order_number }}
-                    {% endwith %}
-                  </td>
-
-                 <td>
-                {{ group.full_name }}
-                <br>
-                <small>
-                    {% if group.patient__payment_form == "Insurance" %}
-                    {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
-                    {% else %}
-                    {{ group.patient__payment_form }}
-                    {% endif %}
-                </small>
-                </td>
-                  <td>{{ group.visit__vst }}</td>
-
-                  <td>{{ group.total_cost }}</td>                  
-                    <td>                   
-                      <p {% if group.statuses.0 == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ group.statuses.0 }}</p>
-                    </td>
-                  <td>
-                    {% with latest_order=group.orders|last %}
-                      {{ latest_order.order_date }}
-                    {% endwith %}
-                  </td>
-
-                  <td>
-                       <!-- Modal Trigger Button -->
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editStatusModal{{ group.patient__id }}_{{ group.visit__id }}">
-                        <i class="fas fa-eye"></i> View/Pay
-                    </button>
-                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
-                      <i class="fa fa-eye"></i> Billing Note
-                    </button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
-
 {% for group in grouped_orders %}
+<!-- Billing Note Modal -->
 <div class="modal fade" id="billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
-
-      <!-- Modal Header -->
-      <div class="modal-header bg-success text-white">
+      <div class="modal-header order-prem-modal-header">
         <h5 class="modal-title" id="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
           Billing Note - Visit {{ group.visit__vst }}
         </h5>
@@ -100,11 +458,8 @@ Order Details
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-
-      <!-- Modal Body -->
       <div class="modal-body">
         <div class="container-fluid">
-
           <!-- Header Image -->
           <div class="mb-3">
             <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Company Header">
@@ -186,28 +541,22 @@ Order Details
           <div class="row mt-3">
             <div class="col-md-12 text-right">
               <a href="{% url 'receptionist_download_invoice_bill' group.patient__id group.visit__id %}" 
-                 class="btn btn-outline-primary btn-sm" target="_blank">
+                 class="btn btn-prem-order" target="_blank">
                 <i class="fa fa-download"></i> Download Invoice
               </a>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   </div>
 </div>
-{% endfor %}
 
-
-
-{% for group in grouped_orders %}
+<!-- Edit Status Modal -->
 <div class="modal fade" id="editStatusModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="editStatusModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
     <div class="modal-content">
-
-      <!-- Modal Header -->
-      <div class="modal-header bg-primary text-white">
+      <div class="modal-header order-prem-modal-header">
         <h5 class="modal-title" id="editStatusModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
           Edit Payment Status - Visit {{ group.visit__vst }}
         </h5>
@@ -215,11 +564,8 @@ Order Details
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-
-      <!-- Modal Body -->
       <div class="modal-body">
         <div class="container-fluid">
-
           <!-- Patient Info -->
           <div class="card mb-3">
             <div class="card-header bg-dark text-white">Patient & Visit Info</div>
@@ -260,7 +606,13 @@ Order Details
                         <td>{{ ord.type_of_order }}</td>
                         <td>{{ ord.order_date }}</td>
                         <td>{{ ord.cost }}</td>
-                        <td>{{ ord.status }}</td>
+                        <td>
+                          {% if ord.status == 'Paid' %}
+                            <span class="status-badge status-paid">Paid</span>
+                          {% else %}
+                            <span class="status-badge status-unpaid">Unpaid</span>
+                          {% endif %}
+                        </td>
                       </tr>
                     {% endfor %}
                   </tbody>
@@ -283,13 +635,11 @@ Order Details
           <input type="hidden" id="patientId{{ group.patient__id }}_{{ group.visit__id }}" value="{{ group.patient__id }}">
           <input type="hidden" id="visitId{{ group.patient__id }}_{{ group.visit__id }}" value="{{ group.visit__id }}">
 
-          <button type="button" class="btn btn-primary" onclick="updatePaymentStatusGroup('{{ group.patient__id }}_{{ group.visit__id }}')">
+          <button type="button" class="btn btn-prem-order" onclick="updatePaymentStatusGroup('{{ group.patient__id }}_{{ group.visit__id }}')">
             Update Payment Status
           </button>
-
         </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -309,49 +659,268 @@ Order Details
         <!-- Message will be inserted here -->
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+        <button type="button" class="btn btn-prem-order" data-dismiss="modal">OK</button>
       </div>
     </div>
   </div>
 </div>
-
-
+{% include 'receptionist_template/datatable.html' %}
 <script>
-function getCSRFToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]').value;
-}
-
-function updatePaymentStatusGroup(groupKey) {
-    const paymentStatus = document.getElementById('paymentStatus' + groupKey).value;
-    const patientId = document.getElementById('patientId' + groupKey).value;
-    const visitId = document.getElementById('visitId' + groupKey).value;
-
-    $.ajax({
-        type: 'POST',
-        url: '{% url "receptionist_update_orderpayment_status" %}',
-        headers: { 'X-CSRFToken': getCSRFToken() },
-        data: {
-            order_id: 'group',  // optional if unused in the view
-            payment_status: paymentStatus,
-            patient_id: patientId,
-            visit_id: visitId
-        },
-        success: function(response) {
-            $('#paymentStatusModalBody').html('<span class="text-success">Group payment status updated successfully.</span>');
-            $('#paymentStatusModal').modal('show');
-
-            $('#paymentStatusModal').on('hidden.bs.modal', function () {
-                location.reload();
-            });
-        },
-        error: function() {
-            $('#paymentStatusModalBody').html('<span class="text-danger">Failed to update group payment status.</span>');
-            $('#paymentStatusModal').modal('show');
+    // Initialize DataTable
+    new DataTable('#orderTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[5, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search orders...",
+            lengthMenu: "Show _MENU_ entries"
         }
     });
-}
+
+    // Calculate summary statistics
+    function calculateOrderSummaryStats() {
+        let paidCount = 0;
+        let unpaidCount = 0;
+        
+        document.querySelectorAll('#orderTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            
+            if (status === 'Paid') {
+                paidCount++;
+            } else if (status === 'Unpaid') {
+                unpaidCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('paid-orders').textContent = paidCount;
+        document.getElementById('unpaid-orders').textContent = unpaidCount;
+    }
+    
+    // Initialize summary stats
+    calculateOrderSummaryStats();
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterOrdersByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Reset status filter buttons
+        document.querySelectorAll('.order-status-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('.order-status-btn[data-status="all"]').classList.add('active');
+        
+        // Show all rows
+        document.querySelectorAll('#orderTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-orders').textContent = document.querySelectorAll('#orderTable tbody tr:not([style*="display: none"])').length;
+        calculateOrderSummaryStats();
+    });
+
+    // Filter orders by date range
+    function filterOrdersByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-orders').textContent = visibleCount;
+        calculateOrderSummaryStats();
+    }
+
+    // Status filter functionality
+    document.querySelectorAll('.order-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Update active button
+            document.querySelectorAll('.order-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterOrdersByStatus(status);
+        });
+    });
+
+    // Filter orders by status
+    function filterOrdersByStatus(status) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-orders').textContent = visibleCount;
+        calculateOrderSummaryStats();
+    }
+
+    // Search functionality
+    document.getElementById('orderSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterOrdersWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('orderSearch').value.toLowerCase();
+        filterOrdersWithSearch(searchText);
+    });
+
+    // Filter orders by search text
+    function filterOrdersWithSearch(searchText) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-orders').textContent = visibleCount;
+        calculateOrderSummaryStats();
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('orderSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            filterOrdersWithSearch(searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    function updatePaymentStatusGroup(groupKey) {
+        const paymentStatus = document.getElementById('paymentStatus' + groupKey).value;
+        const patientId = document.getElementById('patientId' + groupKey).value;
+        const visitId = document.getElementById('visitId' + groupKey).value;
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "receptionist_update_orderpayment_status" %}',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: {
+                order_id: 'group',  // optional if unused in the view
+                payment_status: paymentStatus,
+                patient_id: patientId,
+                visit_id: visitId
+            },
+            success: function(response) {
+                $('#paymentStatusModalBody').html('<span class="text-success">Group payment status updated successfully.</span>');
+                $('#paymentStatusModal').modal('show');
+
+                $('#paymentStatusModal').on('hidden.bs.modal', function () {
+                    location.reload();
+                });
+            },
+            error: function() {
+                $('#paymentStatusModalBody').html('<span class="text-danger">Failed to update group payment status.</span>');
+                $('#paymentStatusModal').modal('show');
+            }
+        });
+    }
 </script>
 
 
-{% include 'receptionist_template/datatable.html' %}
 {% endblock main_content %}

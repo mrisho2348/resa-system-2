@@ -1,296 +1,709 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Visit History
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Visit History
 {% endblock title %}
 
-{% block page_title %} 
-<a href="{% url 'doctor_manage_patient' %}" class="btn btn-secondary btn-sm mb-2">
-    ← Back to Patient List
+{% block page_title %}
+<a href="{% url 'doctor_manage_patient' %}" class="btn pat-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Patient List
 </a>
 {% endblock page_title%}
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-Patient Visit History
+Premium Patient Visit History
 {% endblock breadcrumb %}
 
-{% load static %}
 {% block main_content %}
+<style>
+    /* Premium styling for visit history */
+    .visit-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .visit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .visit-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .visit-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .visit-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .visit-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .visit-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .visit-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .visit-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .visit-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .visit-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+        margin: 2px;
+    }
+    
+    .visit-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .visit-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-badge-consultation {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .visit-prem-badge-imaging {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .visit-prem-badge-investigation {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .visit-prem-badge-procedure {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+    }
+    
+    .visit-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .visit-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .visit-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .visit-prem-status-btn[data-service="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-service="Consultation"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-service="Imaging"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-service="Investigation"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-service="Procedure"] {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .visit-prem-patient-header {
+        background: linear-gradient(120deg, rgba(26, 42, 108, 0.1), rgba(44, 62, 80, 0.1));
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .visit-prem-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.5rem;
+        margin-right: 15px;
+    }
+    
+    @keyframes visitPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .visit-prem-animated {
+        animation: visitPremFadeIn 0.5s ease forwards;
+    }
+    
+    .visit-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .visit-prem-flip-card:hover .visit-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-card-front, .visit-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .visit-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .visit-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .visit-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        transition: width 0.6s ease;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-               
-                <div class="card-body">
-                    <div class="row" style="font-size:13px;">
-                        <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3 text-uppercase">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
+            <!-- Patient Header -->
+            <div class="visit-prem-patient-header">
+                <div class="d-flex align-items-center">
+                    <div class="visit-prem-avatar">
+                        {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
                     </div>
-                        <div class="row mt-3">
-                            <div class="col-md-3 text-uppercase">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                    <div>
+                        <h3 class="mb-1">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</h3>
+                        <div class="d-flex flex-wrap">
+                            <div class="mr-3"><strong>MRN:</strong> {{ patient.mrn }}</div>
+                            <div class="mr-3"><strong>DOB:</strong> {{ patient.dob|date:'d-m-Y' }} 
+                                [Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
+                                {% else %}
+                                {{ patient.age }}
+                                {% endif %}]
+                            </div>
+                            <div class="mr-3"><strong>Gender:</strong> {{ patient.gender }}</div>
+                            <div><strong>Payment:</strong> {{ patient.payment_form }}</div>
                         </div>
-                </div>           
-            
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-2">
+            <div class="card visit-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Total Visits</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="visit-prem-summary-value" id="total-visits">{{ visits|length }}</div>
+                    <div class="visit-prem-summary-label">All Visits</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card visit-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Consultations</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="visit-prem-summary-value" id="consultation-visits">0</div>
+                    <div class="visit-prem-summary-label">Consultation</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card visit-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-x-ray mr-2"></i>Imaging</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="visit-prem-summary-value" id="imaging-visits">0</div>
+                    <div class="visit-prem-summary-label">Imaging</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card visit-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-vials mr-2"></i>Investigations</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="visit-prem-summary-value" id="investigation-visits">0</div>
+                    <div class="visit-prem-summary-label">Investigation</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card visit-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Procedures</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="visit-prem-summary-value" id="procedure-visits">0</div>
+                    <div class="visit-prem-summary-label">Procedure</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="visit-prem-flip-card">
+                <div class="visit-prem-flip-card-inner">
+                    <div class="visit-prem-flip-card-front">
+                        <div class="visit-prem-flip-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>Visit Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="visit-prem-flip-card-back">
+                        <div class="visit-prem-flip-icon">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <h4>Premium Insights</h4>
+                        <p>Advanced visit analytics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Visit Distribution Chart -->
+    <div class="visit-prem-chart-container mb-4">
+        <h6 class="mb-3"><i class="fas fa-chart-pie mr-2"></i>Visit Type Distribution</h6>
+        <div class="row">
+            <div class="col-md-12">
+                <div id="visit-type-chart-container">
+                    <!-- This would be replaced with a real chart in production -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <small>Consultation: <span id="chart-consultation">0</span></small>
+                        <small>Imaging: <span id="chart-imaging">0</span></small>
+                        <small>Investigation: <span id="chart-investigation">0</span></small>
+                        <small>Procedure: <span id="chart-procedure">0</span></small>
+                    </div>
+                    <div class="visit-prem-progress mb-2">
+                        <div class="visit-prem-progress-bar" id="consultation-progress" style="width: 0%; background: linear-gradient(120deg, #1a2a6c, #2C3E50)"></div>
+                        <div class="visit-prem-progress-bar" id="imaging-progress" style="width: 0%; background: linear-gradient(120deg, #308829, #4CAF50)"></div>
+                        <div class="visit-prem-progress-bar" id="investigation-progress" style="width: 0%; background: linear-gradient(120deg, #DD0000, #F44336)"></div>
+                        <div class="visit-prem-progress-bar" id="procedure-progress" style="width: 0%; background: linear-gradient(120deg, #FF9800, #FF5722)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="visit-prem-filter-bar">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="visit-prem-status-filter">
+                <span class="filter-section-label">Service Type:</span>
+                <button class="visit-prem-status-btn active" data-filter-type="service" data-filter-value="all">All Visits</button>
+                <button class="visit-prem-status-btn" data-filter-type="service" data-filter-value="Consultation">Consultation</button>
+                <button class="visit-prem-status-btn" data-filter-type="service" data-filter-value="Imaging">Imaging</button>
+                <button class="visit-prem-status-btn" data-filter-type="service" data-filter-value="Investigation">Investigation</button>
+                <button class="visit-prem-status-btn" data-filter-type="service" data-filter-value="Procedure">Procedure</button>
+            </div>
+        </div>
+        <div class="input-group mt-2">
+            <input type="text" class="form-control" placeholder="Search visits..." id="visitPremSearch">
+            <div class="input-group-append">
+                <button class="btn visit-prem-btn-action" type="button" id="searchButton">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">  {{ patient.first_name }} Visit History</h6>
+            <div class="card visit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-history mr-2"></i>Premium Visit History</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <div class="table-responsive visit-prem-table-container">
+                        <table class="table table-hover text-nowrap visit-prem-table" id="visitTable">
                             <thead>
                                 <tr>
-                                    <th>Visit number</th>
-                                    <th>Visit Type</th>                           
-                                    <th>Service</th>              
-                                    <th>Date</th>
-                                    <th>Day</th> <!-- New column for the day of the week -->
-                                    <th>Time</th>                         
-                                    <th>Action</th>              
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit #</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Visit Type</th>                           
+                                    <th><i class="fas fa-tasks mr-2"></i>Service</th>              
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Day</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>                         
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>              
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for visit in visits %}
-                                    <tr>
+                                    <tr data-service="{{ visit.primary_service }}">
                                         <td>{{ visit.vst }}</td>
                                         <td>{{ visit.get_visit_type_display }}</td>                             
-                                        <td>{{ visit.primary_service }}</td>                  
-                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
-                                        <td>{{ visit.created_at|date:"l" }}</td> <!-- Display day of the week -->
-                                        <td>{{ visit.created_at|time:"H:i" }}</td> <!-- Display time -->
-                                        <td>                          
-                                          <!-- Add more action links as needed -->
-                                        <a href="{% url 'doctor_patient_health_record_view' visit.patient.id visit.id %}">
-                                            <button type="button" class="btn btn-secondary btn-sm">open health record</button>
-                                        </a>   
-                                      {% if visit.primary_service == "Consultation" %}
-                                          <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id visit.id %}" class="btn btn-success btn-sm">
-                                              <i class="fas fa-notes-medical"></i> Consultation
-                                          </a>
-                                      {% elif visit.primary_service == "Imaging" %}
-                                          <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#imagingModal{{ visit.id }}">
-                                              <i class="fas fa-x-ray"></i> Imaging
-                                          </button>
-                                      {% elif visit.primary_service == "Investigation" %}
-                                          <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#labModal{{ visit.id }}">
-                                              <i class="fas fa-vials"></i> Investigation
-                                          </button>
-                                      {% elif visit.primary_service == "Procedure" %}
-                                          <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#procedureModal{{ visit.id }}">
-                                              <i class="fas fa-stethoscope"></i> Procedure
-                                          </button>
-                                      {% endif %}
-
-                                  
+                                        <td>
+                                            <span class="visit-prem-badge 
+                                                {% if visit.primary_service == 'Consultation' %}visit-prem-badge-consultation
+                                                {% elif visit.primary_service == 'Imaging' %}visit-prem-badge-imaging
+                                                {% elif visit.primary_service == 'Investigation' %}visit-prem-badge-investigation
+                                                {% else %}visit-prem-badge-procedure{% endif %}">
+                                                {{ visit.primary_service }}
+                                            </span>
+                                        </td>                  
+                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ visit.created_at|date:"l" }}</td>
+                                        <td>{{ visit.created_at|time:"H:i" }}</td>
+                                        <td class="text-center">                          
+                                            {% if visit.primary_service == "Consultation" %}
+                                                <a href="{% url 'doctor_save_remotesconsultation_notes' visit.patient.id visit.id %}" class="btn visit-prem-btn-action">
+                                                    <i class="fas fa-notes-medical"></i> Consultation
+                                                </a>
+                                            {% elif visit.primary_service == "Imaging" %}
+                                                <button type="button" class="btn visit-prem-btn-action" data-toggle="modal" data-target="#imagingModal{{ visit.id }}">
+                                                    <i class="fas fa-x-ray"></i> Imaging
+                                                </button>
+                                            {% elif visit.primary_service == "Investigation" %}
+                                                <button type="button" class="btn visit-prem-btn-action" data-toggle="modal" data-target="#labModal{{ visit.id }}">
+                                                    <i class="fas fa-vials"></i> Investigation
+                                                </button>
+                                            {% elif visit.primary_service == "Procedure" %}
+                                                <button type="button" class="btn visit-prem-btn-action" data-toggle="modal" data-target="#procedureModal{{ visit.id }}">
+                                                    <i class="fas fa-stethoscope"></i> Procedure
+                                                </button>
+                                            {% endif %}
                                         </td>                                
-                                     </tr> 
-                          
-                       {% endfor %}
+                                    </tr> 
+                                {% endfor %}
                             </tbody>
                         </table>
-                    </div>  
+                    </div>
                 </div>
-            </div>          
-        </div>  
+            </div>
+        </div>
     </div>
-</div>    
-
-{% for visit in visits %}
-  <!-- Lab Modal -->
-  <div class="modal fade" id="labModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="labModalLabel{{ visit.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header bg-warning text-dark">
-          <h5 class="modal-title">Lab Orders - Visit {{ visit.vst }}</h5>
-          <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <table class="table table-bordered table-sm text-nowrap">
-            <thead class="thead-dark">
-              <tr>
-                <th>#</th>
-                <th>Lab Test</th>
-                <th>Doctor</th>
-                <th>Order Date</th>         
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for lab in visit.laboratoryorder_set.all %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ lab.name.name }}</td>
-                  <td>{{ lab.doctor.get_full_name|default:"-" }}</td>
-                  <td>{{ lab.order_date|date:"d-m-Y" }}</td>           
-                  <td>
-                    <a href="{% url 'doctor_edit_lab_result' lab.patient.id lab.visit.id lab.id %}" class="btn btn-sm btn-success">
-                      Add Result
-                    </a>
-                  </td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5" class="text-center"><em>No Lab Orders</em></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endfor %}
-
-{% for visit in visits %}
-  <!-- Procedure Modal -->
-  <div class="modal fade" id="procedureModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="procedureModalLabel{{ visit.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">Procedures - Visit {{ visit.vst }}</h5>
-          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <table class="table table-bordered table-sm text-nowrap">
-            <thead class="thead-light">
-              <tr>
-                <th>#</th>
-                <th>Procedure</th>
-                <th>Doctor</th>
-                <th>Date</th>         
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for procedure in visit.procedure_set.all %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ procedure.name.name }}</td>
-                  <td>{{ procedure.doctor.get_full_name|default:"-" }}</td>
-                  <td>{{ procedure.order_date|date:"d-m-Y" }}</td>                
-                  <td>
-                    <a href="{% url 'doctor_edit_procedure_result' procedure.patient.id procedure.visit.id procedure.id %}" class="btn btn-sm btn-success">
-                      Add Result
-                    </a>
-                  </td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5" class="text-center"><em>No Procedures</em></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endfor %}
-
-{% for visit in visits %}
-  <!-- Imaging Modal -->
-  <div class="modal fade" id="imagingModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="imagingModalLabel{{ visit.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header bg-info text-white">
-          <h5 class="modal-title">Imaging Orders - Visit {{ visit.vst }}</h5>
-          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <table class="table table-bordered table-sm text-nowrap">
-            <thead class="thead-dark">
-              <tr>
-                <th>#</th>
-                <th>Imaging</th>
-                <th>Doctor</th>
-                <th>Order Date</th>             
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for imaging in visit.imagingrecord_set.all %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ imaging.imaging.name }}</td>
-                  <td>{{ imaging.doctor.get_full_name|default:"-" }}</td>
-                  <td>{{ imaging.created_at|date:"d-m-Y" }}</td>             
-                  <td>
-                    <a href="{% url 'doctor_edit_radiology_result' imaging.patient.id imaging.visit.id imaging.id  %}" class="btn btn-sm btn-success">
-                      Add Result
-                    </a>
-                  </td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5" class="text-center"><em>No Imaging Records</em></td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-{% endfor %}
-
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
-
-
+</div>
 
 {% include 'doctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#visitTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visits...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let consultationCount = 0;
+        let imagingCount = 0;
+        let investigationCount = 0;
+        let procedureCount = 0;
+        
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            const service = row.getAttribute('data-service');
+            
+            // Count service types
+            if (service === 'Consultation') {
+                consultationCount++;
+            } else if (service === 'Imaging') {
+                imagingCount++;
+            } else if (service === 'Investigation') {
+                investigationCount++;
+            } else if (service === 'Procedure') {
+                procedureCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('consultation-visits').textContent = consultationCount;
+        document.getElementById('imaging-visits').textContent = imagingCount;
+        document.getElementById('investigation-visits').textContent = investigationCount;
+        document.getElementById('procedure-visits').textContent = procedureCount;
+        
+        // Update chart values
+        document.getElementById('chart-consultation').textContent = consultationCount;
+        document.getElementById('chart-imaging').textContent = imagingCount;
+        document.getElementById('chart-investigation').textContent = investigationCount;
+        document.getElementById('chart-procedure').textContent = procedureCount;
+        
+        // Update progress bars
+        const totalVisits = consultationCount + imagingCount + investigationCount + procedureCount;
+        
+        if (totalVisits > 0) {
+            const consultationPercentage = (consultationCount / totalVisits) * 100;
+            const imagingPercentage = (imagingCount / totalVisits) * 100;
+            const investigationPercentage = (investigationCount / totalVisits) * 100;
+            const procedurePercentage = (procedureCount / totalVisits) * 100;
+            
+            document.getElementById('consultation-progress').style.width = `${consultationPercentage}%`;
+            document.getElementById('imaging-progress').style.width = `${imagingPercentage}%`;
+            document.getElementById('investigation-progress').style.width = `${investigationPercentage}%`;
+            document.getElementById('procedure-progress').style.width = `${procedurePercentage}%`;
+        }
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Track active filters
+    let activeServiceFilter = 'all';
+
+    // Service filter functionality
+    document.querySelectorAll('.visit-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filterType = this.getAttribute('data-filter-type');
+            const filterValue = this.getAttribute('data-filter-value');
+            
+            if (filterType === 'service') {
+                activeServiceFilter = filterValue;
+                
+                // Toggle active class for service buttons
+                document.querySelectorAll('.visit-prem-status-btn[data-filter-type="service"]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+            }
+            
+            filterVisits();
+        });
+    });
+
+    // Filter visits by service
+    function filterVisits() {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowService = row.getAttribute('data-service');
+            
+            const serviceMatch = activeServiceFilter === 'all' || rowService === activeServiceFilter;
+            
+            if (serviceMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('visitPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterVisitsWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitPremSearch').value.toLowerCase();
+        
+        filterVisitsWithSearch(searchText);
+    });
+
+    // Filter visits by both service and search text
+    function filterVisitsWithSearch(searchText) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowService = row.getAttribute('data-service');
+            const rowText = row.textContent.toLowerCase();
+            
+            const serviceMatch = activeServiceFilter === 'all' || rowService === activeServiceFilter;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (serviceMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

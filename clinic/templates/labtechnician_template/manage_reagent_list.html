@@ -1,100 +1,664 @@
 {% extends 'labtechnician_template/base_template.html' %}
 {% load static %}
-{% block title %}Reagent List{% endblock title %}
+{% load customfilter %}
+
+{% block title %}
+Premium Reagent Inventory Management
+{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h4 class="page-title-premium mb-0">Premium Reagent Inventory</h4>
+    <a href="{% url 'labtechnician_dashboard' %}" class="btn reagent-prem-btn-action">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock page_title %}
 
 {% block breadcrumb %}
-  {% include "labtechnician_template/modal_form.html" %}
+{% include "labtechnician_template/modal_form.html" %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>Comprehensive Reagent Inventory Overview</span>
+    <span class="badge reagent-prem-badge-primary">Total: {{ reagent_list|length }}</span>
+</div>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium styling for reagents */
+    .reagent-prem-gradient {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 105, 92, 0.15);
+        border: none;
+    }
+    
+    .reagent-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .reagent-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .reagent-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .reagent-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #A5D6A7;
+    }
+    
+    .reagent-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .reagent-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+    }
+    
+    .reagent-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .reagent-prem-table th {
+        background: linear-gradient(120deg, #E8F5E9, #C8E6C9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E8F5E9;
+    }
+    
+    .reagent-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .reagent-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(46, 125, 50, 0.1);
+        background: #f1f8e9;
+    }
+    
+    .reagent-prem-btn-action {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
+        margin: 2px;
+    }
+    
+    .reagent-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 105, 92, 0.3);
+        color: white;
+    }
+    
+    .reagent-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-badge-primary {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+    }
+    
+    .reagent-prem-badge-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .reagent-prem-badge-warning {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+    }
+    
+    .reagent-prem-badge-danger {
+        background: linear-gradient(120deg, #f44336, #d32f2f);
+        color: white;
+    }
+    
+    .reagent-prem-badge-info {
+        background: linear-gradient(120deg, #2196F3, #1976D2);
+        color: white;
+    }
+    
+    .reagent-prem-filter-bar {
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #2E7D32;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .page-title-premium {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    @keyframes reagentPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .reagent-prem-animated {
+        animation: reagentPremFadeIn 0.5s ease forwards;
+    }
+    
+    .reagent-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .reagent-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .reagent-prem-flip-card:hover .reagent-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .reagent-prem-flip-card-front, .reagent-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .reagent-prem-flip-card-front {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+    }
+    
+    .reagent-prem-flip-card-back {
+        background: linear-gradient(120deg, #00897b, #00695c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .reagent-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .reagent-price-tag {
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+        color: #2E7D32;
+    }
+    
+    .reagent-expired {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2) !important;
+    }
+    
+    .reagent-low-stock {
+        background: linear-gradient(120deg, #fff8e1, #ffecb3) !important;
+    }
+    
+    .reagent-good-stock {
+        background: linear-gradient(120deg, #e8f5e9, #C8E6C9) !important;
+    }
+</style>
+
 <div class="container-fluid">
-    <div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      
-      <!-- Header -->
-      <div class="card-header text-center">
-        <h6 class="header-title text-uppercase mt-0 mb-1">Reagent List</h6>
-      </div>
-
-      <!-- Body -->
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover table-bordered table-striped table-sm text-nowrap display" id="example" style="width:100%">
-            <thead class="thead-dark">
-              <tr>
-                <th>Name</th>
-                <th>Expiration Date</th>
-                <th><i class="fas fa-clock"></i> Time Left</th>
-                <th>Manufacturer</th>
-                <th>Lot Number</th>
-                <th>Storage Conditions</th>
-                <th>Quantity in Stock</th>
-                <th>Stock Status</th>
-                <th>Price per Unit</th>
-                <th>Remaining Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for reagent in reagent_list %}
-              <tr class="{% if reagent.remaining_quantity <= 5 %}table-warning{% endif %}{% if reagent.remaining_quantity == 0 %} table-danger{% endif %}">
-                
-                <td>{{ reagent.name }}</td>
-                <td>{{ reagent.expiration_date|date:"d M Y" }}</td>
-
-                <!-- Time Left Badge -->
-                <td>
-                  {% if reagent.days_left is not None %}
-                    {% if reagent.days_left < 0 %}
-                      <span class="badge badge-danger">Expired</span>
-                    {% elif reagent.days_left == 0 %}
-                      <span class="badge badge-danger">Expires Today</span>
-                    {% elif reagent.days_left == 1 %}
-                      <span class="badge badge-danger">Expires Tomorrow</span>
-                    {% elif reagent.days_left <= 3 %}
-                      <span class="badge badge-warning">In {{ reagent.days_left }} days</span>
-                    {% else %}
-                      <span class="badge badge-info">{{ reagent.days_left }} days left</span>
-                    {% endif %}
-                  {% else %}
-                    <span class="text-muted">N/A</span>
-                  {% endif %}
-                </td>
-
-                <td>{{ reagent.manufacturer }}</td>
-                <td>{{ reagent.lot_number }}</td>
-                <td>{{ reagent.storage_conditions }}</td>
-                <td>{{ reagent.quantity_in_stock }}</td>
-
-                <!-- Stock Status Badge -->
-                <td>
-                  {% if reagent.remaining_quantity == 0 %}
-                    <span class="badge badge-danger">Out of Stock</span>
-                  {% elif reagent.remaining_quantity <= 5 %}
-                    <span class="badge badge-warning">Low Stock</span>
-                  {% else %}
-                    <span class="badge badge-success">In Stock</span>
-                  {% endif %}
-                </td>
-
-                <td>{{ reagent.price_per_unit|floatformat:2 }}</td>
-                <td>{{ reagent.remaining_quantity }}</td>
-
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-vial mr-2"></i>Total Reagents</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="total-reagents">{{ reagent_list|length }}</div>
+                    <div class="reagent-prem-summary-label">All Reagents</div>
+                </div>
+            </div>
         </div>
-      </div>
-
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Low Stock</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="low-stock-count">0</div>
+                    <div class="reagent-prem-summary-label">Low Stock Items</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-times mr-2"></i>Expiring Soon</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="expiring-soon-count">0</div>
+                    <div class="reagent-prem-summary-label">Expiring Soon</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="reagent-prem-flip-card">
+                <div class="reagent-prem-flip-card-inner">
+                    <div class="reagent-prem-flip-card-front">
+                        <div class="reagent-prem-flip-icon">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <h4>Reagent Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="reagent-prem-flip-card-back">
+                        <div class="reagent-prem-flip-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>Inventory Insights</h4>
+                        <p>Advanced reagent analytics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+    
+    <!-- Filter Bar -->
+    <div class="reagent-prem-filter-bar">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search reagents by name, manufacturer, or lot number..." id="reagentSearch">
+                    <div class="input-group-append">
+                        <button class="btn reagent-prem-btn-action" type="button" id="searchButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-end">
+                    <span class="filter-section-label">Stock Status:</span>
+                    <select class="form-control ml-2" style="width: auto;" id="stockFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                        <option value="low_stock">Low Stock</option>
+                        <option value="in_stock">In Stock</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-end">
+                    <span class="filter-section-label">Expiration:</span>
+                    <select class="form-control ml-2" style="width: auto;" id="expirationFilter">
+                        <option value="all">All</option>
+                        <option value="expired">Expired</option>
+                        <option value="expiring_soon">Expiring Soon</option>
+                        <option value="valid">Valid</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="button" id="clearFilters" class="btn reagent-prem-btn-action btn-block">
+                    <i class="fas fa-eraser mr-1"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card reagent-prem-gradient shadow-lg">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-white"><i class="fas fa-vial mr-2"></i>Premium Reagent Inventory</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive reagent-prem-table-container">
+                        <table class="table table-hover text-nowrap reagent-prem-table" id="reagentTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Expiration Date</th>
+                                    <th><i class="fas fa-clock"></i> Time Left</th>
+                                    <th>Manufacturer</th>
+                                    <th>Lot Number</th>
+                                    <th>Storage Conditions</th>
+                                    <th>Quantity in Stock</th>
+                                    <th>Stock Status</th>
+                                    <th>Price per Unit</th>
+                                    <th>Remaining Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagent_list %}
+                                {% with stock_status=reagent.remaining_quantity %}
+                                <tr class="{% if reagent.days_left is not None and reagent.days_left < 0 %}reagent-expired
+                                          {% elif stock_status == 0 %}reagent-expired
+                                          {% elif stock_status <= 5 %}reagent-low-stock
+                                          {% else %}reagent-good-stock{% endif %}">
+                                    
+                                    <td>
+                                        <span class="reagent-prem-badge reagent-prem-badge-primary">
+                                            {{ reagent.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reagent.expiration_date|date:"d M Y" }}</td>
+
+                                    <!-- Time Left Badge -->
+                                    <td>
+                                        {% if reagent.days_left is not None %}
+                                            {% if reagent.days_left < 0 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-danger">Expired</span>
+                                            {% elif reagent.days_left == 0 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-danger">Expires Today</span>
+                                            {% elif reagent.days_left == 1 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-warning">Expires Tomorrow</span>
+                                            {% elif reagent.days_left <= 3 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-warning">In {{ reagent.days_left }} days</span>
+                                            {% else %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-info">{{ reagent.days_left }} days left</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>{{ reagent.manufacturer }}</td>
+                                    <td>{{ reagent.lot_number }}</td>
+                                    <td>{{ reagent.storage_conditions }}</td>
+                                    <td>{{ reagent.quantity_in_stock }}</td>
+
+                                    <!-- Stock Status Badge -->
+                                    <td>
+                                        {% if reagent.remaining_quantity == 0 %}
+                                            <span class="reagent-prem-badge reagent-prem-badge-danger">Out of Stock</span>
+                                        {% elif reagent.remaining_quantity <= 5 %}
+                                            <span class="reagent-prem-badge reagent-prem-badge-warning">Low Stock</span>
+                                        {% else %}
+                                            <span class="reagent-prem-badge reagent-prem-badge-success">In Stock</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <span class="reagent-price-tag">
+                                            {{ reagent.price_per_unit|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reagent.remaining_quantity }}</td>
+
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
 
+<script>
+    // Initialize DataTable
+    new DataTable('#reagentTable', {
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel mr-1"></i> Excel',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf mr-1"></i> PDF',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print mr-1"></i> Print',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            }
+        ],
+        responsive: true,
+        pageLength: 10,
+        order: [[1, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search reagents...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let lowStockCount = 0;
+        let expiringSoonCount = 0;
+        
+        document.querySelectorAll('#reagentTable tbody tr').forEach(row => {
+            const statusCell = row.cells[7];
+            const timeLeftCell = row.cells[2];
+            
+            // Check for low stock
+            if (statusCell.textContent.includes('Low Stock') || statusCell.textContent.includes('Out of Stock')) {
+                lowStockCount++;
+            }
+            
+            // Check for expiring soon (within 3 days or expired)
+            if (timeLeftCell.textContent.includes('Expired') || 
+                timeLeftCell.textContent.includes('Expires Today') || 
+                timeLeftCell.textContent.includes('Expires Tomorrow') || 
+                timeLeftCell.textContent.includes('In 3 days') || 
+                timeLeftCell.textContent.includes('In 2 days') || 
+                timeLeftCell.textContent.includes('In 1 days')) {
+                expiringSoonCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('low-stock-count').textContent = lowStockCount;
+        document.getElementById('expiring-soon-count').textContent = expiringSoonCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
 
+    // Search functionality
+    document.getElementById('reagentSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterReagents(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('reagentSearch').value.toLowerCase();
+        filterReagents(searchText);
+    });
 
-<!-- DataTable initialization -->
+    // Stock filter functionality
+    document.getElementById('stockFilter').addEventListener('change', function() {
+        const stockValue = this.value;
+        filterReagentsByStock(stockValue);
+    });
+
+    // Expiration filter functionality
+    document.getElementById('expirationFilter').addEventListener('change', function() {
+        const expirationValue = this.value;
+        filterReagentsByExpiration(expirationValue);
+    });
+
+    // Filter reagents by search text
+    function filterReagents(searchText) {
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Filter reagents by stock status
+    function filterReagentsByStock(stockValue) {
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const statusCell = row.cells[7];
+            const statusText = statusCell.textContent.toLowerCase().trim();
+            
+            let statusMatch = true;
+            if (stockValue === 'out_of_stock') {
+                statusMatch = statusText.includes('out of stock');
+            } else if (stockValue === 'low_stock') {
+                statusMatch = statusText.includes('low stock');
+            } else if (stockValue === 'in_stock') {
+                statusMatch = statusText.includes('in stock');
+            }
+            
+            if (statusMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Filter reagents by expiration status
+    function filterReagentsByExpiration(expirationValue) {
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const timeLeftCell = row.cells[2];
+            const timeLeftText = timeLeftCell.textContent.toLowerCase().trim();
+            
+            let expirationMatch = true;
+            if (expirationValue === 'expired') {
+                expirationMatch = timeLeftText.includes('expired');
+            } else if (expirationValue === 'expiring_soon') {
+                expirationMatch = timeLeftText.includes('expires today') || 
+                                 timeLeftText.includes('expires tomorrow') || 
+                                 timeLeftText.includes('in 3 days') || 
+                                 timeLeftText.includes('in 2 days') || 
+                                 timeLeftText.includes('in 1 days');
+            } else if (expirationValue === 'valid') {
+                expirationMatch = !timeLeftText.includes('expired') && 
+                                 !timeLeftText.includes('expires today') && 
+                                 !timeLeftText.includes('expires tomorrow') && 
+                                 !timeLeftText.includes('in 3 days') && 
+                                 !timeLeftText.includes('in 2 days') && 
+                                 !timeLeftText.includes('in 1 days');
+            }
+            
+            if (expirationMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Clear filters
+    document.getElementById('clearFilters').addEventListener('click', function() {
+        document.getElementById('reagentSearch').value = '';
+        document.getElementById('stockFilter').value = 'all';
+        document.getElementById('expirationFilter').value = 'all';
+        
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = rows.length;
+        calculateSummaryStats();
+    });
+</script>
+
 {% include 'labtechnician_template/datatable.html' %}
 {% endblock main_content %}

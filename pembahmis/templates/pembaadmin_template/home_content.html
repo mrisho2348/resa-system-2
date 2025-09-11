@@ -1,0 +1,866 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% load static %}
+{% block title %}
+PEMBA Dashboard
+{% endblock title %}
+{% block main_content %}
+{% include "pembaadmin_template/modal_form.html" %}
+
+<style>
+:root {
+    --divine-primary: #4e54c8;
+    --divine-secondary: #8f94fb;
+    --divine-accent: #6a11cb;
+    --divine-success: #38ef7d;
+    --divine-warning: #ff9966;
+    --divine-danger: #ff5e62;
+    --divine-dark: #141E30;
+    --divine-light: #f8f9ff;
+    --divine-gradient: linear-gradient(to right, var(--divine-primary), var(--divine-secondary));
+    --divine-gradient-reverse: linear-gradient(to right, var(--divine-secondary), var(--divine-primary));
+    --divine-accent-gradient: linear-gradient(to right, var(--divine-accent), var(--divine-primary));
+}
+
+.divine-body {
+    background-color: #f5f7ff;
+    font-family: 'Poppins', sans-serif;
+}
+
+.divine-card {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(78, 84, 200, 0.15);
+    border: none;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 25px;
+    background: white;
+}
+
+.divine-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(78, 84, 200, 0.2);
+}
+
+.divine-card-header {
+    background: var(--divine-gradient);
+    color: white;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 15px 25px;
+    font-weight: 600;
+    border: none;
+    font-size: 1.1rem;
+}
+
+.divine-card-body {
+    padding: 25px;
+}
+
+.divine-small-box {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease;
+    position: relative;
+    color: white;
+    margin-bottom: 25px;
+    height: 150px;
+    perspective: 1000px;
+}
+
+.divine-small-box:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.divine-small-box .inner {
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.divine-small-box h3 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.divine-small-box p {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.divine-small-box .icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1;
+    font-size: 80px;
+    opacity: 0.25;
+    transition: all 0.5s ease;
+}
+
+.divine-small-box:hover .icon {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 0.35;
+}
+
+.divine-bg-info { background: linear-gradient(135deg, #4e54c8, #8f94fb); }
+.divine-bg-success { background: linear-gradient(135deg, #38ef7d, #11998e); }
+.divine-bg-warning { background: linear-gradient(135deg, #ff9966, #ff5e62); }
+.divine-bg-primary { background: linear-gradient(135deg, #6a11cb, #2575fc); }
+
+.divine-section-title {
+    color: var(--divine-dark);
+    font-weight: 700;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eef1f6;
+    position: relative;
+}
+
+.divine-section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 70px;
+    height: 2px;
+    background: var(--divine-gradient);
+}
+
+.divine-nav-tabs {
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.divine-nav-tabs .nav-link {
+    border: none;
+    color: #7f8c8d;
+    font-weight: 500;
+    padding: 12px 25px;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-right: 5px;
+}
+
+.divine-nav-tabs .nav-link:hover {
+    background-color: #f1f5fd;
+}
+
+.divine-nav-tabs .nav-link.active {
+    background: var(--divine-gradient);
+    color: white;
+    border: none;
+    box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.divine-nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: white;
+}
+
+.divine-view-all-btn {
+    background: var(--divine-gradient);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.divine-view-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 84, 200, 0.3);
+    color: white;
+}
+
+.divine-data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.divine-data-table th {
+    background-color: #f1f5fd;
+    color: var(--divine-primary);
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+}
+
+.divine-data-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eef1f6;
+}
+
+.divine-data-table tr:hover td {
+    background-color: #f8faff;
+}
+
+.divine-chart-container {
+    position: relative;
+    height: 350px;
+}
+
+.divine-progress {
+    height: 12px;
+    border-radius: 10px;
+    background-color: #e9ecef;
+    overflow: visible;
+}
+
+.divine-progress-bar {
+    border-radius: 10px;
+}
+
+.divine-gender-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.divine-gender-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5fd;
+}
+
+.divine-gender-list li:last-child {
+    border-bottom: none;
+}
+
+.divine-gender-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.divine-icon-female { background: #4e54c8; }
+.divine-icon-male { background: #38ef7d; }
+
+.divine-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.divine-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.divine-data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    .divine-chart-grid,
+    .divine-data-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .divine-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Flip card effect for small boxes */
+.divine-flip-card {
+    perspective: 1000px;
+    height: 150px;
+}
+
+.divine-flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+}
+
+.divine-flip-card:hover .divine-flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.divine-flip-card-front, .divine-flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px;
+}
+
+.divine-flip-card-back {
+    background: var(--divine-dark);
+    color: white;
+    transform: rotateY(180deg);
+}
+
+.divine-flip-card-back p {
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.divine-flip-card-back .btn {
+    background: white;
+    color: var(--divine-primary);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+/* Premium modal styling */
+.divine-modal .modal-content {
+    border-radius: 20px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 15px 50px rgba(78, 84, 200, 0.25);
+}
+
+.divine-modal .modal-header {
+    background: var(--divine-gradient);
+    color: white;
+    border-bottom: none;
+    padding: 20px 25px;
+}
+
+.divine-modal .modal-body {
+    padding: 25px;
+}
+
+.divine-modal .modal-footer {
+    border-top: 1px solid #eef1f6;
+    padding: 20px 25px;
+}
+
+.divine-modal .btn-close {
+    filter: invert(1);
+}
+
+/* Refresh button animation */
+@keyframes divineSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.divine-refresh-animate {
+    animation: divineSpin 1s linear infinite;
+}
+</style>
+
+<section class="content divine-body">
+    <div class="container-fluid">
+        <!-- Stats Section -->
+        <div class="dashboard-section">
+            <h3 class="divine-section-title">System Overview</h3>
+            <div class="divine-stats-grid">
+                <!-- Appointments -->
+                <div class="divine-small-box divine-bg-info">
+                    <div class="divine-flip-card">
+                        <div class="divine-flip-card-inner">
+                            <div class="divine-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{all_appointment}}</h3>
+                                    <p>ALL APPOINTMENTS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                            </div>
+                            <div class="divine-flip-card-back">
+                                <p>Total scheduled appointments</p>
+                                <a href="#" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Patients -->
+                <div class="divine-small-box divine-bg-success">
+                    <div class="divine-flip-card">
+                        <div class="divine-flip-card-inner">
+                            <div class="divine-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ total_patients }}</h3>
+                                    <p>ALL PATIENTS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                            <div class="divine-flip-card-back">
+                                <p>Total registered patients</p>
+                                <a href="#" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Doctors -->
+                <div class="divine-small-box divine-bg-warning">
+                    <div class="divine-flip-card">
+                        <div class="divine-flip-card-inner">
+                            <div class="divine-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{doctors_count}}</h3>
+                                    <p>DOCTORS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-user-md"></i>
+                                </div>
+                            </div>
+                            <div class="divine-flip-card-back">
+                                <p>Medical professionals</p>
+                                <a href="#" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Nurses -->
+                <div class="divine-small-box divine-bg-primary">
+                    <div class="divine-flip-card">
+                        <div class="divine-flip-card-inner">
+                            <div class="divine-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{nurses}}</h3>
+                                    <p>NURSES</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-user-nurse"></i>
+                                </div>
+                            </div>
+                            <div class="divine-flip-card-back">
+                                <p>Nursing staff</p>
+                                <a href="#" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="dashboard-section">
+            <div class="divine-chart-grid">
+                <!-- Patient Survey Chart -->
+                <div class="divine-card">
+                    <div class="divine-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Patient Survey</h5>
+                        <form>
+                            <div class="input-group">
+                                <label class="input-group-text" for="yearSelect">Year:</label>
+                                <select class="form-select" id="yearSelect">
+                                    <option value="2022">2022</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2024" selected>2024</option>
+                                    <option value="2025">2025</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="divine-card-body">
+                        <div class="divine-chart-container">
+                            <canvas id="genderChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Patient Demographics -->
+                <div class="divine-card">
+                    <div class="divine-card-header">
+                        <h5 class="mb-0">Patient Demographics</h5>
+                    </div>
+                    <div class="divine-card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="fw-bold" id="totalPatients">0</h4>
+                            <span>Total Patients</span>
+                        </div>
+                        
+                        <div class="divine-progress mb-3">
+                            <div class="divine-progress-bar bg-primary" role="progressbar" id="maleProgress"></div>
+                            <div class="divine-progress-bar bg-info" role="progressbar" id="femaleProgress"></div>
+                        </div>
+                        
+                        <ul class="divine-gender-list">
+                            <li>
+                                <span>
+                                    <span class="divine-gender-icon divine-icon-male"></span>
+                                    Male
+                                </span>
+                                <span class="fw-bold" id="malePatients">0</span>
+                            </li>
+                            <li>
+                                <span>
+                                    <span class="divine-gender-icon divine-icon-female"></span>
+                                    Female
+                                </span>
+                                <span class="fw-bold" id="femalePatients">0</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Data Tables Section -->
+        <div class="dashboard-section">
+            <div class="divine-data-grid">
+                <!-- Patients by Company -->
+                <div class="divine-card">
+                    <div class="divine-card-header">
+                        <h5 class="mb-0">Patients By Company</h5>
+                    </div>
+                    <div class="divine-card-body">
+                        <div class="divine-chart-container">
+                            <canvas id="companyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Patients -->
+                <div class="divine-card">
+                    <div class="divine-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">New Patients</h5>
+                        <a href="{% url 'pemba_admin_patient_list' %}" class="divine-view-all-btn">
+                            <i class="fas fa-eye me-1"></i> View All
+                        </a>
+                    </div>
+                    <div class="divine-card-body">
+                        <div class="table-responsive">
+                            <table id='patientsTable' class='divine-data-table'>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Gender</th>
+                                        <th>Age</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for patient in recently_added_patients %}
+                                    <tr>
+                                        <td>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</td>
+                                        <td>{{ patient.gender }}</td>
+                                        <td>{{ patient.age }}</td>
+                                        <td>{{ patient.created_at|date:"d-m-Y" }}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="setPatientId('{{ patient.id }}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Premium Modal -->
+<div class="modal fade divine-modal" id="patientModal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="patientModalLabel">Patient Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center mb-4">
+                                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                                    <i class="fas fa-user fa-3x text-primary"></i>
+                                </div>
+                                <h4 class="mt-3" id="modalPatientName">Patient Name</h4>
+                                <span class="badge bg-success" id="modalPatientStatus">Active</span>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p><strong>MRN:</strong> <span id="modalPatientMRN">-</span></p>
+                                    <p><strong>Gender:</strong> <span id="modalPatientGender">-</span></p>
+                                    <p><strong>Age:</strong> <span id="modalPatientAge">-</span></p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p><strong>Phone:</strong> <span id="modalPatientPhone">-</span></p>
+                                    <p><strong>Email:</strong> <span id="modalPatientEmail">-</span></p>
+                                    <p><strong>Registered:</strong> <span id="modalPatientRegDate">-</span></p>
+                                </div>
+                            </div>
+                            <hr>
+                            <h6>Medical Information</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p><strong>Blood Type:</strong> <span id="modalPatientBlood">-</span></p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p><strong>Allergies:</strong> <span id="modalPatientAllergies">None</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">View Full Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'pembaadmin_template/datatable.html' %}
+
+<script>
+// Function to set patient ID for modal
+function setPatientId(patientId) {
+    document.getElementById('selectedPatientId').value = patientId;
+    // In a real application, you would fetch patient data via AJAX here
+    // For demo purposes, we'll set some dummy data
+    document.getElementById('modalPatientName').textContent = "Patient " + patientId;
+    document.getElementById('modalPatientMRN').textContent = "MRN-" + patientId;
+    document.getElementById('modalPatientGender').textContent = Math.random() > 0.5 ? "Male" : "Female";
+    document.getElementById('modalPatientAge').textContent = Math.floor(Math.random() * 50) + 18;
+    document.getElementById('modalPatientPhone').textContent = "+255 " + Math.floor(Math.random() * 900000000) + 100000000;
+    document.getElementById('modalPatientEmail').textContent = "patient" + patientId + "@example.com";
+    document.getElementById('modalPatientRegDate').textContent = new Date().toLocaleDateString();
+    document.getElementById('modalPatientBlood').textContent = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"][Math.floor(Math.random() * 8)];
+}
+
+// Initialize DataTable
+$(document).ready(function () {
+    new DataTable('#patientsTable', {
+        dom: 'Bfrtip',
+        buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+        language: {
+            search: "Search Patients:",
+            paginate: {
+                next: '<i class="fas fa-chevron-right"></i>',
+                previous: '<i class="fas fa-chevron-left"></i>'
+            }
+        }
+    });
+});
+
+// Update patient demographics card
+document.addEventListener('DOMContentLoaded', function () {
+    function updateCardContent(selectedYear) {
+        $.ajax({
+            url: '{% url "pemba_admin_gender_yearly_data" %}',
+            method: 'GET',
+            data: { 'year': selectedYear },
+            success: function (data) {
+                var totalFemalePatients = data['Female'] || 0;
+                var totalMalePatients = data['Male'] || 0;
+                var totalPatients = totalFemalePatients + totalMalePatients;
+
+                $('#totalPatients').text(totalPatients);
+                
+                const malePercentage = totalPatients ? (totalMalePatients / totalPatients * 100) : 0;
+                const femalePercentage = totalPatients ? (totalFemalePatients / totalPatients * 100) : 0;
+                
+                $('#maleProgress').css('width', malePercentage + '%').attr('aria-valuenow', malePercentage);
+                $('#femaleProgress').css('width', femalePercentage + '%').attr('aria-valuenow', femalePercentage);
+                
+                $('#femalePatients').text(totalFemalePatients);
+                $('#malePatients').text(totalMalePatients);
+            },
+            error: function (xhr, status, error) {
+                console.error('Error fetching data:', error);
+            }
+        });
+    }
+
+    $('#yearSelect').on('change', function () {
+        updateCardContent(this.value);
+    });
+
+    updateCardContent($('#yearSelect').val());
+});
+
+// Create company chart
+document.addEventListener('DOMContentLoaded', function () {
+    var ctx = document.getElementById('companyChart').getContext('2d');
+    
+    function fetchPatientDataByCompany() {
+        $.ajax({
+            url: '{% url "pemba_admin_get_patient_data_by_company" %}',
+            method: 'GET',
+            success: function(data) {
+                createDoughnutChart(data);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching data:', error);
+            }
+        });
+    }
+
+    function createDoughnutChart(data) {
+        var companyLabels = [];
+        var patientsData = [];
+        
+        for (var company in data) {
+            if (data.hasOwnProperty(company)) {
+                companyLabels.push(company);
+                patientsData.push(data[company]);
+            }
+        }
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: companyLabels,
+                datasets: [{
+                    data: patientsData,
+                    backgroundColor: [
+                        '#4e54c8', '#8f94fb', '#6a11cb', '#2575fc', 
+                        '#38ef7d', '#11998e', '#ff9966', '#ff5e62'
+                    ],
+                    hoverOffset: 10,
+                    borderWidth: 3,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    fetchPatientDataByCompany();
+});
+
+// Gender monthly data chart
+var genderChart;
+function fetchGenderMonthlyData(year) {
+    $.ajax({
+        url: '{% url "pemba_admin_gender_monthly_data" %}',
+        method: 'GET',
+        data: { 'year': year },
+        success: function(data) {
+            createGenderChart(data);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching data:', error);
+        }
+    });
+}
+
+function createGenderChart(data) {
+    var ctx = document.getElementById('genderChart').getContext('2d');
+    
+    if (genderChart) {
+        genderChart.data.labels = Object.keys(data);
+        genderChart.data.datasets[0].data = Object.values(data).map(monthData => monthData['Male']);
+        genderChart.data.datasets[1].data = Object.values(data).map(monthData => monthData['Female']);
+        genderChart.update();
+    } else {
+        genderChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{
+                    label: 'Male',
+                    data: Object.values(data).map(monthData => monthData['Male']),
+                    borderColor: '#4e54c8',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#fff',
+                    pointBorderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 8
+                }, {
+                    label: 'Female',
+                    data: Object.values(data).map(monthData => monthData['Female']),
+                    borderColor: '#38ef7d',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#fff',
+                    pointBorderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.03)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+var selectedYear = $('#yearSelect').val();
+fetchGenderMonthlyData(selectedYear);
+
+$('#yearSelect').on('change', function() {
+    fetchGenderMonthlyData($(this).val());
+});
+</script>
+
+{% endblock main_content %}

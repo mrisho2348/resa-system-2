@@ -1,394 +1,720 @@
 {% extends 'receptionist_template/base_template.html' %}
+{% load static %}
+{% load humanize %}
+
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Consultation - Request 
+    {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Consultation Order
 {% endblock title %}
 
 {% block page_title %}
-
-    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
-    <i class="fas fa-arrow-left"></i> Back to health record
-    </a>  
-    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
-    <i class="fas fa-arrow-left"></i>visit history
-</a>  
-
+    <div class="d-flex">
+        <a class="btn btn-prem-back btn-sm mr-2" href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Health Record
+        </a>
+        <a class="btn btn-prem-back btn-sm" href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Visit History
+        </a>
+    </div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
-{% include "receptionist_template/modal_form.html" %} 
-Consultation - Request   
+    Patient Consultation Order
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Consultation Order Styles */
+    .prem-consultation-gradient {
+        background: linear-gradient(120deg, #00695c, #00796b);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 105, 92, 0.15);
+        border: none;
+    }
+    
+    .prem-consultation-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+    }
+    
+    .prem-patient-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-patient-card .card-header {
+        background: linear-gradient(120deg, #b2dfdb, #80cbc4);
+        color: #00695c;
+        font-weight: 600;
+        padding: 0.8rem 1.2rem;
+        border-bottom: 1px solid #b2dfdb;
+    }
+    
+    .prem-patient-card .card-body {
+        padding: 1.2rem;
+    }
+    
+    .prem-form-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-form-card .card-header {
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+        color: #00695c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2dfdb;
+    }
+    
+    .prem-form-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-form-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-info-label {
+        font-size: 0.8rem;
+        color: #00796b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .patient-info-value {
+        font-size: 0.9rem;
+        color: #004d40;
+        font-weight: 600;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #00796b, #009688);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 121, 107, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 121, 107, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #00695c, #00796b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 105, 92, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-add {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .form-section-title {
+        color: #00695c;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2dfdb;
+    }
+    
+    .prem-form-control {
+        border: 1px solid #b2dfdb;
+        border-radius: 8px;
+        padding: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-control:focus {
+        border-color: #00796b;
+        box-shadow: 0 0 0 0.2rem rgba(0, 121, 107, 0.25);
+    }
+    
+    .prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    
+    .prem-table th {
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+        color: #00695c;
+        font-weight: 600;
+        padding: 0.75rem;
+        border-bottom: 2px solid #b2dfdb;
+    }
+    
+    .prem-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e0f2f1;
+        vertical-align: middle;
+    }
+    
+    .prem-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .total-cost-display {
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #00695c;
+    }
+    
+    .paid-badge {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .unpaid-badge {
+        background: linear-gradient(120deg, #ff5252, #ff1744);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .info-alert {
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+        border-left: 5px solid #00796b;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
 
 <div class="container-fluid">
-    <div class="row">
-        <div class="card-body">
-            <div class="row text-uppercase" style="font-size:13px;">
-                <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                    <script>
-                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                        var now = new Date();
-                        var ageMilliseconds = now - dob;
-                        var ageSeconds = ageMilliseconds / 1000;
-                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                        document.write(ageYears + ' years');
-                    </script>
-                    {% else %}
-                    {{ patient.age }}
-                    {% endif %}]</b></div>
-                <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
-            </div>
-                <div class="row mt-3">
-                    <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
-                         {{ patient.payment_form }}- {{ patient.insurance_name }}   
-                         {% else  %}   
-                         {{ patient.payment_form }}                  
-                    {% endif %}</b>
-                </div>
-                    <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
-                </div>
-        </div>    
-    </div>
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="card prem-patient-card mb-4">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Consultation - Request  </h4>
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Information</h6>
                 </div>
                 <div class="card-body">
-                    <form id="addConsultationForm" method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="consultationTable{{ visit.id }}">
-                                <thead>
-                                    <tr>
-                                        <th>Consultation Name</th>
-                                        <th>Description</th>                                   
-                                        <th>Cost</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 consultation-name" style="width: 100%;" id="consultation_name0" name="consultation_name[]" required>
-                                                <option value="">Select Consultation - Request </option>
-                                                {% for consultation in remote_service %}
-                                                    <option value="{{ consultation.id }}">{{ consultation.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter consultation description"></td>                                       
-                                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">PATIENT</div>
+                            <div class="patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
                         </div>
-                        <!-- Total Cost -->
-                        <div class="row">
-                            <div class="col-md-9">
-                             
-                            </div>
-                            <div class="col-md-3">
-                                <div class="row">
-                                    <div class="col-md-6">Total Cost</div>
-                                    <div class="col-md-6">
-                                        Sh <span id="totalCost{{ visit.id }}">0</span>
-                                    </div>
-                                </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">DOB</div>
+                            <div class="patient-info-value">
+                                {{ patient.dob|date:'d-m-Y' }} 
+                                [Age: {% if patient.dob %}
+                                    <script>
+                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var ageMilliseconds = now - dob;
+                                        var ageSeconds = ageMilliseconds / 1000;
+                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                        document.write(ageYears + ' years');
+                                    </script>
+                                {% else %}
+                                    {{ patient.age }}
+                                {% endif %}]
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div id="consultationResponse"></div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">SEX</div>
+                            <div class="patient-info-value">{{ patient.gender }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">FILE NO</div>
+                            <div class="patient-info-value">{{ patient.mrn }}</div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">PAYMENT MODE</div>
+                            <div class="patient-info-value">
+                                {% if patient.payment_form == "Insurance" %}
+                                    {{ patient.payment_form }} - {{ patient.insurance_name }}
+                                {% else %}
+                                    {{ patient.payment_form }}
+                                {% endif %}
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
-                        <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                        <!-- Save Procedure button -->
-                        <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add  Consultation - Request</button>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">VISIT NUMBER</div>
+                            <div class="patient-info-value">{{ visit.vst }}</div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Order Date</label>
-                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
-                                </div>
-                                <script>
-                                    // Get the current date in the format yyyy-mm-dd
-                                    const currentDate = new Date().toISOString().split('T')[0];
-                                    
-                                    // Set the value of the input field to the current date
-                                    document.getElementById('orderDate').value = currentDate;
-                                </script>
-                            </div>                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="doctor">Doctor:</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>                                   
-                                        {% for doctor in doctors %}
-                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                             </div>                      
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">ORDER STATUS</div>
+                            <div class="patient-info-value">
+                                {% if all_orders_paid %}
+                                    <span class="paid-badge">ALL ORDERS PAID</span>
+                                {% else %}
+                                    <span class="unpaid-badge">UNPAID ORDERS EXIST</span>
+                                {% endif %}
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <button type="button" class="btn btn-primary btn-block" onclick="addImaging()">Request Order & Pay</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        $(document).ready(function() {
 
-                        
-            // Function to initialize Select2 dynamically
-            function initializeSelect2(selector) {
-                $(selector).select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
-            }
-            // Initialize a counter to create unique IDs for each row
-            var rowIdCounter = 1;
+    <!-- Check if all orders are paid -->
+    {% if all_orders_paid %}
+    <!-- Display message that no more orders can be added -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="info-alert">
+                <h5 class="text-premium"><i class="fas fa-info-circle mr-2"></i>Consultation Orders Fully Paid</h5>
+                <p class="mb-0">All consultation orders for this visit have been paid. To add new consultations, please create a new visit for the patient.</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Consultation Order Form -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prem-consultation-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-stethoscope mr-2"></i>
+                            Request Consultations
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card prem-form-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Add Consultations</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="addConsultationForm" method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        
+                                        <h5 class="form-section-title"><i class="fas fa-list mr-2"></i>Consultations</h5>
+                                        <div class="table-responsive">
+                                            <table class="table prem-table" id="consultationTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Consultation Name</th>
+                                                        <th>Description</th>
+                                                        <th>Cost (TZS)</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <select class="form-control select2bs4 consultation-name prem-form-control" style="width: 100%;" name="consultation_name[]" required>
+                                                                <option value="">Select Consultation</option>
+                                                                {% for consultation in remote_service %}
+                                                                    <option value="{{ consultation.id }}">{{ consultation.name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" class="form-control description prem-form-control" name="description[]" placeholder="Enter consultation description">
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" class="form-control cost prem-form-control" name="cost[]" readonly>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-danger delete-row">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Total Cost -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-9"></div>
+                                            <div class="col-md-3">
+                                                <div class="total-cost-display text-right">
+                                                    Total Cost: TZS <span id="totalCost">0.00</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Add Row Button -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-prem-add btn-block" id="addRow">
+                                                    <i class="fas fa-plus-square mr-2"></i> Add Another Consultation
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Response Area -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <div id="consultationResponse"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                                        
+                                        <!-- Order Details -->
+                                        <h5 class="form-section-title mt-4"><i class="fas fa-calendar-alt mr-2"></i>Order Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label class="prem-form-label">Order Date</label>
+                                                    <input type="date" class="form-control prem-form-control total-cost" name="order_date" id="orderDate">
+                                                    <script>
+                                                        const currentDate = new Date().toISOString().split('T')[0];
+                                                        document.getElementById('orderDate').value = currentDate;
+                                                    </script>
+                                                </div>
+                                            </div>  
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="doctor" class="prem-form-label">Doctor</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" name="doctor_id" id="doctor" required>                                     
+                                                        {% for doctor in doctors %}
+                                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>                            
+                                        </div>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-prem-action btn-block" onclick="addConsultation()">
+                                                    <i class="fas fa-paper-plane mr-2"></i> Request Order & Process Payment
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                // Check if the last row already has a selected consultation
-                var lastRow = $('#consultationTable{{ visit.id }} tbody tr:last');
-                var selectedValue = lastRow.find('.consultation-name').val();
-    
-                if (!selectedValue) {
-                    alert('Please select a consultation before adding another row.');
-                    return;
-                }
-    
-                // Check if the previous rows have the same consultation value
-                var duplicateFound = false;
-                $('#consultationTable{{ visit.id }} tbody tr:not(:last)').each(function() {
-                    var rowValue = $(this).find('.consultation-name').val();
-                    if (rowValue === selectedValue) {
-                        duplicateFound = true;
-                        return false; // Exit loop if duplicate is found
-                    }
-                });
-    
-                if (duplicateFound) {
-                    alert('Each consultation should be selected only once.');
-                    return;
-                }
-    
-                // Generate a unique ID for the select element
-                var uniqueId = 'consultation_name' + rowIdCounter++;                
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 consultation-name" style="width: 100%;" id="${uniqueId}" name="consultation_name[]" required>
-                                <option value="">Select Consultation - Request </option>
-                                {% for consultation in remote_service %}
-                                    <option value="{{ consultation.id }}">{{ consultation.name }}</option>
+    <!-- Existing Consultation Orders -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card prem-form-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Existing Consultation Orders</h6>
+                </div>
+                <div class="card-body">
+                    {% if consultation_orders %}
+                    <div class="table-responsive">
+                        <table class="table prem-table" id="consultationOrdersTable">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Consultation Name</th>
+                                    <th>Description</th>
+                                    <th>Cost (TZS)</th>
+                                    <th>Order Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in consultation_orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>{{ order.consultationrecord.description|default:"-" }}</td>
+                                    <td>{{ order.cost|intcomma }}</td>
+                                    <td>{{ order.order_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if order.status == 'Paid' %}
+                                            <span class="paid-badge">{{ order.status }}</span>
+                                        {% else %}
+                                            <span class="unpaid-badge">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter consultation description"></td>                       
-                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                $('#consultationTable{{ visit.id }} tbody').append(newRow);
-                                             initializeSelect2('.select2bs4');
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-right font-weight-bold">Total Cost:</td>
+                                    <td class="font-weight-bold">{{ total_consultation_cost|intcomma }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>No consultation orders found for this visit.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        $('.select2bs4').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+        });
+        
+        // Initialize DataTable for consultation orders
+        $('#consultationOrdersTable').DataTable({
+            "order": [[4, "desc"]],
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "pageLength": 10,
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search records..."
+            }
+        });
+        
+        {% if not all_orders_paid %}
+        // Add row button functionality            
+        $('#addRow').click(function() {
+            // Check if the last row already has a selected consultation
+            var lastRow = $('#consultationTable tbody tr:last');
+            var selectedValue = lastRow.find('.consultation-name').val();
+
+            if (!selectedValue) {
+                alert('Please select a consultation before adding another row.');
+                return;
+            }
+
+            // Check if the previous rows have the same consultation value
+            var duplicateFound = false;
+            $('#consultationTable tbody tr:not(:last)').each(function() {
+                var rowValue = $(this).find('.consultation-name').val();
+                if (rowValue === selectedValue) {
+                    duplicateFound = true;
+                    return false; // Exit loop if duplicate is found
+                }
             });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-                updateTotalCost{{ visit.id }}();
+
+            if (duplicateFound) {
+                alert('Each consultation should be selected only once.');
+                return;
+            }
+            
+            var newRow = `
+                <tr>
+                    <td>
+                        <select class="form-control select2bs4 consultation-name prem-form-control" style="width: 100%;" name="consultation_name[]" required>
+                            <option value="">Select Consultation</option>
+                            {% for consultation in remote_service %}
+                                <option value="{{ consultation.id }}">{{ consultation.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control description prem-form-control" name="description[]" placeholder="Enter consultation description">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control cost prem-form-control" name="cost[]" readonly>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger delete-row">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            $('#consultationTable tbody').append(newRow);
+            
+            // Initialize Select2 for the new row
+            $('#consultationTable tr:last .select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%',
             });
-    
-            // Fetch cost when procedure name is selected
-            $(document).on('change', '.consultation-name', function() {
-                var selectedProcedureId = $(this).val();
-                var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
-                var row = $(this).closest('tr');
-    
+        });
+
+        // Delete row button functionality
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+            updateTotalCost();
+        });
+
+        // Fetch cost when consultation name is selected
+        $(document).on('change', '.consultation-name', function() {
+            var selectedConsultationId = $(this).val();
+            var patientId = $('#patient_id').val();
+            var row = $(this).closest('tr');
+            
+            if (selectedConsultationId) {
                 $.ajax({
                     url: '{% url "receptionist_get_procedure_cost" %}',
-                    method: 'POST', // Change method to POST
+                    method: 'POST',
                     data: {
-                        procedure_id: selectedProcedureId,
-                        patient_id: patientId // Include patient ID in the POST data
+                        procedure_id: selectedConsultationId,
+                        patient_id: patientId,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
                     },
                     success: function(response) {
-                        row.find('.cost').val(response.cost);
-                        updateTotalCost{{ visit.id }}();
+                        if (response.cost) {
+                            row.find('.cost').val(response.cost);
+                            updateTotalCost();
+                        }
                     },
                     error: function(xhr, status, error) {
                         console.error(xhr.responseText);
                     }
                 });
-            });
-    
-            // Function to update total cost
-            function updateTotalCost{{ visit.id }}() {
-                var totalCost = 0;
-                $('#consultationTable{{ visit.id }} tbody tr').each(function() {
-                    var cost = parseFloat($(this).find('.cost').val());
-                    if (!isNaN(cost)) {
-                        totalCost += cost;
-                    }
-                });
-                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
+            } else {
+                row.find('.cost').val('');
+                updateTotalCost();
             }
         });
-    
-        // Handle form submission using AJAX
-        function addImaging() {
-            // Check for duplicate consultation values before submission
-            var consultationValues = [];
-            var duplicateFound = false;
-    
-            $('.consultation-name').each(function() {
-                var value = $(this).val();
-                if (consultationValues.includes(value)) {
-                    duplicateFound = true;
-                    return false; // Exit loop if duplicate is found
-                } else {
-                    consultationValues.push(value);
-                }
+
+        // Function to update total cost
+        function updateTotalCost() {
+            var totalCost = 0;
+            $('#consultationTable tbody tr').each(function() {
+                var cost = parseFloat($(this).find('.cost').val()) || 0;
+                totalCost += cost;
             });
-    
-            if (duplicateFound) {
-                alert('Each consultation should be selected only once.');
-                return;
-            }
-    
-            // If no duplicate found, proceed with form submission
-            $.ajax({
-                type: 'POST',
-                url: '{% url "receptionist_add_consultation" %}',
-                data: $('#addConsultationForm').serialize(),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        $('#consultationResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                        window.location.href = '{% url "receptionist_all_orders_view" %}';
-                    } else {
-                        $('#consultationResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    $('#consultationResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
-                }
-            });
+            $('#totalCost').text(totalCost.toFixed(2));
         }
-    </script>
-    
-    
-    
-    
-    
-</div>
+        
+        // Initialize total cost
+        updateTotalCost();
+        {% endif %}
+    });
 
+    {% if not all_orders_paid %}
+    // Handle form submission using AJAX
+    function addConsultation() {
+        // Validate form
+        var isValid = true;
+        $('#consultationTable tbody tr').each(function() {
+            var consultationSelect = $(this).find('.consultation-name');
+            if (!consultationSelect.val()) {
+                isValid = false;
+                consultationSelect.addClass('is-invalid');
+            } else {
+                consultationSelect.removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            $('#consultationResponse').html('<div class="alert alert-danger">Please select a consultation for all rows.</div>');
+            return;
+        }
+        
+        // Check for duplicate consultation values before submission
+        var consultationValues = [];
+        var duplicateFound = false;
 
+        $('.consultation-name').each(function() {
+            var value = $(this).val();
+            if (consultationValues.includes(value)) {
+                duplicateFound = true;
+                return false; // Exit loop if duplicate is found
+            } else {
+                consultationValues.push(value);
+            }
+        });
 
-
-<style>
-    /* Reset default margin and padding */
-.navigation {
-    padding-left: 0;
-    list-style: none;
-}
-
-/* Style for the header */
-.navigation-header {
-    background-color: #f0f0f0; /* Header background color */
-    color: #333; /* Header text color */
-    font-weight: bold;
-    padding: 10px; /* Add padding to the header */
-    border-radius: 5px; /* Add border radius */
-    margin-bottom: 10px; /* Add space between header and links */
-}
-
-/* Style for each list item */
-.navigation li {
-    margin-bottom: 5px;
-}
-
-/* Style for each link */
-.navigation li a {
-    color: #333; /* Default text color */
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease; /* Smooth transition for background color */
-}
-
-/* Style for the active link */
-.navigation li.active a {
-    background-color: #007bff; /* Active background color */
-    color: #fff; /* Active text color */
-}
-
-/* Style for link hover */
-.navigation li a:hover {
-    background-color: #e0e0e0; /* Hover background color */
-    color: #000; /* Change text color on hover */
-}
-
-    
-</style>
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
-
-
-{% include 'receptionist_template/datatable.html' %}
-    
-
-{% endblock main_content %}
+        if (duplicateFound) {
+            $('#consultationResponse').html('<div class="alert alert-danger">Each consultation should be selected only once.</div>');
+            return;
+        }
+        
+        $.ajax({
+            type: 'POST',
+            url: '{% url "receptionist_add_consultation" %}',
+            data: $('#addConsultationForm').serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#consultationResponse').html('<div class="alert alert-success">' + response.message + '</div>');
+                    // Reload the page after 2 seconds to show updated orders
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    $('#consultationResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#consultationResponse').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
+                console.error(xhr.responseText);
+            }
+        });
+    }
+    {% endif %}
+</script>
+{% endblock customer_js %}

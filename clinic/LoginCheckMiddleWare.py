@@ -4,154 +4,121 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 from clinic.models import Staffs
 
+
 class LoginCheckMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         modulename = view_func.__module__
         user = request.user
 
-        # List of paths accessible without authentication
+        # Public paths accessible without login
         public_paths = [
-            reverse("login"),
-            reverse("clinic:DoLogin"),
-            reverse("kahamahmis:kahama"),
-            reverse("kahamahmis:DoLoginKahama"),
             reverse("clinic:home"),
-            reverse("clinic:logout_user")
+            reverse("clinic:logout_user"),
+            reverse("resa_portal"),
+            reverse("resa_portal_login"),
+            reverse("forgot_password"),
+            reverse("portfolio_details"),
+            reverse("contact"),
+            reverse("blog_single"),
+            reverse("page_404"),
         ]
 
-        if request.path in public_paths or modulename.startswith("django.contrib.auth.views"):
+        if (request.path in public_paths
+            or modulename.startswith("django.contrib.auth.views")
+            or modulename == "django.views.static"):
             return None
 
         if user.is_authenticated:
-            app_name = self.get_app_name(modulename)
+            if user.user_type == "1":  # super admin
+                return None  # full access
 
-            if app_name:
-                if user.user_type == "1":
-                    return self.handle_admin_user(request, modulename, app_name)
-                elif user.user_type == "2":
-                    return self.handle_staff_user(request, modulename, app_name, user)
+            elif user.user_type == "2":  # staff
+                try:
+                    staff = Staffs.objects.get(admin=user)
+                    role = staff.role.lower()
+                    workplace = staff.work_place.lower()  # <-- assuming you have this field
+
+                    # Get dashboard and allowed views from lookup table
+                    dashboard_url = self.get_staff_dashboard(role, workplace)
+                    allowed_views = self.get_staff_allowed_views(role, workplace)
+
+                    if modulename in allowed_views or request.path == reverse(dashboard_url):
+                        return None
+                    return redirect(dashboard_url)
+
+                except Staffs.DoesNotExist:
+                    return HttpResponseRedirect(reverse("clinic:home"))
 
         return None
 
-    def get_app_name(self, modulename):
-        if modulename.startswith("clinic"):
-            return "clinic"
-        elif modulename.startswith("kahamahmis"):
-            return "kahamahmis"
-        return None
-
-    def handle_admin_user(self, request, modulename, app_name):
-        allowed_views = {
-            "clinic": [
+    def get_staff_allowed_views(self, role, workplace):
+        """Return allowed view modules for staff based on role + workplace."""
+        views = {
+            # Clinic staff
+            ("receptionist", "resa"): ["clinic.ReceptionistView", "clinic.delete", "django.views.static"],
+            ("doctor", "resa"): ["clinic.DoctorView", "django.views.static"],
+            ("nurse", "resa"): ["clinic.NurseView", "django.views.static"],
+            ("labtechnician", "resa"): ["clinic.LabTechnicianView", "django.views.static"],
+            ("pharmacist", "resa"): ["clinic.PharmacistView", "django.views.static"],
+            ("admin", "resa"): [
                 "clinic.views",
                 "clinic.AdminViews",
                 "clinic.HodViews",
                 "clinic.ExcelTemplate",
-                "clinic.delete",
+                "clinic.resa_delete",
                 "clinic.editView",
                 "clinic.imports",
                 "clinic.FinancialViews",
                 "django.views.static",
             ],
-            "kahamahmis": [
-                "kahamahmis.kahamaEditView",
-                "kahamahmis.kahamaDelete",
+
+            # Kahama staff
+            ("doctor", "kahama"): [
+                "kahamahmis.doctor.kahamaDoctor",
+                "kahamahmis.kahamaReports",             
                 "django.views.static",
+            ],
+            ("admin", "kahama"): [
                 "kahamahmis.views",
-                "kahamahmis.kahamaImports",
                 "kahamahmis.kahamaExcelTemplate",
-                "kahamahmis.KahamaReportsView",
-                "kahamahmis.kahamaViews",
-                "kahamahmis.kahamaAdmin",
+                "kahamahmis.kahamaReports",
+                "kahamahmis.admin.kahamaAdmin",
+                "django.views.static",
+            ],
+
+            # Pemba staff
+            ("doctor", "pemba"): [
+                "pembahmis.doctor.pembaDoctor",
+                "pembahmis.pembaReports",
+                "pembahmis.views",
+                "django.views.static",
+            ],
+            ("admin", "pemba"): [
+                "pembahmis.views",
+                "pembahmis.admin.pembaAdmin",
+                "pembahmis.pembaReports",
+                "django.views.static",
             ],
         }
+        return views.get((role, workplace), [])
 
-        dashboard_url = {
-            "clinic": "admin_dashboard",
-            "kahamahmis": "kahama_dashboard",
-        }
-
-        if modulename in allowed_views.get(app_name, []) or request.path == reverse(dashboard_url[app_name]):
-            return None
-
-        return redirect(dashboard_url[app_name])
-
-    def handle_staff_user(self, request, modulename, app_name, user):
-        try:
-            staff = Staffs.objects.get(admin=user)
-            role = staff.role.lower()
-
-            app_specific_views = self.get_staff_allowed_views(app_name, staff, role)
-            dashboard_url = self.get_staff_dashboard_url(app_name, staff, role)
-
-            if modulename in app_specific_views or request.path == reverse(dashboard_url):
-                return None
-
-            return redirect(dashboard_url)
-
-        except Staffs.DoesNotExist:
-            return HttpResponseRedirect(reverse("clinic:home"))
-
-    def get_staff_allowed_views(self, app_name, staff, role):
-        views = {
-            "clinic": {
-                "receptionist": ["clinic.ReceptionistView", "clinic.delete", "django.views.static"],
-                "doctor": ["clinic.DoctorView", "django.views.static"],
-                "admin": [
-                    "clinic.views",
-                    "clinic.AdminViews",
-                    "clinic.HodViews",
-                    "clinic.ExcelTemplate",
-                    "clinic.delete",
-                    "clinic.editView",
-                    "clinic.imports",
-                    "clinic.FinancialViews",
-                    "django.views.static",
-                ],
-                "nurse": ["clinic.NurseView", "django.views.static"],
-                "physiotherapist": ["clinic.PhysiotherapistView", "django.views.static"],
-                "labtechnician": ["clinic.LabTechnicianView", "django.views.static"],
-                "pharmacist": ["clinic.PharmacistView", "django.views.static"],
-            },
-            "kahamahmis": {
-                "admin": [                  
-                    "kahamahmis.divineDelete",
-                    "django.views.static",
-                    "kahamahmis.views",
-                    "kahamahmis.divineImport",
-                    "kahamahmis.divineExcel",
-                    "kahamahmis.divineReport",
-                    "kahamahmis.divine_Admin",
-                   
-                ],
-                "doctor": [
-                    "kahamahmis.kahamaEditView",
-                    "django.views.static",
-                    "kahamahmis.views",                 
-                    "kahamahmis.KahamaReportsView",
-                    "kahamahmis.kahamaViews",
-                    "kahamahmis.kahamaAdmin",
-                ],
-            },
-        }
-
-        return views.get(app_name, {}).get(role, [])
-
-    def get_staff_dashboard_url(self, app_name, staff, role):
+    def get_staff_dashboard(self, role, workplace):
+        """Return dashboard url name for staff based on role + workplace."""
         dashboards = {
-            "clinic": {
-                "receptionist": "receptionist_dashboard",
-                "doctor": "doctor_dashboard",
-                "admin": "admin_dashboard",
-                "nurse": "nurse_dashboard",
-                "physiotherapist": "physiotherapist_dashboard",
-                "labtechnician": "labtechnician_dashboard",
-                "pharmacist": "pharmacist_dashboard",
-            },
-            "kahamahmis": {
-                "admin": "divine_dashboard",
-                "doctor": "kahama_dashboard",
-            },
-        }
+            # Clinic staff dashboards
+            ("receptionist", "resa"): "receptionist_dashboard",
+            ("doctor", "resa"): "doctor_dashboard",
+            ("nurse", "resa"): "nurse_dashboard",
+            ("labtechnician", "resa"): "labtechnician_dashboard",
+            ("pharmacist", "resa"): "pharmacist_dashboard",
+            ("admin", "resa"): "admin_dashboard",
 
-        return dashboards.get(app_name, {}).get(role, "clinic:login")
+            # Kahama staff dashboards
+            ("admin", "kahama"): "kahama_admin_dashboard",
+            ("doctor", "kahama"): "kahama_doctor_dashboard",
+
+            # Pemba staff dashboards
+            ("admin", "pemba"): "pemba_admin_dashboard",
+            ("doctor", "pemba"): "pemba_doctor_dashboard",
+        }
+        return dashboards.get((role, workplace), "resa_portal")

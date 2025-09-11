@@ -1,0 +1,637 @@
+{% load static %}
+<nav class="main-header navbar navbar-expand navbar-white navbar-light receptionist-topbar">
+  <!-- Left Section: Hamburger + Brand + Quick Links -->
+  <div class="d-flex align-items-center">
+    <!-- Hamburger Menu -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#">
+          <i class="fas fa-bars"></i>
+        </a>
+      </li>
+    </ul>
+    
+    <!-- Brand Name -->
+    <div class="brand-container ml-2">
+      <a href="{% url 'receptionist_dashboard' %}" class="brand-link">
+        <span class="brand-text">RESA MEDICAL GROUP</span>
+        <span class="brand-subtitle">Reception Department</span>
+      </a>
+    </div>
+    
+    <!-- Quick Links Dropdown -->
+    <div class="nav-item dropdown quick-links-dropdown ml-4">
+      <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-bolt mr-1"></i> Quick Links
+      </a>
+      <div class="dropdown-menu">
+        <a class="dropdown-item" href="{% url 'receptionist_appointment_list' %}">
+          <i class="fas fa-calendar-check mr-2"></i>Today's Appointments
+          <span class="badge badge-primary badge-pill ml-2" id="quick-links-appointments-count">0</span>
+        </a>
+        <a class="dropdown-item" href="{% url 'receptionist_manage_patients' %}">
+          <i class="fas fa-user-injured mr-2"></i>New Patients
+          <span class="badge badge-info badge-pill ml-2" id="quick-links-new-patients-count">0</span>
+        </a>
+        <a class="dropdown-item" href="{% url 'receptionist_all_orders_view' %}">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>Pending Bills
+          <span class="badge badge-warning badge-pill ml-2" id="quick-links-pending-bills-count">0</span>
+        </a>
+        <a class="dropdown-item" href="{% url 'receptionist_prescription_list' %}">
+          <i class="fas fa-prescription-bottle mr-2"></i>Prescriptions
+          <span class="badge badge-success badge-pill ml-2" id="quick-links-prescriptions-count">0</span>
+        </a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="{% url 'receptionist_dashboard' %}">
+          <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+        </a>
+      </div>
+    </div>
+    
+    <!-- Quick Action Buttons -->
+    <div class="quick-action-buttons ml-3">
+      <a href="{% url 'receptionist_manage_patients' %}" class="btn btn-sm btn-quick-action mr-2" data-toggle="tooltip" title="Add New Patient">
+        <i class="fas fa-user-plus mr-1"></i> New Patient
+      </a>
+      <a href="{% url 'receptionist_appointment_list' %}" class="btn btn-sm btn-quick-action-add" data-toggle="tooltip" title="Schedule Appointment">
+        <i class="fas fa-calendar-plus mr-1"></i> New Appointment
+      </a>
+    </div>
+  </div>
+
+  <!-- Middle Section: Date/Time & Stats -->
+  <div class="d-flex align-items-center mx-auto">    
+    <!-- Date & Time Display -->
+    <div class="datetime-container">
+      <div class="date-display">
+        <i class="far fa-calendar-alt mr-1"></i>
+        <span id="current-date"></span>
+      </div>
+      <div class="time-display ml-3">
+        <i class="far fa-clock mr-1"></i>
+        <span id="current-time"></span>
+      </div>
+    </div>
+    
+    <!-- Reception Stats -->
+    <div class="reception-stats-container ml-4 d-none d-lg-flex align-items-center">
+      <div class="stat-item mr-3">
+        <div class="stat-icon appointments-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-number" id="todays-appointments-count">0</div>
+          <div class="stat-label">Today's Appointments</div>
+        </div>
+      </div>
+      <div class="stat-item mr-3">
+        <div class="stat-icon patients-icon">
+          <i class="fas fa-user-injured"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-number" id="new-patients-count">0</div>
+          <div class="stat-label">New Patients</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon billing-icon">
+          <i class="fas fa-file-invoice-dollar"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-number" id="pending-bills-count">0</div>
+          <div class="stat-label">Pending Bills</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Section: Notifications + Controls + User Menu -->
+  <div class="d-flex align-items-center">  
+    <!-- Fullscreen Toggle -->
+    <div class="nav-item mr-2">
+      <a class="nav-link" data-toggle="tooltip" title="Toggle Fullscreen" onclick="toggleFullScreen()">
+        <i class="fas fa-expand"></i>
+      </a>
+    </div>
+
+    <!-- Notifications -->
+    <div class="nav-item dropdown notifications-dropdown mr-2">
+      <a class="nav-link" data-toggle="dropdown" href="#" data-toggle="tooltip" title="Notifications">
+        <i class="far fa-bell"></i>
+        <span class="badge badge-danger notification-badge" id="notification-count">0</span>
+      </a>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right notification-menu">
+        <span class="dropdown-item dropdown-header" id="notification-header">0 Notifications</span>
+        <div class="dropdown-divider"></div>
+        <div id="notifications-container">
+          <!-- Notifications will be loaded dynamically -->
+          <div class="text-center py-3">
+            <div class="spinner-border text-primary spinner-border-sm" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+            <p class="text-muted mt-2">Loading notifications...</p>
+          </div>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item dropdown-footer">View All Notifications</a>
+      </div>
+    </div>
+    
+    <!-- User Menu -->
+    <div class="nav-item dropdown user-menu-dropdown">
+      <a class="nav-link" data-toggle="dropdown" href="#" data-toggle="tooltip" title="User Menu">
+        <div class="d-flex align-items-center">
+          {% if user.staff.profile_picture %}
+            <img src="{{ user.staff.profile_picture.url }}" class="img-circle elevation-1 user-avatar" alt="User Image">
+          {% else %}
+            <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-1 user-avatar" alt="User Image">
+          {% endif %}
+          <span class="ml-2 d-none d-md-inline">{{ user.first_name }} {{ user.last_name }}</span>
+          <i class="fas fa-caret-down ml-1"></i>
+        </div>
+      </a>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right user-menu">
+        <div class="user-panel d-flex p-3">
+          <div class="image">
+            {% if user.staff.profile_picture %}
+              <img src="{{ user.staff.profile_picture.url }}" class="img-circle elevation-2" alt="User Image" width="45">
+            {% else %}
+              <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image" width="45">
+            {% endif %}
+          </div>
+          <div class="info ml-3">
+            <div class="d-block">{{ user.first_name }} {{ user.last_name }}</div>
+            <small>Receptionist</small>
+            <div class="user-status text-success">
+              <i class="fas fa-circle"></i> Online
+            </div>
+          </div>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="{% url 'receptionist_edit_staff_profile' user.staff.id %}" class="dropdown-item">
+          <i class="fas fa-user-circle mr-2"></i> My Profile
+        </a>
+        <a href="{% url 'receptionist_change_password' %}" class="dropdown-item">
+          <i class="fas fa-key mr-2"></i> Change Password
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="/logout_user" class="dropdown-item logout-item">
+          <i class="fas fa-sign-out-alt mr-2"></i> Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<style>
+  /* Receptionist Topbar Specific Styles */
+  .receptionist-topbar {
+    background: linear-gradient(120deg, #0c2461, #1e3799);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .brand-container .brand-link {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .brand-text {
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    line-height: 1.2;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.5px;
+  }
+  
+  .quick-links-dropdown .nav-link {
+    color: white;
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 0.4rem 0.8rem;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .quick-links-dropdown .nav-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  .quick-links-dropdown .dropdown-menu {
+    border: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    padding: 0.5rem 0;
+  }
+  
+  .quick-links-dropdown .dropdown-item {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    margin: 0.2rem 0.5rem;
+    width: auto;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .quick-links-dropdown .dropdown-item:hover {
+    background: #f8f9fa;
+    color: #0c2461;
+  }
+  
+  /* Quick Action Buttons */
+  .quick-action-buttons {
+    display: flex;
+    align-items: center;
+  }
+  
+  .btn-quick-action {
+    background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .btn-quick-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    color: white;
+  }
+  
+  .btn-quick-action-add {
+    background: linear-gradient(120deg, #00b09b, #96c93d);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .btn-quick-action-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    color: white;
+  }
+  
+  .datetime-container {
+    display: flex;
+    align-items: center;
+    color: white;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 30px;
+  }
+  
+  .date-display, .time-display {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  
+  /* Reception Stats Container */
+  .reception-stats-container {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    color: #2c3e50;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat-item {
+    display: flex;
+    align-items: center;
+  }
+  
+  .stat-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: white;
+  }
+  
+  .appointments-icon {
+    background: linear-gradient(120deg, #FF9800, #FF5722);
+  }
+  
+  .patients-icon {
+    background: linear-gradient(120deg, #308829, #4CAF50);
+  }
+  
+  .billing-icon {
+    background: linear-gradient(120deg, #2196F3, #1976D2);
+  }
+  
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .stat-number {
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  
+  .stat-label {
+    font-size: 0.7rem;
+    opacity: 0.8;
+  }
+  
+  .notifications-dropdown .nav-link {
+    position: relative;
+    color: white;
+  }
+  
+  .notification-badge {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 0.6rem;
+    padding: 3px 6px;
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  
+  .notification-menu {
+    border: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    width: 320px;
+  }
+  
+  .notification-item {
+    padding: 0.7rem 1rem;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+  }
+  
+  .notification-item:hover {
+    background: #f8f9fa;
+    border-left-color: #0c2461;
+  }
+  
+  .notification-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+  
+  .user-menu-dropdown .nav-link {
+    color: white;
+    padding: 0.3rem 0.5rem;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .user-menu-dropdown .nav-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .user-menu {
+    border: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    padding: 0.5rem 0;
+  }
+  
+  .user-menu .user-panel {
+    background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+    border-radius: 8px;
+    margin: 0.5rem;
+  }
+  
+  .user-status {
+    font-size: 0.75rem;
+    margin-top: 3px;
+  }
+  
+  .user-menu .dropdown-item {
+    padding: 0.6rem 1rem;
+    border-radius: 5px;
+    margin: 0.2rem 0.5rem;
+    transition: all 0.2s ease;
+  }
+  
+  .user-menu .dropdown-item:hover {
+    background: #f8f9fa;
+    color: #0c2461;
+  }
+  
+  .logout-item {
+    color: #dc3545 !important;
+  }
+  
+  .logout-item:hover {
+    background: #f8d7da !important;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    .reception-stats-container {
+      display: none !important;
+    }
+  }
+  
+  @media (max-width: 992px) {
+    .quick-links-dropdown,
+    .quick-action-buttons {
+      display: none;
+    }
+    
+    .datetime-container {
+      font-size: 0.9rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .datetime-container {
+      display: none;
+    }
+    
+    .brand-subtitle {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .brand-text {
+      font-size: 1.1rem;
+    }
+    
+    .user-menu-dropdown .nav-link span {
+      display: none;
+    }
+    
+    .user-menu-dropdown .nav-link i.fa-caret-down {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Update date and time in real-time
+  function updateDateTime() {
+    const now = new Date();
+    
+    // Format date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString('en-US', options);
+    
+    // Format time
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    
+    // Update elements
+    document.getElementById('current-date').textContent = formattedDate;
+    document.getElementById('current-time').textContent = formattedTime;
+  }
+  
+  // Initialize and update every second
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Fullscreen toggle function
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+  
+  // Initialize tooltips
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+  
+  // Function to fetch reception statistics
+  function fetchReceptionStats() {
+    // This would be replaced with actual API calls
+    // For now, we'll use placeholder values
+    document.getElementById('todays-appointments-count').textContent = '12';
+    document.getElementById('new-patients-count').textContent = '5';
+    document.getElementById('pending-bills-count').textContent = '8';
+    
+    // Update the quick links counts
+    document.getElementById('quick-links-appointments-count').textContent = '12';
+    document.getElementById('quick-links-new-patients-count').textContent = '5';
+    document.getElementById('quick-links-pending-bills-count').textContent = '8';
+    document.getElementById('quick-links-prescriptions-count').textContent = '3';
+    
+    // Update notification count
+    const totalNotificationCount = 12 + 5 + 8 + 3;
+    document.getElementById('notification-count').textContent = totalNotificationCount;
+    document.getElementById('notification-header').textContent = `${totalNotificationCount} Notifications`;
+  }
+  
+  // Load notifications dynamically
+  function loadNotifications() {
+    // This would be replaced with actual API calls
+    // For now, we'll use placeholder notifications
+    const notifications = [
+      {
+        icon: 'fas fa-calendar-plus',
+        icon_color: 'text-primary',
+        title: 'New Appointment',
+        details: 'John Doe scheduled an appointment for tomorrow',
+        time_ago: '10 min ago',
+        link: '#'
+      },
+      {
+        icon: 'fas fa-user-plus',
+        icon_color: 'text-info',
+        title: 'New Patient Registration',
+        details: 'Jane Smith registered as a new patient',
+        time_ago: '30 min ago',
+        link: '#'
+      },
+      {
+        icon: 'fas fa-file-invoice-dollar',
+        icon_color: 'text-warning',
+        title: 'Pending Bill',
+        details: '3 bills awaiting payment',
+        time_ago: '1 hour ago',
+        link: '#'
+      }
+    ];
+    
+    let notificationsHTML = '';
+    
+    if (notifications.length > 0) {
+      notifications.forEach(notif => {
+        notificationsHTML += `
+          <a href="${notif.link || '#'}" class="dropdown-item notification-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <i class="${notif.icon || 'fas fa-bell'} ${notif.icon_color || 'text-primary'} mr-2"></i> 
+                ${notif.title}
+              </div>
+              <div class="notification-time">${notif.time_ago}</div>
+            </div>
+            <small class="text-muted">${notif.details}</small>
+          </a>
+          <div class="dropdown-divider"></div>
+        `;
+      });
+    } else {
+      notificationsHTML = `
+        <div class="text-center py-3">
+          <i class="fas fa-bell-slash text-muted fa-2x mb-2"></i>
+          <p class="text-muted">No notifications</p>
+        </div>
+      `;
+    }
+    
+    document.getElementById('notifications-container').innerHTML = notificationsHTML;
+  }
+  
+  // Initialize on page load
+  $(document).ready(function() {   
+    fetchReceptionStats();
+    loadNotifications();
+    
+    // Update stats every minute
+    setInterval(fetchReceptionStats, 60000);
+    
+    // Update notifications every 2 minutes
+    setInterval(loadNotifications, 120000);
+  });
+</script>

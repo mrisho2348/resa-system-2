@@ -1,0 +1,275 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Prescription Notes - {{ visit.visit_number }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.5cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background: #fff;
+            margin: 0;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+        
+        .print-container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .print-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .print-watermark {
+            position: absolute;
+            opacity: 0.1;
+            font-size: 50px;
+            transform: rotate(-45deg);
+            top: 40%;
+            left: 10%;
+            z-index: -1;
+            font-weight: bold;
+            color: #0f0c29;
+        }
+        
+        .print-footer {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ccc;
+            font-size: 10px;
+        }
+        
+        .print-section {
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+        }
+        
+        .print-section h4 {
+            margin: 0 0 6px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+            color: #0f0c29;
+        }
+        
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+        
+        .compact-table th,
+        .compact-table td {
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+        }
+        
+        .compact-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .space-optimize {
+            margin: 4px 0;
+        }
+        
+        .row {
+            display: flex;
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        .col-6 {
+            flex: 0 0 48%;
+            margin: 0 1%;
+        }
+        
+        .info-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        
+        .info-card-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #0f0c29;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 4px;
+            font-size: 11px;
+        }
+        
+        .pharmacy-stamp {
+            border: 2px dashed #0f0c29;
+            padding: 8px;
+            text-align: center;
+            margin-top: 15px;
+            font-style: italic;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .notes-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 8px;
+            background: #f9f9f9;
+            margin-top: 12px;
+        }
+        
+        .notes-content {
+            min-height: 60px;
+            padding: 6px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .signature-box {
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px dashed #999;
+            width: 95%;
+            font-size: 11px;
+        }
+        
+        .document-title {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        
+        .document-title h2 {
+            margin: 0;
+            color: #0f0c29;
+            font-size: 16px;
+        }
+        
+        .document-title p {
+            margin: 3px 0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <!-- Header with full-width image -->
+        <div class="print-header">
+    <img src="{% static 'img/headerresa.jpg' %}" alt="Header Image" style="max-height: 100px; width: auto;">
+</div>
+        
+        <div class="print-watermark">PRESCRIPTION NOTES</div>
+        
+        <!-- Document Title -->
+        <div class="document-title">
+            <h2>PRESCRIPTION NOTES & MEDICATION RECORD</h2>
+            <p>Generated on {% now "d/m/Y" %}</p>
+        </div>
+        
+        <!-- Patient and Visit Information - Two columns in one row -->
+        <div class="row">
+            <div class="col-6">
+                <div class="info-card">
+                    <div class="info-card-title">Patient Information</div>
+                    <p class="space-optimize"><strong>Name:</strong> {{ visit.customer.first_name }} {{ visit.customer.last_name }}</p>
+                    <p class="space-optimize"><strong>Phone:</strong> {{ visit.customer.phone_number|default:"N/A" }}</p>
+                    <p class="space-optimize"><strong>Age:</strong> {{ visit.customer.age|default:"N/A" }}</p>
+                    <p class="space-optimize"><strong>Gender:</strong> {{ visit.customer.gender|title|default:"N/A" }}</p>
+                </div>
+            </div>            
+            <div class="col-6">
+                <div class="info-card">
+                    <div class="info-card-title">Visit Information</div>
+                    <p class="space-optimize"><strong>Visit Date:</strong> {{ visit.visit_date|date:"d/m/Y H:i" }}</p>
+                    <p class="space-optimize"><strong>Visit #:</strong> {{ visit.visit_number }}</p>
+                    <p class="space-optimize"><strong>Pharmacy ID:</strong> {{ visit.customer.pharmacy_number }}</p>
+                    <p class="space-optimize"><strong>Document ID:</strong> NOTES-{{ visit.prescription_notes_id }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="print-section">
+            <h4>Prescribed Medications</h4>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Drug Name</th>
+                        <th>Dosage</th>
+                        <th>Route</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prescription in prescriptions %}
+                    <tr>
+                        <td>{{ prescription.medicine.drug_name }}</td>
+                        <td>{{ prescription.dosage|default:prescription.formulation_dose }}</td>
+                        <td>{{ prescription.route.name|default:"N/A" }}</td>
+                        <td>{{ prescription.frequency.name|default:"N/A" }}</td>
+                        <td>{{ prescription.duration }} days</td>
+                        <td>{{ prescription.quantity_used }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="notes-section">
+            <div class="info-card-title">Clinical Notes & Instructions</div>
+            <div class="notes-content">
+                {{ visit.notes|default:"No specific notes recorded for this visit."|linebreaks }}
+            </div>
+        </div>
+        
+        <!-- Signature sections - Two columns in one row -->
+        <div class="row">
+            <div class="col-6">
+                <div class="signature-box">
+                    <p style="margin: 4px 0;">Prescribing Practitioner: ________________</p>
+                    <p style="margin: 4px 0;">Signature: ________________</p>
+                    <p style="margin: 4px 0;">Date: ________________</p>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="signature-box">
+                    <p style="margin: 4px 0;">Dispensing Pharmacist:  {{ pharmacist.admin.first_name }} {{ pharmacist.middle_name }} {{ pharmacist.admin.last_name }}</p>
+                    <p style="margin: 4px 0;">Signature: ________________</p>
+                    <p style="margin: 4px 0;">Date: ________________</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pharmacy-stamp">
+            <p>PRESCRIPTION NOTES ISSUED BY RESA PHARMACY</p>
+            <p>This document contains important medical information - Keep for your records</p>
+        </div>
+        
+        <div class="print-footer">
+            <p>Generated by RESA Pharmacy Management System</p>
+            <p>This is a medical document - Please keep for your records</p>
+            <p>Document ID: NOTES-{{ visit.id }} | Printed on: {{ visit.prescription_notes_generated_at }}</p>
+        </div>
+    </div>
+</body>
+</html>

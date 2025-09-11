@@ -1,186 +1,767 @@
 {% extends 'receptionist_template/base_template.html' %}
-{% block title %}Discharge Notes{% endblock title %}
 {% load static %}
+
+{% block title %}
+Premium Discharge Notes Management
+{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h4 class="page-title-premium mb-0 text-uppercase">Premium Discharge Notes</h4>
+    <a href="{% url 'receptionist_dashboard' %}" class="btn discharge-prem-btn-action">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock page_title %}
+
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>Comprehensive Discharge Notes Overview</span>
+    <span class="badge discharge-prem-badge-primary">Total: {{ discharge_notes|length }}</span>
+</div>
 {% endblock breadcrumb %}
 
 {% block main_content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">All Discharge Notes</h6>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-              <thead>
-                <tr>
-                  <th>Patient</th>                                                
-                  <th>Discharge Condition</th>                              
-                  <th>Data Recorder</th>                              
-                  <th>Date</th>                            
-                  <th>Time</th>
-                  <th>Discharge Status</th> <!-- ✅ New column -->
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for discharge_note in discharge_notes %}
-                <tr>
-                  <td>{{ discharge_note.patient }}</td>                                                     
-                  <td>{{ discharge_note.discharge_condition }}</td>
-                  <td>
-                    <b style="color: blue;" class="text-capitalize">
-                      {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
-                    </b> 
-                    <span class="text-muted">{{ discharge_note.data_recorder }}</span>
-                  </td>                          
-                  <td>{{ discharge_note.discharge_date|date:"d-m-Y" }}</td>                          
-                  <td>{{ discharge_note.discharge_date|date:"H:i" }}</td>
-                   <td>
-                    {% if discharge_note.discharge_notes %}
-                        <span class="badge badge-success">Available</span>
-                    {% else %}
-                        <span class="badge badge-warning">Pending</span>
-                    {% endif %}
-                </td>
-                  <td>
-                    {% if discharge_note.discharge_notes %}
-                        <!-- Button to open View Modal -->
-                        <button class="btn btn-info" data-toggle="modal" data-target="#dischargeModal{{ discharge_note.id }}">
-                            View
-                        </button>
+<style>
+    /* Premium styling for discharge notes */
+    .discharge-prem-gradient {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(93, 64, 55, 0.15);
+        border: none;
+    }
+    
+    .discharge-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .discharge-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .discharge-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .discharge-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #EFEBE9, #D7CCC8);
+        color: #4E342E;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BCAAA4;
+    }
+    
+    .discharge-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .discharge-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #5D4037;
+        margin-bottom: 0.5rem;
+    }
+    
+    .discharge-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .discharge-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .discharge-prem-table th {
+        background: linear-gradient(120deg, #EFEBE9, #D7CCC8);
+        color: #4E342E;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .discharge-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #EFEBE9;
+    }
+    
+    .discharge-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .discharge-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(93, 64, 55, 0.1);
+        background: #EFEBE9;
+    }
+    
+    .discharge-prem-btn-action {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(93, 64, 55, 0.2);
+        margin: 2px;
+    }
+    
+    .discharge-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(93, 64, 55, 0.3);
+        color: white;
+    }
+    
+    .discharge-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .discharge-prem-badge-primary {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        color: white;
+    }
+    
+    .discharge-prem-badge-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .discharge-prem-badge-warning {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+    }
+    
+    .discharge-prem-badge-danger {
+        background: linear-gradient(120deg, #f44336, #d32f2f);
+        color: white;
+    }
+    
+    .discharge-prem-badge-info {
+        background: linear-gradient(120deg, #2196F3, #1976D2);
+        color: white;
+    }
+    
+    .discharge-prem-filter-bar {
+        background: linear-gradient(120deg, #EFEBE9, #D7CCC8);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #4E342E;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .page-title-premium {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    @keyframes dischargePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .discharge-prem-animated {
+        animation: dischargePremFadeIn 0.5s ease forwards;
+    }
+    
+    .discharge-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .discharge-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .discharge-prem-flip-card:hover .discharge-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .discharge-prem-flip-card-front, .discharge-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .discharge-prem-flip-card-front {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        color: white;
+    }
+    
+    .discharge-prem-flip-card-back {
+        background: linear-gradient(120deg, #8D6E63, #5D4037);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .discharge-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .discharge-status-available {
+        background: linear-gradient(120deg, #E8F5E9, #C8E6C9) !important;
+    }
+    
+    .discharge-status-pending {
+        background: linear-gradient(120deg, #FFF8E1, #FFECB3) !important;
+    }
+    
+    .discharge-modal-header {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        color: white;
+        border-bottom: none;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .discharge-modal-header .close {
+        color: white;
+        opacity: 0.8;
+    }
+    
+    .discharge-modal-header .close:hover {
+        opacity: 1;
+    }
+    
+    .discharge-modal-section {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    
+    .discharge-modal-section-header {
+        background: linear-gradient(120deg, #EFEBE9, #D7CCC8);
+        color: #4E342E;
+        font-weight: 600;
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #BCAAA4;
+    }
+    
+    .discharge-modal-section-body {
+        padding: 1.2rem;
+        background: white;
+    }
+    
+    .discharge-detail-label {
+        font-weight: 600;
+        color: #4E342E;
+        min-width: 120px;
+        display: inline-block;
+    }
+    
+    .discharge-detail-value {
+        color: #424242;
+    }
+    
+    .discharge-notes-content {
+        line-height: 1.6;
+        text-align: justify;
+    }
+    
+    .discharge-footer-details {
+        background: #F5F5F5;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .discharge-footer-label {
+        font-weight: 600;
+        color: #4E342E;
+        font-size: 0.85rem;
+    }
+    
+    .discharge-footer-value {
+        color: #424242;
+        font-size: 0.85rem;
+    }
+</style>
 
-                    {% else %}
-                        <!-- Disabled buttons if result is missing -->
-                        <button class="btn btn-info" disabled>View</button>                                     
-                    {% endif %}
-                </td>
-                </tr>
-                {% endfor %}
-              </tbody>                   
-            </table>
-          </div>
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card discharge-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-file-medical-alt mr-2"></i>Total Discharges</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="discharge-prem-summary-value" id="total-discharges">{{ discharge_notes|length }}</div>
+                    <div class="discharge-prem-summary-label">All Discharge Notes</div>
+                </div>
+            </div>
         </div>
-      </div>
+        <div class="col-md-3">
+            <div class="card discharge-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Completed</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="discharge-prem-summary-value" id="completed-count">0</div>
+                    <div class="discharge-prem-summary-label">Notes Available</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card discharge-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Pending</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="discharge-prem-summary-value" id="pending-count">0</div>
+                    <div class="discharge-prem-summary-label">Notes Pending</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="discharge-prem-flip-card">
+                <div class="discharge-prem-flip-card-inner">
+                    <div class="discharge-prem-flip-card-front">
+                        <div class="discharge-prem-flip-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>Discharge Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="discharge-prem-flip-card-back">
+                        <div class="discharge-prem-flip-icon">
+                            <i class="fas fa-hospital-user"></i>
+                        </div>
+                        <h4>Discharge Insights</h4>
+                        <p>Professional discharge tracking</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+    
+    <!-- Filter Bar -->
+    <div class="discharge-prem-filter-bar">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search discharges by patient, condition, or recorder..." id="dischargeSearch">
+                    <div class="input-group-append">
+                        <button class="btn discharge-prem-btn-action" type="button" id="searchButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-end">
+                    <span class="filter-section-label">Status:</span>
+                    <select class="form-control ml-2" style="width: auto;" id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="available">Notes Available</option>
+                        <option value="pending">Notes Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="button" id="clearFilters" class="btn discharge-prem-btn-action btn-block">
+                    <i class="fas fa-eraser mr-1"></i> Clear Filters
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" id="exportButton" class="btn discharge-prem-btn-action btn-block">
+                    <i class="fas fa-download mr-1"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card discharge-prem-gradient shadow-lg">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-white"><i class="fas fa-file-medical-alt mr-2"></i>Premium Discharge Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive discharge-prem-table-container">
+                        <table class="table table-hover text-nowrap discharge-prem-table" id="dischargeTable">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>                                                
+                                    <th>Discharge Condition</th>                              
+                                    <th>Data Recorder</th>                              
+                                    <th>Date</th>                            
+                                    <th>Time</th>
+                                    <th>Discharge Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for discharge_note in discharge_notes %}
+                                <tr class="{% if discharge_note.discharge_notes %}discharge-status-available{% else %}discharge-status-pending{% endif %}">
+                                    <td>
+                                        <span class="discharge-prem-badge discharge-prem-badge-primary">
+                                            {{ discharge_note.patient }}
+                                        </span>
+                                    </td>                                                     
+                                    <td>{{ discharge_note.discharge_condition }}</td>
+                                    <td>
+                                        <b style="color: #5D4037;" class="text-capitalize">
+                                            {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
+                                        </b> 
+                                        <span class="text-muted">{{ discharge_note.data_recorder }}</span>
+                                    </td>                          
+                                    <td>{{ discharge_note.discharge_date|date:"d M Y" }}</td>                          
+                                    <td>{{ discharge_note.discharge_date|date:"H:i" }}</td>
+                                    <td>
+                                        {% if discharge_note.discharge_notes %}
+                                            <span class="discharge-prem-badge discharge-prem-badge-success">Available</span>
+                                        {% else %}
+                                            <span class="discharge-prem-badge discharge-prem-badge-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if discharge_note.discharge_notes %}
+                                            <button class="btn discharge-prem-btn-action btn-sm" data-toggle="modal" data-target="#dischargeModal{{ discharge_note.id }}">
+                                                <i class="fas fa-eye mr-1"></i> View
+                                            </button>
+                                        {% else %}
+                                            <button class="btn discharge-prem-btn-action btn-sm" disabled>
+                                                <i class="fas fa-eye mr-1"></i> View
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>                   
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
- {% for discharge_note in discharge_notes %}
+{% for discharge_note in discharge_notes %}
     {% if discharge_note.discharge_notes %}
         <!-- Bootstrap Modal for Discharge Note -->
         <div class="modal fade" id="dischargeModal{{ discharge_note.id }}" tabindex="-1" role="dialog" aria-labelledby="dischargeModalLabel{{ discharge_note.id }}" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="dischargeModalLabel{{ discharge_note.id }}">
-                    {{ discharge_note.patient.full_name }} - Discharge Note
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                </div>
-
-                <div class="modal-body">
-                <div class="container-fluid">
-
-                    <!-- Header Image -->
-                    <header class="header mb-3">
-                    <div class="row">
-                        <div class="col-12">
-                        <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
-                        </div>
-                    </div>
-                    </header>
-
-                    <!-- Patient Details Section -->
-                    <div class="row mt-1">
-                    <div class="col-md-12">
-                        <div class="card">
-                        <div class="card-header bg-dark text-white">
-                            <h6 class="mb-0 text-uppercase">Patient Details</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-borderless table-sm">
-                            <tbody>
-                                <tr>
-                                <td>PATIENT: <b>{{ discharge_note.patient }}</b></td>
-                                <td>DOB: <b>{{ discharge_note.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ discharge_note.patient.age }}</b>]</td>
-                                <td>SEX: <b>{{ discharge_note.patient.gender }}</b></td>
-                                <td>FILE NO: <b>{{ discharge_note.patient.mrn }}</b></td>
-                                </tr>
-                                <tr>
-                                <td>Payment Form: 
-                                    <b>
-                                    {% if discharge_note.patient.payment_form == "Insurance" %}
-                                        {{ discharge_note.patient.payment_form }} - {{ discharge_note.patient.insurance_name }}
-                                    {% else %}
-                                        {{ discharge_note.patient.payment_form }}
-                                    {% endif %}
-                                    </b>
-                                </td>
-                                <td>Visit Number: <b>{{ discharge_note.visit.vst }}</b></td>
-                                </tr>
-                            </tbody>
-                            </table>
-                        </div>
-                        </div>
-                    </div>
+                <div class="modal-content">
+                    <div class="modal-header discharge-modal-header">
+                        <h5 class="modal-title" id="dischargeModalLabel{{ discharge_note.id }}">
+                            <i class="fas fa-file-medical mr-2"></i>{{ discharge_note.patient.full_name }} - Discharge Note
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
 
-                    <!-- Discharge Condition Section -->
-                    <div class="row mt-3">
-                    <div class="col-md-12">
-                        <div class="card">
-                        <div class="card-header bg-secondary text-white">
-                            <h6 class="mb-0 text-uppercase">Discharge Condition</h6>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-justify">{{ discharge_note.discharge_condition }}</p>
-                            <p class="text-justify">{{ discharge_note.discharge_notes|safe }}</p>
-                        </div>
-                        <div class="card-footer text-muted">
-                            <div class="row">
-                            <div class="col-md-5">
-                                <strong>Discharged By:</strong>
-                                <b class="text-capitalize" style="color: blue;">
-                                {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
-                                </b>
-                                <span class="text-muted">{{ discharge_note.data_recorder }}</span>
+                    <div class="modal-body">
+                        <div class="container-fluid">
+
+                            <!-- Header Image -->
+                            <header class="header mb-3">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+                                    </div>
+                                </div>
+                            </header>
+
+                            <!-- Patient Details Section -->
+                            <div class="discharge-modal-section">
+                                <div class="discharge-modal-section-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+                                </div>
+                                <div class="discharge-modal-section-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">Patient:</span>
+                                            <span class="discharge-detail-value"><b>{{ discharge_note.patient }}</b></span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">DOB:</span>
+                                            <span class="discharge-detail-value"><b>{{ discharge_note.patient.dob|date:'d M Y' }}</b> [Age: <b>{{ discharge_note.patient.age }}</b>]</span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">Sex:</span>
+                                            <span class="discharge-detail-value"><b>{{ discharge_note.patient.gender }}</b></span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">File No:</span>
+                                            <span class="discharge-detail-value"><b>{{ discharge_note.patient.mrn }}</b></span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">Payment Form:</span>
+                                            <span class="discharge-detail-value">
+                                                <b>
+                                                    {% if discharge_note.patient.payment_form == "Insurance" %}
+                                                        {{ discharge_note.patient.payment_form }} - {{ discharge_note.patient.insurance_name }}
+                                                    {% else %}
+                                                        {{ discharge_note.patient.payment_form }}
+                                                    {% endif %}
+                                                </b>
+                                            </span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <span class="discharge-detail-label">Visit Number:</span>
+                                            <span class="discharge-detail-value"><b>{{ discharge_note.visit.vst }}</b></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-3"><strong>Signature:</strong> {{ discharge_note.data_recorder.signature }}</div>
-                            <div class="col-md-2"><strong>Date:</strong> {{ discharge_note.discharge_date|date:"d-m-Y" }}</div>
-                            <div class="col-md-2"><strong>MCT No:</strong> {{ discharge_note.data_recorder.mct_number }}</div>
+
+                            <!-- Discharge Condition Section -->
+                            <div class="discharge-modal-section">
+                                <div class="discharge-modal-section-header">
+                                    <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Discharge Condition</h6>
+                                </div>
+                                <div class="discharge-modal-section-body">
+                                    <div class="discharge-notes-content">
+                                        <p><strong>Condition:</strong> {{ discharge_note.discharge_condition }}</p>
+                                        {{ discharge_note.discharge_notes|safe }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
 
-                    <!-- Download PDF Button -->
-                    <div class="row mt-3">
-                    <div class="col-md-12 text-right">
-                        <a href="{% url 'receptionist_download_discharge_pdf' discharge_note.patient.id discharge_note.visit.id %}"
-                        class="btn btn-outline-secondary btn-sm" target="_blank">
-                        <i class="fa fa-download"></i> Download PDF
-                        </a>
-                    </div>
-                    </div>
+                            <!-- Footer Details -->
+                            <div class="discharge-footer-details">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        <div class="discharge-footer-label">Discharged By:</div>
+                                        <div class="discharge-footer-value">
+                                            <b class="text-capitalize" style="color: #5D4037;">
+                                                {% if discharge_note.data_recorder.role == "doctor" %}Dr.{% else %}{{ discharge_note.data_recorder.role }}{% endif %}
+                                            </b>
+                                            {{ discharge_note.data_recorder }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <div class="discharge-footer-label">Signature:</div>
+                                        <div class="discharge-footer-value">{{ discharge_note.data_recorder.signature }}</div>
+                                    </div>
+                                    <div class="col-md-3 mb-2">
+                                        <div class="discharge-footer-label">Date:</div>
+                                        <div class="discharge-footer-value">{{ discharge_note.discharge_date|date:"d M Y" }}</div>
+                                    </div>
+                                    <div class="col-md-2 mb-2">
+                                        <div class="discharge-footer-label">MCT No:</div>
+                                        <div class="discharge-footer-value">{{ discharge_note.data_recorder.mct_number }}</div>
+                                    </div>
+                                </div>
+                            </div>
 
+                            <!-- Download PDF Button -->
+                            <div class="row mt-3">
+                                <div class="col-md-12 text-right">
+                                    <a href="{% url 'receptionist_download_discharge_pdf' discharge_note.patient.id discharge_note.visit.id %}"
+                                        class="btn discharge-prem-btn-action" target="_blank">
+                                        <i class="fas fa-download mr-1"></i> Download PDF
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
-                </div>
-            </div>
             </div>
         </div>
-        {% endif %}
+    {% endif %}
 {% endfor %}
 
+<script>
+    // Initialize DataTable
+    new DataTable('#dischargeTable', {
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel mr-1"></i> Excel',
+                className: 'btn discharge-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf mr-1"></i> PDF',
+                className: 'btn discharge-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print mr-1"></i> Print',
+                className: 'btn discharge-prem-btn-action btn-sm'
+            }
+        ],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search discharges...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let completedCount = 0;
+        let pendingCount = 0;
+        
+        document.querySelectorAll('#dischargeTable tbody tr').forEach(row => {
+            const statusCell = row.cells[5];
+            
+            if (statusCell.textContent.includes('Available')) {
+                completedCount++;
+            } else if (statusCell.textContent.includes('Pending')) {
+                pendingCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('completed-count').textContent = completedCount;
+        document.getElementById('pending-count').textContent = pendingCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
 
+    // Search functionality
+    document.getElementById('dischargeSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterDischarges(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('dischargeSearch').value.toLowerCase();
+        filterDischarges(searchText);
+    });
+
+    // Status filter functionality
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        const statusValue = this.value;
+        filterDischargesByStatus(statusValue);
+    });
+
+    // Filter discharges by search text
+    function filterDischarges(searchText) {
+        const rows = document.querySelectorAll('#dischargeTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-discharges').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Filter discharges by status
+    function filterDischargesByStatus(statusValue) {
+        const rows = document.querySelectorAll('#dischargeTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const statusCell = row.cells[5];
+            const statusText = statusCell.textContent.toLowerCase().trim();
+            
+            let statusMatch = true;
+            if (statusValue === 'available') {
+                statusMatch = statusText.includes('available');
+            } else if (statusValue === 'pending') {
+                statusMatch = statusText.includes('pending');
+            }
+            
+            if (statusMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-discharges').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Clear filters
+    document.getElementById('clearFilters').addEventListener('click', function() {
+        document.getElementById('dischargeSearch').value = '';
+        document.getElementById('statusFilter').value = 'all';
+        
+        const rows = document.querySelectorAll('#dischargeTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-discharges').textContent = rows.length;
+        calculateSummaryStats();
+    });
+
+    // Export functionality
+    document.getElementById('exportButton').addEventListener('click', function() {
+        // Trigger the DataTable export to Excel
+        const buttons = document.querySelectorAll('.dt-button');
+        buttons.forEach(button => {
+            if (button.textContent.includes('Excel')) {
+                button.click();
+            }
+        });
+    });
+</script>
 
 {% include 'receptionist_template/datatable.html' %}   
 {% endblock main_content %}

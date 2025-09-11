@@ -1,70 +1,457 @@
 {% extends 'receptionist_template/base_template.html' %}
+{% load static %}
+{% load humanize %}
+
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Imaging   
+    {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Imaging
 {% endblock title %}
 
 {% block page_title %}
-
-    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
-    <i class="fas fa-arrow-left"></i> Back to health record
-    </a>  
-    <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
-    <i class="fas fa-arrow-left"></i>visit history
-</a>  
-
+    <div class="d-flex">
+        <a class="btn btn-prem-back btn-sm mr-2" href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Health Record
+        </a>
+        <a class="btn btn-prem-back btn-sm" href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Visit History
+        </a>
+    </div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
-{% include "receptionist_template/modal_form.html" %}
-Patient Imaging/Radiolgy
+    Patient Imaging/Radiology
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Imaging Order Styles */
+    .prem-imaging-gradient {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+    }
+    
+    .prem-imaging-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+    }
+    
+    .prem-patient-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-patient-card .card-header {
+        background: linear-gradient(120deg, #c5cae9, #9fa8da);
+        color: #283593;
+        font-weight: 600;
+        padding: 0.8rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-patient-card .card-body {
+        padding: 1.2rem;
+    }
+    
+    .prem-form-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-form-card .card-header {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-form-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-form-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-info-label {
+        font-size: 0.8rem;
+        color: #5c6bc0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .patient-info-value {
+        font-size: 0.9rem;
+        color: #1a237e;
+        font-weight: 600;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #5c6bc0, #7986cb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(92, 107, 192, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(92, 107, 192, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #3949ab, #3f51b5);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(57, 73, 171, 0.2);
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(57, 73, 171, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-add {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .form-section-title {
+        color: #283593;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #c5cae9;
+    }
+    
+    .prem-form-control {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-control:focus {
+        border-color: #3949ab;
+        box-shadow: 0 0 0 0.2rem rgba(57, 73, 171, 0.25);
+    }
+    
+    .prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    
+    .prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 0.75rem;
+        border-bottom: 2px solid #c5cae9;
+    }
+    
+    .prem-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e8eaf6;
+        vertical-align: middle;
+    }
+    
+    .prem-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .total-cost-display {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #283593;
+    }
+    
+    .paid-badge {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .unpaid-badge {
+        background: linear-gradient(120deg, #ff5252, #ff1744);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .info-alert {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        border-left: 5px solid #3949ab;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">                              
+            <div class="card prem-patient-card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Information</h6>
+                </div>
                 <div class="card-body">
-                    <div class="card">
-                        <div class="card-header">
-                            <label for="chief_complaints">Patient Information</label>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">PATIENT</div>
+                            <div class="patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
                         </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    PATIENT:    <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b>
-                                </div>
-                                <div class="col-md-3">
-                                    DOB:   <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                                        <script>
-                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                            var now = new Date();
-                                            var ageMilliseconds = now - dob;
-                                            var ageSeconds = ageMilliseconds / 1000;
-                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                            document.write(ageYears + ' years');
-                                        </script>
-                                        {% else %}
-                                        {{ patient.age }}
-                                        {% endif %}]</b> 
-                                </div>
-                                <div class="col-md-3">
-                                    SEX:   <b>{{ patient.gender }}</b>
-                                </div>
-                                <div class="col-md-3">
-                                    FILE NO:   <b>{{ patient.mrn }}</b>
-                                </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">DOB</div>
+                            <div class="patient-info-value">
+                                {{ patient.dob|date:'d-m-Y' }} 
+                                [Age: {% if patient.dob %}
+                                    <script>
+                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var ageMilliseconds = now - dob;
+                                        var ageSeconds = ageMilliseconds / 1000;
+                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                        document.write(ageYears + ' years');
+                                    </script>
+                                {% else %}
+                                    {{ patient.age }}
+                                {% endif %}]
                             </div>
-                            <br>
-                            <div class="row">
-                                 <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
-                                        {{ patient.payment_form }}- {{ patient.insurance_name }}   
-                                        {% else  %}   
-                                        {{ patient.payment_form }}                  
-                                    {% endif %}</b>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">SEX</div>
+                            <div class="patient-info-value">{{ patient.gender }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">FILE NO</div>
+                            <div class="patient-info-value">{{ patient.mrn }}</div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">PAYMENT MODE</div>
+                            <div class="patient-info-value">
+                                {% if patient.payment_form == "Insurance" %}
+                                    {{ patient.payment_form }} - {{ patient.insurance_name }}
+                                {% else %}
+                                    {{ patient.payment_form }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">VISIT NUMBER</div>
+                            <div class="patient-info-value">{{ visit.vst }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">ORDER STATUS</div>
+                            <div class="patient-info-value">
+                                {% if all_orders_paid %}
+                                    <span class="paid-badge">ALL ORDERS PAID</span>
+                                {% else %}
+                                    <span class="unpaid-badge">UNPAID ORDERS EXIST</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check if all orders are paid -->
+    {% if all_orders_paid %}
+    <!-- Display message that no more orders can be added -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="info-alert">
+                <h5 class="text-premium"><i class="fas fa-info-circle mr-2"></i>Imaging Orders Fully Paid</h5>
+                <p class="mb-0">All imaging orders for this visit have been paid. To add new imaging services, please create a new visit for the patient.</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Imaging Order Form -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prem-imaging-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-x-ray mr-2"></i>
+                            Request Imaging Services
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card prem-form-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Add Imaging Services</h6>
                                 </div>
-                                <div class="col-md-3">
-                                    Visit Number:     <b>{{ visit.vst }}</b>
+                                <div class="card-body">
+                                    <form id="addImagingForm" method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        
+                                        <h5 class="form-section-title"><i class="fas fa-list mr-2"></i>Imaging Services</h5>
+                                        <div class="table-responsive">
+                                            <table class="table prem-table" id="imagingTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Imaging Name</th>
+                                                        <th>Description</th>                                   
+                                                        <th>Cost (TZS)</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <select class="form-control select2bs4 imaging-name prem-form-control" style="width: 100%;" name="imaging_name[]" required>
+                                                                <option value="">Select Imaging</option>
+                                                                {% for imaging in remote_service %}
+                                                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" class="form-control description prem-form-control" name="description[]" placeholder="Enter imaging description">
+                                                        </td>                                       
+                                                        <td>
+                                                            <input type="text" class="form-control cost prem-form-control" name="cost[]" readonly>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-sm btn-danger delete-row">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Total Cost -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-9"></div>
+                                            <div class="col-md-3">
+                                                <div class="total-cost-display text-right">
+                                                    Total Cost: TZS <span id="totalCost">0.00</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Add Row Button -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-prem-add btn-block" id="addRow">
+                                                    <i class="fas fa-plus-square mr-2"></i> Add Another Imaging Service
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Response Area -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12">
+                                                <div id="imagingResponse"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                                        
+                                        <!-- Order Details -->
+                                        <h5 class="form-section-title mt-4"><i class="fas fa-calendar-alt mr-2"></i>Order Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label class="prem-form-label">Order Date</label>
+                                                    <input type="date" class="form-control prem-form-control total-cost" name="order_date" id="orderDate">
+                                                    <script>
+                                                        const currentDate = new Date().toISOString().split('T')[0];
+                                                        document.getElementById('orderDate').value = currentDate;
+                                                    </script>
+                                                </div>
+                                            </div>  
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="doctor" class="prem-form-label">Radiologist</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" name="doctor_id" id="doctor" required>                                     
+                                                        {% for doctor in doctors %}
+                                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>                            
+                                        </div>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-prem-action btn-block" onclick="addImaging()">
+                                                    <i class="fas fa-paper-plane mr-2"></i> Request Order & Process Payment
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -73,288 +460,218 @@ Patient Imaging/Radiolgy
             </div>
         </div>
     </div>
-    <div class="row">
+    {% endif %}
+    
+    <!-- Existing Imaging Orders -->
+    <div class="row mt-4">
         <div class="col-md-12">
-            <div class="card">
+            <div class="card prem-form-card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Imaging </h4>
+                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Existing Imaging Orders</h6>
                 </div>
                 <div class="card-body">
-                    <form id="addImagingForm" method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="imagingTable{{ visit.id }}">
-                                <thead>
-                                    <tr>
-                                        <th>Imaging Name</th>
-                                        <th>Description</th>                                   
-                                        <th>Cost</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" name="imaging_name[]" required>
-                                                <option value="">Select Imaging</option>
-                                                {% for imaging in remote_service %}
-                                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                                       
-                                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Total Cost -->
-                        <div class="row">
-                            <div class="col-md-9">
-                             
-                            </div>
-                            <div class="col-md-3">
-                                <div class="row">
-                                    <div class="col-md-6">Total Cost</div>
-                                    <div class="col-md-6">
-                                        Sh <span id="totalCost{{ visit.id }}">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div id="imagingResponse"></div>
-                            </div>
-                        </div>
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
-                        <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                        <!-- Save Procedure button -->
-                        <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Imaging</button>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Order Date</label>
-                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
-                                </div>
-                                <script>
-                                    // Get the current date in the format yyyy-mm-dd
-                                    const currentDate = new Date().toISOString().split('T')[0];
-                                    
-                                    // Set the value of the input field to the current date
-                                    document.getElementById('orderDate').value = currentDate;
-                                </script>
-                            </div>  
-                              <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="doctor">Doctor:</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" name="doctor_id" id="doctor" required>                                     
-                                        {% for doctor in doctors %}
-                                            <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                             </div>                            
-                           </div>
-                        <div class="form-group">
-                            <button type="button" class="btn btn-primary btn-block" onclick="addImaging()">Request Order & Pay</button>
-                        </div>
-                    </form>
+                    {% if imaging_orders %}
+                    <div class="table-responsive">
+                        <table class="table prem-table" id="imagingOrdersTable">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Imaging Name</th>
+                                    <th>Description</th>
+                                    <th>Cost (TZS)</th>
+                                    <th>Order Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in imaging_orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>{{ order.imagingrecord.description|default:"-" }}</td>
+                                    <td>{{ order.cost|intcomma }}</td>
+                                    <td>{{ order.order_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if order.status == 'Paid' %}
+                                            <span class="paid-badge">{{ order.status }}</span>
+                                        {% else %}
+                                            <span class="unpaid-badge">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-right font-weight-bold">Total Cost:</td>
+                                    <td class="font-weight-bold">{{ total_imaging_cost|intcomma }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>No imaging orders found for this visit.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        $(document).ready(function() {
-
-            // Function to initialize Select2 dynamically
-            function initializeSelect2(selector) {
-                $(selector).select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
-            }
-            // Add row button functionality            
-            $('#addRow{{ visit.id }}').click(function() {
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 imaging-name" style="width: 100%;" name="imaging_name[]" required>
-                                <option value="">Select Procedure</option>
-                                {% for imaging in remote_service %}
-                                    <option value="{{ imaging.id }}">{{ imaging.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter imaging description"></td>                       
-                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                $('#imagingTable{{ visit.id }} tbody').append(newRow);
-                   initializeSelect2('.select2bs4');
-            });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-                updateTotalCost{{ visit.id }}();
-            });
-    
-                        // Fetch cost when procedure name is selected
-                $(document).on('change', '.imaging-name', function() {
-                    var selectedProcedureId = $(this).val();
-                    var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
-                    var row = $(this).closest('tr');
-                    $.ajax({
-                        url: '{% url "receptionist_get_procedure_cost" %}',
-                        method: 'POST',
-                        data: {
-                            procedure_id: selectedProcedureId,
-                            patient_id: patientId // Include patient ID in the POST data
-                        },
-                        success: function(response) {
-                            row.find('.cost').val(response.cost);
-                            updateTotalCost{{ visit.id }}();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error(xhr.responseText);
-                        }
-                    });
-                });
-            // Function to update total cost
-            function updateTotalCost{{ visit.id }}() {
-                var totalCost = 0;
-                $('#imagingTable{{ visit.id }} tbody tr').each(function() {
-                    var cost = parseFloat($(this).find('.cost').val());
-                    if (!isNaN(cost)) {
-                        totalCost += cost;
-                    }
-                });
-                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
-            }
-        });
-    
-        // Handle form submission using AJAX
-        function addImaging() {
-            $.ajax({
-                type: 'POST',
-                url: '{% url "receptionist_add_imaging" %}',
-                data: $('#addImagingForm').serialize(),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        $('#imagingResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "receptionist_all_orders_view" %}';
-                        window.location.href = redirectUrl;
-                    } else {
-                        $('#imagingResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    $('#imagingResponse').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
-                }
-            });
-        }
-    </script>
-    
 </div>
 
-<!-- display_imaging_records.html -->
-<div class="modal fade" id="imagingRecordsModal" tabindex="-1" aria-labelledby="imagingRecordsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title text-center text-uppercase" id="prescriptionModalLabel">Imaging Total cost: <span style="background-color: red;">{{ total_imaging_cost }}</span></h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-        </div>
-        <div class="modal-body">
-          <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table  class="table table-hover text-nowrap table-bordered table-striped" id="example4">
-                        <thead>
-                          <tr>
-                            <th>Image Name</th>
-                            <th>Description</th>                           
-                            <th>Cost</th>
-                            <th>Date</th> <!-- New column -->
-                            <!-- Add more columns as needed -->
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for record in imaging_records %}
-                          <tr>
-                            <td>{{ record.imaging.name }}</td>
-                            <td>{{ record.description }}</td>                            
-                            <td>{{ record.cost }}</td>
-                            <td>{{ record.created_at|date:"F d, Y" }}</td> <!-- Display date -->
-                            <!-- Add more columns as needed -->
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
-
-
-
-{% include 'receptionist_template/datatable.html' %}
-    
-
 {% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        $('.select2bs4').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+        });
+        
+        // Initialize DataTable for imaging orders
+        $('#imagingOrdersTable').DataTable({
+            "order": [[4, "desc"]],
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "pageLength": 10,
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search records..."
+            }
+        });
+        
+        {% if not all_orders_paid %}
+        // Add row button functionality            
+        $('#addRow').click(function() {
+            var newRow = `
+                <tr>
+                    <td>
+                        <select class="form-control select2bs4 imaging-name prem-form-control" style="width: 100%;" name="imaging_name[]" required>
+                            <option value="">Select Imaging</option>
+                            {% for imaging in remote_service %}
+                                <option value="{{ imaging.id }}">{{ imaging.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control description prem-form-control" name="description[]" placeholder="Enter imaging description">
+                    </td>                       
+                    <td>
+                        <input type="text" class="form-control cost prem-form-control" name="cost[]" readonly>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger delete-row">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            $('#imagingTable tbody').append(newRow);
+            
+            // Initialize Select2 for the new row
+            $('#imagingTable tr:last .select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+            });
+        });
+
+        // Delete row button functionality
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+            updateTotalCost();
+        });
+
+        // Fetch cost when imaging name is selected
+        $(document).on('change', '.imaging-name', function() {
+            var selectedImagingId = $(this).val();
+            var patientId = $('#patient_id').val();
+            var row = $(this).closest('tr');
+            
+            if (selectedImagingId) {
+                $.ajax({
+                    url: '{% url "receptionist_get_procedure_cost" %}',
+                    method: 'POST',
+                    data: {
+                        procedure_id: selectedImagingId,
+                        patient_id: patientId,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.cost) {
+                            row.find('.cost').val(response.cost);
+                            updateTotalCost();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            } else {
+                row.find('.cost').val('');
+                updateTotalCost();
+            }
+        });
+
+        // Function to update total cost
+        function updateTotalCost() {
+            var totalCost = 0;
+            $('#imagingTable tbody tr').each(function() {
+                var cost = parseFloat($(this).find('.cost').val()) || 0;
+                totalCost += cost;
+            });
+            $('#totalCost').text(totalCost.toFixed(2));
+        }
+        
+        // Initialize total cost
+        updateTotalCost();
+        {% endif %}
+    });
+
+    {% if not all_orders_paid %}
+    // Handle form submission using AJAX
+    function addImaging() {
+        // Validate form
+        var isValid = true;
+        $('#imagingTable tbody tr').each(function() {
+            var imagingSelect = $(this).find('.imaging-name');
+            if (!imagingSelect.val()) {
+                isValid = false;
+                imagingSelect.addClass('is-invalid');
+            } else {
+                imagingSelect.removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            $('#imagingResponse').html('<div class="alert alert-danger">Please select an imaging service for all rows.</div>');
+            return;
+        }
+        
+        $.ajax({
+            type: 'POST',
+            url: '{% url "receptionist_add_imaging" %}',
+            data: $('#addImagingForm').serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#imagingResponse').html('<div class="alert alert-success">' + response.message + '</div>');
+                    // Reload the page after 2 seconds to show updated orders
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    $('#imagingResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#imagingResponse').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
+                console.error(xhr.responseText);
+            }
+        });
+    }
+    {% endif %}
+</script>
+{% endblock customer_js %}

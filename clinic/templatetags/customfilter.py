@@ -1,5 +1,7 @@
 from django import template
 
+from clinic.models import WalkInPrescription
+
 register = template.Library()
 
 @register.filter
@@ -8,6 +10,10 @@ def divide(value, arg):
         return round(value / arg, 2)
     except (ValueError, ZeroDivisionError):
         return 0
+
+@register.filter
+def filter_visit_type(queryset, visit_type):
+    return queryset.filter(visit_type=visit_type)
 
 @register.filter
 def replace_blank(value, string_val=""):
@@ -59,4 +65,95 @@ def attr(value, arg):
 
 @register.filter
 def get_item(dictionary, key):
-    return dictionary.get(key)    
+    return dictionary.get(key)   
+
+@register.filter
+def absolute(value):
+    try:
+        return abs(int(value))
+    except (ValueError, TypeError):
+        return value     
+
+@register.filter
+def div(value, arg):
+    try:
+        return float(value) / float(arg) if arg else 0
+    except (ValueError, TypeError):
+        return 0
+
+@register.filter
+def mul(value, arg):
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0        
+
+@register.filter
+def multiply(value, arg):
+    """Multiplies the value by the argument."""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return ''        
+
+@register.filter
+def div(value, arg):
+    """Divide value by arg safely."""
+    try:
+        return float(value) / float(arg) if arg else 0
+    except (ValueError, ZeroDivisionError):
+        return 0
+
+@register.filter
+def mul(value, arg):
+    """Multiply value by arg."""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0        
+
+@register.filter
+def heatmap_class(count):
+    if not count:
+        return 0
+    if count % 10 == 0:
+        return count
+    return count        
+
+@register.filter
+def get_range(start, end):
+    """
+    Usage: {{ some_number|get_range:end }}
+    Generates range(start, end).
+    Example: 3|get_range:6 → [3, 4, 5]
+    """
+    try:
+        return range(int(start), int(end))
+    except (ValueError, TypeError):
+        return []    
+
+@register.filter
+def bmi(weight, height_cm):
+    try:
+        height_m = height_cm / 100
+        return round(weight / (height_m ** 2), 1)
+    except (TypeError, ZeroDivisionError):
+        return None        
+
+@register.filter
+def map_attribute(objects, attr_name):
+    """Return a list of attribute values from a queryset or list of objects."""
+    return [getattr(obj, attr_name, None) for obj in objects]        
+
+@register.filter
+def unique(value_list):
+    return list(set(value_list))   
+
+@register.filter
+def get_visit_status(visit):
+    return WalkInPrescription.get_visit_status(visit)     
+
+@register.filter
+def filter_status(queryset, status):
+    """Filter appointments by status code."""
+    return queryset.filter(status=status)    

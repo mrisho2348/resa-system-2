@@ -1,0 +1,1219 @@
+{% extends 'kahama_template/base_template.html' %}
+{% load static %}
+{% block title %}
+Premium Observation Notes Management
+{% endblock title %}
+{% block breadcrumb %}
+{% include "kahama_template/modal_form.html" %}
+{% endblock breadcrumb %}
+{% block main_content %}
+<style>
+    /* Premium Observation Styles - Unique to this template */
+    .obs-prem-gradient {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(44, 62, 80, 0.15);
+        border: none;
+    }
+    
+    .obs-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .obs-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .obs-prem-table th {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .obs-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #ecf0f1;
+    }
+    
+    .obs-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .obs-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.1);
+        background: #f8fafc;
+    }
+    
+    .btn-prem-obs {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.2);
+    }
+    
+    .btn-prem-obs:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-obs-view {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+    }
+    
+    .btn-prem-obs-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+        color: white;
+    }
+    
+    .obs-prem-modal-header {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .obs-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .obs-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .obs-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #ecf0f1, #3498db);
+        color: #2c3e50;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #3498db;
+    }
+    
+    .obs-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .obs-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .obs-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .obs-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .obs-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .obs-prem-filter-bar {
+        background: linear-gradient(120deg, #ecf0f1, #3498db);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .obs-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .obs-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .obs-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .obs-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+    }
+    
+    .obs-prem-status-btn[data-status="recent"] {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+    }
+    
+    /* Status-specific badge colors */
+    .badge-obs-available {
+        background: linear-gradient(120deg, #3498db, #5dade2);
+        color: white;
+    }
+    
+    .badge-obs-pending {
+        background: linear-gradient(120deg, #f39c12, #f5b041);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes obsPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .obs-prem-animated {
+        animation: obsPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .obs-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .obs-prem-flip-card:hover .obs-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .obs-prem-flip-card-front, .obs-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .obs-prem-flip-card-front {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+    }
+    
+    .obs-prem-flip-card-back {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .obs-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Custom modal styling */
+    .obs-prem-modal-xl {
+        max-width: 90%;
+    }
+    
+    .obs-prem-modal-header-img {
+        height: 120px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    /* Timeline styling */
+    .obs-prem-timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .obs-prem-timeline::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 100%;
+        background: linear-gradient(to bottom, #2c3e50, #3498db);
+        transform: translateX(-50%);
+    }
+    
+    .obs-prem-timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+        width: 50%;
+        padding: 0 40px;
+        box-sizing: border-box;
+    }
+    
+    .obs-prem-timeline-item:nth-child(odd) {
+        left: 0;
+        text-align: right;
+    }
+    
+    .obs-prem-timeline-item:nth-child(even) {
+        left: 50%;
+    }
+    
+    .obs-prem-timeline-content {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    
+    .obs-prem-timeline-content::after {
+        content: '';
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        background: #2c3e50;
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .obs-prem-timeline-item:nth-child(odd) .obs-prem-timeline-content::after {
+        right: -52.5px;
+    }
+    
+    .obs-prem-timeline-item:nth-child(even) .obs-prem-timeline-content::after {
+        left: -52.5px;
+    }
+    
+    /* Health metrics visualization */
+    .obs-prem-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-metric-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .obs-prem-metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .obs-prem-metric-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .obs-prem-metric-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+    
+    /* Progress bar styling */
+    .obs-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+    
+    .obs-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(90deg, #2c3e50, #3498db);
+        transition: width 0.6s ease;
+    }
+    
+    /* Care team visualization */
+    .obs-prem-care-team {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-team-member {
+        flex: 1;
+        min-width: 120px;
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .obs-prem-team-member:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .obs-prem-team-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: white;
+        font-size: 1.2rem;
+    }
+    
+    .obs-prem-team-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+    
+    .obs-prem-team-role {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    /* Vital signs visualization */
+    .obs-prem-vitals {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-vital-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .obs-prem-vital-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .obs-prem-vital-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .obs-prem-vital-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+    
+    /* Treatment plan visualization */
+    .obs-prem-treatment-plan {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-treatment-header {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+    
+    .obs-prem-treatment-item {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    
+    .obs-prem-treatment-bullet {
+        width: 20px;
+        height: 20px;
+        background: #3498db;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: white;
+        font-size: 0.7rem;
+    }
+    
+    .obs-prem-treatment-content {
+        flex: 1;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card obs-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-stethoscope mr-2"></i>Premium Observation Notes Management</h5>
+                        <button class="btn btn-prem-obs" data-toggle="modal" data-target="#obsAnalyticsModal">
+                            <i class="fas fa-chart-line mr-1"></i> Analytics
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card obs-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-notes-medical mr-2"></i>Total Observations</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="obs-prem-summary-value" id="total-observations">{{ observation_records|length }}</div>
+                                    <div class="obs-prem-summary-label">All Records</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card obs-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients Observed</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="obs-prem-summary-value" id="total-patients">0</div>
+                                    <div class="obs-prem-summary-label">Unique Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card obs-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Notes Completed</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="obs-prem-summary-value" id="completed-notes">0</div>
+                                    <div class="obs-prem-summary-label">With Observation Notes</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="obs-prem-flip-card">
+                                <div class="obs-prem-flip-card-inner">
+                                    <div class="obs-prem-flip-card-front">
+                                        <div class="obs-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Observation Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="obs-prem-flip-card-back">
+                                        <div class="obs-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Health Metrics</h4>
+                                        <p>Advanced tracking & insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="obs-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="obs-prem-status-filter">
+                                <button class="obs-prem-status-btn active" data-status="all">All Records</button>
+                                <button class="obs-prem-status-btn" data-status="available">Notes Available</button>
+                                <button class="obs-prem-status-btn" data-status="pending">Notes Pending</button>
+                                <button class="obs-prem-status-btn" data-status="recent">Recent (7 days)</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search observations..." id="obsPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-obs" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive obs-prem-table-container">
+                        <table class="table table-hover text-nowrap obs-prem-table" id="obsTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Status</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for observation_record in observation_records %}
+                                    <tr data-date="{{ observation_record.created_at|date:'Y-m-d' }}" data-status="{% if observation_record.observation_notes %}available{% else %}pending{% endif %}">
+                                        <td>{{ observation_record.patient }}</td>
+                                        <td>
+                                            <b class="text-capitalize" style="color: #2c3e50;">
+                                                {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
+                                            </b> 
+                                            <span class="text-muted">{{ observation_record.data_recorder }}</span>
+                                        </td>
+                                        <td>{{ observation_record.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ observation_record.created_at|time:"H:i" }}</td>
+                                        <td>
+                                            {% if observation_record.observation_notes %}
+                                                <span class="obs-prem-badge badge-obs-available">
+                                                    Available
+                                                </span>
+                                            {% else %}
+                                                <span class="obs-prem-badge badge-obs-pending">
+                                                    Pending
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">  
+                                            {% if observation_record.observation_notes %}
+                                            <button type="button" class="btn btn-prem-obs-view" data-toggle="modal" data-target="#viewModal{{ observation_record.id }}">
+                                                <i class="fas fa-eye"></i> View Details
+                                            </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-prem-obs-view" disabled>
+                                                <i class="fas fa-eye-slash"></i> No Details
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="obsAnalyticsModal" tabindex="-1" role="dialog" aria-labelledby="obsAnalyticsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content obs-prem-modal-content">
+      <div class="modal-header obs-prem-modal-header">
+        <h5 class="modal-title text-white" id="obsAnalyticsModalLabel"><i class="fas fa-chart-line mr-2"></i>Observation Analytics</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card obs-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Observation Trends</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="obsTrendChart" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card obs-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Staff Activity</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="staffActivityChart" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="card obs-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Observation Types</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="obsTypeChart" height="150"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-prem-obs" id="exportAnalytics">
+          <i class="fas fa-download mr-2"></i> Export Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Observation Modals -->
+{% for observation_record in observation_records %}
+  {% if observation_record.observation_notes %}
+    <!-- Bootstrap Modal for Observation Record -->
+    <div class="modal fade" id="viewModal{{ observation_record.id }}" tabindex="-1" role="dialog" aria-labelledby="viewModalLabel{{ observation_record.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable obs-prem-modal-xl" role="document">
+        <div class="modal-content obs-prem-modal-content">
+          <div class="modal-header obs-prem-modal-header">
+            <h5 class="modal-title text-white" id="viewModalLabel{{ observation_record.id }}">Observation Details</h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="container-fluid">
+
+              <!-- Header Image -->
+              <header class="header mb-3">
+                <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image">
+              </header>
+
+              <!-- Patient Info -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <p><strong>Patient:</strong><br>{{ observation_record.patient }}</p>
+                    </div>
+                    <div class="col-md-2">
+                      <p><strong>DOB:</strong><br>{{ observation_record.patient.dob|date:'d-m-Y' }}</p>
+                    </div>
+                    <div class="col-md-2">
+                      <p><strong>Gender:</strong><br>{{ observation_record.patient.gender }}</p>
+                    </div>
+                    <div class="col-md-2">
+                      <p><strong>File No:</strong><br>{{ observation_record.patient.mrn }}</p>
+                    </div>
+                    <div class="col-md-3">
+                      <p><strong>Visit Number:</strong><br>{{ observation_record.visit.vst }}</p>
+                    </div>
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col-md-12">
+                      <p><strong>Payment Form:</strong> {{ observation_record.patient.company }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Health Metrics Visualization -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-heartbeat mr-2"></i>Health Metrics</h6>
+                </div>
+                <div class="card-body">
+                  <div class="obs-prem-metrics">
+                    <div class="obs-prem-metric-card">
+                      <div class="obs-prem-metric-value">120/80</div>
+                      <div class="obs-prem-metric-label">Blood Pressure</div>
+                    </div>
+                    <div class="obs-prem-metric-card">
+                      <div class="obs-prem-metric-value">72</div>
+                      <div class="obs-prem-metric-label">Heart Rate</div>
+                    </div>
+                    <div class="obs-prem-metric-card">
+                      <div class="obs-prem-metric-value">98.6°F</div>
+                      <div class="obs-prem-metric-label">Temperature</div>
+                    </div>
+                    <div class="obs-prem-metric-card">
+                      <div class="obs-prem-metric-value">98%</div>
+                      <div class="obs-prem-metric-label">Oxygen Saturation</div>
+                    </div>
+                  </div>
+                  
+                  <div class="obs-prem-progress">
+                    <div class="obs-prem-progress-bar" style="width: 85%"></div>
+                  </div>
+                  <div class="text-center">
+                    <small class="text-muted">Overall Health Status: 85%</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Vital Signs Visualization -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-stethoscope mr-2"></i>Vital Signs</h6>
+                </div>
+                <div class="card-body">
+                  <div class="obs-prem-vitals">
+                    <div class="obs-prem-vital-card">
+                      <div class="obs-prem-vital-value">36.5°C</div>
+                      <div class="obs-prem-vital-label">Temperature</div>
+                    </div>
+                    <div class="obs-prem-vital-card">
+                      <div class="obs-prem-vital-value">72 bpm</div>
+                      <div class="obs-prem-vital-label">Pulse Rate</div>
+                    </div>
+                    <div class="obs-prem-vital-card">
+                      <div class="obs-prem-vital-value">16/min</div>
+                      <div class="obs-prem-vital-label">Respiration</div>
+                    </div>
+                    <div class="obs-prem-vital-card">
+                      <div class="obs-prem-vital-value">120/80</div>
+                      <div class="obs-prem-vital-label">Blood Pressure</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Care Team Visualization -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-users mr-2"></i>Care Team</h6>
+                </div>
+                <div class="card-body">
+                  <div class="obs-prem-care-team">
+                    <div class="obs-prem-team-member">
+                      <div class="obs-prem-team-avatar">
+                        <i class="fas fa-user-md"></i>
+                      </div>
+                      <div class="obs-prem-team-name">Dr. {{ observation_record.data_recorder }}</div>
+                      <div class="obs-prem-team-role">Observer</div>
+                    </div>
+                    <div class="obs-prem-team-member">
+                      <div class="obs-prem-team-avatar">
+                        <i class="fas fa-user-nurse"></i>
+                      </div>
+                      <div class="obs-prem-team-name">Nurse Smith</div>
+                      <div class="obs-prem-team-role">Support</div>
+                    </div>
+                    <div class="obs-prem-team-member">
+                      <div class="obs-prem-team-avatar">
+                        <i class="fas fa-stethoscope"></i>
+                      </div>
+                      <div class="obs-prem-team-name">Dr. Williams</div>
+                      <div class="obs-prem-team-role">Physician</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Observation Timeline -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-history mr-2"></i>Observation Timeline</h6>
+                </div>
+                <div class="card-body">
+                  <div class="obs-prem-timeline">
+                    <div class="obs-prem-timeline-item">
+                      <div class="obs-prem-timeline-content">
+                        <h6>Initial Assessment</h6>
+                        <p>{{ observation_record.visit.created_at|date:"d-m-Y H:i" }}</p>
+                        <small>Patient admitted for observation</small>
+                      </div>
+                    </div>
+                    <div class="obs-prem-timeline-item">
+                      <div class="obs-prem-timeline-content">
+                        <h6>Observation Period</h6>
+                        <p>4 hours</p>
+                        <small>Vitals monitored every 30 minutes</small>
+                      </div>
+                    </div>
+                    <div class="obs-prem-timeline-item">
+                      <div class="obs-prem-timeline-content">
+                        <h6>Observation Completed</h6>
+                        <p>{{ observation_record.created_at|date:"d-m-Y H:i" }}</p>
+                        <small>By: Dr. {{ observation_record.data_recorder }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Observation Notes Section -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-notes-medical mr-2"></i>Observation Notes</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-12">
+                      <p class="text-justify">{{ observation_record.observation_notes|safe }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <div class="row">
+                    <div class="col-md-5">
+                      <strong>Observed By:</strong>
+                      <b class="text-capitalize" style="color: #2c3e50;">
+                        {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
+                      </b>
+                      <span class="text-muted">{{ observation_record.data_recorder }}</span>
+                    </div>
+                    <div class="col-md-3"><strong>Signature:</strong> {{ observation_record.data_recorder.signature }}</div>
+                    <div class="col-md-2"><strong>Date:</strong> {{ observation_record.created_at|date:"d-m-Y" }}</div>
+                    <div class="col-md-2"><strong>MCT No:</strong> {{ observation_record.data_recorder.mct_number }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Treatment Plan -->
+              <div class="card mb-3 obs-prem-summary-card">
+                <div class="card-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-clipboard-list mr-2"></i>Treatment Plan</h6>
+                </div>
+                <div class="card-body">
+                  <div class="obs-prem-treatment-plan">
+                    <div class="obs-prem-treatment-header">Monitoring Plan</div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">1</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Vital signs</strong> every 4 hours
+                      </div>
+                    </div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">2</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Fluid intake/output</strong> monitoring
+                      </div>
+                    </div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">3</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Symptom assessment</strong> every shift
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="obs-prem-treatment-plan">
+                    <div class="obs-prem-treatment-header">Follow-up Plan</div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">1</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Doctor review</strong> in 24 hours
+                      </div>
+                    </div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">2</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Lab tests</strong> as ordered
+                      </div>
+                    </div>
+                    <div class="obs-prem-treatment-item">
+                      <div class="obs-prem-treatment-bullet">3</div>
+                      <div class="obs-prem-treatment-content">
+                        <strong>Patient education</strong> on condition management
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Optional PDF download -->
+              <div class="row mt-3">
+                <div class="col-md-12 text-right">
+                  <a href="{% url 'kahama_doctor_observation_download_pdf' observation_record.patient.id observation_record.visit.id %}" 
+                    class="btn btn-prem-obs">
+                    <i class="fa fa-download"></i> Download PDF Report
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+
+{% include 'kahama_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#obsTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search observations...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let uniquePatients = new Set();
+        let completedNotes = 0;
+        
+        document.querySelectorAll('#obsTable tbody tr').forEach(row => {
+            const patientName = row.cells[0].textContent.trim();
+            uniquePatients.add(patientName);
+            
+            const status = row.getAttribute('data-status');
+            if (status === 'available') {
+                completedNotes++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('total-patients').textContent = uniquePatients.size;
+        document.getElementById('completed-notes').textContent = completedNotes;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.obs-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.obs-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterObservationSessions(status);
+        });
+    });
+
+    // Filter observation sessions by status
+    function filterObservationSessions(status) {
+        const rows = document.querySelectorAll('#obsTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            let shouldShow = false;
+            
+            if (status === 'all') {
+                shouldShow = true;
+            } else if (status === 'recent') {
+                shouldShow = diffDays <= 7;
+            } else {
+                shouldShow = rowStatus === status;
+            }
+            
+            if (shouldShow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-observations').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('obsPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.obs-prem-status-btn.active').getAttribute('data-status');
+        
+        filterObservationWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('obsPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.obs-prem-status-btn.active').getAttribute('data-status');
+        
+        filterObservationWithSearch(activeStatus, searchText);
+    });
+
+    // Filter observation by both status and search text
+    function filterObservationWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#obsTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'recent') {
+                statusMatch = diffDays <= 7;
+            } else {
+                statusMatch = rowStatus === status;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-observations').textContent = visibleCount;
+    }
+
+    // Initialize analytics modal charts
+    $('#obsAnalyticsModal').on('shown.bs.modal', function () {
+        // Sample data for charts
+        const trendData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Observations',
+                data: [45, 52, 38, 41, 56, 63],
+                backgroundColor: '#3498db',
+                borderColor: '#2c3e50',
+                borderWidth: 2
+            }]
+        };
+        
+        const staffActivityData = {
+            labels: ['Dr. Smith', 'Dr. Johnson', 'Nurse Williams', 'Nurse Brown'],
+            datasets: [{
+                label: 'Observations Recorded',
+                data: [28, 22, 35, 18],
+                backgroundColor: ['#2c3e50', '#3498db', '#f39c12', '#27ae60']
+            }]
+        };
+        
+        const obsTypeData = {
+            labels: ['Routine', 'Post-Op', 'Critical', 'Follow-up'],
+            datasets: [{
+                label: 'Observation Types',
+                data: [60, 20, 10, 10],
+                backgroundColor: ['#2c3e50', '#3498db', '#e74c3c', '#f39c12']
+            }]
+        };
+        
+        // Create charts
+        new Chart(document.getElementById('obsTrendChart'), {
+            type: 'line',
+            data: trendData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        new Chart(document.getElementById('staffActivityChart'), {
+            type: 'bar',
+            data: staffActivityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        new Chart(document.getElementById('obsTypeChart'), {
+            type: 'doughnut',
+            data: obsTypeData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        });
+    });
+
+    // Initialize tooltips
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+    });
+</script>
+
+{% endblock main_content %}

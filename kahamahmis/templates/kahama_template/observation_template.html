@@ -4,170 +4,572 @@
 {% endblock title %}
 
 {% block page_title %}
-
-{% if record_exists.data_recorder == request.user.staff %}
-<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-{% endif %}
-{% if record_exists %}
-    <a class="btn btn-success breadcrumb-link" type="button" 
-    href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %} ">
-    <i class="fas fa-arrow-right"></i> Forward
+<div class="d-flex justify-content-between align-items-center">
+    {% if record_exists.data_recorder == request.user.staff %}
+    <a class="btn btn-prem-obs-nav" href="{% url 'kahama_doctor_consultation_save_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back
     </a>
-{% endif %}
+    {% endif %}
+    <h5 class="m-0 text-white">Patient Observation</h5>
+    {% if record_exists %}
+    <a class="btn btn-prem-obs-nav" href="{% url 'kahama_doctor_consultation_save' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+    {% endif %}
+</div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
 Patient Observation  
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Observation Styles - Unique to this template */
+    .obs-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .obs-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .obs-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .obs-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .obs-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .obs-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .obs-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-obs {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-obs:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-obs-nav {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        margin-right: 10px;
+    }
+    
+    .btn-prem-obs-nav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .obs-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .obs-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .obs-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .obs-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .obs-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .obs-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .obs-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .obs-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .obs-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .obs-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .obs-prem-flip-card:hover .obs-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .obs-prem-flip-card-front, .obs-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .obs-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .obs-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .obs-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes obsPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .obs-prem-animated {
+        animation: obsPremFadeIn 0.5s ease forwards;
+    }
+    
+    .obs-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .obs-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+    }
+    
+    .obs-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+    }
+    
+    /* Form section styling */
+    .obs-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0f7fa;
+    }
+    
+    /* Patient info card styling */
+    .obs-prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .obs-prem-patient-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .obs-prem-patient-info {
+        font-size: 0.9rem;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .obs-prem-patient-info b {
+        color: #0F2027;
+    }
+    
+    /* Table styling */
+    .obs-prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .obs-prem-table th {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .obs-prem-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0f7fa;
+    }
+    
+    .obs-prem-table tr:nth-child(even) {
+        background-color: #f8fdff;
+    }
+    
+    .obs-prem-table tr:hover {
+        background-color: #e0f7fa;
+    }
+    
+    /* List styling */
+    .obs-prem-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .obs-prem-list li {
+        background: #e0f7fa;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #006064;
+    }
+    
+    /* Form field styling */
+    .obs-prem-form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .obs-prem-form-field label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .obs-prem-form-field input,
+    .obs-prem-form-field textarea,
+    .obs-prem-form-field select {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+    }
+    
+    .obs-prem-form-field input:focus,
+    .obs-prem-form-field textarea:focus,
+    .obs-prem-form-field select:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .obs-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .btn-prem-obs-nav {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .obs-prem-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <h5 class="card-title text-center text-uppercase">Patient Observation  </h5>
-                </div>
+            <div class="card obs-prem-patient-card">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header bg-primary-600">
-                                    <h5 class="card-title text-center text-uppercase">Service</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <label for="chief_complaints">Patient Information</label>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    <b>PATIENT:</b> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>DOB:</b> {{ patient.dob|date:"d-m-Y" }} [ Age: {% if patient.dob %}
-                                                    <script>
-                                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                        var now = new Date();
-                                                        var ageMilliseconds = now - dob;
-                                                        var ageSeconds = ageMilliseconds / 1000;
-                                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                                        document.write(ageYears + ' years');
-                                                    </script>
-                                                    {% else %}
-                                                    {{ patient.age }}
-                                                    {% endif %}]
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>SEX:</b> {{ patient.gender }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>FILE NO:</b> {{ patient.mrn }}
-                                                </div>
-                                            </div>
-                                            <br>
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    <b>Company:</b> {{ patient.company }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>Visit Number:</b> {{ visit.vst }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="row obs-prem-patient-info">
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:"d-m-Y" }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
                     </div>
-                    <br />                   
-                    
+                    <div class="row obs-prem-patient-info">
+                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                        <div class="col-md-3">Visit Number: <b>{{ visit.vst }}</b></div>
+                    </div>
+                </div>    
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card obs-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-eye mr-2"></i>Observation Status</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="obs-prem-summary-value">{% if record_exists %}Recorded{% else %}New{% endif %}</div>
+                    <div class="obs-prem-summary-label">Current Status</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card obs-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="obs-prem-summary-value">1</div>
+                    <div class="obs-prem-summary-label">Mandatory Field</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="obs-prem-flip-card">
+                <div class="obs-prem-flip-card-inner">
+                    <div class="obs-prem-flip-card-front">
+                        <div class="obs-prem-flip-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h4>Observation</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="obs-prem-flip-card-back">
+                        <div class="obs-prem-flip-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h4>Patient Monitoring</h4>
+                        <p>Record patient observations</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Diagnosis Section -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <h6 class="card-title text-center text-uppercase">Diagnosis</h6>
+            <div class="card obs-prem-gradient shadow-lg mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-diagnoses mr-2"></i>
+                            Diagnosis Information
+                        </h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    {% for note in consultation_notes %}
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
-                            <tbody>
-                                <tr>
-                                    <th>Preliminary Diagnosis</th>
-                                    <th>Final Diagnosis</th>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <ul class="list-group">
-                                            {% for diagnosis in note.provisional_diagnosis.all %}
-                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </td>
-                                    <td>
-                                        <ul class="list-group">
-                                            {% for diagnosis in note.final_diagnosis.all %}
-                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>        
+                    <div class="obs-prem-form-container">
+                        {% for note in consultation_notes %}
+                        <div class="table-responsive">
+                            <table class="obs-prem-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Preliminary Diagnosis</th>
+                                        <th>Final Diagnosis</th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <ul class="obs-prem-list">
+                                                {% for diagnosis in note.provisional_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="obs-prem-list">
+                                                {% for diagnosis in note.final_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>        
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Observation Form Section -->
     <div class="row">
-        <div class="col-md-12">                 
-            <form method="POST" action="{% url 'kahama_save_observation' patient.id visit.id %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="container-fluid">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">                                     
-                                        {{ form.media }}
-                                        {{ form.as_p }}
-                                    </div>
-                                </div>                 
-                            </div>           
-                       <button type="submit" class="btn btn-primary btn-block">Save to proceed</button>
-                        </div>
-                        <div class="card-footer">
-                            {% if messages %}
-                            <div class="row">
-                                <div class="col-12">
-                                    {% for message in messages %}
-                                    {% if message.tags == 'error' %}
-                                    <div class="alert alert-danger alert-message">{{ message }}</div>
-                                    {% elif message.tags == 'success' %}
-                                    <div class="alert alert-primary alert-message">{{ message }}</div>
-                                    {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
+        <div class="col-md-12">
+            <div class="card obs-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-eye mr-2"></i>
+                            Patient Observation
+                        </h5>                      
                     </div>
                 </div>
-            </form>
+                <div class="card-body">
+                    <div class="obs-prem-form-container">
+                        <form method="POST" action="{% url 'kahama_doctor_save_observation' patient.id visit.id %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="obs-prem-form-section obs-prem-animated">
+                                <h4 class="obs-prem-section-title">
+                                    <i class="fas fa-clipboard-list mr-2"></i>Observation Details
+                                </h4>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="obs-prem-form-field">
+                                            {{ form.media }}
+                                            {% for field in form %}
+                                                <div class="obs-prem-input-group">
+                                                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="obs-prem-badge obs-prem-badge-required">Required</span>{% endif %}</label>
+                                                    {{ field }}
+                                                    {% if field.help_text %}
+                                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                                    {% endif %}
+                                                    {% for error in field.errors %}
+                                                        <div class="alert obs-prem-alert obs-prem-alert-error">{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>                 
+                                </div>           
+                                <button type="submit" class="btn btn-prem-obs"><i class="fas fa-save mr-2"></i> Save to Proceed</button>
+                            </div>
+                            
+                            <!-- Messages -->
+                            <div class="card-footer">
+                                {% if messages %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            {% for message in messages %}
+                                                {% if message.tags == 'error' %}
+                                                    <div class="alert obs-prem-alert obs-prem-alert-error alert-message">{{ message }}</div>
+                                                {% elif message.tags == 'success' %}
+                                                    <div class="alert obs-prem-alert obs-prem-alert-success alert-message">{{ message }}</div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-    <script>
+
+<script>
     // Fade out alerts after 5 seconds (5000ms)
     setTimeout(function() {
         document.querySelectorAll('.alert-message').forEach(function(el) {
@@ -177,6 +579,6 @@ Patient Observation
         });
     }, 5000);
 </script>
-{% include 'kahama_template/datatable.html' %}    
 
+{% include 'kahama_template/datatable.html' %}    
 {% endblock main_content %}

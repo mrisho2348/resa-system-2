@@ -1,23 +1,269 @@
 {% extends 'receptionist_template/base_template.html' %}
+{% load static %}
+{% load humanize %}
 
 {% block title %}
-    Ambulance Profile
+    {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Ambulance Order
 {% endblock title %}
 
+{% block page_title %}
+    <div class="d-flex">
+        <a class="btn btn-prem-back btn-sm mr-2" href="{% url 'receptionist_patient_health_record' patient.id visit.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Health Record
+        </a>
+        <a class="btn btn-prem-back btn-sm" href="{% url 'receptionist_patient_visit_history_view' patient.id %}">
+            <i class="fas fa-arrow-left mr-1"></i> Visit History
+        </a>
+    </div>
+{% endblock page_title %}
+
 {% block breadcrumb %}
-    Ambulance Profile
+    Patient Ambulance Order
 {% endblock breadcrumb %}
 
 {% block main_content %}
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">                       
-                        <div class="card-body">
-                            <div class="row text-uppercase" style="font-size:13px;">
-                                <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                                <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
+<style>
+    /* Premium Ambulance Order Styles */
+    .prem-ambulance-gradient {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+    }
+    
+    .prem-ambulance-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 极速5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+    }
+    
+    .prem-patient-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-patient-card .card-header {
+        background: linear-gradient(120deg, #c5cae9, #9fa8da);
+        color: #283593;
+        font-weight: 600;
+        padding: 0.8rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-patient-card .card-body {
+        padding: 1.2rem;
+    }
+    
+    .prem-form-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-form-card .card-header {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-form-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-form-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-info-label {
+        font-size: 0.8rem;
+        color: #5c6bc0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .patient-info-value {
+        font-size: 0.9rem;
+        color: #1a237e;
+        font-weight: 600;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #5c6bc0, #7986cb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(92, 107, 192, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(92, 107, 192, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #3949ab, #3f51b5);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(57, 73, 171, 0.2);
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 极速px 15px rgba(57, 73, 171, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-add {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .form-section-title {
+        color: #283593;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+       极速 border-bottom: 2px solid #c5cae9;
+    }
+    
+    .prem-form-control {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-control:focus {
+        border-color: #3949ab;
+        box-shadow: 0 0 0 0.2rem rgba(57, 73, 171, 0.25);
+    }
+    
+    .prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    
+    .prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 0.75rem;
+        border-bottom: 2px solid #c5cae9;
+    }
+    
+    .prem-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e8eaf6;
+        vertical-align: middle;
+    }
+    
+    .prem-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .total-cost-display {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #283593;
+    }
+    
+    .paid-badge {
+        background: linear-gradient(120deg, #00c853, #64dd17);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .unpaid-badge {
+        background: linear-gradient(120deg, #ff5252, #ff1744);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .info-alert {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        border-left: 5px solid #3949ab;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Patient Information Card -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prem-patient-card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">PATIENT</div>
+                            <div class="patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">DOB</div>
+                            <div class="patient-info-value">
+                                {{ patient.dob|date:'d-m-Y' }} 
+                                [Age: {% if patient.dob %}
                                     <script>
                                         var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
                                         var now = new Date();
@@ -26,140 +272,311 @@
                                         var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
                                         document.write(ageYears + ' years');
                                     </script>
-                                    {% else %}
+                                {% else %}
                                     {{ patient.age }}
-                                    {% endif %}]</b></div>
-                                <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                                <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
+                                {% endif %}]
                             </div>
-                                <div class="row mt-3">
-                                    <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
-                                    <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
-                                </div>
-                        </div>           
-                    
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">SEX</div>
+                            <div class="patient-info-value">{{ patient.gender }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">FILE NO</div>
+                            <div class="patient-info-value">{{ patient.mrn }}</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="form-row">
-                        <div>
-                            {% if messages %}
-                            <div class="col-12">
-                                {% for message in messages %}
-                                {% if message.tags == 'error' %}
-                                <div class="alert alert-danger">{{ message }}</div>
-                                {% elif message.tags == 'success' %}
-                                <div class="alert alert-primary">{{ message }}</div>
+                    <div class="row mt-2">
+                        <div class="极速ol-md-3 mb-2">
+                            <div class="patient-info-label">PAYMENT MODE</div>
+                            <div class="patient-info-value">
+                                {% if patient.payment_form == "Insurance" %}
+                                    {{ patient.payment_form }} - {{ patient.insurance_name }}
+                                {% else %}
+                                    {{ patient.payment_form }}
                                 {% endif %}
-                                {% endfor %}
                             </div>
-                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info极速abel">VISIT NUMBER</div>
+                            <div class="patient-info-value">{{ visit.vst }}</div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="patient-info-label">ORDER STATUS</div>
+                            <div class="patient-info-value">
+                                {% if all_orders_paid %}
+                                    <span class="paid-badge">ALL ORDERS PAID</span>
+                                {% else %}
+                                    <span class="unpaid-badge">UNPAID ORDERS EXIST</span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-          <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header"></div>
-                    <div class="card-body">
-                        <form id="ambulanceForm" method="post" action="{% if ambulance_order %}{% url 'edit_ambulance_order' patient_id=patient.id visit_id=visit.id ambulance_id=ambulance_order.id %}{% else %}{% url 'save_ambulance_order' patient_id=patient.id visit_id=visit.id %}{% endif %}">
-                            {% csrf_token %}
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="service">Service</label>
-                                    <input type="text" class="form-control" id="service" name="service" value="{{ ambulance_order.service }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="from_location">From Location</label>
-                                    <input type="text" class="form-control" id="from_location" name="from_location" value="{{ ambulance_order.from_location }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="to_location">To Location</label>
-                                    <input type="text" class="form-control" id="to_location" name="to_location" value="{{ ambulance_order.to_location }}">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="age">Age</label>
-                                    <input type="text" class="form-control" id="age" name="age" value="{{ ambulance_order.age }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="condition">Condition</label>
-                                    <input type="text" class="form-control" id="condition" name="condition" value="{{ ambulance_order.condition }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="intubation">Intubation</label>
-                                    <input type="text" class="form-control" id="intubation" name="intubation" value="{{ ambulance_order.intubation }}">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="pregnancy">Pregnancy</label>
-                                    <input type="text" class="form-control" id="pregnancy" name="pregnancy" value="{{ ambulance_order.pregnancy }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="oxygen">Oxygen</label>
-                                    <input type="text" class="form-control" id="oxygen" name="oxygen" value="{{ ambulance_order.oxygen }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="ambulance_type">Ambulance Type</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="ambulance_type" name="ambulance_type">
-                                        <option value="Type A" {% if ambulance_order.ambulance_type == 'Type A' %} selected {% endif %}>Type A</option>
-                                        <option value="Type B" {% if ambulance_order.ambulance_type == 'Type B' %} selected {% endif %}>Type B</option>
-                                        <option value="Type C" {% if ambulance_order.ambulance_type == 'Type C' %} selected {% endif %}>Type C</option>
-                                        <option value="Type D" {% if ambulance_order.ambulance_type == 'Type D' %} selected {% endif %}>Type D</option>
-                                        <!-- Add more options as needed -->
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="cost">Cost</label>
-                                    <input type="text" class="form-control" id="cost" name="cost" value="{{ ambulance_order.cost }}">
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label for="payment_mode">Payment Mode</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="payment_mode" name="payment_mode">
-                                        <option value="Insurance" {% if ambulance_order.payment_mode == 'Insurance' %} selected {% endif %}>Insurance</option>
-                                        <option value="Cash" {% if ambulance_order.payment_mode == 'Cash' %} selected {% endif %}>Cash</option>
-                                        <option value="Mpesa" {% if ambulance_order.payment_mode == 'Mpesa' %} selected {% endif %}>Mpesa</option>
-                                        <option value="Tigo Pesa" {% if ambulance_order.payment_mode == 'Tigo Pesa' %} selected {% endif %}>Tigo Pesa</option>
-                                        <option value="Bank" {% if ambulance_order.payment_mode == 'Bank' %} selected {% endif %}>Bank</option>
-                                    </select>
-                                </div>                                
-                                <div class="form-group col-md-4">
-                                    <label for="duration_hours">Duration Hours</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="duration_hours" name="duration_hours">
-                                        {% for rate in days %}
-                                            <option value="{{ rate }}" {% if ambulance_order.duration_hours == rate %} selected {% endif %}>{{ rate }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="duration_days">Duration Days</label>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="duration_days" name="duration_days">
-                                        {% for rate in days %}
-                                            <option value="{{ rate }}" {% if ambulance_order.duration_days == rate %} selected {% endif %}>{{ rate }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>                                
-                                <!-- Add more form rows for additional attributes -->
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-md btn-primary btn-block" id="submitBtn">Save and Continue <i class="mdi mdi-forward"></i></button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                   </div>
+        </div>
+    </div>
+
+    <!-- Check if all orders are paid -->
+    {% if all_orders_paid %}
+    <!-- Display message that no more orders can be added -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="info-alert">
+                <h5 class="text-premium"><i class="fas fa-info-circle mr-2"></i>Ambulance Orders Fully Paid</h5>
+                <p class="mb-0">All ambulance orders for this visit have been paid. To add new ambulance services, please create a new visit for the patient.</p>
             </div>
-          </div>
-        </div><!-- /.container-fluid -->
-    </section>
+        </div>
+    </div>
+    {% else %}
+    <!-- Ambulance Order Form -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prem-ambulance-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-ambulance mr-2"></i>
+                            Request Ambulance Service
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card prem-form-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Add Ambulance Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="addAmbulanceForm" method="post" enctype="multipart/form-data" action="{% if ambulance_order %}{% url 'receptionist_edit_ambulance_order' patient_id=patient.id visit_id=visit.id ambulance_id=ambulance_order.id %}{% else %}{% url 'receptionist_save_ambulance_order' patient_id=patient.id visit_id=visit.id %}{% endif %}">
+                                        {% csrf_token %}
+                                        
+                                        <!-- Service Details Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-ambulance mr-2"></i>Service Information</h5>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="service" class="prem-form-label">Service</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="service" name="service" required>
+                                                        <option value="">Select Service</option>
+                                                        {% for service in remote_service %}
+                                                            <option value="{{ service.id }}" {% if ambulance_order and ambulance_order.service == service.name %}selected{% endif %}>{{ service.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="from_location" class="prem-form-label">From Location</label>
+                                                    <input type="text" class="form-control prem-form-control" id="from_location" name="from_location" value="{% if ambulance_order %}{{ ambulance_order.from_location }}{% endif %}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="to_location" class="prem-form-label">To Location</label>
+                                                    <input type="text" class="form-control prem-form-control" id="to_location" name="to_location" value="{% if ambulance_order %}{{ ambulance_order.to_location }}{% endif %}" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Patient Condition Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-user-injured mr-2"></i>Patient Condition</h5>
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="age" class="prem-form-label">Age</label>
+                                                    <input type="text" class="form-control prem-form-control" id="age" name="age" value="{% if ambulance_order %}{{ ambulance_order.age }}{% endif %}">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="condition" class="prem-form-label">Condition</label>
+                                                    <input type="text" class="form-control prem-form-control" id="condition" name="condition" value="{% if ambulance_order %}{{ ambulance_order.condition }}{% endif %}">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="intubation" class="prem-form-label">Intubation</label>
+                                                    <input type="text" class="form-control prem-form-control" id="intubation" name="intubation" value="{% if ambulance_order %}{{ ambulance_order.intubation }}{% endif %}">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="pregnancy" class="prem-form-label">Pregnancy</label>
+                                                    <input type="text" class极速="form-control prem-form-control" id="pregnancy" name="pregnancy" value="{% if ambulance_order %}{{ ambulance_order.pregnancy }}{% endif %}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Medical Equipment Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-first-aid mr-2"></i>Medical Equipment</h5>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="oxygen" class="prem-form-label">Oxygen</label>
+                                                    <input type="text" class="form-control prem-form-control" id="oxygen" name="oxygen" value="{% if ambulance_order %}{{ ambulance_order.oxygen }}{% endif %}">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="ambulance_type" class="prem-form-label">Ambulance Type</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="ambulance_type" name="ambulance_type">
+                                                        <option value="Type A" {% if ambulance_order and ambulance_order.ambulance_type == 'Type A' %} selected {% endif %}>Type A</option>
+                                                        <option value="Type B" {% if ambulance_order and ambulance_order.ambulance_type == 'Type B' %} selected {% endif %}>Type B</option>
+                                                        <option value="Type C" {% if ambulance_order and ambulance_order.ambulance_type == 'Type C' %} selected {% endif %}>Type C</option>
+                                                        <option value="Type D" {% if ambulance_order and ambulance_order.ambulance_type == 'Type D' %} selected {% endif %}>Type D</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="cost" class="prem-form-label">Cost (TZS)</label>
+                                                    <input type="text" class="form-control prem-form-control" id="cost" name="cost" value="{% if ambulance_order %}{{ ambulance_order.cost }}{% endif %}" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Payment & Duration Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-credit-card mr-2"></i>Payment & Duration</极速>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="payment_mode" class="prem-form-label">Payment Mode</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="payment_mode" name="payment_mode">
+                                                        <option value="Insurance" {% if ambulance_order and ambulance_order.payment_mode == 'Insurance' %} selected {% endif %}>Insurance</option>
+                                                        <option value="Cash" {% if ambulance_order and ambulance_order.payment_mode == 'Cash' %} selected {% endif %}>Cash</option>
+                                                        <option value="Mpesa" {% if ambulance_order and ambulance_order.payment_mode == 'Mpesa' %} selected {% endif %}>Mpesa</option>
+                                                        <option value="Tigo Pesa" {% if ambulance_order and ambulance_order.payment_mode == 'Tigo Pesa' %} selected {% endif %}>Tigo Pesa</option>
+                                                        <option value="Bank" {% if ambulance_order and ambulance_order.payment_mode == 'Bank' %} selected {% endif %}>Bank</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="duration_hours" class="prem-form-label">Duration Hours</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="duration_hours" name="duration_hours">
+                                                        {% for hour in days %}
+                                                            <option value="{{ hour }}" {% if ambulance_order and ambulance_order.duration_hours == hour %} selected {% endif %}>{{ hour }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="duration_days" class="prem-form-label">Duration Days</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="duration_days" name="duration_days">
+                                                        {% for day in days %}
+                                                            <option value="{{ day }}" {% if ambulance_order and ambulance_order.duration_days == day %} selected {% endif %}>{{ day }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-12">
+                                                <button type="submit" class="btn btn-prem-action btn-block" id="submitBtn">
+                                                    <i class="fas fa-save mr-2"></i> {% if ambulance_order %}Update{% else %}Request{% endif %} Order & Process Payment
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Existing Ambulance Orders -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card prem-form-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Existing Ambulance Orders</h6>
+                </div>
+                <div class="card-body">
+                    {% if ambulance_orders %}
+                    <div class="table-responsive">
+                        <table class="table prem-table" id="ambulanceOrdersTable">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Service</th>
+                                    <th>From Location</th>
+                                    <th>To Location</th>
+                                    <th>Cost (TZS)</th>
+                                    <th>Order Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in ambulance_orders %}
+                                <tr>
+                                    <td>{{ order.order_number }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>{{ order.ambulanceorder.from_location }}</td>
+                                    <td>{{ order.ambulanceorder.to_location }}</td>
+                                    <td>{{ order.cost|intcomma }}</td>
+                                    <td>{{ order.order_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if order.status == 'Paid' %}
+                                            <span class="paid-badge">{{ order.status }}</span>
+                                        {% else %}
+                                            <span class="unpaid-badge">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-right font-weight-bold">Total Cost:</td>
+                                    <td class="font-weight-bold">{{ total_ambulance_cost|intcomma }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>No ambulance orders found for this visit.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        $('.select2bs4').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+        });
+        
+        // Initialize DataTable for ambulance orders
+        $('#ambulanceOrdersTable').DataTable({
+            "order": [[5, "desc"]],
+            "responsive": true,
+            "lengthChange": false,
+            "autoWidth": false,
+            "pageLength": 10,
+            "language": {
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search records..."
+            }
+        });
+    });
+</script>
+{% endblock customer_js %}

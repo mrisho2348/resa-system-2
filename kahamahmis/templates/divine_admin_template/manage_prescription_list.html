@@ -1,145 +1,705 @@
 {% extends 'divine_admin_template/base_template.html' %}
 {% load static %}
 
-{% block title %}Prescription List{% endblock title %}
+{% block title %}
+Premium Prescription Management
+{% endblock title %}
 
 {% block breadcrumb %}
-    {% include "divine_admin_template/modal_form.html" %}
+{% include "divine_admin_template/modal_form.html" %}
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium Prescription Management Styles - Unique to this template */
+    .prescription-prem-gradient {
+        background: linear-gradient(120deg, #2E3192, #1BFFFF);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(46, 49, 146, 0.15);
+        border: none;
+    }
+    
+    .prescription-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prescription-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .prescription-prem-table th {
+        background: linear-gradient(120deg, #e8f5e9, #c8e6c9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prescription-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8f5e9;
+    }
+    
+    .prescription-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .prescription-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(46, 125, 50, 0.1);
+        background: #f1f8e9;
+    }
+    
+    .btn-prem-prescription {
+        background: linear-gradient(120deg, #2E3192, #1BFFFF);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(46, 49, 146, 0.2);
+    }
+    
+    .btn-prem-prescription:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(46, 49, 146, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-prescription-view {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-prescription-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-prescription-download {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-prescription-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .prescription-prem-modal-header {
+        background: linear-gradient(120deg, #2E3192, #1BFFFF);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prescription-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .prescription-prem-input-group label {
+        font-weight: 600;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .prescription-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prescription-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prescription-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f1f8e9, #e8f5e9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c8e6c9;
+    }
+    
+    .prescription-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prescription-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prescription-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prescription-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .prescription-prem-filter-bar {
+        background: linear-gradient(120deg, #f1f8e9, #e8f5e9);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .prescription-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .prescription-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .prescription-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .prescription-prem-status-btn[data-filter="all"] {
+        background: linear-gradient(120deg, #2E3192, #1BFFFF);
+        color: white;
+    }
+    
+    .prescription-prem-status-btn[data-filter="recent"] {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+    }
+    
+    .prescription-prem-status-btn[data-filter="today"] {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes prescriptionPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .prescription-prem-animated {
+        animation: prescriptionPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .prescription-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .prescription-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .prescription-prem-flip-card:hover .prescription-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .prescription-prem-flip-card-front, .prescription-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .prescription-prem-flip-card-front {
+        background: linear-gradient(120deg, #2E3192, #1BFFFF);
+        color: white;
+    }
+    
+    .prescription-prem-flip-card-back {
+        background: linear-gradient(120deg, #1BFFFF, #2E3192);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .prescription-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Date styling */
+    .prescription-prem-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    /* Patient name styling */
+    .prescription-prem-patient {
+        font-weight: 600;
+        color: #2E3192;
+    }
+    
+    /* Modal table styling */
+    .prescription-prem-modal-table th {
+        background: linear-gradient(120deg, #e8f5e9, #c8e6c9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 0.75rem;
+    }
+    
+    .prescription-prem-modal-table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    /* Patient details card */
+    .prescription-prem-patient-card {
+        background: linear-gradient(120deg, #f1f8e9, #e8f5e9);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .prescription-prem-patient-detail {
+        display: flex;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prescription-prem-patient-label {
+        font-weight: 600;
+        min-width: 120px;
+        color: #2E7D32;
+    }
+    
+    .prescription-prem-patient-value {
+        color: #555;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription List</h6>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prescription-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-prescription mr-2"></i>Premium Prescription Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-prescription mr-2"></i>Total Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="total-prescriptions">{{ visit_groups|length }}</div>
+                                    <div class="prescription-prem-summary-label">All Prescriptions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-day mr-2"></i>Today's Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="today-prescriptions">0</div>
+                                    <div class="prescription-prem-summary-label">Today</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prescription-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Unique Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="prescription-prem-summary-value" id="unique-patients">0</div>
+                                    <div class="prescription-prem-summary-label">Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="prescription-prem-flip-card">
+                                <div class="prescription-prem-flip-card-inner">
+                                    <div class="prescription-prem-flip-card-front">
+                                        <div class="prescription-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Premium Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="prescription-prem-flip-card-back">
+                                        <div class="prescription-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Prescription Insights</h4>
+                                        <p>Advanced tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="prescription-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="prescription-prem-status-filter">
+                                <button class="prescription-prem-status-btn active" data-filter="all">All Prescriptions</button>
+                                <button class="prescription-prem-status-btn" data-filter="today">Today</button>
+                                <button class="prescription-prem-status-btn" data-filter="recent">Recent</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search prescriptions..." id="prescriptionPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-prescription" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive prescription-prem-table-container">
+                        <table class="table table-hover text-nowrap prescription-prem-table" id="prescriptionTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Date</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-user mr-2"></i>Patient</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in visit_groups %}
+                                <tr data-date="{{ group.visit.created_at|date:'Y-m-d' }}" data-patient="{{ group.visit.patient.first_name|lower }} {{ group.visit.patient.last_name|lower }}">
+                                    <td class="prescription-prem-date">{{ group.visit.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ group.visit.vst }}</td>
+                                    <td class="prescription-prem-patient">{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-prem-prescription-view" data-toggle="modal" data-target="#prescriptionNotesModal{{ group.visit.id }}">
+                                            <i class="fas fa-notes-medical"></i> Prescription Notes
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm display" id="example" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Visit Number</th>
-                  <th>Patient</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for group in visit_groups %}
-                  <tr>
-                    <td>{{ group.visit.created_at|date:"d-m-Y" }}</td>
-                    <td>{{ group.visit.vst }}</td>
-                    <td>{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
-                    <td>
-                      <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#prescriptionNotesModal{{ group.visit.id }}">
-                        <i class="fas fa-notes-medical"></i> Prescription Notes
-                      </button>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
 <!-- Modals -->
 {% for group in visit_groups %}
 <div class="modal fade" id="prescriptionNotesModal{{ group.visit.id }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionNotesModalLabel{{ group.visit.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="prescriptionNotesModalLabel{{ group.visit.id }}">Prescription Notes</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="container-fluid">
-
-          <!-- Header Image -->
-          <header class="header mb-3">
-            <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image">
-          </header>
-
-          <!-- Patient Details -->
-          <div class="card mb-3">
-            <div class="card-header bg-dark text-white">
-              <h6 class="mb-0 text-uppercase">Patient Details</h6>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content prescription-prem-modal-content">
+            <div class="modal-header prescription-prem-modal-header">
+                <h5 class="modal-title text-white" id="prescriptionNotesModalLabel{{ group.visit.id }}"><i class="fas fa-notes-medical mr-2"></i>Prescription Notes</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="card-body">
-              <table class="table table-borderless table-sm">
-                <tr>
-                  <td><strong>Patient:</strong> {{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</td>
-                  <td><strong>DOB:</strong> {{ group.visit.patient.dob|date:"d-m-Y" }}</td>
-                  <td><strong>Gender:</strong> {{ group.visit.patient.gender }}</td>
-                  <td><strong>File No:</strong> {{ group.visit.patient.mrn }}</td>
-                </tr>
-                <tr>
-                  <td colspan="2">
-                    <strong>Payment Form:</strong>
-                     {{ group.visit.patient.company }}
-                  </td>
-                  <td colspan="2"><strong>Visit Number:</strong> {{ group.visit.vst }}</td>
-                </tr>
-              </table>
-            </div>
-          </div>
 
-          <!-- Prescription Table -->
-          <div class="card">
-            <div class="card-header bg-secondary text-white">
-              <h6 class="mb-0 text-uppercase">Prescription Notes</h6>
-            </div>
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-hover table-bordered table-sm">
-                  <thead>
-                    <tr>
-                      <th>Drug</th>
-                      <th>Dose</th>
-                      <th>Frequency</th>
-                      <th>Duration</th>
-                      <th>Quantity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for prescription in group.prescriptions %}
-                    <tr>
-                      <td>{{ prescription.medicine.drug_name }}</td>
-                      <td>{{ prescription.dose }}</td>
-                      <td>{{ prescription.frequency }}</td>
-                      <td>{{ prescription.duration }} days</td>
-                      <td>{{ prescription.quantity_used }}</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+            <div class="modal-body">
+                <div class="container-fluid">
 
-          <!-- PDF Download -->
-          <div class="row mt-3">
-            <div class="col-md-12 text-right">
-              <a href="{% url 'divine_download_prescription_notes_pdf' group.visit.patient.id group.visit.id %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fa fa-download"></i> Download PDF
-              </a>
-            </div>
-          </div>
+                    <!-- Header Image -->
+                    <header class="header mb-3">
+                        <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="Header Image" style="border-radius: 8px;">
+                    </header>
 
+                    <!-- Patient Details -->
+                    <div class="prescription-prem-patient-card">
+                        <h6 class="mb-3 text-uppercase" style="color: #2E7D32; font-weight: 600;">Patient Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">Patient:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.patient.first_name }} {{ group.visit.patient.middle_name }} {{ group.visit.patient.last_name }}</span>
+                                </div>
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">DOB:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.patient.dob|date:"d-m-Y" }}</span>
+                                </div>
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">Gender:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.patient.gender }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">File No:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.patient.mrn }}</span>
+                                </div>
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">Payment Form:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.patient.company }}</span>
+                                </div>
+                                <div class="prescription-prem-patient-detail">
+                                    <span class="prescription-prem-patient-label">Visit Number:</span>
+                                    <span class="prescription-prem-patient-value">{{ group.visit.vst }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescription Table -->
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(120deg, #e8f5e9, #c8e6c9); color: #2E7D32;">
+                            <h6 class="mb-0 text-uppercase">Prescription Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered table-sm prescription-prem-modal-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Drug</th>
+                                            <th>Dose</th>
+                                            <th>Frequency</th>
+                                            <th>Duration</th>
+                                            <th>Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for prescription in group.prescriptions %}
+                                        <tr>
+                                            <td>{{ prescription.medicine.drug_name }}</td>
+                                            <td>{{ prescription.dose }}</td>
+                                            <td>{{ prescription.frequency }}</td>
+                                            <td>{{ prescription.duration }} days</td>
+                                            <td>{{ prescription.quantity_used }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF Download -->
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-right">
+                            <a href="{% url 'kahama_admin_prescription_download_notes' group.visit.patient.id group.visit.id %}" class="btn btn-prem-prescription-download">
+                                <i class="fas fa-download mr-2"></i> Download PDF
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 {% endfor %}
 
 {% include 'divine_admin_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#prescriptionTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search prescriptions...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const today = new Date();
+        const todayFormatted = today.toISOString().split('T')[0];
+        
+        let todayCount = 0;
+        const uniquePatients = new Set();
+        
+        document.querySelectorAll('#prescriptionTable tbody tr').forEach(row => {
+            const date = row.getAttribute('data-date');
+            const patientName = row.getAttribute('data-patient');
+            
+            // Count today's prescriptions
+            if (date === todayFormatted) {
+                todayCount++;
+            }
+            
+            // Track unique patients
+            uniquePatients.add(patientName);
+        });
+        
+        // Update summary cards
+        document.getElementById('today-prescriptions').textContent = todayCount;
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Filter functionality
+    document.querySelectorAll('.prescription-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.prescription-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const filter = this.getAttribute('data-filter');
+            filterPrescriptions(filter);
+        });
+    });
+
+    // Filter prescriptions
+    function filterPrescriptions(filter) {
+        const rows = document.querySelectorAll('#prescriptionTable tbody tr');
+        const today = new Date();
+        const todayFormatted = today.toISOString().split('T')[0];
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const date = new Date(row.getAttribute('data-date'));
+            
+            if (filter === 'all') {
+                row.style.display = '';
+                visibleCount++;
+            } else if (filter === 'today' && row.getAttribute('data-date') === todayFormatted) {
+                row.style.display = '';
+                visibleCount++;
+            } else if (filter === 'recent' && date >= sevenDaysAgo) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-prescriptions').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('prescriptionPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeFilter = document.querySelector('.prescription-prem-status-btn.active').getAttribute('data-filter');
+        
+        filterPrescriptionsWithSearch(activeFilter, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('prescriptionPremSearch').value.toLowerCase();
+        const activeFilter = document.querySelector('.prescription-prem-status-btn.active').getAttribute('data-filter');
+        
+        filterPrescriptionsWithSearch(activeFilter, searchText);
+    });
+
+    // Filter prescriptions by both filter and search text
+    function filterPrescriptionsWithSearch(filter, searchText) {
+        const rows = document.querySelectorAll('#prescriptionTable tbody tr');
+        const today = new Date();
+        const todayFormatted = today.toISOString().split('T')[0];
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const date = new Date(row.getAttribute('data-date'));
+            const patientName = row.getAttribute('data-patient');
+            const rowText = row.textContent.toLowerCase();
+            
+            let filterMatch = false;
+            
+            if (filter === 'all') {
+                filterMatch = true;
+            } else if (filter === 'today' && row.getAttribute('data-date') === todayFormatted) {
+                filterMatch = true;
+            } else if (filter === 'recent' && date >= sevenDaysAgo) {
+                filterMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || patientName.includes(searchText) || rowText.includes(searchText);
+            
+            if (filterMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-prescriptions').textContent = visibleCount;
+    }
+</script>
+
 {% endblock main_content %}

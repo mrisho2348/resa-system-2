@@ -1,324 +1,680 @@
 {% extends 'kahama_template/base_template.html' %}
 
 {% block title %}
-    Add Patients
+    Patient Medical Induction
 {% endblock title %}
-{% block page_title %}   
-    <a class="btn btn-primary" type="button"  href="{% url 'kahama_patients_list' %}" class="breadcrumb-link">
-        <i class="fas fa-arrow-left"></i> Back
-    </a>
-       
-{% endblock page_title %}
+
 {% block breadcrumb %}
-Add new patient
+{% include "kahama_template/modal_form.html" %}
+<a class="btn btn-prem-patient-add float-right mr-2" href="{% url 'kahama_doctor_patients_list' %}">
+    <i class="fas fa-arrow-left"></i> Back to Patients
+</a>
 {% endblock breadcrumb %}
 
 {% block main_content %}
-    {% load static %}             
+{% load static %}             
 
-    <div class="container-fluid">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-                <div class="card mt-5">
-                    <div class="card-header">
-                        Patient Information
+<style>
+    /* Premium Patient Registration Styles - Unique to this template */
+    .patient-reg-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .patient-reg-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-reg-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .patient-reg-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .patient-reg-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .patient-reg-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .patient-reg-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-patient-reg {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-patient-reg:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .patient-reg-prem-modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-reg-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .patient-reg-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .patient-reg-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .patient-reg-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .patient-reg-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-reg-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-reg-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .patient-reg-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-reg-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .patient-reg-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .patient-reg-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+        width: 100%;
+    }
+    
+    .patient-reg-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .patient-reg-prem-flip-card:hover .patient-reg-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .patient-reg-prem-flip-card-front, .patient-reg-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .patient-reg-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .patient-reg-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .patient-reg-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes patientRegPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-reg-prem-animated {
+        animation: patientRegPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #b2ebf2;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .patient-reg-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-reg-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+        padding: 15px;
+    }
+    
+    .patient-reg-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        padding: 15px;
+    }
+    
+    /* Form section styling */
+    .patient-reg-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0f7fa;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .patient-reg-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .patient-reg-prem-flip-card {
+            height: 150px;
+        }
+        
+        .patient-reg-prem-flip-icon {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card patient-reg-prem-gradient shadow-lg mt-5">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-plus mr-2"></i>Patient Medical Induction</h5>                       
                     </div>
-                    <div class="card-body">
-                        <form method="post" action="{% if editing %}{% url 'kahama_patient_info_form' patient_id=patient.id %}{% else %}{% url 'kahama_patient_info_form' %}{% endif %}">
-                            {% csrf_token %}
-                            <div class="row">
-                                <!-- First Name -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="first_name">First Name:</label> <span class="error">* </span>
-                                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ patient.first_name }}" required>
-                                       
-                                    </div>
-                                </div>
-                                <!-- Middle Name -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="middle_name">Middle Name:</label>
-                                        <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ patient.middle_name }}" >
-                                       
-                                    </div>
-                                </div>
-                                <!-- Last Name -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="last_name">Last Name:</label> <span class="error">* </span>
-                                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ patient.last_name }}" required>
-                                       
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <!-- Gender -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="gender">Gender:</label> <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="gender" name="gender" required>
-                                            <option value="">select gender</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                        </select>                                        
-                                    </div>
-                                </div>                            
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="dob">Date of Birth:</label>
-                                        <input type="date" class="form-control" id="dob" name="dob" value="{{ patient.dob }}" max="">
-                                    </div>
-                                </div>
-                                <!-- Age -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="age">Age:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="age" name="age" required>
-                                            {% for age in range_121 %}
-                                                <option value="{{ age }}" {% if patient.age == age %} selected {% endif %}>{{ age }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <!-- Nationality -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="nationality">Nationality:</label> <span class="error">*</span>
-                                        <select class="form-control select2bs4" style="width: 100%;" name="nationality" id="nationality" required>
-                                            {% for country in all_country %}
-                                                <option value="{{ country.id }}"{% if country.name == "Tanzania" %} selected {% endif %}>{{ country.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="phone">Patient's Phone:</label> <span class="error">*</span>
-                                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
-                                            pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
-                                            onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with '0'')" 
-                                            oninput="setCustomValidity('')"  maxlength="10" minlength="10">
-                                        <div id="phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
-                                    </div>
-                                </div>
-                                <!-- OSHA Certification -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="osha_certificate">OSHA Certification:</label> <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="osha_certificate" name="osha_certificate" onchange="toggleOshaFields()" required>
-                                            <option value="">Select Certificatio status</option>   
-                                            <option value="0">No</option>
-                                            <option value="1">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group" id="oshaDateField" {% if patient.osha_certificate %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-                                        <label for="date_of_osha_certification">Date of OSHA Certification:</label>
-                                        <input type="date" class="form-control" id="date_of_osha_certification" name="date_of_osha_certification" value="{{ patient.date_of_osha_certification|date:'Y-m-d' }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <!-- Patient Insurance Status -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="insurance">Patient Insurance Status:</label> <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="insurance" name="insurance" onchange="toggleInsuranceFields()" required>
-                                            <option value="">Select insurance status</option>   
-                                            <option value="Uninsured">Uninsured</option>
-                                            <option value="Insured">Insured</option>                                            
-                                            <option value="Unknown">Unknown</option>                                            
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                                            <!-- Insurance Company -->
-                                <div class="col-md-4">
-                                    <div class="form-group" id="insuranceCompanyField" style="display: none;">
-                                        <label for="insurance_company">Insurance Company:</label> <span class="error">*</span>
-                                        <select class="form-control select2bs4" style="width: 100%;" name="insurance_company" id="insurance_company"  onchange="toggleInsuranceFields()" required>
-                                            <option value="">Select insurance name</option>                                       
-                                            <option value="NHIF">NHIF</option>
-                                            <option value="Jubilee">Jubilee</option>
-                                            <option value="Strategis">Strategis</option>
-                                            <option value="Assemble">Assemble</option>
-                                            <option value="Britam">Britam</option>
-                                            <option value="International Insurance">International Insurance</option>
-                                            <option value="ISOS">ISOS</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Additional input field for other insurance company -->
-                                <div class="col-md-4" id="otherInsuranceField" style="display: none;" >
-                                    <div class="form-group">
-                                        <label for="other_insurance">Fill Insurance Company:</label> <span class="error">*</span>
-                                        <input type="text" class="form-control" id="other_insurance" name="other_insurance" value="{{ patient.other_insurance_company }}">
-                                    </div>
-                                </div>
-                                <!-- Insurance Number -->
-                                <div class="col-md-4">
-                                    <div class="form-group" id="insuranceNumberField"  style="display: none;" >
-                                        <label for="insurance_number">Insurance Number:</label> <span class="error">*</span>
-                                        <input type="text" class="form-control" id="insurance_number" name="insurance_number" value="{{ patient.insurance_number }}">
-                                    </div>
-                                </div>
-                            </div>                      
-                            <div class="row">
-                                <!-- Marital Status -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="marital_status">Marital Status:</label> <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" name="marital_status" id="marital_status" required>
-                                            <option value="">Select  Marital Status </option>
-                                            <option value="single">Single</option>
-                                            <option value="married">Married</option>
-                                            <option value="Divorced">Divorced</option>
-                                            <option value="Widowed">Widowed</option>
-                                            <!-- Add options for other marital statuses similarly -->
-                                        </select>
-                                    </div>
-                                </div>
-                                                            <!-- Occupation -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="occupation">Occupation:</label> <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" name="occupation" id="occupation"  onchange="toggleOtherOccupationField(this)" required>
-                                            <option value="">Select patient Occupation </option>
-                                            <option value="Driver">Driver</option>
-                                            <option value="Technician">Technician</option>
-                                            <option value="Engineer" >Engineer</option>
-                                            <option value="Human resources Officer">Human resources Officer</option>
-                                            <option value="Procurement Officer">Procurement Officer</option>
-                                            <option value="HSE">HSE</option>
-                                            <option value="Administrator">Administrator</option>
-                                            <option value="Farmer" >Farmer</option>
-                                            <option value="Health Expert">Health Expert</option>
-                                            <option value="Manager">Manager</option>
-                                            <option value="Accountant">Accountant</option>
-                                            <option value="Manager">Manager</option>
-                                            <option value="ICT Expert">ICT Expert</option>
-                                            <option value="Other">Other</option>
-                                            <!-- Add options for other occupations similarly -->
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Additional input field for other occupation -->
-                                <div class="col-md-4 other_occupation_field" {% if patient.occupation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-                                    <div class="form-group">
-                                        <label for="other_occupation">Fill Occupation:</label><span class="error">*</span>
-                                        <input type="text" class="form-control" id="other_occupation" name="other_occupation" value="{{ patient.other_occupation }}">
-                                    </div>
-                                </div>
-
-                                
-                               <!-- Patient Type -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="patient_type">Patient Type:</label>  <span class="error">* </span>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="patient_type" name="patient_type" onchange="toggleOtherPatientTypeField(this)" required>
-                                            <option value="">select patient type</option>
-                                            <option value="National Staff">National Staff</option>
-                                            <option value="International Staff">International Staff</option>
-                                            <option value="National Visitor">National Visitor</option>
-                                            <option value="International Visitor">International Visitor</option>
-                                            <option value="Unknown Status">Unknown Status</option>
-                                            <option value="Others">Others</option>
-                                            <!-- Add options for other patient types similarly -->
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Additional input field for other patient type -->
-                                <div class="col-md-4 other_patient_type_field" {% if patient.patient_type == 'Others' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-                                    <div class="form-group">
-                                        <label for="other_patient_type">Fill Patient Type:</label><span class="error">*</span>
-                                        <input type="text" class="form-control" id="other_patient_type" name="other_patient_type" value="{{ patient.other_patient_type }}">
-                                    </div>
-                                </div>                               
-                            </div>
-                            <div class="row">
-                                <!-- Patient's Company -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="company">Patient's Company:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" name="company" id="company" required>
-                                            <option value="">select patient company</option>
-                                            {% for company in all_company %}
-                                                <option value="{{ company.id }}" {% if patient.company == company.id %} selected {% endif %}>{{ company.name }}</option>
-                                            {% endfor %}
-                                            <!-- Add options for companies here -->
-                                        </select>
-                                    </div>
-                                </div>
-                               
-                            </div>
-                            <div class="row">
-                                <!-- Emergency Contact Name -->
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="emergency_contact_name">Next of Kin Name  :</label> <span class="error">* </span>
-                                        <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" value="{{ patient.emergency_contact_name }}" required>
-                                    </div>
-                                </div>
-                            <!-- Emergency Contact Relation -->
+                </div>
+                <div class="card-body">
+                    <div class="patient-reg-prem-form-container">
+                        <!-- Summary Cards -->
+                        <div class="row mb-4">
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="emergency_contact_relation">Next of kin: Relation                :</label> <span class="error">* </span>
-                                    <select class="form-control select2bs4" style="width: 100%;" id="emergency_contact_relation" name="emergency_contact_relation" onchange="toggleOtherRelationField(this)" required>
-                                        <option value="">Select Next of kin: Relation </option>
-                                        <option value="Spouse">Spouse</option>
-                                        <option value="Friend">Friend</option>
-                                        <option value="Coworker">Coworker</option>
-                                        <option value="Child">Child</option>
-                                        <option value="Father">Father</option>
-                                        <option value="Mother">Mother</option>
-                                        <option value="Brother">Brother</option>
-                                        <option value="Sister">Sister</option>
-                                        <option value="Son">Son</option>
-                                        <option value="Daughter">Daughter</option>
-                                        <option value="Other">Other</option>
-                                        <!-- Add options for other relations similarly -->
-                                    </select>
-                                </div>
-                            </div>
-                                 <!-- Additional input field for other relation -->
-                                 <div class="col-md-4 other_relation_field" {% if patient.emergency_contact_relation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-                                    <div class="form-group">
-                                        <label for="other_relation">Fill Next of kin Relation:</label> <span class="error">*</span>
-                                        <input type="text" class="form-control" id="other_relation" name="other_relation" value="{{ patient.other_emergency_contact_relation }}">
+                                <div class="card patient-reg-prem-summary-card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Registration Status</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="patient-reg-prem-summary-value">{% if editing %}Edit{% else %}New{% endif %}</div>
+                                        <div class="patient-reg-prem-summary-label">Patient Record</div>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card patient-reg-prem-summary-card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="patient-reg-prem-summary-value">13</div>
+                                        <div class="patient-reg-prem-summary-label">Mandatory Fields</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="patient-reg-prem-flip-card">
+                                    <div class="patient-reg-prem-flip-card-inner">
+                                        <div class="patient-reg-prem-flip-card-front">
+                                            <div class="patient-reg-prem-flip-icon">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </div>
+                                            <h4>Data Security</h4>
+                                            <p>Hover to reveal</p>
+                                        </div>
+                                        <div class="patient-reg-prem-flip-card-back">
+                                            <div class="patient-reg-prem-flip-icon">
+                                                <i class="fas fa-lock"></i>
+                                            </div>
+                                            <h4>HIPAA Compliant</h4>
+                                            <p>Your data is secure</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form method="post" action="{% if editing %}{% url 'kahama_doctor_patient_add' patient_id=patient.id %}{% else %}{% url 'kahama_doctor_patient_add' %}{% endif %}">
+                            {% csrf_token %}
+                            
+                            <!-- Personal Information Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-user-circle mr-2"></i>Personal Information
+                                </h4>
+                                <div class="row">
+                                    <!-- First Name -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="first_name">First Name: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ patient.first_name }}" required>
+                                        </div>
+                                    </div>
+                                    <!-- Middle Name -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="middle_name">Middle Name:</label>
+                                            <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ patient.middle_name }}">
+                                        </div>
+                                    </div>
+                                    <!-- Last Name -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="last_name">Last Name: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ patient.last_name }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Gender -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="gender">Gender: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="gender" name="gender" required>
+                                                <option value="">Select Gender</option>
+                                                <option value="Male" {% if patient.gender == "Male" %}selected{% endif %}>Male</option>
+                                                <option value="Female" {% if patient.gender == "Female" %}selected{% endif %}>Female</option>
+                                            </select>                                        
+                                        </div>
+                                    </div>                            
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="dob">Date of Birth:</label>
+                                            <input type="date" class="form-control" id="dob" name="dob" value="{{ patient.dob }}" max="">
+                                        </div>
+                                    </div>
+                                    <!-- Age -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="age">Age: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="age" name="age" required>
+                                                {% for age in range_121 %}
+                                                    <option value="{{ age }}" {% if patient.age == age %} selected {% endif %}>{{ age }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Information Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-address-card mr-2"></i>Contact Information
+                                </h4>
+                                <div class="row">
+                                    <!-- Nationality -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="nationality">Nationality: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="nationality" id="nationality" required>
+                                                {% for country in all_country %}
+                                                    <option value="{{ country.id }}"{% if country.name == "Tanzania" %} selected {% endif %}>{{ country.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="phone">Patient's Phone: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
+                                                pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
+                                                onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with '0'')" 
+                                                oninput="setCustomValidity('')"  maxlength="10" minlength="10">
+                                            <div id="phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
+                                        </div>
+                                    </div>
+                                    <!-- OSHA Certification -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="osha_certificate">OSHA Certification: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="osha_certificate" name="osha_certificate" onchange="toggleOshaFields()" required>
+                                                <option value="">Select Certification status</option>   
+                                                <option value="0" {% if patient.osha_certificate == "0" %}selected{% endif %}>No</option>
+                                                <option value="1" {% if patient.osha_certificate == "1" %}selected{% endif %}>Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="patient-reg-prem-input-group" id="oshaDateField" {% if patient.osha_certificate %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                            <label for="date_of_osha_certification">Date of OSHA Certification:</label>
+                                            <input type="date" class="form-control" id="date_of_osha_certification" name="date_of_osha_certification" value="{{ patient.date_of_osha_certification|date:'Y-m-d' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- FTW Certificate Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-certificate mr-2"></i>FTW Certificate Information
+                                </h4>
+                                <div class="row">
+                                    <!-- FTW Certificate -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="ftw_certificate">FTW Certificate: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="ftw_certificate" name="ftw_certificate" onchange="toggleFtwFields()" required>
+                                                <option value="">Select FTW status</option>   
+                                                <option value="0" {% if patient.ftw_certificate == "0" %}selected{% endif %}>No</option>
+                                                <option value="1" {% if patient.ftw_certificate == "1" %}selected{% endif %}>Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="patient-reg-prem-input-group" id="ftwDateField" {% if patient.ftw_certificate %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                            <label for="date_of_ftw_certification">Date of FTW Certification:</label>
+                                            <input type="date" class="form-control" id="date_of_ftw_certification" name="date_of_ftw_certification" value="{{ patient.date_of_ftw_certification|date:'Y-m-d' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Insurance Information Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-file-medical mr-2"></i>Insurance Information
+                                </h4>
+                                <div class="row">
+                                    <!-- Patient Insurance Status -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="insurance">Patient Insurance Status: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="insurance" name="insurance" onchange="toggleInsuranceFields()" required>
+                                                <option value="">Select insurance status</option>   
+                                                <option value="Uninsured" {% if patient.insurance == "Uninsured" %}selected{% endif %}>Uninsured</option>
+                                                <option value="Insured" {% if patient.insurance == "Insured" %}selected{% endif %}>Insured</option>                                            
+                                                <option value="Unknown" {% if patient.insurance == "Unknown" %}selected{% endif %}>Unknown</option>                                            
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Insurance Company -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group" id="insuranceCompanyField" style="display: none;">
+                                            <label for="insurance_company">Insurance Company: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="insurance_company" id="insurance_company"  onchange="toggleInsuranceFields()" required>
+                                                <option value="">Select insurance name</option>                                       
+                                                <option value="NHIF" {% if patient.insurance_company == "NHIF" %}selected{% endif %}>NHIF</option>
+                                                <option value="Jubilee" {% if patient.insurance_company == "Jubilee" %}selected{% endif %}>Jubilee</option>
+                                                <option value="Strategis" {% if patient.insurance_company == "Strategis" %}selected{% endif %}>Strategis</option>
+                                                <option value="Assemble" {% if patient.insurance_company == "Assemble" %}selected{% endif %}>Assemble</option>
+                                                <option value="Britam" {% if patient.insurance_company == "Britam" %}selected{% endif %}>Britam</option>
+                                                <option value="International Insurance" {% if patient.insurance_company == "International Insurance" %}selected{% endif %}>International Insurance</option>
+                                                <option value="ISOS" {% if patient.insurance_company == "ISOS" %}selected{% endif %}>ISOS</option>
+                                                <option value="Other" {% if patient.insurance_company == "Other" %}selected{% endif %}>Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <!-- Additional input field for other insurance company -->
+                                    <div class="col-md-4" id="otherInsuranceField" style="display: none;" >
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="other_insurance">Fill Insurance Company: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="other_insurance" name="other_insurance" value="{{ patient.other_insurance_company }}">
+                                        </div>
+                                    </div>
+                                    <!-- Insurance Number -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group" id="insuranceNumberField"  style="display: none;" >
+                                            <label for="insurance_number">Insurance Number: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="insurance_number" name="insurance_number" value="{{ patient.insurance_number }}">
+                                        </div>
+                                    </div>
+                                </div>                      
+                            </div>
+                            
+                            <!-- Additional Information Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-info-circle mr-2"></i>Additional Information
+                                </h4>
+                                <div class="row">
+                                    <!-- Marital Status -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="marital_status">Marital Status: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="marital_status" id="marital_status" required>
+                                                <option value="">Select Marital Status</option>
+                                                <option value="single" {% if patient.marital_status == "single" %}selected{% endif %}>Single</option>
+                                                <option value="married" {% if patient.marital_status == "married" %}selected{% endif %}>Married</option>
+                                                <option value="Divorced" {% if patient.marital_status == "Divorced" %}selected{% endif %}>Divorced</option>
+                                                <option value="Widowed" {% if patient.marital_status == "Widowed" %}selected{% endif %}>Widowed</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <!-- Occupation -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="occupation">Occupation: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="occupation" id="occupation"  onchange="toggleOtherOccupationField(this)" required>
+                                                <option value="">Select patient Occupation</option>
+                                                <option value="Driver" {% if patient.occupation == "Driver" %}selected{% endif %}>Driver</option>
+                                                <option value="Technician" {% if patient.occupation == "Technician" %}selected{% endif %}>Technician</option>
+                                                <option value="Engineer" {% if patient.occupation == "Engineer" %}selected{% endif %}>Engineer</option>
+                                                <option value="Human resources Officer" {% if patient.occupation == "Human resources Officer" %}selected{% endif %}>Human resources Officer</option>
+                                                <option value="Procurement Officer" {% if patient.occupation == "Procurement Officer" %}selected{% endif %}>Procurement Officer</option>
+                                                <option value="HSE" {% if patient.occupation == "HSE" %}selected{% endif %}>HSE</option>
+                                                <option value="Administrator" {% if patient.occupation == "Administrator" %}selected{% endif %}>Administrator</option>
+                                                <option value="Farmer" {% if patient.occupation == "Farmer" %}selected{% endif %}>Farmer</option>
+                                                <option value="Health Expert" {% if patient.occupation == "Health Expert" %}selected{% endif %}>Health Expert</option>
+                                                <option value="Manager" {% if patient.occupation == "Manager" %}selected{% endif %}>Manager</option>
+                                                <option value="Accountant" {% if patient.occupation == "Accountant" %}selected{% endif %}>Accountant</option>
+                                                <option value="ICT Expert" {% if patient.occupation == "ICT Expert" %}selected{% endif %}>ICT Expert</option>
+                                                <option value="Other" {% if patient.occupation == "Other" %}selected{% endif %}>Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <!-- Additional input field for other occupation -->
+                                    <div class="col-md-4 other_occupation_field" {% if patient.occupation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="other_occupation">Fill Occupation: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="other_occupation" name="other_occupation" value="{{ patient.other_occupation }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <!-- Patient Type -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="patient_type">Patient Type: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" id="patient_type" name="patient_type" required>
+                                                <option value="">Select patient type</option>
+                                                <option value="Permanent" {% if patient.patient_type == "Permanent" %}selected{% endif %}>Permanent</option>
+                                                <option value="Temporary" {% if patient.patient_type == "Temporary" %}selected{% endif %}>Temporary</option>
+                                                <option value="Visitor" {% if patient.patient_type == "Visitor" %}selected{% endif %}>Visitor</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                   <!-- Patient's Company -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="company">Patient's Company: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <select class="form-control select2bs4" style="width: 100%;" name="company" id="company" required>
+                                                <option value="">Select patient company</option>
+                                                {% for company in all_company %}
+                                                    <option value="{{ company.id }}" {% if patient.company == company.id %} selected {% endif %}>{{ company.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Emergency Contact Section -->
+                            <div class="patient-reg-prem-form-section patient-reg-prem-animated">
+                                <h4 class="patient-reg-prem-section-title">
+                                    <i class="fas fa-phone-alt mr-2"></i>Emergency Contact Information
+                                </h4>
+                                <div class="row">
+                                    <!-- Emergency Contact Name -->
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="emergency_contact_name">Next of Kin Name: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" value="{{ patient.emergency_contact_name }}" required>
+                                        </div>
+                                    </div>
+                                <!-- Emergency Contact Relation -->
                                 <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="emergency_contact_phone">Next of kin contacts:</label> <span class="error">*</span>
-                                        <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ patient.emergency_contact_phone }}" max="10" min="10" required 
-                                            pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
-                                            onchange="validateEmergencyContactPhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with '0'')" 
-                                            oninput="setCustomValidity('')"  maxlength="10" minlength="10">
-                                        <div id="emergency-contact-phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
+                                    <div class="patient-reg-prem-input-group">
+                                        <label for="emergency_contact_relation">Next of Kin Relation: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="emergency_contact_relation" name="emergency_contact_relation" onchange="toggleOtherRelationField(this)" required>
+                                            <option value="">Select Next of Kin Relation</option>
+                                            <option value="Spouse" {% if patient.emergency_contact_relation == "Spouse" %}selected{% endif %}>Spouse</option>
+                                            <option value="Friend" {% if patient.emergency_contact_relation == "Friend" %}selected{% endif %}>Friend</option>
+                                            <option value="Coworker" {% if patient.emergency_contact_relation == "Coworker" %}selected{% endif %}>Coworker</option>
+                                            <option value="Child" {% if patient.emergency_contact_relation == "Child" %}selected{% endif %}>Child</option>
+                                            <option value="Father" {% if patient.emergency_contact_relation == "Father" %}selected{% endif %}>Father</option>
+                                            <option value="Mother" {% if patient.emergency_contact_relation == "Mother" %}selected{% endif %}>Mother</option>
+                                            <option value="Brother" {% if patient.emergency_contact_relation == "Brother" %}selected{% endif %}>Brother</option>
+                                            <option value="Sister" {% if patient.emergency_contact_relation == "Sister" %}selected{% endif %}>Sister</option>
+                                            <option value="Son" {% if patient.emergency_contact_relation == "Son" %}selected{% endif %}>Son</option>
+                                            <option value="Daughter" {% if patient.emergency_contact_relation == "Daughter" %}selected{% endif %}>Daughter</option>
+                                            <option value="Other" {% if patient.emergency_contact_relation == "Other" %}selected{% endif %}>Other</option>
+                                        </select>
                                     </div>
                                 </div>
-                          
+                                     <!-- Additional input field for other relation -->
+                                     <div class="col-md-4 other_relation_field" {% if patient.emergency_contact_relation == 'Other' %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="other_relation">Fill Next of Kin Relation: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="text" class="form-control" id="other_relation" name="other_relation" value="{{ patient.other_emergency_contact_relation }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="patient-reg-prem-input-group">
+                                            <label for="emergence_contact_phone">Next of Kin Contacts: <span class="patient-reg-prem-badge patient-reg-prem-badge-required">Required</span></label>
+                                            <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ patient.emergency_contact_phone }}" max="10" min="10" required 
+                                                pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
+                                                onchange="validateEmergencyContactPhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with '0'')" 
+                                                oninput="setCustomValidity('')"  maxlength="10" minlength="10">
+                                            <div id="emergency-contact-phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
+                                        </div>
+                                    </div>
+                              
+                                </div>
                             </div>
+                            
                             <!-- End of Form -->
                             <div class="row">
                                 <div class="col-md-12">
-                                    <button type="submit" class="btn btn-info btn-block" name="save_continue_health"  onclick="validateForm(event)">Save to Continue</button>
+                                    <button type="submit" class="btn btn-prem-patient-reg" name="save_continue_health"  onclick="validateForm(event)">
+                                        <i class="fas fa-save mr-2"></i> {% if editing %}Update Patient{% else %}Register Patient{% endif %}
+                                    </button>
                                 </div>
                             </div>
                         </form>
                     </div>
+                    
+                    <!-- Messages -->
                     <div class="card-footer">
                         {% if messages %}
                             <div class="row">
                                 <div class="col-12">
                                     {% for message in messages %}
                                         {% if message.tags == 'error' %}
-                                            <div class="alert alert-danger alert-message">{{ message }}</div>
+                                            <div class="alert patient-reg-prem-alert patient-reg-prem-alert-error alert-message">{{ message }}</div>
                                         {% elif message.tags == 'success' %}
-                                            <div class="alert alert-primary alert-message">{{ message }}</div>
+                                            <div class="alert patient-reg-prem-alert patient-reg-prem-alert-success alert-message">{{ message }}</div>
                                         {% endif %}
                                     {% endfor %}
                                 </div>
@@ -329,270 +685,266 @@ Add new patient
             </div>
         </div>
     </div>
-    
-    <script>
-    // Fade out alerts after 5 seconds (5000ms)
-    setTimeout(function() {
-        document.querySelectorAll('.alert-message').forEach(function(el) {
-            el.style.transition = 'opacity 0.5s ease-out';
-            el.style.opacity = '0';
-            setTimeout(() => el.style.display = 'none', 500);
-        });
-    }, 5000);
-</script>
-    <script>
-        $(document).ready(function() {
-            const today = new Date().toISOString().split('T')[0];
-            $('#dob').attr('max', today);
-    
-            function calculateAge(dob) {
-                const today = new Date();
-                const birthDate = new Date(dob);
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                    age--;
-                }
-                return age;
-            }
+</div>
 
-            function calculateDOB(age) {
-                const today = new Date();
-                console.log('Today:', today);
-                const birthYear = today.getFullYear() - age;
-                console.log('Birth Year:', birthYear);
-                const birthDate = new Date(birthYear, 6, 1);
-                console.log('Birth Date:', birthDate);
-            
-                // Manually format the date to YYYY-MM-DD
-                const year = birthDate.getFullYear();
-                const month = String(birthDate.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
-                const day = String(birthDate.getDate()).padStart(2, '0');
-                
-                const dob = `${year}-${month}-${day}`;
-                console.log('Calculated DOB:', dob);
-                return dob;
-            }
-    
-    
-            $('#dob').on('change', function() {
-                const dob = $(this).val();
-                const age = calculateAge(dob);
-                $('#age').val(age).trigger('change');
-            });
-    
-            $('#age').on('change', function() {
-                const age = $(this).val();
-                const dob = calculateDOB(age);
-                $('#dob').val(dob);
-            });
-        });
-    </script>
-    
-    <style>
-        .error {color: #FF0000;
-            font-size: 18px;
-            font-weight: 500t
-        }
-        </style>
-        <script>
-            function toggleInsuranceFields() {
-                var insurance = document.getElementById('insurance').value;
-                var insuranceCompanyField = document.getElementById('insuranceCompanyField');
-                var otherInsuranceField = document.getElementById('otherInsuranceField');
-                var insuranceNumberField = document.getElementById('insuranceNumberField');
-            
-                if (insurance === 'Insured') {
-                    insuranceCompanyField.style.display = 'block';     
-                    insuranceCompanyField.querySelector('select').required = true;
 
-                    insuranceNumberField.style.display = 'block';
-                    insuranceNumberField.querySelector('input').required = true;
-                    
-                
-                    
-                    // Check if the selected insurance company is "Other"
-                    var selectedInsuranceCompany = document.getElementById('insurance_company').value;
-                    if (selectedInsuranceCompany === 'Other') {
-                        otherInsuranceField.style.display = 'block';
-                        otherInsuranceField.querySelector('input').required = true;  
-                    } else {
-                        otherInsuranceField.style.display = 'none';
-                        otherInsuranceField.querySelector('input').required = false; 
-                    }
-                } else {
-                    insuranceCompanyField.style.display = 'none';
-                    insuranceCompanyField.querySelector('select').required = false;
-                    otherInsuranceField.style.display = 'none';
-                    otherInsuranceField.querySelector('input').required = false;
-                    insuranceNumberField.style.display = 'none';
-                    insuranceNumberField.querySelector('input').required = false;
-                }
-            }
-            
-            // Add an event listener to the insurance company dropdown to call toggleInsuranceFields() whenever the selection changes
-            document.getElementById('insurance_company').addEventListener('change', toggleInsuranceFields);
-            
-                            
-        </script>
-    <script>
-       
-        function toggleOshaFields() {
-            var oshaCertificate = document.getElementById('osha_certificate').value;
-            var oshaDateField = document.getElementById('oshaDateField');
-            if (oshaCertificate === '1') {
-                oshaDateField.style.display = 'block';
-                oshaDateField.querySelector('input').required = true; 
-            } else {
-                oshaDateField.style.display = 'none';
-                oshaDateField.querySelector('input').required = false; 
-            }
-        }
-    </script>
-   
-    <script>
-        function validateEmergencyContactPhone(input) {
-            var phoneRegex = /^0\d{9}$/; // Updated regex pattern to accept only 10-digit numbers starting with '0'
-            var isValid = phoneRegex.test(input.value);
-            var errorDiv = document.getElementById('emergency-contact-phone-error');
-            if (!isValid) {
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.style.display = 'none';
-            }
-        }
-    
-        function validatePhone(input) {
-            var phoneRegex = /^0\d{9}$/; // Updated regex pattern to accept only 10-digit numbers starting with '0'
-            var isValid = phoneRegex.test(input.value);
-            var errorDiv = document.getElementById('phone-error');
-            if (!isValid) {
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.style.display = 'none';
-            }
-        }
-    
-        // Function to validate the form before submission
-        function validateForm(event) {
-            // Prevent form submission
-            event.preventDefault();
-    
-            // Get all input fields and select elements with the required attribute
-            var requiredFields = document.querySelectorAll('input[required], select[required]');
-    
-            // Variable to track if all required fields are filled
-            var allFieldsFilled = true;
-    
-            // Loop through each required field
-            requiredFields.forEach(function(field) {
-                // Check if the field is empty
-                if (field.value.trim() === '') {
-                    // Set allFieldsFilled to false
-                    allFieldsFilled = false;
-    
-                    // Get the parent div of the field
-                    var parentDiv = field.closest('.form-group');
-    
-                    // Check if there's already an error message span
-                    var errorMessageSpan = parentDiv.querySelector('.error-message');
-                    if (!errorMessageSpan) {
-                        // Create a new span element for the error message
-                        errorMessageSpan = document.createElement('span');
-                        errorMessageSpan.className = 'error-message';
-                        errorMessageSpan.textContent = 'This field is required';
-                        errorMessageSpan.style.color = 'red';
-    
-                        // Append the error message span after the input field
-                        parentDiv.appendChild(errorMessageSpan);
-                    }
-                } else {
-                    // If the field is not empty and there's an error message span, remove it
-                    var parentDiv = field.closest('.form-group');
-                    var errorMessageSpan = parentDiv.querySelector('.error-message');
-                    if (errorMessageSpan) {
-                        errorMessageSpan.remove();
-                    }
-                }
-            });
-    
-            // Get the phone number fields
-            var phoneField = document.getElementById("phone");
-            var emergencyContactPhoneField = document.getElementById("emergency_contact_phone");
-    
-            // Check phone number validity
-            var phoneValid = phoneField.checkValidity();
-            var emergencyContactPhoneValid = emergencyContactPhoneField.checkValidity();
-    
-            // Get error message divs
-            var phoneErrorDiv = document.getElementById('phone-error');
-            var emergencyContactPhoneErrorDiv = document.getElementById('emergency-contact-phone-error');
-    
-            // If phone numbers are invalid, display error messages
-            if (!phoneValid) {
-                phoneErrorDiv.style.display = 'block';
-            } else {
-                phoneErrorDiv.style.display = 'none';
-            }
-    
-            if (!emergencyContactPhoneValid) {
-                emergencyContactPhoneErrorDiv.style.display = 'block';
-            } else {
-                emergencyContactPhoneErrorDiv.style.display = 'none';
-            }
-    
-            // If either phone number is invalid or required fields are empty, prevent form submission
-            if (!phoneValid || !emergencyContactPhoneValid || !allFieldsFilled) {
-                return;
-            }
-    
-            // If all required fields are filled and phone numbers are valid, submit the form
-            var form = event.target.closest('form');
-            if (form) {
-                form.submit();
-            }
-        }
-    </script>
-    
-    
-    
-    <script>
-        function toggleOtherRelationField(select) {
-            var otherRelationField = document.querySelector('.other_relation_field');
-            if (select.value === 'Other') {
-                otherRelationField.style.display = 'block';
-                otherRelationField.querySelector('input').required = true; 
-            } else {
-                otherRelationField.style.display = 'none';
-                otherRelationField.querySelector('input').required = false; 
-            }
-        }
-    </script>
-    <script>
-        function toggleOtherPatientTypeField(select) {
-            var otherPatientTypeField = document.querySelector('.other_patient_type_field');
-            if (select.value === 'Others') {
-                otherPatientTypeField.style.display = 'block';
-                otherPatientTypeField.querySelector('input').required = true; 
-            } else {
-                otherPatientTypeField.style.display = 'none';
-                otherPatientTypeField.querySelector('input').required = false; 
-            }
-        }
-    </script>
-    <script>
-        function toggleOtherOccupationField(select) {
-            var otherOccupationField = document.querySelector('.other_occupation_field');
-            if (select.value === 'Other') {
-                otherOccupationField.style.display = 'block';
-                otherOccupationField.querySelector('input').required = true; 
-            } else {
-                otherOccupationField.style.display = 'none';
-                otherOccupationField.querySelector('input').required = false; 
-            }
-        }
-    </script>
-
-    
-    {% include 'kahama_template/datatable.html' %} 
 {% endblock main_content %}
+
+{% block customer_js %}
+<script>
+// Fade out alerts after 5 seconds (5000ms)
+setTimeout(function() {
+    document.querySelectorAll('.alert-message').forEach(function(el) {
+        el.style.transition = 'opacity 0.5s ease-out';
+        el.style.opacity = '0';
+        setTimeout(() => el.style.display = 'none', 500);
+    });
+}, 5000);
+</script>
+
+<script>
+    $(document).ready(function() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#dob').attr('max', today);
+
+        function calculateAge(dob) {
+            const today = new Date();
+            const birthDate = new Date(dob);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function calculateDOB(age) {
+            const today = new Date();
+            const birthYear = today.getFullYear() - age;
+            const birthDate = new Date(birthYear, 6, 1);
+            
+            // Manually format the date to YYYY-MM-DD
+            const year = birthDate.getFullYear();
+            const month = String(birthDate.getMonth() + 1).padStart(2, '0');
+            const day = String(birthDate.getDate()).padStart(2, '0');
+            
+            const dob = `${year}-${month}-${day}`;
+            return dob;
+        }
+
+        $('#dob').on('change', function() {
+            const dob = $(this).val();
+            const age = calculateAge(dob);
+            $('#age').val(age).trigger('change');
+        });
+
+        $('#age').on('change', function() {
+            const age = $(this).val();
+            const dob = calculateDOB(age);
+            $('#dob').val(dob);
+        });
+        
+        // Initialize select2 with premium styling
+        $('.select2bs4').select2({
+            theme: 'bootstrap4',
+            width: 'style'
+        });
+    });
+</script>
+
+<script>
+    function toggleInsuranceFields() {
+        var insurance = document.getElementById('insurance').value;
+        var insuranceCompanyField = document.getElementById('insuranceCompanyField');
+        var otherInsuranceField = document.getElementById('otherInsuranceField');
+        var insuranceNumberField = document.getElementById('insuranceNumberField');
+    
+        if (insurance === 'Insured') {
+            insuranceCompanyField.style.display = 'block';     
+            insuranceCompanyField.querySelector('select').required = true;
+
+            insuranceNumberField.style.display = 'block';
+            insuranceNumberField.querySelector('input').required = true;
+            
+            // Check if the selected insurance company is "Other"
+            var selectedInsuranceCompany = document.getElementById('insurance_company').value;
+            if (selectedInsuranceCompany === 'Other') {
+                otherInsuranceField.style.display = 'block';
+                otherInsuranceField.querySelector('input').required = true;  
+            } else {
+                otherInsuranceField.style.display = 'none';
+                otherInsuranceField.querySelector('input').required = false; 
+            }
+        } else {
+            insuranceCompanyField.style.display = 'none';
+            insuranceCompanyField.querySelector('select').required = false;
+            otherInsuranceField.style.display = 'none';
+            otherInsuranceField.querySelector('input').required = false;
+            insuranceNumberField.style.display = 'none';
+            insuranceNumberField.querySelector('input').required = false;
+        }
+    }
+    
+    // Add an event listener to the insurance company dropdown to call toggleInsuranceFields() whenever the selection changes
+    document.getElementById('insurance_company').addEventListener('change', toggleInsuranceFields);
+</script>
+
+<script>
+    function toggleOshaFields() {
+        var oshaCertificate = document.getElementById('osha_certificate').value;
+        var oshaDateField = document.getElementById('oshaDateField');
+        if (oshaCertificate === '1') {
+            oshaDateField.style.display = 'block';
+            oshaDateField.querySelector('input').required = true; 
+        } else {
+            oshaDateField.style.display = 'none';
+            oshaDateField.querySelector('input').required = false; 
+        }
+    }
+</script>
+
+<script>
+    function toggleFtwFields() {
+        var ftwCertificate = document.getElementById('ftw_certificate').value;
+        var ftwDateField = document.getElementById('ftwDateField');
+        if (ftwCertificate === '1') {
+            ftwDateField.style.display = 'block';
+            ftwDateField.querySelector('input').required = true; 
+        } else {
+            ftwDateField.style.display = 'none';
+            ftwDateField.querySelector('input').required = false; 
+        }
+    }
+</script>
+
+<script>
+    function validateEmergencyContactPhone(input) {
+        var phoneRegex = /^0\d{9}$/;
+        var isValid = phoneRegex.test(input.value);
+        var errorDiv = document.getElementById('emergency-contact-phone-error');
+        if (!isValid) {
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    function validatePhone(input) {
+        var phoneRegex = /^0\d{9}$/;
+        var isValid = phoneRegex.test(input.value);
+        var errorDiv = document.getElementById('phone-error');
+        if (!isValid) {
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    // Function to validate the form before submission
+    function validateForm(event) {
+        // Prevent form submission
+        event.preventDefault();
+
+        // Get all input fields and select elements with the required attribute
+        var requiredFields = document.querySelectorAll('input[required], select[required]');
+
+        // Variable to track if all required fields are filled
+        var allFieldsFilled = true;
+
+        // Loop through each required field
+        requiredFields.forEach(function(field) {
+            // Check if the field is empty
+            if (field.value.trim() === '') {
+                // Set allFieldsFilled to false
+                allFieldsFilled = false;
+
+                // Get the parent div of the field
+                var parentDiv = field.closest('.patient-reg-prem-input-group');
+
+                // Check if there's already an error message span
+                var errorMessageSpan = parentDiv.querySelector('.error-message');
+                if (!errorMessageSpan) {
+                    // Create a new span element for the error message
+                    errorMessageSpan = document.createElement('span');
+                    errorMessageSpan.className = 'error-message';
+                    errorMessageSpan.textContent = 'This field is required';
+                    errorMessageSpan.style.color = 'red';
+
+                    // Append the error message span after the input field
+                    parentDiv.appendChild(errorMessageSpan);
+                }
+            } else {
+                // If the field is not empty and there's an error message span, remove it
+                var parentDiv = field.closest('.patient-reg-prem-input-group');
+                var errorMessageSpan = parentDiv.querySelector('.error-message');
+                if (errorMessageSpan) {
+                    errorMessageSpan.remove();
+                }
+            }
+        });
+
+        // Get the phone number fields
+        var phoneField = document.getElementById("phone");
+        var emergencyContactPhoneField = document.getElementById("emergency_contact_phone");
+
+        // Check phone number validity
+        var phoneValid = phoneField.checkValidity();
+        var emergencyContactPhoneValid = emergencyContactPhoneField.checkValidity();
+
+        // Get error message divs
+        var phoneErrorDiv = document.getElementById('phone-error');
+        var emergencyContactPhoneErrorDiv = document.getElementById('emergency-contact-phone-error');
+
+        // If phone numbers are invalid, display error messages
+        if (!phoneValid) {
+            phoneErrorDiv.style.display = 'block';
+        } else {
+            phoneErrorDiv.style.display = 'none';
+        }
+
+        if (!emergencyContactPhoneValid) {
+            emergencyContactPhoneErrorDiv.style.display = 'block';
+        } else {
+            emergencyContactPhoneErrorDiv.style.display = 'none';
+        }
+
+        // If either phone number is invalid or required fields are empty, prevent form submission
+        if (!phoneValid || !emergencyContactPhoneValid || !allFieldsFilled) {
+            return;
+        }
+
+        // If all required fields are filled and phone numbers are valid, submit the form
+        var form = event.target.closest('form');
+        if (form) {
+            form.submit();
+        }
+    }
+</script>
+
+<script>
+    function toggleOtherRelationField(select) {
+        var otherRelationField = document.querySelector('.other_relation_field');
+        if (select.value === 'Other') {
+            otherRelationField.style.display = 'block';
+            otherRelationField.querySelector('input').required = true; 
+        } else {
+            otherRelationField.style.display = 'none';
+            otherRelationField.querySelector('input').required = false; 
+        }
+    }
+</script>
+
+<script>
+    function toggleOtherOccupationField(select) {
+        var otherOccupationField = document.querySelector('.other_occupation_field');
+        if (select.value === 'Other') {
+            otherOccupationField.style.display = 'block';
+            otherOccupationField.querySelector('input').required = true; 
+        } else {
+            otherOccupationField.style.display = 'none';
+            otherOccupationField.querySelector('input').required = false; 
+        }
+    }
+</script>
+
+{% endblock customer_js %}

@@ -1,0 +1,1056 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+{% load static %}
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Prescription   
+{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <a class="btn btn-prem-presc-nav" href="{% url 'pemba_doctor_consultation_save_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <h5 class="m-0 text-white">Patient Prescription</h5>
+    {% if prescriptions %}
+    <a class="btn btn-prem-presc-nav" href="{% url 'pemba_doctor_consultation_save' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+    {% endif %}
+</div>
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Prescription Styles */
+    .presc-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .presc-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .presc-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .presc-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .presc-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .presc-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .presc-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-presc {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-presc:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-presc-nav {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        margin-right: 10px;
+    }
+    
+    .btn-prem-presc-nav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .presc-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .presc-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .presc-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .presc-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .presc-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .presc-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .presc-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .presc-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .presc-prem-badge-warning {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+    }
+    
+    .presc-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .presc-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .presc-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .presc-prem-flip-card:hover .presc-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .presc-prem-flip-card-front, .presc-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .presc-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .presc-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .presc-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes prescPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .presc-prem-animated {
+        animation: prescPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #b2ebf2;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .presc-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .presc-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+    }
+    
+    .presc-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+    }
+    
+    .presc-prem-alert-warning {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+        border: none;
+    }
+    
+    /* Form section styling */
+    .presc-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0f7fa;
+    }
+    
+    /* Patient info card styling */
+    .presc-prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .presc-prem-patient-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .presc-prem-patient-info {
+        font-size: 0.9rem;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .presc-prem-patient-info b {
+        color: #0F2027;
+    }
+    
+    /* Table styling */
+    .presc-prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .presc-prem-table th {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .presc-prem-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0f7fa;
+    }
+    
+    .presc-prem-table tr:nth-child(even) {
+        background-color: #f8fdff;
+    }
+    
+    .presc-prem-table tr:hover {
+        background-color: #e0f7fa;
+    }
+    
+    /* List styling */
+    .presc-prem-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .presc-prem-list li {
+        background: #e0f7fa;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #006064;
+    }
+    
+    /* Form field styling */
+    .presc-prem-form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .presc-prem-form-field label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .presc-prem-form-field input,
+    .presc-prem-form-field textarea,
+    .presc-prem-form-field select {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+    }
+    
+    .presc-prem-form-field input:focus,
+    .presc-prem-form-field textarea:focus,
+    .presc-prem-form-field select:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    /* Modal premium styling */
+    .presc-prem-modal .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .presc-prem-modal .modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .presc-prem-modal .modal-footer {
+        border-top: 1px solid #e0f7fa;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Progress bar styling */
+    .presc-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e0f7fa;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .presc-prem-progress-bar {
+        height: 100%;
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        border-radius: 5px;
+        transition: width 0.6s ease;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .presc-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .btn-prem-presc-nav {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .presc-prem-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Patient Information Card -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card presc-prem-patient-card">
+                <div class="card-body">
+                    <div class="row presc-prem-patient-info">
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO: <b>{{ patient.mrn }}</b></div>
+                    </div>
+                    <div class="row presc-prem-patient-info">
+                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                        <div class="col-md-3">Visit Number: <b>{{ visit.vst }}</b></div>
+                    </div>
+                </div>    
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card presc-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Prescription Status</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="presc-prem-summary-value">{{ prescriptions|length }}</div>
+                    <div class="presc-prem-summary-label">Previous Prescriptions</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card presc-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="presc-prem-summary-value">4</div>
+                    <div class="presc-prem-summary-label">Mandatory Fields</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="presc-prem-flip-card">
+                <div class="presc-prem-flip-card-inner">
+                    <div class="presc-prem-flip-card-front">
+                        <div class="presc-prem-flip-icon">
+                            <i class="fas fa-prescription"></i>
+                        </div>
+                        <h4>Medication</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="presc-prem-flip-card-back">
+                        <div class="presc-prem-flip-icon">
+                            <i class="fas fa-pills"></i>
+                        </div>
+                        <h4>Drug Prescription</h4>
+                        <p>Prescribe patient medication</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="presc-prem-progress">
+                <div class="presc-prem-progress-bar" style="width: 80%"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted">Consultation</small>
+                <small class="text-muted">Diagnosis</small>
+                <small class="text-muted"><b>Prescription</b></small>
+                <small class="text-muted">Treatment</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnosis Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card presc-prem-gradient shadow-lg mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-diagnoses mr-2"></i>
+                            Diagnosis Information
+                        </h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="presc-prem-form-container">
+                        {% for note in consultation_notes %}
+                        <div class="table-responsive">
+                            <table class="presc-prem-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Preliminary Diagnosis</th>
+                                        <th>Final Diagnosis</th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <ul class="presc-prem-list">
+                                                {% for diagnosis in note.provisional_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="presc-prem-list">
+                                                {% for diagnosis in note.final_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>        
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Prescription Form Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card presc-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-prescription mr-2"></i>
+                            Patient Prescription
+                        </h5>
+                        <a class="btn btn-prem-presc-nav text-white" type="button" data-toggle="modal" data-target="#organizationModal">
+                            <i class="fas fa-eye mr-2"></i> View Prescriptions
+                        </a>                      
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="presc-prem-form-container">
+                        <form id="addPrescriptionForm{{ visit.id }}" method="post">
+                            {% csrf_token %}
+                            <div class="presc-prem-form-section presc-prem-animated">
+                                <h4 class="presc-prem-section-title">
+                                    <i class="fas fa-pills mr-2"></i>Add Prescription
+                                </h4>
+                                <div class="table-responsive">
+                                    <table class="presc-prem-table" id="prescriptionTable{{ visit.id }}">
+                                        <thead>
+                                            <tr>
+                                                <th>Drug <span class="presc-prem-badge presc-prem-badge-required">Required</span></th>
+                                                <th>Unit/Formulation</th>
+                                                <th>Dose <span class="presc-prem-badge presc-prem-badge-required">Required</span></th>
+                                                <th>Frequency <span class="presc-prem-badge presc-prem-badge-required">Required</span></th>
+                                                <th>Duration</th>
+                                                <th>Quantity</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>                                  
+                                        </tbody>
+                                    </table>
+                                </div>
+                        
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div id="PrescriptionResponse{{ visit.id }}"></div>
+                                    </div>
+                                </div>
+                                <!-- Hidden inputs for visit and patient IDs -->
+                                <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
+                                <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                        
+                                <!-- Add Row and Save Prescription buttons -->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square mr-2" aria-hidden="true"></i> Add Prescription</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="presc-prem-input-group">
+                                            <label>Date</label>
+                                            <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
+                                        </div>
+                                        <script>
+                                            // Set the input field to today's date
+                                            const currentDate = new Date().toISOString().split('T')[0];
+                                            document.getElementById('orderDate').value = currentDate;
+                                        </script>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <button type="submit" class="btn btn-prem-presc"><i class="fas fa-save mr-2"></i> Save Prescriptions</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Premium Prescription Modal -->
+<div class="modal fade presc-prem-modal" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content presc-prem-modal-content">
+            <div class="modal-header presc-prem-modal-header">
+                <h5 class="modal-title" id="organizationModalLabel">
+                    <i class="fas fa-history mr-2"></i>Previous Prescriptions
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Header Section -->
+                <div class="container-fluid">
+                    <header class="header">
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-12">
+                                    <img src="{% static 'img/divineheader.jpg' %}" class="img-fluid w-100" alt="resa header">
+                                </div>                   
+                            </div>
+                        </div>
+                    </header>
+                </div>
+
+                <!-- Patient Details Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card presc-prem-patient-card">
+                                <div class="card-header" style="background: linear-gradient(120deg, #0F2027, #203A43); color: white;">
+                                    <h2 class="card-title">Patient Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                         <table class="presc-prem-table text-nowrap">
+                                        <tbody>
+                                            <tr>
+                                                <th>Patient:</th>
+                                                <td>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</td>
+                                                <th>MRN:</th>
+                                                <td>{{ patient.mrn }}</td>
+                                                <th>Visit Number:</th>
+                                                <td>{{ visit.vst }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Age:</th>
+                                                <td>{{ patient.age }}</td>
+                                                <th>Gender:</th>
+                                                <td>{{ patient.gender }}</td>
+                                                <th>Company:</th>
+                                                <td>{{ patient.company }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone:</th>
+                                                <td>{{ patient.phone }}</td>
+                                                <th>Visit Date:</th>
+                                                <td>{{ visit.created_at }}</td>
+                                                <th>Visit Day:</th>
+                                                <td>{{ visit.created_at|date:"l" }} at {{ visit.created_at|time:"H:i" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    </div>                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Previous Prescription Section -->
+                <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card presc-prem-patient-card">
+                                <div class="card-header" style="background: linear-gradient(120deg, #0F2027, #203A43); color: white;">
+                                    <h2 class="card-title">Prescription Details</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="presc-prem-table text-nowrap" id="prescriptionTableModal">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Day</th>                                   
+                                                    <th>Drug name</th>
+                                                    <th>Dose</th>
+                                                    <th>Frequency</th>
+                                                    <th>Duration</th>
+                                                    <th>Quantity Used</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for prescription in prescriptions %}
+                                                    <tr>
+                                                        <td>{{ prescription.created_at.date|date:"d/m/Y" }}</td>
+                                                        <td>{{ prescription.created_at.time }}</td>
+                                                        <td>{{ prescription.created_at|date:"l" }}</td>                                       
+                                                        <td>{{ prescription.medicine.drug_name }}</td>
+                                                        <td>{{ prescription.dose }}</td>
+                                                        <td>{{ prescription.frequency }}</td>
+                                                        <td>{{ prescription.duration }}</td>
+                                                        <td>{{ prescription.quantity_used }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>   
+                  <!-- Prescribing Doctor Section -->
+                  <div class="container-fluid py-1">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card presc-prem-patient-card">
+                                <div class="card-header" style="background: linear-gradient(120deg, #0F2027, #203A43); color: white;">
+                                    <h2 class="card-title">Name of Dr. Prescribing</h2>
+                                </div>
+                                <div class="card-body">
+                                    <p>Dr. {{ prescriptions.first.entered_by }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>      
+            </div>
+            <div class="modal-footer">
+                <div class="btn-group btn-group-sm d-print-none">
+                    <button onclick="printModal('organizationModal')" class="btn btn-light border text-black-50 shadow-none">
+                        <i class="fa fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
+
+<script>
+    function printModal(modalId) {
+        // Get the modal content
+        var modalContent = document.getElementById(modalId).querySelector('.modal-content').innerHTML;
+
+        // Create a temporary document for printing
+        var printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.open();
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Modal</title>
+                <link rel="stylesheet" href="{% static 'plugins/fontawesome-free/css/all.min.css' %}">
+                <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+                <style>
+                    body {
+                        font-family: 'Source Sans Pro', sans-serif;
+                        margin: 20px;
+                        padding: 20px;
+                    }
+                    .modal-content {
+                        border: none;
+                        box-shadow: none;
+                    }
+                </style>
+            </head>
+            <body>
+                ${modalContent}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+</script>
+
+{% include 'pembadoctor_template/datatable.html' %}   
+{% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    $(document).ready(function () {
+        let medicineData = {};
+        let frequencyData = {};
+
+        preloadData();
+
+        $('#addRow{{ visit.id }}').click(() => addRow('#prescriptionTable{{ visit.id }} tbody'));
+        $(document).on('click', '.delete-row', deleteRow);
+        $(document).on('change', '.medicine-select, .frequency-select, .duration-select, .dose-input', function () {
+            updateRowQuantity($(this).closest('tr'));
+        });
+
+        $(document).on('change', '.medicine-select', function () {
+            var medicineId = $(this).val();
+            var formulationField = $(this).closest('tr').find('.formulation_unit');
+
+            if (medicineData[medicineId]) {
+                formulationField.val(medicineData[medicineId].formulation_unit || '');
+            }
+        });
+
+        function preloadData() {
+            $.ajax({
+                url: '{% url "pemba_doctor_prescription_medicines" %}',
+                method: 'GET',
+                success: function (response) {
+                    medicineData = response;
+                },
+                error: function () {
+                    console.error('Error fetching medicine data');
+                },
+            });
+
+            $.ajax({
+                url: '{% url "pemba_doctor_prescription_frequencies" %}',
+                method: 'GET',
+                success: function (response) {
+                    frequencyData = response;
+                },
+                error: function () {
+                    console.error('Error fetching frequency data');
+                },
+            });
+        }
+
+        function initializeSelect2(selector) {
+            $(selector).select2({ theme: 'bootstrap4', width: '100%' });
+        }
+
+        function addRow(tbodySelector) {
+            let rowHtml = '<tr>' +
+                '<td>' +
+                '<select class="form-control select2bs4 medicine-select" name="medicine[]" required>' +
+                '<option value="">Select Medicine</option>';
+
+            for (const [id, data] of Object.entries(medicineData)) {
+                rowHtml += `<option value="${id}">${data.drug_name}</option>`;
+            }
+
+            rowHtml += '</select>' +
+                '</td>' +
+                '<td><input type="text" class="form-control formulation_unit" name="formulation" value=""></td>' +
+                '<td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>' +
+                '<td>' +
+                '<select class="form-control select2bs4 frequency-select" name="frequency[]" required>' +
+                '<option value="">Select Frequency</option>';
+
+            for (const [id, data] of Object.entries(frequencyData)) {
+                rowHtml += `<option value="${id}">${data.name}</option>`;
+            }
+
+            rowHtml += '</select>' +
+                '</td>' +
+                '<td>' +
+                '<select class="form-control select2bs4 duration-select" name="duration[]">';
+
+            for (let i = 1; i <= 31; i++) {
+                rowHtml += `<option value="${i}">${i}</option>`;
+            }
+
+            rowHtml += '</select>' +
+                '</td>' +
+                '<td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>' +
+                '<td><button type="button" class="btn btn-danger delete-row">Delete</button></td>' +
+                '</tr>';
+
+            $(tbodySelector).append(rowHtml);
+            initializeSelect2($(tbodySelector).find('tr:last .select2bs4'));
+        }
+
+        function deleteRow() {
+            $(this).closest('tr').remove();
+        }
+
+        function updateRowQuantity(row) {
+            const medicineId = row.find('.medicine-select').val();
+            const frequencyId = row.find('.frequency-select').val();
+            const duration = parseInt(row.find('.duration-select').val()) || 0;
+            const dose = parseFloat(row.find('.dose-input').val()) || 1;
+            let quantity = 1;
+
+            if (frequencyData[frequencyId] && medicineData[medicineId]) {
+                const frequencyName = frequencyData[frequencyId].name;
+                const dividable = medicineData[medicineId].dividable;
+                const formulationUnit = parseFloat(medicineData[medicineId].formulation_unit) || 1;
+
+                if (frequencyName === 'PRN' || !dividable) {
+                    quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+                } else {
+                    const adjustedDose = dose / formulationUnit;
+                    quantity = Math.ceil(calculateTabletQuantity(frequencyName, duration, adjustedDose));
+                }
+            }
+
+            row.find('.quantity-input').val(quantity);
+        }
+
+        function calculateTabletQuantity(frequency, duration, dose) {
+            const frequencyMap = {
+                'OD': 1,
+                'I.C': 1,
+                'STAT': 1,
+                'QID': 4,
+                'TID': 3,
+                'BID': 2,
+            };
+            return frequencyMap[frequency] ? duration * frequencyMap[frequency] * dose : dose;
+        }
+
+        $('#addPrescriptionForm{{ visit.id }}').submit(function (event) {
+            event.preventDefault();
+            let isValid = true;
+            let errorMessage = '';
+
+            // Check if there are any rows
+            if ($('#prescriptionTable{{ visit.id }} tbody tr').length === 0) {
+                isValid = false;
+                errorMessage = 'Please add at least one prescription.';
+            }
+
+            $('#prescriptionTable{{ visit.id }} tbody tr').each(function () {
+                const row = $(this);
+                const medicine = row.find('.medicine-select').val();
+                const frequency = row.find('.frequency-select').val();
+                const quantity = row.find('.quantity-input').val();
+
+                if (!medicine) {
+                    isValid = false;
+                    errorMessage = 'Please select a medicine for each row.';
+                    return false;
+                }
+                if (!frequency) {
+                    isValid = false;
+                    errorMessage = 'Please select a frequency for each row.';
+                    return false;
+                }
+                if (!Number.isInteger(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
+                    isValid = false;
+                    errorMessage = 'Quantity must be a positive whole number.';
+                    return false;
+                }
+            });
+
+            if (!isValid) {
+                $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert presc-prem-alert presc-prem-alert-error">' + errorMessage + '</div>');
+            } else {
+                savePrescriptions();
+            }
+        });
+
+        function savePrescriptions() {
+            $.ajax({
+                type: 'POST',
+                url: '{% url "pemba_doctor_prescription_add" %}',
+                data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert presc-prem-alert presc-prem-alert-success">' + response.message + '</div>');
+                        // Redirect after a short delay to show the success message
+                        setTimeout(function() {
+                            window.location.href = '{% url "pemba_doctor_consultation_save" patient.id visit.id %}';
+                        }, 1500);
+                    } else {
+                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert presc-prem-alert presc-prem-alert-error">' + response.message + '</div>');
+                    }
+                },
+                error: function (xhr) {
+                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert presc-prem-alert presc-prem-alert-error">' + xhr.responseText + '</div>');
+                },
+            });
+        }
+    });
+</script>
+{% endblock customer_js %}

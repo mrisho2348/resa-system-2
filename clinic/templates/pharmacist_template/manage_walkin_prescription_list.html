@@ -1,0 +1,1266 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load customfilter %}
+{% block title %}
+Premium Walk-In Prescription Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Walk-In Prescription Management Styles */
+    .walkin-prescription-gradient {
+        background: linear-gradient(120deg, #0f0c29, #302b63, #24243e);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 12, 41, 0.15);
+        border: none;
+    }
+    
+    .walkin-prescription-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .walkin-prescription-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .walkin-prescription-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #0f0c29;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .walkin-prescription-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .walkin-prescription-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .walkin-prescription-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 12, 41, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-walkin-prescription {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 12, 41, 0.2);
+    }
+    
+    .btn-walkin-prescription:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 12, 41, 0.3);
+        color: white;
+    }
+    
+    .btn-walkin-prescription-add {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-walkin-prescription-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-walkin-prescription-view {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 12, 41, 0.2);
+    }
+    
+    .btn-walkin-prescription-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 12, 41, 0.3);
+        color: white;
+    }
+    
+    .btn-walkin-prescription-verify {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-walkin-prescription-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-walkin-prescription-unverify {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 65, 108, 0.2);
+    }
+    
+    .btn-walkin-prescription-unverify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 65, 108, 0.3);
+        color: white;
+    }
+    
+    .walkin-prescription-modal-header {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .walkin-prescription-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .walkin-prescription-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .walkin-prescription-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #0f0c29;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .walkin-prescription-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .walkin-prescription-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f0c29;
+        margin-bottom: 0.5rem;
+    }
+    
+    .walkin-prescription-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .walkin-prescription-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .walkin-prescription-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .walkin-prescription-badge-verified {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .walkin-prescription-badge-unverified {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .walkin-prescription-badge-issued {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+    }
+    
+    .walkin-prescription-badge-paid {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .walkin-prescription-badge-unpaid {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .walkin-prescription-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .walkin-prescription-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .walkin-prescription-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .walkin-prescription-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .walkin-prescription-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+    }
+    
+    .walkin-prescription-status-btn[data-status="verified"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .walkin-prescription-status-btn[data-status="unverified"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .walkin-prescription-status-btn[data-status="issued"] {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+    }
+    
+    .walkin-prescription-status-btn[data-status="paid"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    /* Date range filter styles */
+    .walkin-prescription-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .walkin-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .walkin-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #0f0c29;
+        min-width: 80px;
+    }
+    
+    .walkin-date-filter-input {
+        border: 1px solid #d2e3fc;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for view switching */
+    @keyframes walkinPrescriptionFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .walkin-prescription-animated {
+        animation: walkinPrescriptionFadeIn 0.5s ease forwards;
+    }
+    
+    /* Status indicators */
+    .walkin-prescription-status-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+    
+    /* Customer info card */
+    .walkin-customer-info-card {
+        border-left: 4px solid #0f0c29;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    .walkin-customer-info-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        padding: 12px 15px;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+        color: #0f0c29;
+    }
+    
+    .walkin-customer-info-body {
+        padding: 15px;
+        background: white;
+    }
+    
+    /* Payment method badges */
+    .walkin-payment-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .walkin-payment-cash {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .walkin-payment-card {
+        background: linear-gradient(120deg, #0f0c29, #302b63);
+        color: white;
+    }
+    
+    .walkin-payment-mobile {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .walkin-payment-insurance {
+        background: linear-gradient(120deg, #1e3c72, #2a5298);
+        color: white;
+    }
+    
+    .walkin-payment-other {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+    }
+    
+    /* Print receipt styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .receipt-print, .receipt-print * {
+            visibility: visible;
+        }
+        .receipt-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+    
+    /* Fix for card header text visibility */
+    .card-header.bg-light {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+        border-bottom: 1px solid #e9ecef;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card walkin-prescription-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-users mr-2"></i>Premium Walk-In Prescription Management</h5>
+                        <a href="{% url 'pharmacist_add_non_registered_prescription' %}" class="btn btn-walkin-prescription-add">
+                            <i class="fas fa-plus-circle mr-2"></i> New Walk-In Prescription
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card walkin-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-prescription mr-2"></i>Total Walk-In Visits</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="walkin-prescription-summary-value" id="total-visits">{{ visit_total_prices|length }}</div>
+                                    <div class="walkin-prescription-summary-label">All Walk-In Visits</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card walkin-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Verified</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="walkin-prescription-summary-value" id="verified-prescriptions">0</div>
+                                    <div class="walkin-prescription-summary-label">Verified</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card walkin-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-truck-loading mr-2"></i>Issued</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="walkin-prescription-summary-value" id="issued-prescriptions">0</div>
+                                    <div class="walkin-prescription-summary-label">Issued</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card walkin-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Paid</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="walkin-prescription-summary-value" id="paid-prescriptions">0</div>
+                                    <div class="walkin-prescription-summary-label">Paid</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="walkin-prescription-filter-bar">
+                        <div class="walkin-prescription-date-filter">
+                            <div class="walkin-date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="walkin-date-filter-input" id="startDate">
+                            </div>
+                            <div class="walkin-date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="walkin-date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-walkin-prescription" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-walkin-prescription" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        
+                        <div class="walkin-prescription-status-filter">
+                            <button class="walkin-prescription-status-btn active" data-status="all">All Visits</button>
+                            <button class="walkin-prescription-status-btn" data-status="verified">Verified</button>
+                            <button class="walkin-prescription-status-btn" data-status="unverified">Unverified</button>
+                            <button class="walkin-prescription-status-btn" data-status="issued">Issued</button>
+                            <button class="walkin-prescription-status-btn" data-status="paid">Paid</button>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search walk-in visits..." id="visitSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-walkin-prescription" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive walkin-prescription-table-container">
+                        <table class="table table-hover text-nowrap walkin-prescription-table" id="visitTable">
+                            <thead>
+                                <tr>
+                                    <th>Visit Date</th>
+                                    <th>Visit Number</th>
+                                    <th>Customer</th>
+                                    <th>Contact</th>
+                                    <th>Payment Method</th>              
+                                    <th>Billing Amount</th> 
+                                    <th>Status</th>
+                                    <th>Actions</th>               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in visit_total_prices %}
+                                    {% with visit_prescriptions=visit.prescriptions %}
+                                    {% if visit_prescriptions %}
+                                    {% with visit_status=visit_prescriptions.0.get_visit_status %}
+                                    <tr data-verified="{{ visit_status.verified }}" data-issued="{{ visit_status.issued }}" data-status="{{ visit_status.payment }}" data-date="{{ visit.visit__visit_date|date:'Y-m-d' }}">  
+                                        <td>{{ visit.visit__visit_date|date:"d/m/Y" }}</td>
+                                        <td>{{ visit.visit__visit_number }}</td>
+                                        <td>{{ visit.visit__customer__first_name }} {{ visit.visit__customer__last_name }}</td>
+                                        <td>{{ visit.visit__customer__phone_number|default:"N/A" }}</td>
+                                        <td>
+                                            {% with payment_method=visit.visit__customer__payment_form %}
+                                            <span class="walkin-payment-badge walkin-payment-{{ payment_method|default:'other' }}">
+                                                {{ payment_method|default:"Other" }}
+                                            </span>
+                                            {% endwith %}
+                                        </td>
+                                        <td>{{ visit.total_price|floatformat:2 }}</td>
+                                        
+                                        <td>
+                                            <span class="walkin-prescription-status-indicator {% if visit.prescriptions.0.status == 'paid' %}walkin-prescription-badge-paid{% else %}walkin-prescription-badge-unpaid{% endif %}">
+                                                {{ visit.prescriptions.0.status|title|default:"Unpaid" }}
+                                            </span>
+                                        </td>
+                                        
+                                        <td>
+                                            <!-- Modal Trigger Button -->
+                                            <button type="button" class="btn btn-walkin-prescription-view mb-1" data-toggle="modal" data-target="#visitDetailModal{{ visit.visit__id }}">
+                                                <i class="fas fa-eye mr-1"></i> Details
+                                            </button>
+                                            <!-- Notes Modal Trigger Button -->
+                                            <button type="button" class="btn btn-walkin-prescription mb-1" data-toggle="modal" data-target="#prescriptionNotesModal{{ visit.visit__id }}">
+                                                <i class="fas fa-file-medical mr-1"></i> Notes
+                                            </button>                                    
+                                        </td>        
+                                    </tr>
+                                    {% endwith %}
+                                    {% endif %}
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for visit in visit_total_prices %}
+{% if visit.prescriptions %}
+{% with visit_status=visit.visit_status %}
+<!-- Premium Walk-In Visit Detail Modal -->
+<div class="modal fade" id="visitDetailModal{{ visit.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="visitDetailModalLabel{{ visit.visit__id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable walkin-prescription-modal-xl" role="document">
+    <div class="modal-content walkin-prescription-modal-content">
+
+      <div class="modal-header walkin-prescription-modal-header">
+        <h5 class="modal-title text-white" id="visitDetailModalLabel{{ visit.visit__id }}">
+          <i class="fas fa-file-prescription mr-2"></i>Walk-In Visit Details - {{ visit.visit__visit_number }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Header Image -->
+        <div class="mb-3 text-center">
+          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid rounded" alt="Header Image" style="max-height: 120px;">
+        </div>
+
+        <!-- Customer Info -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light text-dark">
+            <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Customer Details</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4">
+                <p><strong>Customer Name:</strong><br>{{ visit.visit__customer__first_name }} {{ visit.visit__customer__last_name }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Phone Number:</strong><br>{{ visit.visit__customer__phone_number|default:"N/A" }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Payment Method:</strong><br>
+                    {% with payment_method=visit.visit__customer__payment_form %}
+                    <span class="walkin-payment-badge walkin-payment-{{ payment_method|default:'other' }}">
+                        {{ payment_method|default:"Other" }}
+                    </span>
+                    {% endwith %}
+                </p>
+              </div>
+            </div>
+            {% if visit.visit__customer__address %}
+            <div class="row mt-2">
+              <div class="col-md-12">
+                <p><strong>Address:</strong><br>{{ visit.visit__customer__address }}</p>
+              </div>
+            </div>
+            {% endif %}
+            <div class="row mt-2">
+              <div class="col-md-4">
+                <p><strong>Visit Date:</strong><br>{{ visit.visit__visit_date|date:"d/m/Y H:i" }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Visit Number:</strong><br>{{ visit.visit__visit_number }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Pharmacy ID:</strong><br>{{ visit.visit__customer__pharmacy_number }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+        <!-- Prescription Table -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-light text-dark">
+            <h6 class="mb-0 text-uppercase"><i class="fas fa-pills mr-2"></i>Prescribed Drugs</h6>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm walkin-prescription-drug-table text-nowrap">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Drug Name</th>
+                    <th>Dosage</th>
+                    <th>Route</th>
+                    <th>Frequency</th>
+                    <th>Duration (Days)</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total Price</th>
+                    <th>Payment Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for prescription in visit.prescriptions %}
+                  <tr>
+                    <td>{{ prescription.medicine.drug_name }}</td>
+                    <td>{{ prescription.dosage|default:prescription.formulation_dose }}</td>
+                    <td>{{ prescription.route|default:"N/A" }}</td>
+                    <td>{{ prescription.frequency.name|default:"N/A" }}</td>
+                    <td>{{ prescription.duration }}</td>
+                    <td>{{ prescription.quantity_used }}</td>
+                    <td>
+                      {% if prescription.quantity_used > 0 %}
+                        {{ prescription.total_price|divide:prescription.quantity_used|floatformat:2 }}
+                      {% else %}
+                        0.00
+                      {% endif %}
+                    </td>
+                    <td>{{ prescription.total_price|floatformat:2 }}</td>
+                    <td>
+                      <span class="walkin-prescription-status-indicator {% if prescription.status == 'paid' %}walkin-prescription-badge-paid{% else %}walkin-prescription-badge-unpaid{% endif %}">
+                        {{ prescription.status|title }}
+                      </span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr class="table-active">
+                    <td colspan="7" class="text-right"><strong>Total Amount:</strong></td>
+                    <td><strong>{{ visit.total_price|floatformat:2 }}</strong></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+          <div class="col-md-4 mb-2">
+            {% if visit_status.status == 'paid' %}
+              <button class="btn btn-walkin-prescription-unverify btn-block" onclick="confirmToggleWalkinPayment('{{ visit.visit__id }}', 'unpay')">
+                <i class="fas fa-times-circle mr-1"></i> Mark Unpaid
+              </button>
+            {% else %}
+              <button class="btn btn-walkin-prescription-verify btn-block" onclick="confirmToggleWalkinPayment('{{ visit.visit__id }}', 'pay')">
+                <i class="fas fa-money-bill-wave mr-1"></i> Mark Paid
+              </button>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-4 mb-2">            
+              {% if visit_status.status == 'paid' %}
+                 <a href="{% url 'pharmacist_generate_walkin_receipt_pdf' visit.visit__id %}" class="btn btn-walkin-prescription btn-block" target="_blank">
+                      <i class="fas fa-print mr-1"></i> Print Receipt
+                </a>
+              {% else %}
+                 <button class="btn btn-secondary btn-block" disabled>
+                 <i class="fas fa-print mr-1"></i>  Pay First
+              </button>
+              {% endif %}           
+          </div>
+          
+          <div class="col-md-4 mb-2">
+            <button class="btn btn-walkin-prescription-view btn-block" data-dismiss="modal">
+                <i class="fas fa-times mr-1"></i> Close
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prescription Notes Modal -->
+<div class="modal fade" id="prescriptionNotesModal{{ visit.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionNotesModalLabel{{ visit.visit__id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content walkin-prescription-modal-content">
+
+      <div class="modal-header walkin-prescription-modal-header">
+        <h5 class="modal-title text-white" id="prescriptionNotesModalLabel{{ visit.visit__id }}">
+          <i class="fas fa-file-medical mr-2"></i>Prescription Notes - {{ visit.visit__visit_number }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Patient Information -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light text-dark">
+            <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Patient Information</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Name:</strong> {{ visit.visit__customer__first_name }} {{ visit.visit__customer__last_name }}</p>
+                <p><strong>Age:</strong> {{ visit.visit__customer__age|default:"N/A" }}</p>
+                <p><strong>Gender:</strong> {{ visit.visit__customer__gender|title|default:"N/A" }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Visit Date:</strong> {{ visit.visit__visit_date|date:"d/m/Y H:i" }}</p>
+                <p><strong>Visit Number:</strong> {{ visit.visit__visit_number }}</p>
+                <p><strong>Pharmacy ID:</strong> {{ visit.visit__customer__pharmacy_number }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prescription Details -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light text-dark">
+            <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Prescription Details</h6>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm text-nowrap">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Drug Name</th>
+                    <th>Dosage</th>
+                    <th>Route</th>
+                    <th>Frequency</th>
+                    <th>Duration (Days)</th>
+                    <th>Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for prescription in visit.prescriptions %}
+                  <tr>
+                    <td>{{ prescription.medicine.drug_name }}</td>
+                    <td>{{ prescription.dosage|default:prescription.formulation_dose }}</td>
+                    <td>{{ prescription.route|default:"N/A" }}</td>
+                    <td>{{ prescription.frequency.name|default:"N/A" }}</td>
+                    <td>{{ prescription.duration }}</td>
+                    <td>{{ prescription.quantity_used }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visit Notes -->
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-light text-dark">
+            <h6 class="mb-0"><i class="fas fa-sticky-note mr-2"></i>Visit Notes</h6>
+          </div>
+          <div class="card-body">
+            {% if visit.visit__notes %}
+              <p>{{ visit.visit__notes }}</p>
+            {% else %}
+              <p class="text-muted">No notes available for this visit.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+          <div class="col-md-6 mb-2">
+            <a href="{% url 'pharmacist_download_prescription_notes' visit.visit__id %}" class="btn btn-walkin-prescription btn-block">
+              <i class="fas fa-download mr-1"></i> Download Notes
+            </a>
+          </div>
+          <div class="col-md-6 mb-2">
+            <button class="btn btn-walkin-prescription-view btn-block" data-dismiss="modal">
+              <i class="fas fa-times mr-1"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endif %}
+{% endfor %}
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content walkin-prescription-modal-content">
+      <div class="modal-header walkin-prescription-modal-header">
+        <h5 class="modal-title text-white" id="paymentStatusModalLabel">Payment Status</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="paymentStatusModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-walkin-prescription" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content walkin-prescription-modal-content">
+      <div class="modal-header walkin-prescription-modal-header">
+        <h5 class="modal-title text-white" id="confirmationModalLabel">Confirm Payment</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="confirmationModalBody">
+        Are you sure you want to mark this visit as paid? This will deduct the medicines from inventory.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-walkin-prescription-verify" id="confirmPaymentButton">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+{% include 'pharmacist_template/datatable.html' %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Initialize DataTable
+    new DataTable('#visitTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visits...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let verifiedCount = 0;
+        let issuedCount = 0;
+        let paidCount = 0;
+        
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            const verified = row.getAttribute('data-verified');
+            const issued = row.getAttribute('data-issued');
+            const status = row.getAttribute('data-status');
+            
+            // Count by status
+            if (verified === 'verified') {
+                verifiedCount++;
+            }
+            
+            if (issued === 'issued') {
+                issuedCount++;
+            }
+            
+            if (status === 'paid') {
+                paidCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('verified-prescriptions').textContent = verifiedCount;
+        document.getElementById('issued-prescriptions').textContent = issuedCount;
+        document.getElementById('paid-prescriptions').textContent = paidCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.walkin-prescription-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.walkin-prescription-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterVisits(status);
+        });
+    });
+
+    // Filter visits by status
+    function filterVisits(status) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowVerified = row.getAttribute('data-verified');
+            const rowIssued = row.getAttribute('data-issued');
+            const rowStatus = row.getAttribute('data-status');
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'verified' && rowVerified === 'verified') {
+                showRow = true;
+            } else if (status === 'unverified' && rowVerified !== 'verified') {
+                showRow = true;
+            } else if (status === 'issued' && rowIssued === 'issued') {
+                showRow = true;
+            } else if (status === 'paid' && rowStatus === 'paid') {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterVisitsByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = document.querySelectorAll('#visitTable tbody tr:not([style*="display: none"])').length;
+    });
+
+    // Filter visits by date range
+    function filterVisitsByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('visitSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.walkin-prescription-status-btn.active').getAttribute('data-status');
+        
+        filterVisitsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.walkin-prescription-status-btn.active').getAttribute('data-status');
+        
+        filterVisitsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter visits by both status and search text
+    function filterVisitsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowVerified = row.getAttribute('data-verified');
+            const rowIssued = row.getAttribute('data-issued');
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'verified' && rowVerified === 'verified') {
+                statusMatch = true;
+            } else if (status === 'unverified' && rowVerified !== 'verified') {
+                statusMatch = true;
+            } else if (status === 'issued' && rowIssued === 'issued') {
+                statusMatch = true;
+            } else if (status === 'paid' && rowStatus === 'paid') {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('visitSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            const activeStatus = document.querySelector('.walkin-prescription-status-btn.active').getAttribute('data-status');
+            filterVisitsWithSearch(activeStatus, searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+
+    function getCSRFToken() {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : null;
+    }
+
+    // Global variables to store payment action details
+    let currentVisitId = null;
+    let currentAction = null;
+
+    // Confirm payment action
+    function confirmToggleWalkinPayment(visitId, action) {
+        currentVisitId = visitId;
+        currentAction = action;
+        
+        const modalBody = document.getElementById('confirmationModalBody');
+        
+        if (action === 'pay') {
+            modalBody.innerHTML = "Are you sure you want to mark this visit as paid? This will deduct the medicines from inventory and cannot be easily undone.";
+        } else {
+            modalBody.innerHTML = "Are you sure you want to mark this visit as unpaid? This will restore the medicines to inventory.";
+        }
+        
+        $('#confirmationModal').modal('show');
+    }
+
+    // Handle confirmed payment action
+    document.getElementById('confirmPaymentButton').addEventListener('click', function() {
+        $('#confirmationModal').modal('hide');
+        toggleWalkinPayment(currentVisitId, currentAction);
+    });
+
+    // Toggle payment status for walk-in visits
+    function toggleWalkinPayment(visitId, action) {
+        const url = '{% url "pharmacist_update_walkin_payment_status" %}';
+
+        $.ajax({
+            url: url,
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: { 
+                visit_id: visitId,
+                action: action
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    showNotification(response.message, "success");
+                    setTimeout(() => {
+                        $('#visitDetailModal' + visitId).modal('hide');
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(response.message, "error");
+                }
+            },
+            error: function(xhr) {
+                showNotification("Failed to update payment status.", "error");
+            }
+        });
+    }
+
+    function showNotification(message, type) {
+        const modalBody = document.getElementById('paymentStatusModalBody');
+        modalBody.innerHTML = message;
+
+        const modalContent = document.querySelector('#paymentStatusModal .modal-content');
+        const modalHeader = modalContent.querySelector('.modal-header');
+
+        // Reset default style
+        modalHeader.style.background = 'linear-gradient(120deg, #0f0c29, #302b63)';
+
+        const modalEl = document.getElementById('paymentStatusModal');
+
+        if (type === 'success') {
+            modalHeader.style.background = 'linear-gradient(120deg, #00b09b, #96c93d)';
+            $(modalEl).off('hidden.bs.modal').on('hidden.bs.modal', function () {
+                location.reload();
+            });
+        } else if (type === 'error') {
+            modalHeader.style.background = 'linear-gradient(120deg, #ff416c, #ff4b2b)';
+            $(modalEl).off('hidden.bs.modal'); // prevent reload
+        } else {
+            modalHeader.style.background = 'linear-gradient(120deg, #0f0c29, #302b63)';
+            $(modalEl).off('hidden.bs.modal');
+        }
+
+        // Show modal depending on bootstrap version
+        if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+            // Bootstrap 5
+            const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+            bsModal.show();
+        } else {
+            // Bootstrap 4
+            $('#paymentStatusModal').modal({ backdrop: 'static', keyboard: false });
+            $('#paymentStatusModal').modal('show');
+        }
+    }
+</script>
+{% endblock customer_js %}

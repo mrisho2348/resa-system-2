@@ -6,110 +6,95 @@ Prescription Frequency List
 
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addFrequencyModal">
-    <i class="fas fa-plus"></i> New  Frequency
+<a class="btn btn-primary btn-gradient float-right" type="button" data-toggle="modal" data-target="#addFrequencyModal">
+    <i class="fas fa-plus mr-2"></i> New Frequency
 </a>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    .modal-header-gradient {
+        background: linear-gradient(120deg, #1e88e5, #00bcd4);
+        color: white;
+    }
+    .modal-header-danger {
+        background: linear-gradient(120deg, #e53935, #e35d5b);
+        color: white;
+    }
+    .input-group-icon {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    .card-header-gradient {
+        background: linear-gradient(120deg, #1e88e5, #00bcd4);
+        color: white;
+    }
+    .btn-gradient {
+        background: linear-gradient(120deg, #1e88e5, #00bcd4);
+        border: none;
+        color: white;
+    }
+    .btn-gradient:hover {
+        background: linear-gradient(120deg, #1976d2, #0097a7);
+        color: white;
+    }
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    .status-active {
+        background-color: #28a745;
+    }
+    .status-inactive {
+        background-color: #dc3545;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h3 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription Frequency List</h3>
+            <div class="card shadow-lg">
+                <div class="card-header card-header-gradient py-3">
+                    <h3 class="header-title text-center m-0 text-white">Prescription Frequency Management</h3>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">    
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered table-striped table-sm" id="example">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Frequency Name</th>
                                     <th>Interval</th>
                                     <th>Description</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>
-                                    <th>Action</th>
+                                    <th>Created</th>
+                                    <th>Last Updated</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for frequency in frequencies %}
                                 <tr>
-                                    <td>{{ frequency.name }}</td>
+                                    <td>
+                                        <span class="status-indicator status-active"></span>
+                                        {{ frequency.name }}
+                                    </td>
                                     <td>{{ frequency.interval }}</td>
-                                    <td>{{ frequency.description }}</td>
+                                    <td>{{ frequency.description|default:"-"|truncatechars:30 }}</td>
                                     <td>{{ frequency.created_at|date:'d/m/Y' }}</td>
-                                    <td>{{ frequency.updated_at|date:'d/m/Y' }}</td>
-                                    <td>  
-                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Edit">
-                                            <i class="fa fa-edit text-white"></i>
+                                    <td>{{ frequency.updated_at|date:'d/m/Y H:i' }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-gradient" data-toggle="modal" data-target="#editFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Delete">
+                                        <button class="btn btn-sm btn-danger ml-1" data-toggle="modal" data-target="#deleteFrequencyModal{{ frequency.id }}" data-toggle="tooltip" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
-                            
-                                                                    <!-- Delete Frequency Modal -->
-                                <div class="modal fade" id="deleteFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
-                                    <div class="modal-dialog" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="deleteFrequencyModalLabel{{ frequency.id }}">Delete Frequency</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>Are you sure you want to delete the frequency <strong>{{ frequency.name }}</strong>?</p>
-                                            </div>
-                                            <!-- Message Container -->
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <div id="deleteMessageContainer{{ frequency.id }}"></div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                <button type="button" class="btn btn-danger" onclick="deleteFrequency({{ frequency.id }})">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                               
                                 {% endfor %}
-                                
-                            </tbody> 
-                            
-                            <script>
-                                function deleteFrequency(frequencyId) {
-                                    // Send the delete request to the server via AJAX
-                                    $.ajax({
-                                        url: '{% url 'admin_delete_frequency' %}',
-                                        type: 'POST',
-                                        data: {
-                                            'frequency_id': frequencyId,
-                                            'csrfmiddlewaretoken': '{{ csrf_token }}'
-                                        },
-                                        success: function(response) {
-                                            // Handle success response
-                                            if (response.status === 'success') {
-                                                $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-success">' + response.message + '</div>');
-                                                location.reload(true); // Reload the page after successful deletion
-                                            } else {
-                                                $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-danger">' + response.message + '</div>');
-                                            }
-                                        },
-                                        error: function(xhr, status, error) {
-                                            // Handle error response
-                                            $('#deleteMessageContainer' + frequencyId).html('<div class="alert alert-danger">' + xhr.responseJSON.message + '</div>');
-                                        }
-                                    });
-                                }
-                            
-                              
-                            </script>                                               
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -118,172 +103,282 @@ Prescription Frequency List
     </div>
 </div>
 
-{% for frequency in frequencies %}
-   <!-- Edit Frequency Modal -->
-<div class="modal fade" id="editFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="editFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editFrequencyModalLabel{{ frequency.id }}">Edit Frequency</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+<!-- Add Frequency Modal -->
+<div class="modal fade" id="addFrequencyModal" tabindex="-1" role="dialog" aria-labelledby="addFrequencyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white" id="addFrequencyModalLabel">
+                    <i class="fas fa-prescription-bottle-alt mr-2"></i>Add New Frequency
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div id="editFrequencyContainers{{ frequency.id }}" class="alert" role="alert"></div>
-                <form id="editFrequencyForm{{ frequency.id }}" method="post">
+            <div class="modal-body py-4">
+                <div id="addFrequencyContainers" class="alert" role="alert"></div>
+                <form id="addFrequencyForm" method="post">
                     {% csrf_token %}
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyName{{ frequency.id }}">Name:</label>
-                                    <input type="text" class="form-control" id="frequencyName{{ frequency.id }}" name="name" value="{{ frequency.name }}" required>
-                                    <input type="hidden"  id="frequency_id{{ frequency.id }}" name="frequency_id" value="{{ frequency.id }}">
+                    <div class="form-row">
+                        <div class="col-md-6 mb-3">
+                            <label for="frequencyName" class="font-weight-bold">Frequency Name</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text input-group-icon">
+                                        <i class="fas fa-tag"></i>
+                                    </span>
                                 </div>
+                                <input type="text" class="form-control" id="frequencyName" name="name" placeholder="e.g., Twice Daily" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyInterval{{ frequency.id }}">Interval:</label>
-                                    <input type="text" class="form-control" id="frequencyInterval{{ frequency.id }}" name="interval" value="{{ frequency.interval }}" required>
+                            <small class="form-text text-muted">Short descriptive name</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="frequencyInterval" class="font-weight-bold">Dosage Interval</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text input-group-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
                                 </div>
+                                <input type="text" class="form-control" id="frequencyInterval" name="interval" placeholder="e.g., Every 12 hours" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyDescription{{ frequency.id }}">Description:</label>
-                                    <input type="text" class="form-control" id="frequencyDescription{{ frequency.id }}" name="description" value="{{ frequency.description }}">
-                                </div>
-                            </div>
+                            <small class="form-text text-muted">Time between doses</small>
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="updateFrequency{{ frequency.id }}">Update Prescription Frequency</button>
+                    
+                    <div class="form-group mb-4">
+                        <label for="frequencyDescription" class="font-weight-bold">Description</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text input-group-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </div>
+                            <textarea class="form-control" id="frequencyDescription" name="description" rows="2" placeholder="Additional instructions or details"></textarea>
                         </div>
+                    </div>
+                    
+                    <div class="form-group text-center mt-4">
+                        <button type="button" class="btn btn-gradient btn-lg px-5" id="addFrequency">
+                            <i class="fas fa-plus-circle mr-2"></i>Add Frequency
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-<script>
-    $(document).ready(function () {
-        $('#updateFrequency{{ frequency.id }}').click(function (event) {
-            var form = document.getElementById('editFrequencyForm{{ frequency.id }}');
-            if (form.checkValidity() === false) {
-                event.preventDefault();
-                event.stopPropagation();
-            } else {
-                var formData = $('#editFrequencyForm{{ frequency.id }}').serialize();
 
-                $.ajax({
-                    url: '{% url "admin_add_frequency" %}', // Update with your actual URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#editFrequencyContainers{{ frequency.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                            location.reload(true);
-                        } 
-                        else {
-                            $('#editFrequencyContainers{{ frequency.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#editFrequencyContainers{{ frequency.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
-                    }
-                });
-            }
-
-            form.classList.add('was-validated');
-        });
-    });
-</script>
-{% endfor %}
-
- <!-- Modal -->
-<div class="modal fade" id="addFrequencyModal" tabindex="-1" role="dialog" aria-labelledby="addFrequencyModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addFrequencyModalLabel">Add Prescription Frequency</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+{% for frequency in frequencies %}
+<!-- Edit Frequency Modal -->
+<div class="modal fade" id="editFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="editFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white" id="editFrequencyModalLabel{{ frequency.id }}">
+                    <i class="fas fa-edit mr-2"></i>Edit Frequency
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div id="addFrequencyContainers" class="alert" role="alert"></div>
-                <form id="addFrequencyForm" method="post">
+            <div class="modal-body py-4">
+                <div id="editFrequencyContainers{{ frequency.id }}" class="alert" role="alert"></div>
+                <form id="editFrequencyForm{{ frequency.id }}" method="post">
                     {% csrf_token %}
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyName">Name:</label>
-                                    <input type="text" class="form-control" id="frequencyName" name="name" required>
+                    <input type="hidden" name="frequency_id" value="{{ frequency.id }}">
+                    
+                    <div class="form-row">
+                        <div class="col-md-6 mb-3">
+                            <label class="font-weight-bold">Frequency Name</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text input-group-icon">
+                                        <i class="fas fa-tag"></i>
+                                    </span>
                                 </div>
+                                <input type="text" class="form-control" name="name" value="{{ frequency.name }}" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyInterval">Interval:</label>
-                                    <input type="text" class="form-control" id="frequencyInterval" name="interval" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="font-weight-bold">Dosage Interval</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text input-group-icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="frequencyDescription">Description:</label>
-                                    <input type="text" class="form-control" id="frequencyDescription" name="description">
-                                </div>
+                                <input type="text" class="form-control" name="interval" value="{{ frequency.interval }}" required>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="addFrequency">Add Prescription Frequency</button>
+                    
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold">Description</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text input-group-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </div>
+                            <textarea class="form-control" name="description" rows="2">{{ frequency.description }}</textarea>
                         </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-gradient px-4" id="updateFrequency{{ frequency.id }}">
+                            <i class="fas fa-save mr-2"></i>Save Changes
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-</div>  
-  <script>
-    $(document).ready(function () {
-        $('#addFrequency').click(function (event) {
+</div>
+
+<!-- Delete Frequency Modal -->
+<div class="modal fade" id="deleteFrequencyModal{{ frequency.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteFrequencyModalLabel{{ frequency.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header modal-header-danger py-3">
+                <h5 class="modal-title text-white" id="deleteFrequencyModalLabel{{ frequency.id }}">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Confirm Deletion
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                    <h4 class="font-weight-bold">Confirm Frequency Deletion</h4>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <p class="mb-1"><strong>Warning:</strong> This action is permanent and cannot be undone.</p>
+                    <p class="mb-0">All prescriptions using this frequency will need to be updated.</p>
+                </div>
+                
+                <div class="card mb-3 border-danger">
+                    <div class="card-body">
+                        <h5 class="font-weight-bold text-danger">{{ frequency.name }}</h5>
+                        <p class="mb-1"><strong>Interval:</strong> {{ frequency.interval }}</p>
+                        <p class="mb-0"><strong>Created:</strong> {{ frequency.created_at|date:'d/m/Y' }}</p>
+                    </div>
+                </div>
+                
+                <div id="deleteMessageContainer{{ frequency.id }}"></div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" onclick="deleteFrequency({{ frequency.id }})">
+                        <i class="fas fa-trash mr-2"></i>Confirm Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
+        // Add Frequency Form Submission
+        $('#addFrequency').click(function(event) {
             var form = document.getElementById('addFrequencyForm');
             if (form.checkValidity() === false) {
                 event.preventDefault();
                 event.stopPropagation();
             } else {
                 var formData = $('#addFrequencyForm').serialize();
-
-                $.ajax({
-                    url: '{% url "admin_add_frequency" %}', // Update with your actual URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#addFrequencyContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                            location.reload(true);
-                        } else {
-                            $('#addFrequencyContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#addFrequencyContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
-                    }
-                });
+                submitForm('{% url "resa_admin_add_frequency" %}', formData, '#addFrequencyContainers');
             }
-
             form.classList.add('was-validated');
         });
+        
+        // Edit Frequency Form Submissions
+        {% for frequency in frequencies %}
+        $('#updateFrequency{{ frequency.id }}').click(function(event) {
+            var form = document.getElementById('editFrequencyForm{{ frequency.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editFrequencyForm{{ frequency.id }}').serialize();
+                submitForm('{% url "resa_admin_add_frequency" %}', formData, '#editFrequencyContainers{{ frequency.id }}');
+            }
+            form.classList.add('was-validated');
+        });
+        {% endfor %}
+        
+        // Generic form submission function
+        function submitForm(url, data, containerSelector) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        $(containerSelector).html('<div class="alert alert-success">' + response.message + '</div>');
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        $(containerSelector).html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? 
+                        xhr.responseJSON.message : 'Server error occurred';
+                    $(containerSelector).html('<div class="alert alert-danger">' + msg + '</div>');
+                }
+            });
+        }
+        
+        // Delete frequency function
+        window.deleteFrequency = function(frequencyId) {
+            $.ajax({
+                url: '{% url 'resa_admin_delete_frequency' %}',
+                type: 'POST',
+                data: {
+                    'frequency_id': frequencyId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#deleteMessageContainer' + frequencyId).html(
+                            '<div class="alert alert-success">' + response.message + '</div>'
+                        );
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        $('#deleteMessageContainer' + frequencyId).html(
+                            '<div class="alert alert-danger">' + response.message + '</div>'
+                        );
+                    }
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? 
+                        xhr.responseJSON.message : 'Server error occurred';
+                    $('#deleteMessageContainer' + frequencyId).html(
+                        '<div class="alert alert-danger">' + msg + '</div>'
+                    );
+                }
+            });
+        };
     });
 </script>
 
-
- 
-  
 {% include 'hod_template/datatable.html' %}
 {% endblock main_content %}

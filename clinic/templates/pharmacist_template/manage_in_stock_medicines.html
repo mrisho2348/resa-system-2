@@ -1,41 +1,459 @@
 {% extends 'pharmacist_template/base_template.html' %}
 
 {% block title %}
-In Stock Medicines
+Premium In Stock Medicines Management
 {% endblock title %}
+
 {% block breadcrumb %}
 {% include "pharmacist_template/modal_form.html" %}
 {% endblock breadcrumb %}
+
 {% load static %}
+{% load customfilter %}
 {% block main_content %}
+<style>
+    /* Premium In-Stock Medicines Styles - Unique to this template */
+    .pharm-stock-gradient {
+        background: linear-gradient(120deg, #1a2980, #26d0ce);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 41, 128, 0.15);
+        border: none;
+    }
+    
+    .pharm-stock-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-stock-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-stock-table th {
+        background: linear-gradient(120deg, #e0f7fa, #b2ebf2);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-stock-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e0f7fa;
+    }
+    
+    .pharm-stock-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-stock-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 96, 100, 0.1);
+        background: #f0fcff;
+    }
+    
+    .btn-pharm-stock {
+        background: linear-gradient(120deg, #1a2980, #26d0ce);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 41, 128, 0.2);
+    }
+    
+    .btn-pharm-stock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 41, 128, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-stock-export {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-stock-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .pharm-stock-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-stock-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-stock-summary-card .card-header {
+        background: linear-gradient(120deg, #e0f7fa, #b2ebf2);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .pharm-stock-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-stock-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-stock-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-stock-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+    
+    .pharm-stock-status-low {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-stock-status-medium {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-stock-status-high {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-stock-filter-bar {
+        background: linear-gradient(120deg, #e0f7fa, #b2ebf2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-stock-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-stock-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-stock-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-stock-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2980, #26d0ce);
+        color: white;
+    }
+    
+    .pharm-stock-status-btn[data-status="low"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-stock-status-btn[data-status="medium"] {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-stock-status-btn[data-status="high"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmStockFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-stock-animated {
+        animation: pharmStockFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-stock-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-stock-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-stock-flip-card:hover .pharm-stock-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-stock-flip-card-front, .pharm-stock-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-stock-flip-card-front {
+        background: linear-gradient(120deg, #1a2980, #26d0ce);
+        color: white;
+    }
+    
+    .pharm-stock-flip-card-back {
+        background: linear-gradient(120deg, #26d0ce, #1a2980);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-stock-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Progress bar for stock levels */
+    .pharm-stock-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .pharm-stock-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.6s ease;
+    }
+    
+    .pharm-stock-progress-low {
+        background: linear-gradient(90deg, #ff416c, #ff4b2b);
+    }
+    
+    .pharm-stock-progress-medium {
+        background: linear-gradient(90deg, #ff9a00, #ffcc00);
+    }
+    
+    .pharm-stock-progress-high {
+        background: linear-gradient(90deg, #00b09b, #96c93d);
+    }
+    
+    /* Low stock alert styling */
+    .pharm-stock-low-alert {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(255, 65, 108, 0.2);
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h6 class="header-title text-center mt-0 mb-1  text-uppercase ">In Stock Medicinesines</h6>
+            <div class="card pharm-stock-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-pills mr-2"></i>Premium In-Stock Medicines Management</h5>
+                        <button class="btn btn-pharm-stock-export" id="exportBtn">
+                            <i class="fas fa-file-export mr-1"></i> Export Report
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Low Stock Alert -->
+                    <div class="pharm-stock-low-alert" id="lowStockAlert" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+                            <div>
+                                <h5 class="mb-1">Low Stock Alert</h5>
+                                <p class="mb-0" id="lowStockAlertText">You have <span id="lowStockCount">0</span> medicines with low stock that require attention.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-stock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Medicines</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-stock-summary-value" id="total-medicines">{{ in_stock_medicines|length }}</div>
+                                    <div class="pharm-stock-summary-label">All Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-stock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Low Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-stock-summary-value" id="low-stock-medicines">0</div>
+                                    <div class="pharm-stock-summary-label">Low Stock Items</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-stock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-boxes mr-2"></i>Total Inventory Value</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-stock-summary-value" id="inventory-value">0</div>
+                                    <div class="pharm-stock-summary-label">Estimated Value</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-stock-flip-card">
+                                <div class="pharm-stock-flip-card-inner">
+                                    <div class="pharm-stock-flip-card-front">
+                                        <div class="pharm-stock-flip-icon">
+                                            <i class="fas fa-box-open"></i>
+                                        </div>
+                                        <h4>Stock Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-stock-flip-card-back">
+                                        <div class="pharm-stock-flip-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <h4>Inventory Insights</h4>
+                                        <p>Advanced stock analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-stock-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-stock-status-filter">
+                                <button class="pharm-stock-status-btn active" data-status="all">All Medicines</button>
+                                <button class="pharm-stock-status-btn" data-status="low">Low Stock</button>
+                                <button class="pharm-stock-status-btn" data-status="medium">Medium Stock</button>
+                                <button class="pharm-stock-status-btn" data-status="high">High Stock</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search medicines..." id="medicineSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-stock" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-stock-table-container">
+                        <table class="table table-hover text-nowrap pharm-stock-table" id="medicineTable">
                             <thead>
                                 <tr>
                                     <th>Medicine Name</th>
                                     <th>Original Stock Level</th>              
-                                    <th>Remaining Quantity</th>              
-                                    <th>When it last used</th>
-                                    
+                                    <th>Remaining Quantity</th>
+                                    <th>Stock Status</th>
+                                    <th>Usage Progress</th>
+                                    <th>Last Updated</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for inventory in in_stock_medicines   %}
-                                    <tr>
+                                {% for inventory in in_stock_medicines %}
+                                    <tr data-stock-status="{% if inventory.remain_quantity <= inventory.quantity|multiply:0.2 %}low{% elif inventory.remain_quantity <= inventory.quantity|multiply:0.5 %}medium{% else %}high{% endif %}" 
+                                        data-usage-percentage="{% widthratio inventory.remain_quantity inventory.quantity 100 %}">
                                         <td>{{ inventory.drug_name }}</td>
                                         <td>{{ inventory.quantity }}</td>   
-                                        <td>{{ inventory.remain_quantity }}</td>                
+                                        <td>{{ inventory.remain_quantity }}</td>
+                                        <td>
+                                            {% if inventory.remain_quantity <= inventory.quantity|multiply:0.2 %}
+                                                <span class="pharm-stock-status pharm-stock-status-low">Low Stock</span>
+                                            {% elif inventory.remain_quantity <= inventory.quantity|multiply:0.5 %}
+                                                <span class="pharm-stock-status pharm-stock-status-medium">Medium Stock</span>
+                                            {% else %}
+                                                <span class="pharm-stock-status pharm-stock-status-high">High Stock</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="pharm-stock-progress">
+                                                <div class="pharm-stock-progress-bar 
+                                                    {% if inventory.remain_quantity <= inventory.quantity|multiply:0.2 %}pharm-stock-progress-low
+                                                    {% elif inventory.remain_quantity <= inventory.quantity|multiply:0.5 %}pharm-stock-progress-medium
+                                                    {% else %}pharm-stock-progress-high{% endif %}" 
+                                                    style="width: {% widthratio inventory.remain_quantity inventory.quantity 100 %}%">
+                                                </div>
+                                            </div>
+                                            <small>{% widthratio inventory.remain_quantity inventory.quantity 100 %}% remaining</small>
+                                        </td>
                                         <td>{{ inventory.updated_at|date:"d-m-Y" }}</td>
-                                        </tr>
-                    
+                                    </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -45,8 +463,133 @@ In Stock Medicines
         </div>
     </div>
 </div>
+{% include 'pharmacist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#medicineTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let lowStockCount = 0;
+        let totalValue = 0;
+        
+        document.querySelectorAll('#medicineTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-stock-status');
+            
+            // Count low stock items
+            if (status === 'low') {
+                lowStockCount++;
+            }
+            
+            // In a real implementation, we would calculate the total inventory value
+            // For now, we'll just use a placeholder
+            totalValue += 100; // Placeholder value
+        });
+        
+        // Update summary cards
+        document.getElementById('low-stock-medicines').textContent = lowStockCount;
+        document.getElementById('inventory-value').textContent = '$' + totalValue.toLocaleString();
+        
+        // Show low stock alert if there are low stock medicines
+        if (lowStockCount > 0) {
+            document.getElementById('lowStockAlert').style.display = 'block';
+            document.getElementById('lowStockCount').textContent = lowStockCount;
+        }
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
 
+    // Status filter functionality
+    document.querySelectorAll('.pharm-stock-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-stock-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterMedicines(status);
+        });
+    });
+
+    // Filter medicines by status
+    function filterMedicines(status) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-stock-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('medicineSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-stock-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medicineSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-stock-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+
+    // Filter medicines by both status and search text
+    function filterMedicinesWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-stock-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Export button functionality
+    document.getElementById('exportBtn').addEventListener('click', function() {
+        // In a real implementation, this would export the data
+        alert('Export functionality would be implemented here. This would generate a PDF/Excel report of in-stock medicines.');
+    });
+</script>
 
 {% include 'pharmacist_template/datatable.html' %}
 {% endblock main_content %}

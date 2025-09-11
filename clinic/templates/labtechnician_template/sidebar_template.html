@@ -1,215 +1,601 @@
 {% load static %}
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4 lab-sidebar">
   <!-- Brand Logo -->
-  <a href="#" class="brand-link">
-    <img src="{% static 'img/resalogo_square.png' %}" 
-    alt="RESA LOGO" 
-    class="ml-2 img-circle shadow-lg"
-    style="
-      width: 50px; 
-      height: 50px; 
-      object-fit: cover; 
-      border-radius: 50%; 
-      border: 4px solid #ffffff;
-      background-color: #ffffff;
-    ">
-      <span class="ml-2 brand-text font-weight-light">Resa Clinic </span>
-  </a>
-  <style>
-    .img-circle {
-        border-radius: 0%; /* Ensures a circular image */
-        width: 90px;       /* Adjust the size as needed */
-        height: 90px;      /* Ensure a perfect circle */
-    }
-    .brand-link {
-        display: flex;        /* Aligns image and text horizontally */
-        align-items: center;  /* Centers image and text vertically */
-        text-decoration: none; /* Removes underline */
-        color: inherit;       /* Keeps default text color */
-    }
-    .brand-image {
-        margin-right: 10px;  /* Space between image and text */
-        opacity: 0.8;        /* Adjust image transparency */
-    }
-    .brand-text {
-        font-weight: lighter; /* Customizes font weight */
-        font-size: 1.2rem;    /* Adjust font size */
-    }
-    .user-panel .image img {
-        width: 50px; /* Adjust size as needed */
-        height: 50px; /* Make sure width and height are equal */
-        object-fit: cover; /* Ensures the image fits well */
-        border-radius: 50%; /* Makes the image circular */
-        border: 2px solid white; /* Optional border */
-    }
-    
-</style>
-  <!-- Sidebar -->
-  <div class="sidebar"> 
-    <div class="user-panel mt-3 pb-3 mb-3 d-flex">   
-        {% if user.staff.id %}
-            <div class="image">
-                {% if user.staff.profile_picture %}
-                    <img src="{{ user.staff.profile_picture.url }}" class="img-circle elevation-2" alt="User Image">
-                {% else %}
-                    <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">
-                {% endif %}
-            </div>
-            <div class="info">
-                {% url 'lab_edit_staff_profile' user.staff.id as edit_staff_profile %}
-                <a href="{{ edit_staff_profile }}" class="d-block">{{ user.username }}</a>                 
-            </div>      
-        {% else %}
-            <!-- If the user does not have a staff ID -->
-            <div class="image">           
-                <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">          
-            </div>
-            <div class="info">
-                <span class="d-block text-white font-weight-bold">{{ user.username }}</span>            
-            </div>      
-        {% endif %}
+  <a href="#" class="brand-link lab-brand-link">
+    <div class="lab-brand-container">
+      <div class="lab-logo-wrapper">
+        <img src="{% static 'img/resalogo_square.png' %}" 
+             alt="RESA LOGO" 
+             class="lab-brand-logo">
+        <div class="lab-logo-pulse"></div>
+      </div>
+      <div class="lab-brand-text">
+        <span class="lab-brand-title">Resa Clinic</span>
+        <span class="lab-brand-subtitle">Laboratory Department</span>
+      </div>
     </div>
+  </a>
 
-      <!-- Sidebar Menu -->
-      <nav class="mt-2">
-          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-              <!-- Home Section -->
-              <li class="nav-item">
-                  {% url 'labtechnician_dashboard' as admin_home_url %}
-                  <a href="{{ admin_home_url }}" class="nav-link {% if request.path == admin_home_url %} active {% endif %}">
-                      <i class="nav-icon fas fa-th"></i>
-                      <p>HOME</p>
-                  </a>
-              </li> 
-                
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-calendar"></i>
-                    <p>Lab Management <span id="unreadBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-               <ul class="nav nav-treeview">
-                <!-- Lab Orders Without Result -->
-                <li class="nav-item" id="pendingLabOrdersLink">
-                    {% url 'lab_todays_lab_results_view' as todays_lab_results_view_url %}
-                    <a href="{{ todays_lab_results_view_url }}" class="nav-link {% if request.path == todays_lab_results_view_url %} active {% endif %}">
-                        <i class="nav-icon fas fa-flask"></i>
-                        <p>New Lab Orders <span id="withoutResultBadge" class="badge badge-warning">0</span></p>
-                    </a>
-                </li>
+  <!-- Sidebar -->
+  <div class="sidebar lab-sidebar-inner"> 
+    <!-- Sidebar user panel -->
+    <div class="user-panel lab-user-panel mt-3 pb-3 mb-3 d-flex">
+      {% if user.staff.id %}
+        <div class="lab-user-image">
+          {% if user.staff.profile_picture %}
+            <img src="{{ user.staff.profile_picture.url }}" class="lab-profile-img" alt="User Image">
+            <span class="lab-status-indicator"></span>
+          {% else %}
+            <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="lab-profile-img" alt="User Image">
+            <span class="lab-status-indicator"></span>
+          {% endif %}
+        </div>
+        <div class="lab-user-info">
+          {% url 'lab_edit_staff_profile' user.staff.id as edit_staff_profile %}
+          <a href="{{ edit_staff_profile }}" class="lab-username">{{ user.username }}</a>
+          <div class="lab-user-role">{{ user.staff.get_role_display|default:"Lab Technician" }}</div>
+          <div class="lab-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>   
+      {% else %}
+        <div class="lab-user-image">           
+          <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="lab-profile-img" alt="User Image">
+          <span class="lab-status-indicator"></span>
+        </div>
+        <div class="lab-user-info">
+          <span class="lab-username">{{ user.username }}</span>
+          <div class="lab-user-role">Lab Technician</div>
+          <div class="lab-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>
+      {% endif %}
+    </div>   
 
-                <!-- Lab Orders With Result -->
-                <li class="nav-item" id="completedLabOrdersLink">
-                    {% url 'lab_results_view' as results_view_url %}
-                    <a href="{{ results_view_url }}" class="nav-link {% if request.path == results_view_url %} active {% endif %}">
-                        <i class="nav-icon fas fa-check-circle"></i>
-                        <p>Completed Lab Results <span id="withResultBadge" class="badge badge-success">0</span></p>
-                    </a>
-                </li>
-            </ul>
+    <!-- Quick Stats Panel -->
+    <div class="lab-stats-panel">
+      <div class="lab-stat-item">
+        <div class="lab-stat-icon">
+          <i class="fas fa-flask"></i>
+        </div>
+        <div class="lab-stat-info">
+          <span class="lab-stat-number" id="lab-pending-count">0</span>
+          <span class="lab-stat-label">Pending Tests</span>
+        </div>
+      </div>
+      <div class="lab-stat-item">
+        <div class="lab-stat-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="lab-stat-info">
+          <span class="lab-stat-number" id="lab-completed-count">0</span>
+          <span class="lab-stat-label">Completed Tests</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+      <ul class="nav nav-pills nav-sidebar flex-column lab-nav" data-widget="treeview" role="menu" data-accordion="false">
+        <!-- Dashboard Section -->
+        <li class="nav-header lab-nav-header">Dashboard</li>
+        <li class="nav-item">
+          {% url 'labtechnician_dashboard' as lab_home_url %}
+          <a href="{{ lab_home_url }}" class="nav-link lab-nav-link {% if request.path == lab_home_url %} active {% endif %}">
+            <i class="nav-icon fas fa-th"></i>
+            <p>Home</p>
+          </a>
+        </li>
 
+        <!-- Lab Management Section -->
+        <li class="nav-header lab-nav-header">Lab Management</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link lab-nav-link">
+            <i class="nav-icon fas fa-vials"></i>
+            <p>Lab Orders <i class="fas fa-angle-left right"></i></p>
+            <span class="lab-nav-badge" id="lab-total-badge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              {% url 'lab_todays_lab_results_view' as todays_lab_results_view_url %}
+              <a href="{{ todays_lab_results_view_url }}" class="nav-link lab-nav-link {% if request.path == todays_lab_results_view_url %} active {% endif %}">
+                <i class="fas fa-flask nav-icon"></i>
+                <p>New Lab Orders</p>
+                <span class="lab-nav-badge" id="lab-pending-badge">0</span>
+              </a>
             </li>
-          <!-- Clinic Section -->
-                <li class="nav-item has-treeview">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-hospital"></i>
-                        <p>
-                            Lab Reagent
-                            <i class="fas fa-angle-left right"></i>
-                            <span id="reagentCounts" class="badge badge-warning right" style="margin-left:10px;"></span>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        {% url 'lab_reagent_list' as reagent_list_url %}
-                        <li class="nav-item">
-                            <a href="{{ reagent_list_url }}" class="nav-link{% if request.path == reagent_list_url %} active {% endif %}">
-                                <i class="nav-icon fas fa-flask"></i>
-                                <p>Reagent Inventory</p>
-                            </a>
-                        </li>
-
-                        {% url 'lab_reagent_expired' as reagent_expired_url %}
-                        <li class="nav-item">
-                            <a href="{{ reagent_expired_url }}" class="nav-link{% if request.path == reagent_expired_url %} active {% endif %}">
-                                <i class="nav-icon fas fa-exclamation-triangle"></i>
-                                <p>
-                                    Expired Reagents
-                                    <span id="expiredCount" class="badge badge-danger right"></span>
-                                </p>
-                            </a>
-                        </li>
-
-                        {% url 'lab_reagent_expiring_soon' as reagent_expiring_soon_url %}
-                        <li class="nav-item">
-                            <a href="{{ reagent_expiring_soon_url }}" class="nav-link{% if request.path == reagent_expiring_soon_url %} active {% endif %}">
-                                <i class="nav-icon fas fa-hourglass-half"></i>
-                                <p>
-                                    Reagents Expiring Soon
-                                    <span id="expiringSoonCount" class="badge badge-warning right"></span>
-                                </p>
-                            </a>
-                        </li>
-
-                        {% url 'lab_reagent_out_of_stock' as reagent_out_of_stock_url %}
-                        <li class="nav-item">
-                            <a href="{{ reagent_out_of_stock_url }}" class="nav-link{% if request.path == reagent_out_of_stock_url %} active {% endif %}">
-                                <i class="nav-icon fas fa-box-open"></i>
-                                <p>
-                                    Out of Stock
-                                    <span id="outOfStockCount" class="badge badge-secondary right"></span>
-                                </p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-
+            <li class="nav-item">
+              {% url 'lab_results_view' as results_view_url %}
+              <a href="{{ results_view_url }}" class="nav-link lab-nav-link {% if request.path == results_view_url %} active {% endif %}">
+                <i class="fas fa-check-circle nav-icon"></i>
+                <p>Completed Results</p>
+                <span class="lab-nav-badge" id="lab-completed-badge">0</span>
+              </a>
+            </li>
           </ul>
-      </nav>
-      <!-- /.sidebar-menu -->
+        </li>
+
+        <!-- Lab Reagent Section -->
+        <li class="nav-header lab-nav-header">Lab Inventory</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link lab-nav-link">
+            <i class="nav-icon fas fa-hospital"></i>
+            <p>Lab Reagent <i class="fas fa-angle-left right"></i></p>
+            <span class="lab-nav-badge" id="lab-reagent-badge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            {% url 'lab_reagent_list' as reagent_list_url %}
+            <li class="nav-item">
+              <a href="{{ reagent_list_url }}" class="nav-link lab-nav-link {% if request.path == reagent_list_url %} active {% endif %}">
+                <i class="nav-icon fas fa-flask"></i>
+                <p>Reagent Inventory</p>
+              </a>
+            </li>
+
+            {% url 'lab_reagent_expired' as reagent_expired_url %}
+            <li class="nav-item">
+              <a href="{{ reagent_expired_url }}" class="nav-link lab-nav-link {% if request.path == reagent_expired_url %} active {% endif %}">
+                <i class="nav-icon fas fa-exclamation-triangle"></i>
+                <p>Expired Reagents</p>
+                <span class="lab-nav-badge" id="lab-expired-badge">0</span>
+              </a>
+            </li>
+
+            {% url 'lab_reagent_expiring_soon' as reagent_expiring_soon_url %}
+            <li class="nav-item">
+              <a href="{{ reagent_expiring_soon_url }}" class="nav-link lab-nav-link {% if request.path == reagent_expiring_soon_url %} active {% endif %}">
+                <i class="nav-icon fas fa-hourglass-half"></i>
+                <p>Expiring Soon</p>
+                <span class="lab-nav-badge" id="lab-expiring-badge">0</span>
+              </a>
+            </li>
+
+            {% url 'lab_reagent_out_of_stock' as reagent_out_of_stock_url %}
+            <li class="nav-item">
+              <a href="{{ reagent_out_of_stock_url }}" class="nav-link lab-nav-link {% if request.path == reagent_out_of_stock_url %} active {% endif %}">
+                <i class="nav-icon fas fa-box-open"></i>
+                <p>Out of Stock</p>
+                <span class="lab-nav-badge" id="lab-outofstock-badge">0</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
   </div>
-  <!-- /.sidebar -->
+  
+  <!-- Mini Calendar Widget -->
+  <div class="lab-mini-calendar">
+    <div class="lab-calendar-header">
+      <span class="lab-calendar-month" id="lab-calendar-month"></span>
+      <span class="lab-calendar-year" id="lab-calendar-year"></span>
+    </div>
+    <div class="lab-calendar-date" id="lab-calendar-date"></div>
+    <div class="lab-calendar-day" id="lab-calendar-day"></div>
+  </div>
 </aside>
 
+<style>
+  /* Lab Technician Sidebar Specific Styles */
+  .lab-sidebar {
+    background: linear-gradient(135deg, #0c2461, #1e3799, #4a69bd);
+    box-shadow: 3px 0 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .lab-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    z-index: 0;
+  }
+  
+  .lab-brand-link {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .lab-brand-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .lab-logo-wrapper {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .lab-brand-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    background-color: #ffffff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 2;
+  }
+  
+  .lab-brand-text {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .lab-brand-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    color: #fff;
+  }
+  
+  .lab-brand-subtitle {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+    color: #a8d1ff;
+  }
+  
+  .lab-sidebar-inner {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .lab-user-panel {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+  }
+  
+  .lab-user-image {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .lab-profile-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+  }
+  
+  .lab-status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: #28a745;
+    border: 2px solid #0c2461;
+    border-radius: 50%;
+  }
+  
+  .lab-user-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .lab-username {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+  
+  .lab-user-role {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    color: #a8d1ff;
+    margin-bottom: 3px;
+  }
+  
+  .lab-user-status {
+    font-size: 0.75rem;
+    color: #28a745;
+  }
+  
+  .lab-stats-panel {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .lab-stat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    width: 45%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .lab-stat-item:hover {
+    transform: translateY(-3px);
+  }
+  
+  .lab-stat-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: white;
+  }
+  
+  .lab-stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .lab-stat-number {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  
+  .lab-stat-label {
+    font-size: 0.7rem;
+    color: #a8d1ff;
+  }
+  
+  .lab-nav-header {
+    padding: 15px 20px 5px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: #a8d1ff !important;
+    text-transform: uppercase;
+    opacity: 0.9;
+    position: relative;
+  }
+  
+  .lab-nav-header::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(168, 209, 255, 0.3), transparent);
+  }
+  
+  .lab-nav-link {
+    padding: 12px 15px;
+    margin: 3px 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    color: #e9ecef;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .lab-nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+  
+  .lab-nav-link:hover::before {
+    left: 100%;
+  }
+  
+  .lab-nav-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(5px);
+  }
+  
+  .lab-nav-link.active {
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .lab-nav-badge {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+    color: white;
+    border-radius: 10px;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .lab-mini-calendar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .lab-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  
+  .lab-calendar-month, .lab-calendar-year {
+    font-size: 0.8rem;
+    color: #a8d1ff;
+  }
+  
+  .lab-calendar-date {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin: 5px 0;
+  }
+  
+  .lab-calendar-day {
+    font-size: 0.9rem;
+    color: #a8d1ff;
+  }
+  
+  /* Animation for nav items */
+  .lab-nav .nav-item {
+    transition: transform 0.3s ease;
+  }
+  
+  /* Logo pulse animation */
+  .lab-logo-pulse {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: transparent;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    animation: lab-pulse 2s infinite;
+    z-index: 1;
+  }
+  
+  @keyframes lab-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  /* Treeview arrow rotation */
+  .lab-nav-link > .right {
+    transition: transform 0.3s ease;
+  }
+  
+  .lab-nav-link.active > .right {
+    transform: rotate(-90deg);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .lab-brand-title {
+      font-size: 1rem;
+    }
+    
+    .lab-brand-subtitle {
+      display: none;
+    }
+    
+    .lab-stats-panel {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .lab-stat-item {
+      width: 90%;
+      margin-bottom: 10px;
+    }
+  }
+</style>
+
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("{% url 'lab_reagent_counts_api' %}")
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('expiredCount').textContent = data.expired || 0;
-            document.getElementById('expiringSoonCount').textContent = data.expiring_soon || 0;
-            document.getElementById('outOfStockCount').textContent = data.out_of_stock || 0;
-
-            // Optionally, total count badge on parent menu
-            const totalCount = (data.expired || 0) + (data.expiring_soon || 0) + (data.out_of_stock || 0);
-            document.getElementById('reagentCounts').textContent = totalCount > 0 ? totalCount : '';
-        })
-        .catch(err => console.error('Failed to fetch reagent counts:', err));
-});
-</script>
-
-
-<script>
+  // Initialize the calendar
+  function initLabCalendar() {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    document.getElementById('lab-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('lab-calendar-year').textContent = now.getFullYear();
+    document.getElementById('lab-calendar-date').textContent = now.getDate();
+    document.getElementById('lab-calendar-day').textContent = dayNames[now.getDay()];
+  }
+  
+  // Function to update lab stats
+  function updateLabStats() {
+    // Update pending and completed lab orders
+    fetchLabOrdersCounts();
+    
+    // Update reagent counts
+    fetchReagentCounts();
+  }
+  
+  // Function to fetch lab orders counts
   function fetchLabOrdersCounts() {
     $.ajax({
       type: 'GET',
       url: '{% url "lab_fetch_laborders_counts" %}',
       success: function(data) {
-        // Update the badge counts using correct keys
-        $('#withoutResultBadge').text(data.without_result);
-        $('#withResultBadge').text(data.with_result);
+        // Update the badge counts
+        $('#lab-pending-count').text(data.without_result || '0');
+        $('#lab-completed-count').text(data.with_result || '0');
+        $('#lab-pending-badge').text(data.without_result || '0');
+        $('#lab-completed-badge').text(data.with_result || '0');
+        
+        // Update total badge
+        const total = (parseInt(data.without_result) || 0) + (parseInt(data.with_result) || 0);
+        $('#lab-total-badge').text(total > 0 ? total : '0');
       },
       error: function(xhr, status, error) {
         console.error('Error fetching lab orders count:', error);
       }
     });
   }
+  
+  // Function to fetch reagent counts
+  function fetchReagentCounts() {
+    fetch("{% url 'lab_reagent_counts_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('lab-expired-badge').textContent = data.expired || 0;
+        document.getElementById('lab-expiring-badge').textContent = data.expiring_soon || 0;
+        document.getElementById('lab-outofstock-badge').textContent = data.out_of_stock || 0;
 
-  // Initial fetch when the document is ready
-  $(document).ready(function() {
-    fetchLabOrdersCounts();
+        // Update total reagent badge
+        const totalCount = (data.expired || 0) + (data.expiring_soon || 0) + (data.out_of_stock || 0);
+        document.getElementById('lab-reagent-badge').textContent = totalCount > 0 ? totalCount : '';
+      })
+      .catch(err => console.error('Failed to fetch reagent counts:', err));
+  }
+  
+  // Initialize on page load
+  $(document).ready(function() {   
+    initLabCalendar();
+    updateLabStats();
+    
+    // Update stats every minute
+    setInterval(updateLabStats, 60000);
+    
+    // Add sidebar toggle animation
+    $('.lab-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+      $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+    });
   });
-
-  // Optional: Set interval to refresh counts every 30 seconds (adjustable)
-  setInterval(fetchLabOrdersCounts, 30000);
 </script>
-

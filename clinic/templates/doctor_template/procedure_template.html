@@ -1,439 +1,507 @@
 {% extends 'doctor_template/base_template.html' %}
 {% load customfilter %}
+{% load static %}
+
 {% block title %}
-Patient procedure   
+Patient Procedure   
 {% endblock title %}
 
 {% block page_title %}
-{% if final_provisional_diagnosis %}
-    <a class="btn btn-primary" type="button"  href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-{% endif %}
-     <a class="btn btn-primary breadcrumb-link" type="button"  href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
-        <i class="fas fa-arrow-left"></i> Back to health record
-    </a>   
-{% if previous_procedures and consultation_note.doctor_plan|lower == 'procedure' %}
-    <a class="btn btn-success breadcrumb-link" type="button" 
-    href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %} ">
-    <i class="fas fa-arrow-right"></i> Forward
+<div class="d-flex align-items-center">
+    {% if final_provisional_diagnosis %}
+    <a class="btn pat-prem-btn-action mr-2" type="button" href="{% url 'doctor_save_remotesconsultation_notes_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left mr-1"></i> Back
     </a>
-{% endif %}
+    {% endif %}
+    <a class="btn pat-prem-btn-action mr-2" type="button" href="{% url 'doctor_patient_health_record_view' patient.id visit.id %}">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Health Record
+    </a>   
+    {% if previous_procedures and consultation_note.doctor_plan|lower == 'procedure' %}
+    <a class="btn pat-prem-btn-success mr-2" type="button" 
+    href="{% url 'doctor_save_remotesconsultation_notes' patient.id visit.id %} ">
+    <i class="fas fa-arrow-right mr-1"></i> Forward
+    </a>
+    {% endif %}
+    <h5 class="mb-0">New Procedure Order Request</h5>
+</div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#remoteProcedureModal">
-        <i class="fas fa-eye"></i> view procedure result
-    </a>
-    <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#prescriptionModal">
-        <i class="fas fa-eye-slash"></i> view prescription
-    </a>
+<div class="d-flex align-items-center">
+    <span class="mr-2">New Procedure Order</span> 
+</div>
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium styling consistent with the first template */
+    .pat-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pat-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .pat-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .pat-prem-btn-success {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(48, 136, 41, 0.2);
+    }
+    
+    .pat-prem-btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 136, 41, 0.3);
+        color: white;
+    }
+    
+    .pat-prem-patient-header {
+        background: linear-gradient(120deg, rgba(26, 42, 108, 0.1), rgba(44, 62, 80, 0.1));
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pat-prem-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.5rem;
+        margin-right: 15px;
+    }
+    
+    .pat-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .pat-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pat-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .pat-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pat-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-badge-cost {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-form-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+    }
+    
+    .pat-prem-form-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .pat-prem-form-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .select2-container--bootstrap4 .select2-selection--single {
+        height: calc(2.25rem + 2px) !important;
+        border-radius: 8px !important;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+    }
+    
+    .pat-prem-total-cost {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #0d47a1;
+        background: #E3F2FD;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+    
+    .empty-row-alert {
+        display: none;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Patient Header -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">               
-                <div class="card-body">
-                    <div class="row text-uppercase" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
+            <div class="pat-prem-patient-header">
+                <div class="d-flex align-items-center">
+                    <div class="pat-prem-avatar">
+                        {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
                     </div>
-                        <div class="row mt-3">
-                              <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
-                                    {{ patient.payment_form }}- {{ patient.insurance_name }}   
-                                    {% else  %}   
-                                    {{ patient.payment_form }}                  
-                                {% endif %}</b>
+                    <div>
+                        <h3 class="mb-1">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</h3>
+                        <div class="d-flex flex-wrap">
+                            <div class="mr-3"><strong>MRN:</strong> {{ patient.mrn }}</div>
+                            <div class="mr-3"><strong>DOB:</strong> {{ patient.dob|date:'d-m-Y' }} 
+                                [Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
+                                {% else %}
+                                {{ patient.age }}
+                                {% endif %}]
                             </div>
-                            <div class="col-md-3">VISIT NUMBER: <b>{{ visit.vst }}</b></div>                           
+                            <div class="mr-3"><strong>Gender:</strong> {{ patient.gender }}</div>
+                            <div><strong>Payment:</strong> {{ patient.payment_form }}</div>
                         </div>
-                </div>           
-            
+                        <div class="d-flex flex-wrap mt-2">
+                            <div class="mr-3"><strong>Visit Number:</strong> {{ visit.vst }}</div>
+                            <div><strong>Payment Mode:</strong> 
+                                {% if patient.payment_form == "Insurance" %}
+                                    {{ patient.payment_form }} - {{ patient.insurance_name }}   
+                                {% else %}   
+                                    {{ patient.payment_form }}                  
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Procedure Order Form -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="card pat-prem-form-card">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase"> Add Procedure </h4>
+                    <h5 class="card-title mb-0"><i class="fas fa-procedures mr-2"></i>Add New Procedure</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Empty row alert -->
+                    <div id="emptyRowAlert" class="empty-row-alert">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Please add at least one procedure before submitting.
+                    </div>
+                    
                     <form id="addProcedureForm" method="post">
                         {% csrf_token %}
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="procedureTable{{ visit.id }}">
+                        <div class="table-responsive pat-prem-table-container">
+                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered pat-prem-table" id="procedureTable{{ visit.id }}">
                                 <thead>
                                     <tr>
-                                        <th>Procedure Name</th>
-                                        <th>Description</th>
-                                        <th>Equipments Used</th>
-                                        <th>Cost</th>
-                                        <th></th>
+                                        <th><i class="fas fa-procedures mr-2"></i>Procedure Name</th>
+                                        <th><i class="fas fa-align-left mr-2"></i>Description</th>
+                                        <th><i class="fas fa-tools mr-2"></i>Equipments Used</th>
+                                        <th><i class="fas fa-money-bill-wave mr-2"></i>Cost</th>
+                                        <th><i class="fas fa-cog mr-2"></i>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>
-                                            <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="procedure_name[]" required>
-                                                <option value="">Select Procedure</option>
-                                                {% for procedure in remote_service %}
-                                                    <option value="{{ procedure.id }}">{{ procedure.name }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter procedure description"></td>
-                                        <td><input type="text" class="form-control equipments-used" name="equipments_used[]" placeholder="Enter equipments used"></td>
-                                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                                    </tr>
+                                
                                 </tbody>
                             </table>
                         </div>
+                        
                         <!-- Total Cost -->
-                        <div class="row">
+                        <div class="row mt-3">
                             <div class="col-md-9"></div>
                             <div class="col-md-3">
-                                <div class="row">
-                                    <div class="col-md-6">Total Cost</div>
-                                    <div class="col-md-6">
-                                        Sh <span id="totalCost{{ visit.id }}">0</span>
-                                    </div>
+                                <div class="d-flex justify-content-between align-items-center pat-prem-total-cost">
+                                    <span>Total Cost:</span>
+                                    <span>Sh <span id="totalCost{{ visit.id }}">0</span></span>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        
+                        <div class="row mt-2">
                             <div class="col-md-12">
                                 <div id="ProcedureResponse"></div>
                             </div>
                         </div>
+                        
                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                        <!-- Save Procedure button -->
+                        
+                        <!-- Add Procedure button -->
                         <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Procedure</button>
+                            <button type="button" class="btn pat-prem-btn-action btn-block" id="addRow{{ visit.id }}">
+                                <i class="fas fa-plus-square mr-1" aria-hidden="true"></i> Add Procedure
+                            </button>
                         </div>
+                        
+                        <!-- Order Date -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Order Date</label>
-                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate">
+                                    <label><i class="fas fa-calendar-day mr-2"></i>Order Date</label>
+                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate" required>
                                 </div>
                                 <script>
-                                    // Get the current date in the format yyyy-mm-dd
-                                    const currentDate = new Date().toISOString().split('T')[0];
-                                    
                                     // Set the value of the input field to the current date
-                                    document.getElementById('orderDate').value = currentDate;
+                                    document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
                                 </script>
-                            </div>                            
-                           </div>
+                            </div>
+                        </div>
+                           
+                        <!-- Submit Button -->
                         <div class="form-group">
-                            <button type="button" class="btn btn-primary btn-block" onclick="addProcedure{{ visit.id }}()">Save Procedures</button>
+                            <button type="button" class="btn pat-prem-btn-success btn-block" onclick="validateAndSubmit()">
+                                <i class="fas fa-paper-plane mr-1"></i> Request Procedure & Pay
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-    
+</div>
+
+
 <script>
-        $(document).ready(function() {
+    $(document).ready(function () {
+        let rowCounter = 1;
 
-            function initializeSelect2(selector) {
-                $(selector).select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
-            }
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="procedure_name[]" required>
-                                <option value="">Select Procedure</option>
-                                {% for procedure in remote_service %}
-                                    <option value="{{ procedure.id }}">{{ procedure.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td><input type="text" class="form-control description" name="description[]" placeholder="Enter procedure description"></td>
-                        <td><input type="text" class="form-control equipments-used" name="equipments_used[]" placeholder="Enter equipments used"></td>
-                        <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                $('#procedureTable{{ visit.id }} tbody').append(newRow);
+        // Function to initialize Select2 for a specific element
+        function initializeSelect2(element) {
+            element.select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                dropdownParent: $('#addProcedureForm') // Ensures dropdown works inside modal
+            });
+        }
 
-                   initializeSelect2('.select2bs4');
-            });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-                updateTotalCost{{ visit.id }}();
-            });
-    
-                        // Fetch cost when procedure name is selected
-                $(document).on('change', '.procedure-name', function() {
-                    var selectedProcedureId = $(this).val();
-                    var patientId = $('#patient_id{{ visit.id }}').val(); // Get the patient ID
-                    var row = $(this).closest('tr');
-                    $.ajax({
-                        url: '{% url "doctor_get_procedure_cost" %}',
-                        method: 'POST',
-                        data: {
-                            procedure_id: selectedProcedureId,
-                            patient_id: patientId // Include patient ID in the POST data
-                        },
-                        success: function(response) {
-                            row.find('.cost').val(response.cost);
-                            updateTotalCost{{ visit.id }}();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error(xhr.responseText);
-                        }
-                    });
-                });
-            // Function to update total cost
-            function updateTotalCost{{ visit.id }}() {
-                var totalCost = 0;
-                $('#procedureTable{{ visit.id }} tbody tr').each(function() {
-                    var cost = parseFloat($(this).find('.cost').val());
-                    if (!isNaN(cost)) {
-                        totalCost += cost;
-                    }
-                });
-                $('#totalCost{{ visit.id }}').text(totalCost.toFixed(2));
+        // Add new row to the procedure table
+        $('#addRow{{ visit.id }}').click(function () {
+            const rowId = `procedureRow_${rowCounter}`;
+            const newRow = $(`
+                <tr id="${rowId}">
+                    <td>
+                        <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="procedure_name[]" required>
+                            <option value="">Select Procedure</option>
+                            {% for procedure in remote_service %}
+                                <option value="{{ procedure.id }}">{{ procedure.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control description" name="description[]" placeholder="Enter procedure description"></td>
+                    <td><input type="text" class="form-control equipments-used" name="equipments_used[]" placeholder="Enter equipments used"></td>
+                    <td><input type="text" class="form-control cost" name="cost[]" readonly></td>
+                    <td>
+                        <button type="button" class="btn pat-prem-btn-action delete-row"><i class="fas fa-trash mr-1"></i> Delete</button>
+                    </td>
+                </tr>
+            `);
+
+            $('#procedureTable{{ visit.id }} tbody').append(newRow);
+
+            // Initialize Select2 for this new select only
+            initializeSelect2(newRow.find('.procedure-name'));
+
+            rowCounter++;
+            
+            // Hide the alert if it's visible
+            $('#emptyRowAlert').hide();
+        });
+
+        // Delete row
+        $(document).on('click', '.delete-row', function () {
+            $(this).closest('tr').remove();
+            updateTotalCost();
+            
+            // Show alert if no rows left
+            if ($('#procedureTable{{ visit.id }} tbody tr').length === 0) {
+                $('#emptyRowAlert').show();
             }
         });
-    
-        // Handle form submission using AJAX
-        function addProcedure{{ visit.id }}() {
+
+        // On selecting procedure, fetch cost via AJAX
+        $(document).on('change', '.procedure-name', function () {
+            const procedureId = $(this).val();
+            const patientId = $('#patient_id{{ visit.id }}').val();
+            const row = $(this).closest('tr');
+
+            if (!procedureId) return;
+
+            $.ajax({
+                url: '{% url "doctor_get_procedure_cost" %}',
+                method: 'POST',
+                data: {
+                    procedure_id: procedureId,
+                    patient_id: patientId,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    if (response.cost) {
+                        row.find('.cost').val(parseFloat(response.cost).toFixed(2));
+                        updateTotalCost();
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Failed to get procedure cost:', xhr.responseText);
+                }
+            });
+        });
+
+        // Calculate total cost of all rows
+        function updateTotalCost() {
+            let total = 0;
+            $('#procedureTable{{ visit.id }} tbody tr').each(function () {
+                const costVal = parseFloat($(this).find('.cost').val());
+                if (!isNaN(costVal)) {
+                    total += costVal;
+                }
+            });
+            $('#totalCost{{ visit.id }}').text(total.toFixed(2));
+        }
+
+        // Validate form before submission
+        window.validateAndSubmit = function () {
+            let hasValidRows = false;
+            
+            // Check if there's at least one row with a selected procedure
+            $('#procedureTable{{ visit.id }} tbody tr').each(function () {
+                const procedure = $(this).find('.procedure-name').val();
+                if (procedure) {
+                    hasValidRows = true;
+                    return false; // Break out of the loop early
+                }
+            });
+            
+            if (!hasValidRows) {
+                $('#emptyRowAlert').show();
+                // Scroll to the alert
+                $('html, body').animate({
+                    scrollTop: $('#emptyRowAlert').offset().top - 100
+                }, 500);
+                return;
+            }
+            
+            // If validation passes, proceed with submission
+            addProcedure();
+        };
+
+        // AJAX form submission with validation
+        window.addProcedure = function () {
+            let valid = true;
+            $('#procedureTable{{ visit.id }} tbody tr').each(function () {
+                const procedure = $(this).find('.procedure-name').val();
+                const cost = $(this).find('.cost').val();
+                if (!procedure || !cost || isNaN(parseFloat(cost))) {
+                    valid = false;
+                    alert('Please ensure all fields are filled and cost is valid.');
+                    return false; // break each loop
+                }
+            });
+
+            if (!valid) return;
+
             $.ajax({
                 type: 'POST',
                 url: '{% url "doctor_add_procedure" %}',
                 data: $('#addProcedureForm').serialize(),
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#ProcedureResponse').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "doctor_save_remotesconsultation_notes" patient.id visit.id  %}';
-                        window.location.href = redirectUrl;
+                        window.location.href = '{% url "doctor_save_remotesconsultation_notes" patient.id visit.id  %}';
                     } else {
                         $('#ProcedureResponse').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
-                error: function(xhr, status, error) {
-                    $('#ProcedureResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
+                error: function (xhr) {
+                    $('#ProcedureResponse').html('<div class="alert alert-danger">An error occurred: ' + xhr.responseText + '</div>');
                 }
             });
+        };
+
+        // Initialize Select2 for existing elements
+        initializeSelect2($('.procedure-name'));
+        
+        // Show alert on page load if there are no rows
+        if ($('#procedureTable{{ visit.id }} tbody tr').length === 0) {
+            $('#emptyRowAlert').show();
         }
-    </script>
-    
-</div>
-
-
-<!-- Bootstrap Modal for displaying RemoteProcedure content -->
-<div class="modal fade" id="remoteProcedureModal" tabindex="-1" role="dialog" aria-labelledby="remoteProcedureModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-center text-uppercase" id="prescriptionModalLabel">Procedure Total cost: <span style="background-color: red;">{{ total_procedure_cost }}</span></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-            <div class="table-responsive">
-                <table class="table table-hover text-nowrap table-bordered table-striped" id="example">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Description</th>                           
-                            <th>Equipments Used</th>
-                            <th>Cost</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for procedure in procedures %}
-                        <tr>
-                            <td>{{ procedure.name }}</td>
-                            <td>{{ procedure.description }}</td>                           
-                            <td>{{ procedure.equipments_used }}</td>
-                            <td>{{ procedure.cost }}</td>
-                            <td>{{ procedure.created_at|date:"d-m-Y" }}</td>
-                            <td>{{ procedure.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-               </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    /* Reset default margin and padding */
-.navigation {
-    padding-left: 0;
-    list-style: none;
-}
-
-/* Style for the header */
-.navigation-header {
-    background-color: #f0f0f0; /* Header background color */
-    color: #333; /* Header text color */
-    font-weight: bold;
-    padding: 10px; /* Add padding to the header */
-    border-radius: 5px; /* Add border radius */
-    margin-bottom: 10px; /* Add space between header and links */
-}
-
-/* Style for each list item */
-.navigation li {
-    margin-bottom: 5px;
-}
-
-/* Style for each link */
-.navigation li a {
-    color: #333; /* Default text color */
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease; /* Smooth transition for background color */
-}
-
-/* Style for the active link */
-.navigation li.active a {
-    background-color: #007bff; /* Active background color */
-    color: #fff; /* Active text color */
-}
-
-/* Style for link hover */
-.navigation li a:hover {
-    background-color: #e0e0e0; /* Hover background color */
-    color: #000; /* Change text color on hover */
-}
-
-    
-</style>
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
-<div class="modal fade" id="prescriptionModal" tabindex="-1" role="dialog" aria-labelledby="prescriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="prescriptionModalLabel">Prescription and Total Amount: <span style="background-color: red;">{{ total_price }}</span></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-bordered table-striped" id="example5">
-                                <thead>
-                                    <tr>                                    
-                                        <th>Drug</th>
-                                        <th>Dose</th>
-                                        <th>Frequency</th>
-                                        <th>Duration</th>
-                                        <th>Quantity</th>
-                                        <th>Unit Price</th>
-                                        <th>Total Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for prescription in prescriptions %}
-                                    <tr>                                        
-                                        <td>{{ prescription.medicine.drug_name }}</td>
-                                        <td>{{ prescription.dose }}</td>
-                                        <td>{{ prescription.frequency }}</td>
-                                        <td>{{ prescription.duration }} day</td>
-                                        <td>{{ prescription.quantity_used }}</td>
-                                        <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
-                                        <td>{{ prescription.total_price }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
+    });
+</script>
 
 {% include 'doctor_template/datatable.html' %}
-    
-
 {% endblock main_content %}

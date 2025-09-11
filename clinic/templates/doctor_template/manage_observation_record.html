@@ -1,43 +1,333 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+
 {% block title %}
-Observation Notes
+Premium Observation Notes
 {% endblock title %}
+
+{% block page_title %}
+<a href="{% url 'doctor_dashboard' %}" class="btn pat-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+</a>
+{% endblock page_title%}
+
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-
+Premium Observation Notes
 {% endblock breadcrumb %}
+
 {% block main_content %}
-  <div class="container-fluid">
+<style>
+    /* Premium styling for observation notes */
+    .observation-prem-gradient {
+        background: linear-gradient(120deg, #0062cc, #0095ff);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 98, 204, 0.15);
+        border: none;
+    }
+    
+    .observation-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .observation-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .observation-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .observation-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #1565c0;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #90caf9;
+    }
+    
+    .observation-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .observation-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1565c0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .observation-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .observation-prem-table th {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #1565c0;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #bbdefb;
+    }
+    
+    .observation-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .observation-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(21, 101, 192, 0.1);
+        background: #f5f9ff;
+    }
+    
+    .observation-prem-btn-action {
+        background: linear-gradient(120deg, #0062cc, #0095ff);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 98, 204, 0.2);
+        margin: 2px;
+    }
+    
+    .observation-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 98, 204, 0.3);
+        color: white;
+    }
+    
+    .observation-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-badge-patient {
+        background: linear-gradient(120deg, #0062cc, #0095ff);
+        color: white;
+    }
+    
+    .observation-prem-badge-recorder {
+        background: linear-gradient(120deg, #00c853, #64DD17);
+        color: white;
+    }
+    
+    .observation-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .observation-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .observation-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .observation-prem-flip-card:hover .observation-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .observation-prem-flip-card-front, .observation-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .observation-prem-flip-card-front {
+        background: linear-gradient(120deg, #0062cc, #0095ff);
+        color: white;
+    }
+    
+    .observation-prem-flip-card-back {
+        background: linear-gradient(120deg, #0095ff, #0062cc);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .observation-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes observationPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .observation-prem-animated {
+        animation: observationPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-3">
+            <div class="card observation-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-notes-medical mr-2"></i>Total Notes</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="observation-prem-summary-value" id="total-notes">{{ observation_records|length }}</div>
+                    <div class="observation-prem-summary-label">All Observation Notes</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card observation-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="observation-prem-summary-value" id="unique-patients">0</div>
+                    <div class="observation-prem-summary-label">Unique Patients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card observation-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Recorders</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="observation-prem-summary-value" id="unique-recorders">0</div>
+                    <div class="observation-prem-summary-label">Data Recorders</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="observation-prem-flip-card">
+                <div class="observation-prem-flip-card-inner">
+                    <div class="observation-prem-flip-card-front">
+                        <div class="observation-prem-flip-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>Observation Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="observation-prem-flip-card-back">
+                        <div class="observation-prem-flip-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <h4>Patient Monitoring</h4>
+                        <p>Detailed clinical insights</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="observation-prem-filter-bar">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search notes by patient or data recorder..." id="observationPremSearch">
+            <div class="input-group-append">
+                <button class="btn observation-prem-btn-action" type="button" id="searchButton">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase">All Observation Notes</h5>
+            <div class="card observation-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-notes-medical mr-2"></i>Premium Observation Notes</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <div class="table-responsive observation-prem-table-container">
+                        <table class="table table-hover text-nowrap observation-prem-table" id="observationTable">
                             <thead>
                                 <tr>
-                                    <th>Patient</th>
-                                    <th>Data Recorder</th>                                  
-                                    <th>Date</th>
-                                    <th>Day</th>
-                                    <th>Time</th>
-                                    <th>Action</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Day</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for observation_record in observation_records %}
                                 <tr>
-                                    <td>{{ observation_record.patient }}</td>
-                                    <td>{{ observation_record.data_recorder }}</td>                                
-                                    <td>{{ observation_record.created_at|date:"d-m-Y"  }}</td>
+                                    <td>
+                                        <span class="observation-prem-badge observation-prem-badge-patient">
+                                            {{ observation_record.patient }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="observation-prem-badge observation-prem-badge-recorder">
+                                            {{ observation_record.data_recorder }}
+                                        </span>
+                                    </td>
+                                    <td>{{ observation_record.created_at|date:"d-m-Y" }}</td>
                                     <td>{{ observation_record.created_at|date:"l" }}</td>
                                     <td>{{ observation_record.created_at|date:"H:i" }}</td>
-                                    <td>  <a href="{% url 'doctor_save_observation' observation_record.patient.id observation_record.visit.id  %}" class="btn btn-info">Edit</a>
-                                    </a>
-                                </td>
+                                    <td class="text-center">                                         
+                                        <a href="{% url 'doctor_save_observation' observation_record.patient.id observation_record.visit.id %}" data-toggle="tooltip" title="Edit Observation Note">
+                                            <button type="button" class="btn observation-prem-btn-action">
+                                                <i class="fas fa-edit mr-1"></i>Edit
+                                            </button>
+                                        </a>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>                   
@@ -47,8 +337,79 @@ Observation Notes
             </div>
         </div>
     </div>
-  </div>
 </div>
-{% include 'doctor_template/datatable.html' %}   
 
+{% include 'doctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#observationTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search notes...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const uniquePatients = new Set();
+        const uniqueRecorders = new Set();
+        
+        document.querySelectorAll('#observationTable tbody tr').forEach(row => {
+            const patient = row.cells[0].textContent.trim();
+            const recorder = row.cells[1].textContent.trim();
+            
+            uniquePatients.add(patient);
+            uniqueRecorders.add(recorder);
+        });
+        
+        // Update summary cards
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+        document.getElementById('unique-recorders').textContent = uniqueRecorders.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('observationPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterNotes(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('observationPremSearch').value.toLowerCase();
+        
+        filterNotes(searchText);
+    });
+
+    // Filter notes by search text
+    function filterNotes(searchText) {
+        const rows = document.querySelectorAll('#observationTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-notes').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

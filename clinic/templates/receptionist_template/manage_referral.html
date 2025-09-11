@@ -1,7 +1,6 @@
 {% extends 'receptionist_template/base_template.html' %}
-
 {% block title %}
-   All Referrals
+   Premium Referral Management
 {% endblock title %}
 {% load static %}
 {% block breadcrumb %}
@@ -11,61 +10,402 @@
 {% load static %}
 {% block main_content %}
 
+<style>
+    /* Premium Referral Management Styles */
+    .referral-prem-gradient {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(106, 17, 203, 0.15);
+        border: none;
+    }
+    
+    .referral-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .referral-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .referral-prem-table th {
+        background: linear-gradient(120deg, #f0e6ff, #e6eeff);
+        color: #6a11cb;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .referral-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e6eeff;
+    }
+    
+    .referral-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .referral-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(106, 17, 203, 0.1);
+        background: #faf7ff;
+    }
+    
+    .btn-prem-referral {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(106, 17, 203, 0.2);
+    }
+    
+    .btn-prem-referral:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(106, 17, 203, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-referral-view {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 157, 88, 0.2);
+    }
+    
+    .btn-prem-referral-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 157, 88, 0.3);
+        color: white;
+    }
+    
+    .referral-prem-modal-header {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .referral-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .referral-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .referral-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #faf7ff, #f0e6ff);
+        color: #6a11cb;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e6eeff;
+    }
+    
+    .referral-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .referral-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #6a11cb;
+        margin-bottom: 0.5rem;
+    }
+    
+    .referral-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .referral-prem-filter-bar {
+        background: linear-gradient(120deg, #faf7ff, #f0e6ff);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .referral-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #6a11cb;
+        min-width: 80px;
+    }
+    
+    .date-filter-input {
+        border: 1px solid #e6eeff;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Flip card effect for premium feature */
+    .referral-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .referral-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .referral-prem-flip-card:hover .referral-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .referral-prem-flip-card-front, .referral-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .referral-prem-flip-card-front {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+    }
+    
+    .referral-prem-flip-card-back {
+        background: linear-gradient(120deg, #2575fc, #6a11cb);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .referral-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .status-badge-prem {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-completed-prem {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .status-pending-prem {
+        background: linear-gradient(120deg, #f9ab00, #fbbc04);
+        color: white;
+    }
+    
+    .status-in-progress-prem {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+    }
+    
+    /* Animation for filtering */
+    @keyframes referralPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .referral-prem-animated {
+        animation: referralPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Referrals</h6>
+            <div class="card referral-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-exchange-alt mr-2"></i>Premium Referral Management</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example" style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card referral-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exchange-alt mr-2"></i>Total Referrals</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="referral-prem-summary-value" id="total-referrals">{{ referrals|length }}</div>
+                                    <div class="referral-prem-summary-label">All Referrals</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card referral-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Completed</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="referral-prem-summary-value" id="completed-referrals">0</div>
+                                    <div class="referral-prem-summary-label">Completed Referrals</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card referral-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Pending</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="referral-prem-summary-value" id="pending-referrals">0</div>
+                                    <div class="referral-prem-summary-label">Pending Referrals</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="referral-prem-flip-card">
+                                <div class="referral-prem-flip-card-inner">
+                                    <div class="referral-prem-flip-card-front">
+                                        <div class="referral-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Referral Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="referral-prem-flip-card-back">
+                                        <div class="referral-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Referral Insights</h4>
+                                        <p>Advanced referral tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="referral-prem-filter-bar">
+                        <div class="referral-prem-date-filter">
+                            <div class="date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="date-filter-input" id="startDate">
+                            </div>
+                            <div class="date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-prem-referral" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-prem-referral" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search referrals..." id="referralSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-referral" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive referral-prem-table-container">
+                        <table class="table table-hover text-nowrap referral-prem-table" id="referralTable">
                             <thead>
                                 <tr>
-                                    <th>Patient</th>
-                                    <th>Date</th>
-                                    <th>Time</th>                                                                         
-                                    <th>Recorded By</th>
-                                    <th>Source Location</th>
-                                    <th>Destination Location</th>                        
-                                    <th>Reason</th>
-                                    <th>Nature of Referral</th>
-                                    <th>Transport Mode</th>
-                                    <th>Status</th>                                 
-                                    <th>Actions</th>               
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>                                                                         
+                                    <th><i class="fas fa-user-md mr-2"></i>Recorded By</th>
+                                    <th><i class="fas fa-map-marker-alt mr-2"></i>Source Location</th>
+                                    <th><i class="fas fa-map-marker mr-2"></i>Destination Location</th>                        
+                                    <th><i class="fas fa-sticky-note mr-2"></i>Reason</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Nature of Referral</th>
+                                    <th><i class="fas fa-car mr-2"></i>Transport Mode</th>
+                                    <th><i class="fas fa-info-circle mr-2"></i>Status</th>                                 
+                                    <th><i class="fas fa-cogs mr-2"></i>Actions</th>               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for referral in referrals %}
-                                    <tr>
+                                    <tr data-date="{{ referral.created_at|date:'Y-m-d' }}" data-status="{{ referral.status }}">
                                         <td>{{ referral.patient }}</td>
                                         <td>{{ referral.created_at|date:"d-m-Y" }}</td>
                                         <td>{{ referral.created_at|time:"H:i" }}</td>                                                                                           
                                         <td>Dr. {{ referral.data_recorder }}</td>
                                         <td>{{ referral.source_location }}</td>
                                         <td>{{ referral.destination_location }}</td>                                  
-                                        <td>{{ referral.notes|safe }}</td>
+                                        <td>{{ referral.notes|safe|truncatewords:5 }}</td>
                                         <td>{{ referral.nature_of_referral }}</td>
                                         <td>{{ referral.transport_model }}</td>
                                         <td>
-                                            <span class="badge badge-{{ referral.get_status_color }}">
+                                            <span class="status-badge-prem status-{{ referral.get_status_display|lower|cut:' ' }}-prem">
                                                 {{ referral.get_status_display }}
                                             </span>
                                         </td>                                                   
                                         <td>
                                             {% if referral.data_recorder == request.user.staff %}                                                                            
-                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" title="Change Status">
+                                            <button class="btn btn-prem-referral btn-sm" data-toggle="modal" data-target="#changeStatus{{ referral.id }}" title="Change Status">
                                                 <i class="fas fa-exchange-alt"></i>
                                             </button>
                                             {% endif %}
                                           {% if referral.notes %}
-                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#referralModal{{ referral.id }}" title="View Referral">
-                                            <i class="fas fa-eye"></i> View Referral
+                                        <button class="btn btn-prem-referral-view btn-sm" data-toggle="modal" data-target="#referralModal{{ referral.id }}" title="View Referral">
+                                            <i class="fas fa-eye"></i> View
                                         </button>
                                         {% else %}
-                                        <button class="btn btn-info btn-sm" disabled title="No Referral Details">
-                                            <i class="fas fa-eye"></i> View Referral
+                                        <button class="btn btn-prem-referral-view btn-sm" disabled title="No Referral Details">
+                                            <i class="fas fa-eye"></i> View
                                         </button>
                                         {% endif %}
                                         </td>                  
@@ -86,47 +426,48 @@
     <div class="modal fade" id="referralModal{{ referral.id }}" tabindex="-1" role="dialog" aria-labelledby="referralModalLabel{{ referral.id }}" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
         <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
+
+          <!-- Modal Header -->
+          <div class="modal-header referral-prem-modal-header">
             <h5 class="modal-title" id="referralModalLabel{{ referral.id }}">
-              Referral - {{ referral.patient.full_name }}
+              <i class="fas fa-exchange-alt mr-2"></i>Referral Details - {{ referral.patient.full_name }}
             </h5>
             <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
 
+          <!-- Modal Body -->
           <div class="modal-body">
             <div class="container-fluid">
 
               <!-- Header Image -->
-              <header class="header mb-3">
+              <div class="mb-3">
                 <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
-              </header>
+              </div>
 
               <!-- Patient Info -->
               <div class="card mb-3">
                 <div class="card-header bg-dark text-white">
-                  <h6 class="mb-0 text-uppercase">Patient Details</h6>
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
                 </div>
                 <div class="card-body">
                   <table class="table table-borderless table-sm">
                     <tr>
-                      <td>PATIENT: <b>{{ referral.patient.full_name }}</b></td>
-                      <td>DOB: <b>{{ referral.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ referral.patient.age }}</b>]</td>
-                      <td>SEX: <b>{{ referral.patient.gender }}</b></td>
-                      <td>FILE NO: <b>{{ referral.patient.mrn }}</b></td>
+                      <td><strong>Patient:</strong> {{ referral.patient.full_name }}</td>
+                      <td><strong>DOB:</strong> {{ referral.patient.dob|date:'d-m-Y' }}</td>
+                      <td><strong>Gender:</strong> {{ referral.patient.gender }}</td>
+                      <td><strong>File No:</strong> {{ referral.patient.mrn }}</td>
                     </tr>
                     <tr>
-                      <td colspan="2">Payment Form:
-                        <b>
-                          {% if referral.patient.payment_form == "Insurance" %}
-                            {{ referral.patient.payment_form }} - {{ referral.patient.insurance_name }}
-                          {% else %}
-                            {{ referral.patient.payment_form }}
-                          {% endif %}
-                        </b>
+                      <td colspan="2"><strong>Payment Form:</strong>
+                        {% if referral.patient.payment_form == "Insurance" %}
+                          {{ referral.patient.payment_form }} - {{ referral.patient.insurance_name }}
+                        {% else %}
+                          {{ referral.patient.payment_form }}
+                        {% endif %}
                       </td>
-                      <td colspan="2">Visit Number: <b>{{ referral.visit.vst }}</b></td>
+                      <td colspan="2"><strong>Visit Number:</strong> {{ referral.visit.vst }}</td>
                     </tr>
                   </table>
                 </div>
@@ -135,7 +476,7 @@
               <!-- Referral Info -->
               <div class="card mb-3">
                 <div class="card-header bg-secondary text-white">
-                  <h6 class="mb-0 text-uppercase">Referral Information</h6>
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-info-circle mr-2"></i>Referral Information</h6>
                 </div>
                 <div class="card-body">
                   <p><strong>Source Location:</strong> {{ referral.source_location }}</p>
@@ -143,31 +484,36 @@
                   <p><strong>Nature of Referral:</strong> {{ referral.nature_of_referral }}</p>
                   <p><strong>Transport Mode:</strong> {{ referral.transport_model }}</p>
                   <p><strong>Status:</strong>
-                    <span class="badge badge-{{ referral.get_status_color }}">{{ referral.get_status_display }}</span>
+                    <span class="status-badge-prem status-{{ referral.get_status_display|lower|cut:' ' }}-prem">
+                      {{ referral.get_status_display }}
+                    </span>
                   </p>
                   <p class="text-justify"><strong>Referral Notes:</strong><br> {{ referral.notes|safe }}</p>
                 </div>
-                <div class="card-footer text-muted">
-                  <div class="row">
-                    <div class="col-md-5">
-                      <strong>Referred By:</strong>
-                      <b class="text-capitalize" style="color: blue;">
-                        {% if referral.data_recorder.role == "doctor" %}Dr.{% else %}{{ referral.data_recorder.role }}{% endif %}
-                      </b>
-                      <span class="text-muted">{{ referral.data_recorder }}</span>
-                    </div>
-                    <div class="col-md-3"><strong>Signature:</strong> {{ referral.data_recorder.signature }}</div>
-                    <div class="col-md-2"><strong>Date:</strong> {{ referral.created_at|date:"d-m-Y" }}</div>
-                    <div class="col-md-2"><strong>MCT No:</strong> {{ referral.data_recorder.mct_number }}</div>
-                  </div>
+                <div class="card-footer">
+                  <table class="table table-borderless table-sm mb-0">
+                    <tbody>
+                      <tr>
+                        <td><strong>Referred By:</strong> 
+                          <b class="text-capitalize" style="color: blue;">
+                            {% if referral.data_recorder.role == "doctor" %}Dr.{% else %}{{ referral.data_recorder.role }}{% endif %}
+                          </b>
+                          <span class="text-muted">{{ referral.data_recorder }}</span>
+                        </td>
+                        <td><strong>Signature:</strong> {{ referral.data_recorder.signature }}</td>
+                        <td><strong>Date:</strong> {{ referral.created_at|date:"d-m-Y" }}</td>
+                        <td><strong>MCT No:</strong> {{ referral.data_recorder.mct_number }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <!-- Optional PDF download -->
+              <!-- PDF Download Button -->
               <div class="row mt-3">
                 <div class="col-md-12 text-right">
                   <a href="{% url 'receptionist_download_referral_pdf' referral.patient.id referral.visit.id %}" 
-                    class="btn btn-outline-secondary btn-sm" target="_blank">
+                    class="btn btn-prem-referral" target="_blank">
                     <i class="fa fa-download"></i> Download PDF
                   </a>
                 </div>
@@ -180,6 +526,188 @@
     </div>
   {% endif %}
 {% endfor %}
-
 {% include 'receptionist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#referralTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[1, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search referrals...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let completedCount = 0;
+        let pendingCount = 0;
+        
+        // Count statuses based on data attributes
+        document.querySelectorAll('#referralTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            if (status === 'completed') {
+                completedCount++;
+            } else if (status === 'pending') {
+                pendingCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('completed-referrals').textContent = completedCount;
+        document.getElementById('pending-referrals').textContent = pendingCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterReferralsByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        document.querySelectorAll('#referralTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-referrals').textContent = document.querySelectorAll('#referralTable tbody tr:not([style*="display: none"])').length;
+        calculateSummaryStats();
+    });
+
+    // Filter referrals by date range
+    function filterReferralsByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#referralTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-referrals').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Search functionality
+    document.getElementById('referralSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterReferralsWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('referralSearch').value.toLowerCase();
+        filterReferralsWithSearch(searchText);
+    });
+
+    // Filter referrals by search text
+    function filterReferralsWithSearch(searchText) {
+        const rows = document.querySelectorAll('#referralTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-referrals').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('referralSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            filterReferralsWithSearch(searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+</script>
+
+
 {% endblock main_content %}

@@ -1,0 +1,218 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+Pemba Reagent List
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="{% static 'plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="{% static 'plugins/sweetalert2/sweetalert2.min.css' %}">
+{% endblock extra_css %}
+
+{% block main_content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Pemba Reagent Management</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addReagentModal">
+                                <i class="fas fa-plus"></i> Add Reagent
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table id="reagentTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Supplier</th>
+                                    <th>Quantity</th>
+                                    <th>Expiry Date</th>
+                                    <th>Storage Conditions</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagent_list %}
+                                <tr>
+                                    <td>{{ reagent.name }}</td>
+                                    <td>{{ reagent.supplier|default:"-" }}</td>
+                                    <td>{{ reagent.quantity|default:"0" }}</td>
+                                    <td>{{ reagent.expiry_date|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ reagent.storage_conditions|default:"-" }}</td>
+                                    <td>
+                                        {% if reagent.expiry_date %}
+                                            {% if reagent.expiry_date < today %}
+                                                <span class="badge badge-danger">Expired</span>
+                                            {% elif reagent.expiry_date|date:"d"|add:"30" < today %}
+                                                <span class="badge badge-warning">Expiring Soon</span>
+                                            {% else %}
+                                                <span class="badge badge-success">Valid</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge badge-secondary">No Expiry</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info edit-reagent" data-reagent-id="{{ reagent.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-reagent" data-reagent-id="{{ reagent.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Add/Edit Reagent Modal -->
+<div class="modal fade" id="addReagentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reagentModalTitle">Add Reagent</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="reagentForm">
+                <div class="modal-body">
+                    <input type="hidden" id="reagent_id" name="reagent_id">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="name">Reagent Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="supplier">Supplier</label>
+                                <input type="text" class="form-control" id="supplier" name="supplier">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="expiry_date">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storage_conditions">Storage Conditions</label>
+                        <textarea class="form-control" id="storage_conditions" name="storage_conditions" rows="3" placeholder="e.g., Store at 2-8°C, Keep away from light"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Reagent</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock main_content %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+
+<script>
+$(document).ready(function() {
+    $('#reagentTable').DataTable({
+        "responsive": true,
+        "autoWidth": false,
+        "pageLength": 25,
+        "order": [[0, "asc"]]
+    });
+
+    // Form submission
+    $('#reagentForm').submit(function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: '{% url "pembahmis:add_or_edit_pemba_reagent" %}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Success!', response.message, 'success').then(function() {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error!', response.message, 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error!', 'An error occurred while saving the reagent.', 'error');
+            }
+        });
+    });
+
+    // Delete reagent
+    $('.delete-reagent').click(function() {
+        var reagentId = $(this).data('reagent-id');
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '{% url "pembahmis:delete_pemba_reagent" %}',
+                    type: 'POST',
+                    data: {
+                        'id': reagentId,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'true') {
+                            Swal.fire('Deleted!', response.message, 'success').then(function() {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the reagent.', 'error');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %} 

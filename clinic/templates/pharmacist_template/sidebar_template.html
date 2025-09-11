@@ -1,231 +1,562 @@
 {% load static %}
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4 pharmacist-sidebar">
   <!-- Brand Logo -->
-  <a href="#" class="brand-link">
-    <img src="{% static 'img/resalogo_square.png' %}" 
-    alt="RESA LOGO" 
-    class="ml-2 img-circle shadow-lg"
-    style="
-      width: 50px; 
-      height: 50px; 
-      object-fit: cover; 
-      border-radius: 50%; 
-      border: 4px solid #ffffff;
-      background-color: #ffffff;
-    ">
-      <span class="ml-2 brand-text font-weight-light">Resa Clinic </span>
-  </a>  
+  <a href="#" class="brand-link pharmacist-brand-link">
+    <div class="pharmacist-brand-container">
+      <div class="pharmacist-logo-wrapper">
+        <img src="{% static 'img/resalogo_square.png' %}" 
+             alt="RESA LOGO" 
+             class="pharmacist-brand-logo">
+        <div class="logo-pulse"></div>
+      </div>
+      <div class="pharmacist-brand-text">
+        <span class="pharmacist-brand-title">Resa Clinic</span>
+        <span class="pharmacist-brand-subtitle">Pharmacy Department</span>
+      </div>
+    </div>
+  </a>
+
   <!-- Sidebar -->
-  <div class="sidebar"> 
-    <div class="user-panel mt-3 pb-3 mb-3 d-flex">   
-        {% if user.staff.id %}
-            <div class="image">
-                {% if user.staff.profile_picture %}
-                    <img src="{{ user.staff.profile_picture.url }}" class="img-circle elevation-2" alt="User Image">
-                {% else %}
-                    <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">
-                {% endif %}
-            </div>
-            <div class="info">
-                {% url 'pharmacist_edit_staff_profile' user.staff.id as edit_staff_profile %}
-                <a href="{{ edit_staff_profile }}" class="d-block">{{ user.username }}</a>                 
-            </div>      
-        {% else %}
-            <!-- If the user does not have a staff ID -->
-            <div class="image">           
-                <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">          
-            </div>
-            <div class="info">
-                <span class="d-block text-white font-weight-bold">{{ user.username }}</span>            
-            </div>      
-        {% endif %}
+  <div class="sidebar pharmacist-sidebar-inner"> 
+    <!-- Sidebar user panel -->
+    <div class="user-panel pharmacist-user-panel mt-3 pb-3 mb-3 d-flex">
+      {% if user.staff.id %}
+        <div class="pharmacist-user-image">
+          {% if user.staff.profile_picture %}
+            <img src="{{ user.staff.profile_picture.url }}" class="pharmacist-profile-img" alt="User Image">
+            <span class="pharmacist-status-indicator"></span>
+          {% else %}
+            <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="pharmacist-profile-img" alt="User Image">
+            <span class="pharmacist-status-indicator"></span>
+          {% endif %}
+        </div>
+        <div class="pharmacist-user-info">
+          {% url 'pharmacist_edit_staff_profile' user.staff.id as edit_staff_profile %}
+          <a href="{{ edit_staff_profile }}" class="pharmacist-username">{{ user.username }}</a>
+          <div class="pharmacist-user-role">{{ user.staff.get_role_display|default:"Pharmacist" }}</div>
+          <div class="pharmacist-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>   
+      {% else %}
+        <div class="pharmacist-user-image">           
+          <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="pharmacist-profile-img" alt="User Image">
+          <span class="pharmacist-status-indicator"></span>
+        </div>
+        <div class="pharmacist-user-info">
+          <span class="pharmacist-username">{{ user.username }}</span>
+          <div class="pharmacist-user-role">Pharmacist</div>
+          <div class "pharmacist-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>
+      {% endif %}
+    </div>   
+
+    <!-- Quick Stats Panel -->
+    <div class="pharmacist-stats-panel">
+      <div class="pharmacist-stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-prescription-bottle-alt"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number" id="pharmacist-medicine-count">0</span>
+          <span class="stat-label">Medicines</span>
+        </div>
+      </div>
+      <div class="pharmacist-stat-item">
+        <div class="stat-icon">
+          <i class="fas fa-prescription"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number" id="pharmacist-prescription-count">0</span>
+          <span class="stat-label">Prescriptions</span>
+        </div>
+      </div>
     </div>
     
-
-      <!-- Sidebar Menu -->
-  <!-- Sidebar Menu -->
+    <!-- Sidebar Menu -->
     <nav class="mt-2">
-    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-
-        <!-- Dashboard / Home -->
+      <ul class="nav nav-pills nav-sidebar flex-column pharmacist-nav" data-widget="treeview" role="menu" data-accordion="false">
+        <!-- Dashboard Section -->
+        <li class="nav-header pharmacist-nav-header">Dashboard</li>
         <li class="nav-item">
-        {% url 'pharmacist_dashboard' as admin_home %}
-        <a href="{{ admin_home }}" class="nav-link {% if request.path == admin_home %} active {% endif %}">
+          {% url 'pharmacist_dashboard' as pharmacist_dashboard %}
+          <a href="{{ pharmacist_dashboard }}" class="nav-link pharmacist-nav-link {% if request.path == pharmacist_dashboard %} active {% endif %}">
             <i class="nav-icon fas fa-tachometer-alt"></i>
             <p>Dashboard</p>
-        </a>
-        </li>
+            <span class="nav-badge"></span>
+          </a>
+        </li>              
 
-       <!-- Patient Prescriptions Section -->
+        <!-- Patient Prescriptions Section -->
+        <li class="nav-header pharmacist-nav-header">Patient Prescriptions</li>
+        
         <li class="nav-item has-treeview">
-        <a href="#" class="nav-link">
+          <a href="#" class="nav-link pharmacist-nav-link">
             <i class="nav-icon fas fa-prescription"></i>
-            <p>Patient Prescriptions <i class="fas fa-angle-left right"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
+            <p>Prescriptions <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
             <!-- All Prescriptions -->
             <li class="nav-item">
-            {% url 'pharmacist_prescription_list' as prescription_list_url %}
-            <a href="{{ prescription_list_url }}" class="nav-link {% if request.path == prescription_list_url %} active {% endif %}">
+              {% url 'pharmacist_prescription_list' as prescription_list_url %}
+              <a href="{{ prescription_list_url }}" class="nav-link pharmacist-nav-link {% if request.path == prescription_list_url %} active {% endif %}">
                 <i class="fas fa-file-medical nav-icon"></i>
                 <p>All Prescriptions</p>
-            </a>
+                <span class="nav-badge" id="pharmacist-all-prescriptions-badge"></span>
+              </a>
             </li>
 
             <!-- Today's Prescriptions -->
             <li class="nav-item">
-            {% url 'pharmacist_todays_prescriptions' as todays_prescriptions_url %}
-            <a href="{{ todays_prescriptions_url }}" class="nav-link {% if request.path == todays_prescriptions_url %} active {% endif %}">
+              {% url 'pharmacist_todays_prescriptions' as todays_prescriptions_url %}
+              <a href="{{ todays_prescriptions_url }}" class="nav-link pharmacist-nav-link {% if request.path == todays_prescriptions_url %} active {% endif %}">
                 <i class="fas fa-calendar-day nav-icon"></i>
                 <p>Today's Prescriptions</p>
-            </a>
+                <span class="nav-badge" id="pharmacist-todays-prescriptions-badge"></span>
+              </a>
             </li>
 
             <!-- Patients -->
             <li class="nav-item">
-            {% url 'pharmacist_visit_list' as visit_list_url %}
-            <a href="{{ visit_list_url }}" class="nav-link {% if request.path == visit_list_url %} active {% endif %}">
+              {% url 'pharmacist_walkin_prescription_list' as walkin_prescription_list_url %}
+              <a href="{{ walkin_prescription_list_url }}" class="nav-link pharmacist-nav-link {% if request.path == walkin_prescription_list_url %} active {% endif %}">
+                <i class="fas fa-user-injured nav-icon"></i>
+                <p>Walking</p>
+                <span class="nav-badge" id="pharmacist-patients-badge"></span>
+              </a>
+            </li>
+            <!-- Patients -->
+            <li class="nav-item">
+              {% url 'pharmacist_visit_list' as visit_list_url %}
+              <a href="{{ visit_list_url }}" class="nav-link pharmacist-nav-link {% if request.path == visit_list_url %} active {% endif %}">
                 <i class="fas fa-user-injured nav-icon"></i>
                 <p>Patients</p>
-            </a>
+                <span class="nav-badge" id="pharmacist-patients-badge"></span>
+              </a>
             </li>
-        </ul>
+          </ul>
         </li>
 
-
-        <!-- 2. Medicines / Drugs Section -->
+        <!-- Medicines Section -->
+        <li class="nav-header pharmacist-nav-header">Medicines / Drugs</li>
+        
         <li class="nav-item has-treeview">
-            <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-capsules"></i>
-                <p>Medicines / Drugs <i class="fas fa-angle-left right"></i></p>
-            </a>
-            <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    {% url 'pharmacist_medicine_list' as medicine_list_url %}
-                    <a href="{{ medicine_list_url }}" class="nav-link {% if request.path == medicine_list_url %} active {% endif %}">
-                        <i class="fas fa-tablets nav-icon"></i>
-                        <p>All Medicines</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    {% url 'pharmacist_in_stock_medicines_view' as in_stock_url %}
-                    <a href="{{ in_stock_url }}" class="nav-link {% if request.path == in_stock_url %} active {% endif %}">
-                        <i class="fas fa-boxes nav-icon"></i>
-                        <p>Available Medicines</p>
-                        <span id="total-quantity" class="badge badge-danger" title="Medicines in Stock"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    {% url 'pharmacist_out_of_stock_medicines_view' as out_of_stock_url %}
-                    <a href="{{ out_of_stock_url }}" class="nav-link {% if request.path == out_of_stock_url %} active {% endif %}">
-                        <i class="fas fa-exclamation-circle nav-icon"></i>
-                        <p>Out of Stock</p>
-                        <span id="notification-count" class="badge badge-danger" title="Medicines Out of Stock"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    {% url 'pharmacist_medicine_expired_list' as expired_url %}
-                    <a href="{{ expired_url }}" class="nav-link {% if request.path == expired_url %} active {% endif %}">
-                        <i class="fas fa-calendar-times nav-icon"></i>
-                        <p>Expiring Medicines</p>
-                        <span id="expiring-soon-count" class="badge badge-danger" title="Expiring Soon"></span>
-                    </a>
-                </li>
-            </ul>
+          <a href="#" class="nav-link pharmacist-nav-link">
+            <i class="nav-icon fas fa-capsules"></i>
+            <p>Medicines <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              {% url 'pharmacist_medicine_list' as medicine_list_url %}
+              <a href="{{ medicine_list_url }}" class="nav-link pharmacist-nav-link {% if request.path == medicine_list_url %} active {% endif %}">
+                <i class="fas fa-tablets nav-icon"></i>
+                <p>All Medicines</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              {% url 'pharmacist_in_stock_medicines_view' as in_stock_url %}
+              <a href="{{ in_stock_url }}" class="nav-link pharmacist-nav-link {% if request.path == in_stock_url %} active {% endif %}">
+                <i class="fas fa-boxes nav-icon"></i>
+                <p>Available Medicines</p>
+                <span class="nav-badge" id="pharmacist-available-medicines-badge"></span>
+              </a>
+            </li>
+            <li class="nav-item">
+              {% url 'pharmacist_out_of_stock_medicines_view' as out_of_stock_url %}
+              <a href="{{ out_of_stock_url }}" class="nav-link pharmacist-nav-link {% if request.path == out_of_stock_url %} active {% endif %}">
+                <i class="fas fa-exclamation-circle nav-icon"></i>
+                <p>Out of Stock</p>
+                <span class="nav-badge" id="pharmacist-out-of-stock-badge"></span>
+              </a>
+            </li>
+            <li class="nav-item">
+              {% url 'pharmacist_medicine_expired_list' as expired_url %}
+              <a href="{{ expired_url }}" class="nav-link pharmacist-nav-link {% if request.path == expired_url %} active {% endif %}">
+                <i class="fas fa-calendar-times nav-icon"></i>
+                <p>Expiring Medicines</p>
+                <span class="nav-badge" id="pharmacist-expiring-medicines-badge"></span>
+              </a>
+            </li>
+          </ul>
         </li>
-
-        <!-- Reagents Section -->
-        <li class="nav-item has-treeview">
-        <a href="#" class="nav-link">
-            <i class="nav-icon fas fa-vials"></i>
-            <p>Lab Reagents <i class="fas fa-angle-left right"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
-
-            <!-- All Reagents -->
-            <li class="nav-item">
-            {% url 'pharmacist_reagent_list' as reagent_list_url %}
-            <a href="{{ reagent_list_url }}" class="nav-link {% if request.path == reagent_list_url %} active {% endif %}">
-                <i class="fas fa-vial nav-icon"></i>
-                <p>Reagent Inventory</p>
-            </a>
-            </li>
-            {% url 'pharmacist_reagent_expired' as reagent_expired_url %}
-            <li class="nav-item">
-                <a href="{{ reagent_expired_url }}" class="nav-link{% if request.path == reagent_expired_url %} active {% endif %}">
-                    <i class="nav-icon fas fa-exclamation-triangle"></i>
-                    <p>
-                        Expired Reagents
-                        <span id="expiredCount" class="badge badge-danger right"  title="Expired reagent"></span>
-                    </p>
-                </a>
-            </li>
-            <!-- Expiring Reagents -->
-            <li class="nav-item">
-            {% url 'pharmacist_reagent_expiring_soon' as reagent_expiring_url %}
-            <a href="{{ reagent_expiring_url }}" class="nav-link {% if request.path == reagent_expiring_url %} active {% endif %}">
-                <i class="fas fa-hourglass-half nav-icon text-warning"></i>
-                <p>Expiring Reagents</p>
-                <span id="reagent-expiring-count" class="badge badge-warning ml-auto" title="Expiring Soon"></span>
-            </a>
-            </li>
-
-            <!-- Out of Stock Reagents -->
-            <li class="nav-item">
-            {% url 'pharmacist_reagent_out_of_stock' as reagent_out_of_stock_url %}
-            <a href="{{ reagent_out_of_stock_url }}" class="nav-link {% if request.path == reagent_out_of_stock_url %} active {% endif %}">
-                <i class="fas fa-exclamation-circle nav-icon text-danger"></i>
-                <p>Out of Stock Reagents</p>
-                <span id="reagent-out-count" class="badge badge-danger ml-auto" title="Out of Stock"></span>
-                
-            </a>
-            </li>
-
-        </ul>
-        </li>
-
-    </ul>
+      </ul>
     </nav>
-<!-- /.sidebar-menu -->
-
-      <!-- /.sidebar-menu -->
   </div>
-  <!-- /.sidebar -->
+  
+  <!-- Mini Calendar Widget -->
+  <div class="pharmacist-mini-calendar">
+    <div class="calendar-header">
+      <span class="calendar-month" id="pharmacist-calendar-month"></span>
+      <span class="calendar-year" id="pharmacist-calendar-year"></span>
+    </div>
+    <div class="calendar-date" id="pharmacist-calendar-date"></div>
+    <div class="calendar-day" id="pharmacist-calendar-day"></div>
+  </div>
 </aside>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("{% url 'pharmacist_reagent_counts_api' %}")
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('expiredCount').textContent = data.expired || 0;
-            document.getElementById('reagent-expiring-count').textContent = data.expiring_soon || 0;
-            document.getElementById('reagent-out-count').textContent = data.out_of_stock || 0;
-
-            // Optionally, total count badge on parent menu
-            const totalCount = (data.expired || 0) + (data.expiring_soon || 0) + (data.out_of_stock || 0);
-            document.getElementById('reagentCounts').textContent = totalCount > 0 ? totalCount : '';
-        })
-        .catch(err => console.error('Failed to fetch reagent counts:', err));
-});
-</script>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    function updateMedicineStats() {
-        fetch("{% url 'pharmacist_medicine_counts_api' %}")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('notification-count').textContent = data.out_of_stock || 0;
-                document.getElementById('total-quantity').textContent = data.total_quantity || 0;
-                document.getElementById('expiring-soon-count').textContent = data.expiring_soon || 0;
-                document.getElementById('expired-medicine-count').textContent = data.expired || 0;
-            })
-            .catch(err => console.error('Failed to fetch medicine counts:', err));
+<style>
+  /* Pharmacist Sidebar Specific Styles */
+  .pharmacist-sidebar {
+    background: linear-gradient(135deg, #1e3c72, #2a5298, #4e4376);
+    box-shadow: 3px 0 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .pharmacist-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    z-index: 0;
+  }
+  
+  .pharmacist-brand-link {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .pharmacist-brand-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .pharmacist-logo-wrapper {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .pharmacist-brand-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    background-color: #ffffff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 2;
+  }
+  
+  .pharmacist-brand-text {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .pharmacist-brand-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    color: #fff;
+  }
+  
+  .pharmacist-brand-subtitle {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+    color: #a8d1ff;
+  }
+  
+  .pharmacist-sidebar-inner {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .pharmacist-user-panel {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+  }
+  
+  .pharmacist-user-image {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .pharmacist-profile-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+  }
+  
+  .pharmacist-status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: #28a745;
+    border: 2px solid #1e3c72;
+    border-radius: 50%;
+  }
+  
+  .pharmacist-user-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .pharmacist-username {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+  
+  .pharmacist-user-role {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    color: #a8d1ff;
+    margin-bottom: 3px;
+  }
+  
+  .pharmacist-user-status {
+    font-size: 0.75rem;
+    color: #28a745;
+  }
+  
+  .pharmacist-stats-panel {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .pharmacist-stat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    width: 45%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .pharmacist-stat-item:hover {
+    transform: translateY(-3px);
+  }
+  
+  .stat-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: white;
+  }
+  
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .stat-number {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  
+  .stat-label {
+    font-size: 0.7rem;
+    color: #a8d1ff;
+  }
+  
+  .pharmacist-nav-header {
+    padding: 15px 20px 5px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: #a8d1ff !important;
+    text-transform: uppercase;
+    opacity: 0.9;
+    position: relative;
+  }
+  
+  .pharmacist-nav-header::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(168, 209, 255, 0.3), transparent);
+  }
+  
+  .pharmacist-nav-link {
+    padding: 12px 15px;
+    margin: 3px 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    color: #e9ecef;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .pharmacist-nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+  
+  .pharmacist-nav-link:hover::before {
+    left: 100%;
+  }
+  
+  .pharmacist-nav-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(5px);
+  }
+  
+  .pharmacist-nav-link.active {
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .pharmacist-mini-calendar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  
+  .calendar-month, .calendar-year {
+    font-size: 0.8rem;
+    color: #a8d1ff;
+  }
+  
+  .calendar-date {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin: 5px 0;
+  }
+  
+  .calendar-day {
+    font-size: 0.9rem;
+    color: #a8d1ff;
+  }
+  
+  /* Animation for nav items */
+  .nav-item {
+    transition: transform 0.3s ease;
+  }
+  
+  /* Logo pulse animation */
+  .logo-pulse {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: transparent;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    animation: pulse 2s infinite;
+    z-index: 1;
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
     }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .pharmacist-brand-title {
+      font-size: 1rem;
+    }
+    
+    .pharmacist-brand-subtitle {
+      display: none;
+    }
+    
+    .pharmacist-stats-panel {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .pharmacist-stat-item {
+      width: 90%;
+      margin-bottom: 10px;
+    }
+  }
+</style>
 
-    updateMedicineStats();
-    setInterval(updateMedicineStats, 60000); // Every 60 seconds
-});
+<script>
+  // Initialize the calendar
+  function initPharmacistCalendar() {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    document.getElementById('pharmacist-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('pharmacist-calendar-year').textContent = now.getFullYear();
+    document.getElementById('pharmacist-calendar-date').textContent = now.getDate();
+    document.getElementById('pharmacist-calendar-day').textContent = dayNames[now.getDay()];
+  }
+  
+  // Function to update pharmacist stats
+  function updatePharmacistStats() {
+    // Update medicine stats
+    fetch("{% url 'pharmacist_medicine_counts_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('pharmacist-medicine-count').textContent = data.total_quantity || '0';
+        document.getElementById('pharmacist-out-of-stock-badge').textContent = data.out_of_stock || '0';
+        document.getElementById('pharmacist-available-medicines-badge').textContent = data.total_quantity || '0';
+        document.getElementById('pharmacist-expiring-medicines-badge').textContent = data.expiring_soon || '0';
+      })
+      .catch(err => console.error('Failed to fetch medicine counts:', err));
+   
+  // Initialize on page load
+  $(document).ready(function() {   
+    initPharmacistCalendar();
+    updatePharmacistStats();
+    
+    // Update stats every minute
+    setInterval(updatePharmacistStats, 60000);
+    
+    // Add sidebar toggle animation
+    $('.pharmacist-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+      $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+    });
+  });
 </script>

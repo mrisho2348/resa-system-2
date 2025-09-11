@@ -1,0 +1,530 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+
+{% block title %}
+Premium Out of Stock Medicines Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembaadmin_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Out of Stock Medicines Management Styles - Unique to this template */
+    .out-of-stock-prem-gradient {
+        background: linear-gradient(120deg, #D31027, #EA384D);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(211, 16, 39, 0.15);
+        border: none;
+    }
+    
+    .out-of-stock-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .out-of-stock-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .out-of-stock-prem-table th {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        color: #c62828;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .out-of-stock-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #ffebee;
+    }
+    
+    .out-of-stock-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .out-of-stock-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(198, 40, 40, 0.1);
+        background: #fff5f5;
+    }
+    
+    .btn-prem-out-of-stock {
+        background: linear-gradient(120deg, #D31027, #EA384D);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(211, 16, 39, 0.2);
+    }
+    
+    .btn-prem-out-of-stock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(211, 16, 39, 0.3);
+        color: white;
+    }
+    
+    .out-of-stock-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .out-of-stock-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .out-of-stock-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #fff5f5, #ffebee);
+        color: #c62828;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ffcdd2;
+    }
+    
+    .out-of-stock-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .out-of-stock-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #c62828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .out-of-stock-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .out-of-stock-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .out-of-stock-prem-badge-recent {
+        background: linear-gradient(120deg, #D31027, #EA384D);
+        color: white;
+    }
+    
+    .out-of-stock-prem-badge-old {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    .out-of-stock-prem-filter-bar {
+        background: linear-gradient(120deg, #fff5f5, #ffebee);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .out-of-stock-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .out-of-stock-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .out-of-stock-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .out-of-stock-prem-status-btn[data-filter="all"] {
+        background: linear-gradient(120deg, #D31027, #EA384D);
+        color: white;
+    }
+    
+    .out-of-stock-prem-status-btn[data-filter="recent"] {
+        background: linear-gradient(120deg, #FF5252, #FF7B7B);
+        color: white;
+    }
+    
+    .out-of-stock-prem-status-btn[data-filter="old"] {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes outOfStockPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .out-of-stock-prem-animated {
+        animation: outOfStockPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .out-of-stock-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .out-of-stock-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .out-of-stock-prem-flip-card:hover .out-of-stock-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .out-of-stock-prem-flip-card-front, .out-of-stock-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 极 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .out-of-stock-prem-flip-card-front {
+        background: linear-gradient(120deg, #D31027, #EA384D);
+        color: white;
+    }
+    
+    .out-of-stock-prem-flip-card-back {
+        background: linear-gradient(120deg, #EA384D, #D31027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .out-of-stock-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Date styling */
+    .out-of-stock-prem-date {
+        font-weight: 600;
+        color: #D31027;
+    }
+    
+    /* Medicine name styling */
+    .out-of-stock-prem-medicine-name {
+        font-weight: 600;
+        color: #D31027;
+    }
+    
+    /* Stock level styling */
+    .out-of-stock-prem-stock-level {
+        font-weight: 700;
+        color: #c62828;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card out-of-stock-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-exclamation-circle mr-2"></i>Premium Out of Stock Medicines Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card out-of-stock-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-circle mr-2"></i>Total Out of Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="out-of-stock-prem-summary-value" id="total-out-of-stock">{{ out_of_stock_medicines|length }}</div>
+                                    <div class="out-of-stock-prem-summary-label">Out of Stock Items</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card out-of-stock-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Recently Out of Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="out-of-stock-prem-summary-value" id="recent-out-of-stock">0</div>
+                                    <div class="out-of-stock-prem-summary-label">Last 7 Days</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card out-of-stock-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Long Time Out</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="out-of-stock-prem-summary-value" id="long-time-out">0</div>
+                                    <div class="out-of-stock-prem-summary-label">30+ Days</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="out-of-stock-prem-flip-card">
+                                <div class="out-of-stock-prem-flip-card-inner">
+                                    <div class="out-of-stock-prem-flip-card-front">
+                                        <div class="out-of-stock-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Premium Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="out-of-stock-prem-flip-card-back">
+                                        <div class="out-of-stock-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Stock Insights</h4>
+                                        <p>Advanced tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="out-of-stock-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="out-of-stock-prem-status-filter">
+                                <button class="out-of-stock-prem-status-btn active" data-filter="all">All Out of Stock</button>
+                                <button class="out-of-stock-prem-status-btn" data-filter="recent">Recent</button>
+                                <button class="out-of-stock-prem-status-btn" data-filter="old">Long Time</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search out of stock medicines..." id="outOfStockPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-out-of-stock" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive out-of-stock-prem-table-container">
+                        <table class="table table-hover text-nowrap out-of-stock-prem-table" id="outOfStockTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-pills mr-2"></i>Medicine Name</th>
+                                    <th><i class="fas fa-boxes mr-2"></i>Original Stock Level</th>              
+                                    <th><i class="fas fa-calendar-times mr-2"></i>When it completed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inventory in out_of_stock_medicines %}
+                                <tr data-date="{{ inventory.updated_at|date:'Y-m-d' }}" data-medicine="{{ inventory.medicine.name|lower }}">
+                                    <td class="out-of-stock-prem-medicine-name">{{ inventory.medicine.name }}</td>
+                                    <td class="out-of-stock-prem-stock-level">{{ inventory.quantity }}</td>                   
+                                    <td class="out-of-stock-prem-date">{{ inventory.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'pembaadmin_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#outOfStockTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search out of stock medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        let recentCount = 0;
+        let longTimeCount = 0;
+        
+        document.querySelectorAll('#outOfStockTable tbody tr').forEach(row => {
+            const date = new Date(row.getAttribute('data-date'));
+            
+            // Count recently out of stock (within last 7 days)
+            if (date >= sevenDaysAgo) {
+                recentCount++;
+            }
+            
+            // Count long time out of stock (30+ days)
+            if (date <= thirtyDaysAgo) {
+                longTimeCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('recent-out-of-stock').textContent = recentCount;
+        document.getElementById('long-time-out').textContent = longTimeCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Filter functionality
+    document.querySelectorAll('.out-of-stock-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.out-of-stock-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const filter = this.getAttribute('data-filter');
+            filterOutOfStockMedicines(filter);
+        });
+    });
+
+    // Filter out of stock medicines
+    function filterOutOfStockMedicines(filter) {
+        const rows = document.querySelectorAll('#outOfStockTable tbody tr');
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const date = new Date(row.getAttribute('data-date'));
+            
+            if (filter === 'all') {
+                row.style.display = '';
+                visibleCount++;
+            } else if (filter === 'recent' && date >= sevenDaysAgo) {
+                row.style.display = '';
+                visibleCount++;
+            } else if (filter === 'old' && date <= thirtyDaysAgo) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-out-of-stock').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('outOfStockPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeFilter = document.querySelector('.out-of-stock-prem-status-btn.active').getAttribute('data-filter');
+        
+        filterOutOfStockMedicinesWithSearch(activeFilter, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('outOfStockPremSearch').value.toLowerCase();
+        const activeFilter = document.querySelector('.out-of-stock-prem-status-btn.active').getAttribute('data-filter');
+        
+        filterOutOfStockMedicinesWithSearch(activeFilter, searchText);
+    });
+
+    // Filter out of stock medicines by both filter and search text
+    function filterOutOfStockMedicinesWithSearch(filter, searchText) {
+        const rows = document.querySelectorAll('#outOfStockTable tbody tr');
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const date = new Date(row.getAttribute('data-date'));
+            const medicineName = row.getAttribute('data-medicine');
+            const rowText = row.textContent.toLowerCase();
+            
+            let filterMatch = false;
+            
+            if (filter === 'all') {
+                filterMatch = true;
+            } else if (filter === 'recent' && date >= sevenDaysAgo) {
+                filterMatch = true;
+            } else if (filter === 'old' && date <= thirtyDaysAgo) {
+                filterMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || medicineName.includes(searchText) || rowText.includes(searchText);
+            
+            if (filterMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-out-of-stock').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}

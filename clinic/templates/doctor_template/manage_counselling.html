@@ -1,56 +1,448 @@
 {% extends 'doctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+
 {% block title %}
-Counseling Sessions
+Premium Counseling Sessions
 {% endblock title %}
+
+{% block page_title %}
+<a href="{% url 'doctor_dashboard' %}" class="btn pat-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+</a>
+{% endblock page_title%}
+
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
+Premium Counseling Sessions
 {% endblock breadcrumb %}
+
 {% block main_content %}
-  <div class="container-fluid">
+<style>
+    /* Premium styling for counseling */
+    .counseling-prem-gradient {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(74, 0, 224, 0.15);
+        border: none;
+    }
+    
+    .counseling-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .counseling-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .counseling-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .counseling-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f3e5f5, #EDE7F6);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #D1C4E9;
+    }
+    
+    .counseling-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .counseling-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #7b1fa2;
+        margin-bottom: 0.5rem;
+    }
+    
+    .counseling-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counseling-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .counseling-prem-table th {
+        background: linear-gradient(120deg, #EDE7F6, #D1C4E9);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counseling-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #EDE7F6;
+    }
+    
+    .counseling-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .counseling-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(123, 31, 162, 0.1);
+        background: #faf5ff;
+    }
+    
+    .counseling-prem-btn-action {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(74, 0, 224, 0.2);
+        margin: 2px;
+    }
+    
+    .counseling-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(74, 0, 224, 0.3);
+        color: white;
+    }
+    
+    .counseling-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .counseling-prem-badge-patient {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+    }
+    
+    .counseling-prem-badge-visit {
+        background: linear-gradient(120deg, #00c853, #64DD17);
+        color: white;
+    }
+    
+    .counseling-prem-badge-counselor {
+        background: linear-gradient(120deg, #ff4081, #f50057);
+        color: white;
+    }
+    
+    .counseling-prem-filter-bar {
+        background: linear-gradient(120deg, #f3e5f5, #EDE7F6);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #7b1fa2;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes counselingPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .counseling-prem-animated {
+        animation: counselingPremFadeIn 0.5s ease forwards;
+    }
+    
+    .counseling-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .counseling-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .counseling-prem-flip-card:hover .counseling-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .counseling-prem-flip-card-front, .counseling-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .counseling-prem-flip-card-front {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+    }
+    
+    .counseling-prem-flip-card-back {
+        background: linear-gradient(120deg, #8E2DE2, #4A00E0);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .counseling-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .counseling-type-badge {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-3">
+            <div class="card counseling-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-comments mr-2"></i>Total Sessions</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="counseling-prem-summary-value" id="total-sessions">{{ counselings|length }}</div>
+                    <div class="counseling-prem-summary-label">All Sessions</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card counseling-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="counseling-prem-summary-value" id="unique-patients">0</div>
+                    <div class="counseling-prem-summary-label">Unique Patients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card counseling-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Counselors</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="counseling-prem-summary-value" id="unique-counselors">0</div>
+                    <div class="counseling-prem-summary-label">Unique Counselors</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="counseling-prem-flip-card">
+                <div class="counseling-prem-flip-card-inner">
+                    <div class="counseling-prem-flip-card-front">
+                        <div class="counseling-prem-flip-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h4>Session Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="counseling-prem-flip-card-back">
+                        <div class="counseling-prem-flip-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h4>Mental Wellness</h4>
+                        <p>Advanced counseling insights</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="counseling-prem-filter-bar">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search sessions by patient, visit number, or counselor..." id="counselingPremSearch">
+            <div class="input-group-append">
+                <button class="btn counseling-prem-btn-action" type="button" id="searchButton">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Counseling Sessions</h5>
+            <div class="card counseling-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-comments mr-2"></i>Premium Counseling Sessions</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <div class="table-responsive counseling-prem-table-container">
+                        <table class="table table-hover text-nowrap counseling-prem-table" id="counselingTable">
                             <thead>
-                                <tr>                                
-                                    <th>Patient</th>
-                                    <th>Visit number</th>
-                                    <th>Visit type</th>
-                                    <th>Counselor</th>
-                                    <th>Date</th>
-                                    <th>Day</th>
-                                    <th>Time</th>
-                                    <th>Action</th>
+                                <tr>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Visit Type</th>
+                                    <th><i class="fas fa-user-tie mr-2"></i>Counselor</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Day</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for counseling in counselings %}
-                                <tr>                                 
-                                    <td>{{ counseling.patient }}</td>
-                                    <td>{{ counseling.visit.vst }}</td>
-                                    <td>{{ counseling.visit.visit_type }}</td>
-                                    <td><span style="color:black;">{{ counseling.data_recorder.role }}</span>-{{ counseling.data_recorder }}</td>
-                                    <td>{{ counseling.created_at|date:"d-m-Y"  }}</td>
-                                    <td>{{ counseling.created_at|date:"l" }}</td>
-                                    <td>{{ counseling.created_at|date:"H:i" }}</td>
-                                    <td>  <a href="{% url 'doctor_save_remote_counseling' counseling.patient.id counseling.visit.id  %}" class="btn btn-info">Edit</a>
-                                    </a></td>
-                                </tr>
+                                    <tr>
+                                        <td>
+                                            <span class="counseling-prem-badge counseling-prem-badge-patient">
+                                                {{ counseling.patient }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="counseling-prem-badge counseling-prem-badge-visit">
+                                                {{ counseling.visit.vst }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="counseling-type-badge">
+                                                {{ counseling.visit.visit_type }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="counseling-prem-badge counseling-prem-badge-counselor">
+                                                {{ counseling.data_recorder.role }} - {{ counseling.data_recorder }}
+                                            </span>
+                                        </td>
+                                        <td>{{ counseling.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ counseling.created_at|date:"l" }}</td>
+                                        <td>{{ counseling.created_at|date:"H:i" }}</td>
+                                        <td class="text-center">                                         
+                                            <a href="{% url 'doctor_save_remote_counseling' counseling.patient.id counseling.visit.id %}" data-toggle="tooltip" title="Edit Counseling Session">
+                                                <button type="button" class="btn counseling-prem-btn-action">
+                                                    <i class="fas fa-edit mr-1"></i>Edit
+                                                </button>
+                                            </a>
+                                        </td>
+                                    </tr>
                                 {% endfor %}
-                            </tbody>              
+                            </tbody>                  
                         </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-  </div>
 </div>
-{% include 'doctor_template/datatable.html' %}   
 
+{% include 'doctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#counselingTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search sessions...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const uniquePatients = new Set();
+        const uniqueCounselors = new Set();
+        
+        document.querySelectorAll('#counselingTable tbody tr').forEach(row => {
+            const patient = row.cells[0].textContent.trim();
+            const counselor = row.cells[3].textContent.trim();
+            
+            uniquePatients.add(patient);
+            uniqueCounselors.add(counselor);
+        });
+        
+        // Update summary cards
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+        document.getElementById('unique-counselors').textContent = uniqueCounselors.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('counselingPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterSessions(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('counselingPremSearch').value.toLowerCase();
+        
+        filterSessions(searchText);
+    });
+
+    // Filter sessions by search text
+    function filterSessions(searchText) {
+        const rows = document.querySelectorAll('#counselingTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-sessions').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

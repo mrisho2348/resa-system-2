@@ -1,164 +1,653 @@
 {% extends 'kahama_template/base_template.html' %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}  Referral   
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Referral   
 {% endblock title %}
+
 {% block page_title %}
-<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-
-<a class="btn btn-success breadcrumb-link" type="button" 
-    href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %}">
-    <i class="fas fa-arrow-right"></i> Forward
-</a>
-
+<div class="d-flex justify-content-between align-items-center">
+    <a class="btn btn-prem-refer-nav" href="{% url 'kahama_doctor_consultation_save_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <h5 class="m-0 text-white">Patient Referral</h5>
+    <a class="btn btn-prem-refer-nav" href="{% url 'kahama_doctor_consultation_save' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+</div>
 {% endblock page_title %}
+
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
 Patient Referral   
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium Referral Styles - Unique to this template */
+    .refer-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .refer-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .refer-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .refer-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .refer-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .refer-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .refer-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-refer {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-refer:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-refer-nav {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        margin-right: 10px;
+    }
+    
+    .btn-prem-refer-nav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .refer-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .refer-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .refer-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .refer-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .refer-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .refer-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .refer-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .refer-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .refer-prem-badge-warning {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+    }
+    
+    .refer-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .refer-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .refer-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .refer-prem-flip-card:hover .refer-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .refer-prem-flip-card-front, .refer-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .refer-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .refer-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .refer-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes referPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .refer-prem-animated {
+        animation: referPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #b2ebf2;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .refer-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .refer-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+    }
+    
+    .refer-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+    }
+    
+    .refer-prem-alert-warning {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+        border: none;
+    }
+    
+    /* Form section styling */
+    .refer-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0f7fa;
+    }
+    
+    /* Patient info card styling */
+    .refer-prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .refer-prem-patient-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .refer-prem-patient-info {
+        font-size: 0.9rem;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .refer-prem-patient-info b {
+        color: #0F2027;
+    }
+    
+    /* Table styling */
+    .refer-prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .refer-prem-table th {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .refer-prem-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0f7fa;
+    }
+    
+    .refer-prem-table tr:nth-child(even) {
+        background-color: #f8fdff;
+    }
+    
+    .refer-prem-table tr:hover {
+        background-color: #e0f7fa;
+    }
+    
+    /* List styling */
+    .refer-prem-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .refer-prem-list li {
+        background: #e0f7fa;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #006064;
+    }
+    
+    /* Form field styling */
+    .refer-prem-form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .refer-prem-form-field label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .refer-prem-form-field input,
+    .refer-prem-form-field textarea,
+    .refer-prem-form-field select {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+    }
+    
+    .refer-prem-form-field input:focus,
+    .refer-prem-form-field textarea:focus,
+    .refer-prem-form-field select:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    /* Modal premium styling */
+    .refer-prem-modal .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .refer-prem-modal .modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .refer-prem-modal .modal-footer {
+        border-top: 1px solid #e0f7fa;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Progress bar styling */
+    .refer-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e0f7fa;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .refer-prem-progress-bar {
+        height: 100%;
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        border-radius: 5px;
+        transition: width 0.6s ease;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .refer-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .btn-prem-refer-nav {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .refer-prem-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+
 <div class="container-fluid">
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <h6 class="card-title text-center text-uppercase">Patient Referral</h6>
+            <div class="card refer-prem-patient-card">
+                <div class="card-body">
+                    <div class="row refer-prem-patient-info">
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO: <b>{{ patient.mrn }}</b></div>
+                    </div>
+                    <div class="row refer-prem-patient-info">
+                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                        <div class="col-md-3">Visit Number: <b>{{ visit.vst }}</b></div>
+                    </div>
+                </div>    
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card refer-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exchange-alt mr-2"></i>Referral Status</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="refer-prem-summary-value">New</div>
+                    <div class="refer-prem-summary-label">Current Status</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card refer-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="refer-prem-summary-value">3</div>
+                    <div class="refer-prem-summary-label">Mandatory Fields</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="refer-prem-flip-card">
+                <div class="refer-prem-flip-card-inner">
+                    <div class="refer-prem-flip-card-front">
+                        <div class="refer-prem-flip-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h4>Patient Referral</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="refer-prem-flip-card-back">
+                        <div class="refer-prem-flip-icon">
+                            <i class="fas fa-hospital-user"></i>
+                        </div>
+                        <h4>Specialist Care</h4>
+                        <p>Refer patient to specialist</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="refer-prem-progress">
+                <div class="refer-prem-progress-bar" style="width: 75%"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted">Consultation</small>
+                <small class="text-muted">Diagnosis</small>
+                <small class="text-muted">Treatment</small>
+                <small class="text-muted"><b>Referral</b></small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnosis Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card refer-prem-gradient shadow-lg mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-diagnoses mr-2"></i>
+                            Diagnosis Information
+                        </h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header bg-primary-600">
-                                    <h5 class="card-title text-center text-uppercase">Referral</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <label for="chief_complaints">Patient Information</label>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    PATIENT:  <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b> 
-                                                </div>
-                                                <div class="col-md-3">
-                                                    DOB:  <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                                                        <script>
-                                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                            var now = new Date();
-                                                            var ageMilliseconds = now - dob;
-                                                            var ageSeconds = ageMilliseconds / 1000;
-                                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                                            document.write(ageYears + ' years');
-                                                        </script>
-                                                        {% else %}
-                                                        {{ patient.age }}
-                                                        {% endif %}]</b> 
-                                                </div>
-                                                <div class="col-md-3">
-                                                    SEX:   <b>{{ patient.gender }}</b>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    FILE NO:   <b>{{ patient.mrn }}</b>
-                                                </div>
-                                            </div>
-                                            <br>
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    Company:  <b>{{ patient.company }}</b>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    Visit Number:  <b>{{ visit.vst }}</b>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="refer-prem-form-container">
+                        {% for note in consultation_notes %}
+                        <div class="table-responsive">
+                            <table class="refer-prem-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Preliminary Diagnosis</th>
+                                        <th>Final Diagnosis</th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <ul class="refer-prem-list">
+                                                {% for diagnosis in note.provisional_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="refer-prem-list">
+                                                {% for diagnosis in note.final_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>        
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header bg-primary-600">
-                                    <h6 class="card-title text-center text-uppercase">Diagnosis</h6>
-                                </div>
-                                <div class="card-body">
-                                    {% for note in consultation_notes %}
-                                    <div class="table-responsive">
-                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Preliminary Diagnosis</th>
-                                                    <th>Final Diagnosis</th>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <ul class="list-group">
-                                                            {% for diagnosis in note.provisional_diagnosis.all %}
-                                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    </td>
-                                                    <td>
-                                                        <ul class="list-group">
-                                                            {% for diagnosis in note.final_diagnosis.all %}
-                                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>        
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                    <br />
-                    <div class="container-fluid">
-                        <form method="POST" action="{% url 'kahama_save_remotereferral' patient.id visit.id %}" id="referralForm">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Referral Form Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card refer-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-exchange-alt mr-2"></i>
+                            Patient Referral
+                        </h5>
+                        <span class="refer-prem-badge refer-prem-badge-warning">Final Step</span>                      
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="refer-prem-form-container">
+                        <form method="POST" action="{% url 'kahama_doctor_referral_save' patient.id visit.id %}" id="referralForm">
                             {% csrf_token %}
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="form-group">                                     
-                                                {{ form.media }}
-                                                {{ form.as_p }}
-                                            </div>
-                                        </div>                 
-                                    </div> 
-                                </div>
-                                <div class="card-footer">
-                                    {% if messages %}
+                            <div class="refer-prem-form-section refer-prem-animated">
+                                <h4 class="refer-prem-section-title">
+                                    <i class="fas fa-file-medical mr-2"></i>Referral Details
+                                </h4>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="refer-prem-form-field">
+                                            {{ form.media }}
+                                            {% for field in form %}
+                                                <div class="refer-prem-input-group">
+                                                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="refer-prem-badge refer-prem-badge-required">Required</span>{% endif %}</label>
+                                                    {{ field }}
+                                                    {% if field.help_text %}
+                                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                                    {% endif %}
+                                                    {% for error in field.errors %}
+                                                        <div class="alert refer-prem-alert refer-prem-alert-error">{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>                 
+                                </div> 
+                            </div>
+                            
+                            <!-- Messages -->
+                            <div class="card-footer">
+                                {% if messages %}
                                     <div class="row">
                                         <div class="col-12">
                                             {% for message in messages %}
-                                            {% if message.tags == 'error' %}
-                                            <div class="alert alert-danger alert-message">{{ message }}</div>
-                                            {% elif message.tags == 'success' %}
-                                            <div class="alert alert-primary alert-message">{{ message }}</div>
-                                            {% endif %}
+                                                {% if message.tags == 'error' %}
+                                                    <div class="alert refer-prem-alert refer-prem-alert-error alert-message">{{ message }}</div>
+                                                {% elif message.tags == 'success' %}
+                                                    <div class="alert refer-prem-alert refer-prem-alert-success alert-message">{{ message }}</div>
+                                                {% endif %}
                                             {% endfor %}
                                         </div>
                                     </div>
-                                    {% endif %}
-                                </div>
+                                {% endif %}
                             </div>
-                            <button type="button" class="btn btn-primary btn-block mt-3"  onclick="showConfirmationModal()">Save to proceed</button>
+                            
+                            <button type="button" class="btn btn-prem-refer mt-3" onclick="showConfirmationModal()">
+                                <i class="fas fa-paper-plane mr-2"></i> Submit Referral
+                            </button>
                         </form>
-                    </div>                              
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 <script>
     // Fade out alerts after 5 seconds (5000ms)
     setTimeout(function() {
@@ -169,22 +658,29 @@ Patient Referral
         });
     }, 5000);
 </script>
-<!-- Bootstrap Modal -->
-<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+
+<!-- Premium Confirmation Modal -->
+<div class="modal fade refer-prem-modal" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title" id="confirmationModalLabel">Final Confirmation</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content refer-prem-modal-content">
+            <div class="modal-header refer-prem-modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Final Confirmation
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                Warning: This is the last step before submitting the referral. Do you want to proceed?
+                <div class="alert refer-prem-alert refer-prem-alert-warning">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <strong>Warning:</strong> This is the last step before submitting the referral. Do you want to proceed?
+                </div>
+                <p class="mb-0">Once submitted, this referral cannot be easily modified. Please review all information carefully.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmSubmit">Proceed</button>
+                <button type="button" class="btn btn-prem-refer" id="confirmSubmit">Proceed</button>
             </div>
         </div>
     </div>
@@ -192,31 +688,13 @@ Patient Referral
 
 <script>
     function showConfirmationModal() {
-        $('#confirmationModal').modal('show');  // Show Bootstrap modal
+        $('#confirmationModal').modal('show');
     }
 
     document.getElementById("confirmSubmit").addEventListener("click", function () {
-        document.getElementById("referralForm").submit();  // Ensure form is submitted only after confirmation
+        document.getElementById("referralForm").submit();
     });
 </script>
 
-    
-<style>
-    /* styles.css */
-
-    /* Add custom styles for the container */
-    .container {
-        margin-top: 20px;
-        padding: 20px;
-        background-color: #f0f0f0;
-        border-radius: 10px;
-    }
-
-    /* Add styles for the card */
-    .card {
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-</style>
 {% include 'kahama_template/datatable.html' %}
 {% endblock main_content %}

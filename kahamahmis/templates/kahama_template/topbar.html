@@ -1,0 +1,569 @@
+{% load static %}
+<nav class="main-header navbar navbar-expand navbar-white navbar-light">
+  <!-- Left Section: Hamburger + Brand + Date/Time -->
+  <div class="d-flex align-items-center">
+    <!-- Hamburger Menu -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#">
+          <i class="fas fa-bars"></i>
+        </a>
+      </li>
+    </ul>
+    
+    <!-- Brand Name -->
+    <div class="brand-container ml-2">
+      <a href="/" class="brand-link">
+        <span class="brand-text">RESA MEDICAL GROUP</span>
+      </a>
+    </div>
+    
+    <!-- Date & Time Display -->
+    <div class="datetime-container ml-4">
+      <div class="date-display">
+        <i class="far fa-calendar-alt mr-1"></i>
+        <span id="current-date"></span>
+      </div>
+      <div class="time-display ml-3">
+        <i class="far fa-clock mr-1"></i>
+        <span id="current-time"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Section: Quick Actions + Weather -->
+  <div class="d-flex align-items-center mx-auto">    
+    <!-- Weather Information -->
+    <div class="weather-info ml-4 d-none d-lg-flex align-items-center">
+      <div class="weather-icon mr-2">
+        <i class="fas fa-sun text-warning"></i>
+      </div>
+      <div>
+        <div class="weather-temp">28°C</div>
+        <div class="weather-location">Dar es Salaam</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Section: Search + Controls + User Menu -->
+  <div class="d-flex align-items-center">  
+      <!-- Fullscreen Toggle -->
+      <li class="nav-item mr-2">
+        <a class="nav-link" data-toggle="tooltip" title="Toggle Fullscreen" onclick="toggleFullScreen()">
+          <i class="fas fa-expand"></i>
+        </a>
+      </li>
+      <!-- Add this in the right section after the Fullscreen Toggle -->
+    <li class="nav-item dropdown">
+        <a class="nav-link" href="#" data-bs-toggle="dropdown" title="Today's Activities">
+            <i class="fas fa-tasks"></i>
+            <span class="badge activity-badge">0</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-end activity-dropdown">
+            <div class="activity-header">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Today's Activities</h5>
+                <small class="d-block mt-1" id="current-activity-date"></small>
+            </div>
+            <div class="activity-list" id="activity-list">
+                <!-- Activities will be loaded dynamically -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="activity-footer">
+                <a href="{% url "resa_admin_activity_log" %}" class="view-all-btn">
+                    View All Activities <i class="fas fa-chevron-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </li>
+      <!-- Notifications -->
+      <li class="nav-item dropdown mr-2">
+        <a class="nav-link" data-toggle="dropdown" href="#" data-toggle="tooltip" title="Notifications">
+          <i class="far fa-bell"></i>
+          <span class="badge badge-danger notification-badge">5</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right notification-menu">
+          <span class="dropdown-item dropdown-header">5 Notifications</span>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item notification-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <i class="fas fa-calendar-check mr-2 text-success"></i> 
+                Appointment confirmed
+              </div>
+              <div class="notification-time">10 mins ago</div>
+            </div>
+            <small class="text-muted">Dr. Smith - 10:30 AM</small>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item notification-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <i class="fas fa-file-medical mr-2 text-primary"></i> 
+                Lab results ready
+              </div>
+              <div class="notification-time">1 hour ago</div>
+            </div>
+            <small class="text-muted">Patient: John Doe</small>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item notification-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <i class="fas fa-users mr-2 text-info"></i> 
+                Staff meeting reminder
+              </div>
+              <div class="notification-time">3 hours ago</div>
+            </div>
+            <small class="text-muted">Today at 2:00 PM</small>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+        </div>
+      </li>
+      
+      <!-- User Menu -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#" data-toggle="tooltip" title="User Menu">
+          <div class="d-flex align-items-center">
+            <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-1" alt="User Image" width="30">
+            <span class="ml-2 d-none d-md-inline">{{ user.first_name }} {{ user.last_name }}</span>
+          </div>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right user-menu">
+          <div class="user-panel d-flex p-3">
+            <div class="image">
+              <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image" width="45">
+            </div>
+            <div class="info ml-3">
+              <div class="d-block">{{ user.first_name }} {{ user.last_name }}</div>
+              <small>{{ user.staff.get_role_display }}</small>
+              <div class="user-status text-success">
+                <i class="fas fa-circle"></i> Online
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="{% if user.staff.work_place == 'resa' %}
+                    {% if user.staff.role == 'admin' %}
+                        {% url 'admin_profile' %}
+                    {% elif user.staff.role == 'doctor' %}
+                        {% url 'doctor_profile' %}
+                    {% elif user.staff.role == 'nurse' %}
+                        {% url 'nurse_profile' %}
+                    {% elif user.staff.role == 'labTechnician' %}
+                        {% url 'labTechnician_profile' %}
+                    {% elif user.staff.role == 'pharmacist' %}
+                        {% url 'pharmacist_profile' %}
+                    {% elif user.staff.role == 'receptionist' %}
+                        {% url 'receptionist_profile' %}
+                    {% endif %}
+              {% elif user.staff.work_place == 'kahama' %}
+                  {% if user.staff.role == 'doctor' %}
+                      {% url 'kahama_doctor_profile' %}
+                  {% elif user.staff.role == 'admin' %}
+                      {% url 'kahama_admin_profile' %}
+                  {% endif %}
+            {% endif %}" class="dropdown-item">
+            <i class="fas fa-id-card mr-2"></i> Profile 
+          </a>      
+          <div class="dropdown-divider"></div>
+          <a href="{% if user.staff.work_place == 'resa' %}
+                    {% if user.staff.role == 'admin' %}
+                        {% url 'admin_change_password' %}
+                    {% elif user.staff.role == 'doctor' %}
+                        {% url 'doctor_change_password' %}
+                    {% elif user.staff.role == 'nurse' %}
+                        {% url 'nurse_change_password' %}
+                    {% elif user.staff.role == 'labTechnician' %}
+                        {% url 'lab_change_password' %}
+                    {% elif user.staff.role == 'pharmacist' %}
+                        {% url 'pharmacist_change_password' %}
+                    {% elif user.staff.role == 'receptionist' %}
+                        {% url 'receptionist_change_password' %}
+                    {% endif %}
+                {% elif user.staff.work_place == 'kahama' %}
+                    {% if user.staff.role == 'admin' %}
+                        {% url 'kahama_admin_change_password' %}
+                    {% elif user.staff.role == 'doctor' %}
+                        {% url 'kahama_doctor_change_password' %}           
+                    {% endif %}
+              {% endif %}" class="dropdown-item">
+            <i class="fas fa-key mr-2"></i> Change Password
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="/logout_user" class="dropdown-item">
+            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+          </a>
+        </div>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<style>
+  /* Topbar Styling */
+  .main-header {
+    background: linear-gradient(120deg, #2c6fbb, #34b7eb);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    padding: 0.4rem 1rem;
+  }
+  
+  .brand-link .brand-text {
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+  }
+  
+  .datetime-container {
+    display: flex;
+    align-items: center;
+    color: white;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.3rem 0.8rem;
+    border-radius: 30px;
+  }
+  
+  .date-display, .time-display {
+    display: flex;
+    align-items: center;
+  }
+  
+  .quick-actions .btn {
+    border-radius: 20px;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  
+  .quick-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .weather-info {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    color: #2c3e50;
+  }
+  
+  .weather-icon {
+    font-size: 1.5rem;
+  }
+  
+  .weather-temp {
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  
+  .weather-location {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+  
+  .search-box {
+    position: relative;
+    width: 220px;
+  }
+  
+  .search-box .form-control {
+    border-radius: 20px;
+    padding-left: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .search-box .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+    width: 280px;
+  }
+  
+  .search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6e707e;
+    z-index: 10;
+  }
+  
+  .notification-badge {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 0.6rem;
+    padding: 3px 6px;
+  }
+  
+  .user-status {
+    font-size: 0.75rem;
+    margin-top: 3px;
+  }
+  
+  /* Activity Dropdown Styling */
+  .activity-dropdown {
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .activity-header {
+    padding: 15px 15px 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .activity-footer {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+    text-align: center;
+  }
+  
+  .activity-item {
+    display: flex;
+    padding: 10px 15px;
+    color: #495057;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+  
+  .activity-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .activity-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  
+  .activity-icon i {
+    font-size: 16px;
+  }
+  
+  .activity-content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .activity-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .activity-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  
+  .activity-time {
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+  
+  .view-all-btn {
+    color: #007bff;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  
+  /* Status Colors */
+  .status-pending { color: #ffc107; }
+  .status-inprogress { color: #17a2b8; }
+  .status-completed { color: #28a745; }
+  .status-urgent { color: #dc3545; }
+  
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    .weather-info {
+      display: none !important;
+    }
+  }
+  
+  @media (max-width: 992px) {
+    .quick-actions {
+      display: none !important;
+    }
+    
+    .datetime-container {
+      font-size: 0.9rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .datetime-container {
+      display: none;
+    }
+    
+    .search-box {
+      width: 180px;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .brand-text {
+      font-size: 1.1rem;
+    }
+    
+    .search-box {
+      display: none;
+    }
+    
+    .activity-dropdown {
+      width: 300px;
+    }
+  }
+</style>
+
+<script>
+  // Update date and time in real-time
+  function updateDateTime() {
+    const now = new Date();
+    
+    // Format date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString('en-US', options);
+    
+    // Format time
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    
+    // Update elements
+    document.getElementById('current-date').textContent = formattedDate;
+    document.getElementById('current-time').textContent = formattedTime;
+  }
+  
+  // Initialize and update every second
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Fullscreen toggle function
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+  
+  // Initialize tooltips
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+  
+  // Dark mode toggle with localStorage persistence
+  $('#darkModeToggle').on('change', function() {
+    $('body').toggleClass('dark-mode');
+    localStorage.setItem('darkMode', $(this).prop('checked'));
+  });
+  
+  // Check for saved dark mode preference
+  if (localStorage.getItem('darkMode') === 'true') {
+    $('body').addClass('dark-mode');
+    $('#darkModeToggle').prop('checked', true);
+  }
+  
+  // Update activity date in dropdown
+  function updateActivityDate() {
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('current-activity-date').textContent = now.toLocaleDateString('en-US', options);
+  }
+
+  // Load activities from server
+  function loadActivities() {
+    $.ajax({
+        url: '/api/today-activities/',
+        method: 'GET',
+        success: function(data) {
+            const activities = data.activities;
+            let html = '';
+            
+            if (activities.length === 0) {
+                html = `<div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <p>No activities for today</p>
+                </div>`;
+            } else {
+                // Update badge count
+                $('.activity-badge').text(activities.length);
+                
+                // Generate activity items
+                activities.forEach(activity => {
+                    // Skip status since it's not in the new model
+                    const patientText = activity.patient ? activity.patient : '';
+                    const staffText = activity.staff ? activity.staff : '';
+                    
+                    html += `
+                    <a href="${activity.url}" class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas ${activity.icon}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">${activity.title}</div>
+                            <div class="activity-meta">
+                                <div>${patientText} ${patientText && staffText ? '•' : ''} ${staffText}</div>
+                                <div class="activity-time">${activity.time}</div>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="dropdown-divider"></div>`;
+                });
+            }
+            
+            $('#activity-list').html(html);
+        },
+        error: function() {
+            $('#activity-list').html(`
+                <div class="text-center py-4 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <p>Failed to load activities</p>
+                </div>
+            `);
+        }
+    });
+  }
+
+  // Initialize and refresh every 5 minutes
+  $(document).ready(function() {
+      updateActivityDate();
+      loadActivities();
+      setInterval(loadActivities, 300000);  // 5 minutes
+      
+      // Open activities dropdown when badge is clicked
+      $('.nav-link[data-bs-toggle="dropdown"]').on('click', function() {
+          // Trigger a refresh when dropdown is opened
+          loadActivities();
+      });
+  });
+</script>

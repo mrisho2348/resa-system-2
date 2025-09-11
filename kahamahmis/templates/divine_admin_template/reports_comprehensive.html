@@ -1,7 +1,7 @@
 {% extends 'divine_admin_template/base_template.html' %}
 
 {% block title %}
-    Patient Reports
+    Premium Patient Analytics
 {% endblock title %}
 
 {% block breadcrumb %}
@@ -9,53 +9,335 @@
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium Patient Reports Styles - Unique to this template */
+    .reports-prem-gradient {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 76, 117, 0.15);
+        border: none;
+    }
+    
+    .reports-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .reports-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .reports-prem-form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .reports-prem-form-group label {
+        font-weight: 600;
+        color: #303F9F;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reports-prem-form-control {
+        border: 1px solid #c5cae9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .reports-prem-form-control:focus {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+        outline: none;
+    }
+    
+    .btn-reports-prem {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.2);
+        width: 100%;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-reports-prem:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 76, 117, 0.3);
+        color: white;
+    }
+    
+    .reports-prem-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .reports-prem-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .reports-prem-card .card-header {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        color: #303F9F;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .reports-prem-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Flip card effect for premium feature */
+    .reports-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .reports-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .reports-prem-flip-card:hover .reports-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .reports-prem-flip-card-front, .reports-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .reports-prem-flip-card-front {
+        background: linear-gradient(120deg, #0f4c75, #3282b8);
+        color: white;
+    }
+    
+    .reports-prem-flip-card-back {
+        background: linear-gradient(120deg, #3282b8, #0f4c75);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .reports-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for view switching */
+    @keyframes reportsPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .reports-prem-animated {
+        animation: reportsPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+    }
+    
+    .reports-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        margin-top: 20px;
+    }
+    
+    .reports-prem-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .reports-prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #303F9F;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reports-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .reports-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .reports-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 63, 159, 0.1);
+        background: #f5f6ff;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="container-fluid mt-5">
-                <div class="row justify-content-center">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <!-- Report Selection Form -->
-                                <form id="reports_form" method="post">
-                                    {% csrf_token %}
-                                    <div class="row">
-                                        <!-- Report Type Selection -->
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="report_type">Report Type:</label>
-                                                <select class="form-control select2bs4" name="report_type" id="report_type">
-                                                    <option value="patient_type_reports">Patient Type Report</option>
-                                                    <option value="patient_company_wise_reports">Consult. Per Status Report</option>
-                                                    <option value="patient_lab_result_reports">Laboratory Tests Report</option>
-                                                    <option value="patient_procedure_reports">Nursing Procedure Report</option>
-                                                    <option value="patient_referral_reports">Referral & MedEvac Report</option>
-                                                    <option value="patient_pathology_reports">Consult. Per Pathology</option>
-                                                    <!-- Add more options for other report types here -->
-                                                </select>
-                                            </div>
+            <div class="card reports-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-chart-bar mr-2"></i>Premium Patient Analytics</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card reports-prem-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-chart-pie mr-2"></i>Report Types</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="reports-prem-summary-value">6</div>
+                                    <div class="reports-prem-summary-label">Available Reports</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card reports-prem-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-alt mr-2"></i>Year Range</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="reports-prem-summary-value">{{ year_range|length }}</div>
+                                    <div class="reports-prem-summary-label">Years Available</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="reports-prem-flip-card">
+                                <div class="reports-prem-flip-card-inner">
+                                    <div class="reports-prem-flip-card-front">
+                                        <div class="reports-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
                                         </div>
-                                        <!-- Year Selection -->
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="year">Year:</label>
-                                                <select class="form-control select2bs4" id="year" name="year">
-                                                    {% for year in year_range %}
-                                                        <option value="{{ year }}">{{ year }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <!-- Search Button -->
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label>&nbsp;</label>
-                                                <button type="submit" class="btn btn-primary btn-block">Search</button>
-                                            </div>
-                                        </div>
+                                        <h4>Data Analytics</h4>
+                                        <p>Hover to reveal</p>
                                     </div>
-                                </form>
+                                    <div class="reports-prem-flip-card-back">
+                                        <div class="reports-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Patient Insights</h4>
+                                        <p>Advanced analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Report Selection Form -->
+                    <div class="reports-prem-form-container">
+                        <form id="reports_form" method="post">
+                            {% csrf_token %}
+                            <div class="row">
+                                <!-- Report Type Selection -->
+                                <div class="col-md-5">
+                                    <div class="reports-prem-form-group">
+                                        <label for="report_type">Report Type:</label>
+                                        <select class="form-control select2bs4 reports-prem-form-control" name="report_type" id="report_type">
+                                            <option value="patient_type_reports">Patient Type Report</option>
+                                            <option value="patient_company_wise_reports">Consult. Per Status Report</option>
+                                            <option value="patient_lab_result_reports">Laboratory Tests Report</option>
+                                            <option value="patient_procedure_reports">Nursing Procedure Report</option>
+                                            <option value="patient_referral_reports">Referral & MedEvac Report</option>
+                                            <option value="patient_pathology_reports">Consult. Per Pathology</option>
+                                            <!-- Add more options for other report types here -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Year Selection -->
+                                <div class="col-md-5">
+                                    <div class="reports-prem-form-group">
+                                        <label for="year">Year:</label>
+                                        <select class="form-control select2bs4 reports-prem-form-control" id="year" name="year">
+                                            {% for year in year_range %}
+                                                <option value="{{ year }}">{{ year }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Search Button -->
+                                <div class="col-md-2">
+                                    <div class="reports-prem-form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn-reports-prem">
+                                            <i class="fas fa-search mr-2"></i> Search
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Report Table Section -->
+                    <div class="reports-prem-table-container mt-4">
+                        <div class="card reports-prem-card">
+                            <div class="card-header">
+                                <h6 id="report_heading" class="header-title text-center mt-0 mb-1 text-uppercase">Select a report type and year to generate data</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="report_table" class="text-center text-muted py-5">
+                                    <i class="fas fa-chart-bar fa-4x mb-3"></i>
+                                    <p>No report data available. Please select a report type and year, then click Search.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -63,29 +345,25 @@
             </div>
         </div>
     </div>
-
-    <!-- Report Table Section -->
-    <div class="container-fluid mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 id="report_heading" class="header-title text-center mt-0 mb-1 text-uppercase"></h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="report_table"></div> <!-- This is where the server response will be displayed -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
+
+
+
+{% endblock main_content %}
+
+{% block customer_js %}
+{% include 'divine_admin_template/datatable.html' %}
 <script>
     $(document).ready(function(){
+        
+        
         // Form submission handler
         $('#reports_form').on('submit', function(e){
             e.preventDefault(); // Prevent the form from submitting normally
+            
+            // Show loading state
+            $('#report_table').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-3">Generating report...</p></div>');
             
             // Serialize form data
             var formData = $(this).serialize();
@@ -93,29 +371,37 @@
             // AJAX request to fetch the report
             $.ajax({
                 type: 'POST',
-                url: '{% url "divine_search_report" %}',
+                url: '{% url "kahama_admin_search_report" %}',
                 data: formData,
                 success: function(response){
                     // Update the table content with the response HTML
                     $('#report_table').html(response.html_result); 
                     updateHeading(); // Update the report heading dynamically
+                    
                 },
                 error: function(xhr, status, error){
+                    $('#report_table').html('<div class="alert alert-danger text-center">An error occurred while generating the report. Please try again.</div>');
                     console.error(xhr.responseText); // Log any errors to the console
                 }
             });
         });
+        
+        // Function to dynamically update the report heading
+        function updateHeading() {
+            var reportType = $('#report_type option:selected').text();
+            var year = $('#year option:selected').text();       
+            var title = reportType + ' - ' + year;
+            $('#report_heading').text(title); // Update the heading in the card
+            $('title').text('Premium Patient Analytics | ' + title); // Update the browser title
+        }
+        
+        // Add animation to form elements
+        $('.reports-prem-form-group').addClass('reports-prem-animated');
+        
+        // Add delay to animation for better visual effect
+        $('.reports-prem-form-group').each(function(index) {
+            $(this).css('animation-delay', (index * 0.1) + 's');
+        });
     });
-
-    // Function to dynamically update the report heading
-    function updateHeading() {
-        var reportType = $('#report_type option:selected').text();
-        var year = $('#year option:selected').text();       
-        var title = reportType + ' - ' + year;
-        $('#report_heading').text(title); // Update the heading in the card
-        $('title').text('SITE NAME: | ' + title); // Update the browser title
-    }
 </script>
-
-{% include 'divine_admin_template/datatable.html' %}
-{% endblock main_content %}
+{% endblock %}

@@ -2,202 +2,1033 @@
 {% load static %}
 {% load customfilter %}
 {% block title %}
-Order Details
+Premium Order Management
 {% endblock title %}
 
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
-Order Details
+Premium Order Management
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium styling with unique order-specific class names */
+    .order-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .order-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .order-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .order-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .order-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .order-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .order-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .order-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .order-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .order-prem-btn-filter {
+        background: linear-gradient(120deg, #0d47a1, #1565C0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(13, 71, 161, 0.2);
+    }
+    
+    .order-prem-btn-filter:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.3);
+        color: white;
+    }
+    
+    .order-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .order-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .order-prem-input-group label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .order-prem-input-group .form-control {
+        border: 1px solid #BBDEFB;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .order-prem-input-group .form-control:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.25);
+    }
+    
+    .order-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .order-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .order-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .order-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .order-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .order-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .order-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .order-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .order-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .order-prem-badge-primary {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .order-prem-badge-paid {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .order-prem-badge-pending {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .order-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .order-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .order-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .order-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .order-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .order-prem-status-btn[data-status="paid"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .order-prem-status-btn[data-status="pending"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    /* Date filter styles */
+    .order-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .order-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .order-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #0d47a1;
+        min-width: 80px;
+    }
+    
+    .order-date-filter-input {
+        border: 1px solid #BBDEFB;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for view switching */
+    @keyframes orderPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .order-prem-animated {
+        animation: orderPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .order-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .order-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .order-prem-flip-card:hover .order-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .order-prem-flip-card-front, .order-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .order-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .order-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .order-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Enhanced modal styles */
+    .order-prem-modal-body {
+        padding: 2rem;
+    }
+    
+    .order-prem-modal-section {
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .order-prem-modal-section-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .order-prem-modal-section-body {
+        padding: 1.5rem;
+        background: white;
+    }
+    
+    .order-prem-invoice-container {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid #0d47a1;
+    }
+    
+    /* Premium ribbon for orders */
+    .order-prem-ribbon {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 110px;
+        height: 110px;
+        overflow: hidden;
+    }
+    
+    .order-prem-ribbon span {
+        position: absolute;
+        top: 20px;
+        right: -30px;
+        transform: rotate(45deg);
+        width: 150px;
+        padding: 5px 0;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Premium glow effect for important elements */
+    .order-prem-glow {
+        box-shadow: 0 0 15px rgba(13, 71, 161, 0.3);
+    }
+    
+    /* Premium progress bars */
+    .order-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .order-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        transition: width 0.6s ease;
+    }
+    
+    /* Premium chart container */
+    .order-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header card-primary">
-          <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Orders</h6>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card order-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-file-invoice-dollar mr-2"></i>Premium Order Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-shopping-cart mr-2"></i>Total Orders</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="total-orders">{{ grouped_orders|length }}</div>
+                                    <div class="order-prem-summary-label">All Orders</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Paid Orders</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="paid-orders">0</div>
+                                    <div class="order-prem-summary-label">Completed Payments</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card order-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Total Revenue</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="order-prem-summary-value" id="total-revenue">0</div>
+                                    <div class="order-prem-summary-label">TZS</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="order-prem-flip-card">
+                                <div class="order-prem-flip-card-inner">
+                                    <div class="order-prem-flip-card-front">
+                                        <div class="order-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Revenue Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="order-prem-flip-card-back">
+                                        <div class="order-prem-flip-icon">
+                                            <i class="fas fa-gem"></i>
+                                        </div>
+                                        <h4>Premium Insights</h4>
+                                        <p>Advanced financial tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Revenue Chart (Mini) -->
+                    <div class="order-prem-chart-container mb-4">
+                        <h6 class="mb-3"><i class="fas fa-chart-bar mr-2"></i>Revenue Overview</h6>
+                        <div class="order-prem-progress mb-2">
+                            <div class="order-prem-progress-bar" style="width: 65%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Paid Orders: <span id="chart-paid">0</span></small>
+                            <small>Pending Orders: <span id="chart-pending">0</span></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="order-prem-filter-bar">
+                        <!-- Date Range Filter -->
+                        <div class="order-prem-date-filter">
+                            <div class="order-date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="order-date-filter-input" id="startDate">
+                            </div>
+                            <div class="order-date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="order-date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn order-prem-btn-filter" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Date Filter
+                            </button>
+                            <button class="btn order-prem-btn-filter" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="order-prem-status-filter">
+                            <button class="order-prem-status-btn active" data-status="all">All Orders</button>
+                            <button class="order-prem-status-btn" data-status="paid">Paid Orders</button>
+                            <button class="order-prem-status-btn" data-status="pending">Pending Orders</button>
+                        </div>
+                        
+                        <!-- Search Filter -->
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search orders..." id="orderPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn order-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive order-prem-table-container">
+                        <table class="table table-hover text-nowrap order-prem-table" id="orderTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Order Number</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-money-bill-wave mr-2"></i>Total Cost (TZS)</th>
+                                    <th><i class="fas fa-tasks mr-2"></i>Status</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Order Date</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in grouped_orders %}
+                                {% with latest_order=group.orders|last %}
+                                <tr data-status="{% if group.statuses.0 == 'Paid' %}paid{% else %}pending{% endif %}" 
+                                    data-cost="{{ group.total_cost }}"
+                                    data-date="{{ latest_order.order_date|date:'Y-m-d' }}">
+                                    <td>{{ latest_order.order_number }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="order-prem-avatar">
+                                                {{ group.full_name|slice:":1" }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ group.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if group.patient__payment_form == "Insurance" %}
+                                                    {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                                                    {% else %}
+                                                    {{ group.patient__payment_form }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ group.visit__vst }}</td>
+                                    <td>{{ group.total_cost }}</td>
+                                    <td>
+                                        {% if group.statuses.0 == 'Paid' %}
+                                            <span class="order-prem-badge order-prem-badge-paid">Paid</span>
+                                        {% else %}
+                                            <span class="order-prem-badge order-prem-badge-pending">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ latest_order.order_date }}</td>
+                                    <td class="text-center">
+                                        <button class="btn order-prem-btn-action" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
+                                            <i class="fas fa-eye"></i> Billing Note
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>                
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Latest Order Number</th>
-                  <th>Patient</th>
-                  <th>Visit Number</th>
-                  <th>Total Cost (TZS)</th>
-                  <th>Status</th>
-                  <th>Order Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for group in grouped_orders %}
-                <tr>
-                  <td>
-                    {# Show latest order number per patient-visit group (fetch from group's orders) #}
-                    {% with latest_order=group.orders|last %}
-                      {{ latest_order.order_number }}
-                    {% endwith %}
-                  </td>
-
-                 <td>
-                {{ group.full_name }}
-                <br>
-                <small>
-                    {% if group.patient__payment_form == "Insurance" %}
-                    {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
-                    {% else %}
-                    {{ group.patient__payment_form }}
-                    {% endif %}
-                </small>
-                </td>
-                  <td>{{ group.visit__vst }}</td>
-
-                  <td>{{ group.total_cost }}</td>                  
-                    <td>                   
-                      <p {% if group.statuses.0 == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ group.statuses.0 }}</p>
-                    </td>
-                  <td>
-                    {% with latest_order=group.orders|last %}
-                      {{ latest_order.order_date }}
-                    {% endwith %}
-                  </td>
-
-                  <td>
-                     
-                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
-                      <i class="fa fa-eye"></i> Billing Note
-                    </button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
-
 {% for group in grouped_orders %}
+<!-- Premium Modal for Billing Note -->
 <div class="modal fade" id="billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-
-      <!-- Modal Header -->
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
-          Billing Note - Visit {{ group.visit__vst }}
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content order-prem-modal-content">
+      <div class="modal-header order-prem-modal-header py-3">
+        <h5 class="modal-title text-white" id="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>Billing Note - Visit {{ group.visit__vst }}
         </h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
 
-      <!-- Modal Body -->
-      <div class="modal-body">
+      <div class="modal-body order-prem-modal-body">
         <div class="container-fluid">
 
           <!-- Header Image -->
-          <div class="mb-3">
-            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Company Header">
-          </div>
+          <header class="header mb-3 text-center">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid" style="max-width: 100%; height: auto;" alt="Header Image">
+          </header>
 
-          <!-- Patient Info -->
-          <div class="card mb-3">
-            <div class="card-header bg-dark text-white">
-              <h6 class="text-uppercase mb-0">Patient & Visit Details</h6>
+          <!-- Patient Details Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
             </div>
-            <div class="card-body p-2">
-              <table class="table table-borderless table-sm mb-0">
-                <tbody>
-                  <tr>
-                    <td><strong>Patient:</strong> {{ group.full_name }}</td>
-                    <td><strong>DOB:</strong> {{ group.patient__dob|date:"d-m-Y" }}</td>
-                    <td><strong>Sex:</strong> {{ group.patient__gender }}</td>
-                    <td><strong>File No:</strong> {{ group.patient__mrn }}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Visit No:</strong> {{ group.visit__vst }}</td>
-                    <td colspan="3"><strong>Payment Form:</strong>
-                      {% if group.patient__payment_form == "Insurance" %}
-                        {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
-                      {% else %}
-                        {{ group.patient__payment_form }}
-                      {% endif %}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Orders Table -->
-          <div class="card mb-3">
-            <div class="card-header bg-info text-white">
-              <h6 class="mb-0 text-uppercase">Order Items</h6>
-            </div>
-            <div class="card-body p-0">
-              <table class="table table-bordered table-sm mb-0">
-                <thead class="thead-light">
-                  <tr>
-                    <th>Service / Description</th>
-                    <th>Order Type</th>
-                    <th colspan="4">Order Date</th>
-                    <th class="text-right">Price (TZS)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for ord in group.orders %}
-                  <tr>
-                    <td>{{ ord.order_type }}</td>
-                    <td>{{ ord.type_of_order }}</td>
-                    <td colspan="4">{{ ord.order_date|date:"d-m-Y" }}</td>
-                    <td class="text-right">{{ ord.cost }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Total -->
-          <div class="row mt-3">
-            <div class="col-md-12">
-              <table class="table table-borderless table-sm">
-                <tr>
-                  <td class="text-right pr-3"><strong>Total:</strong></td>
-                  <td class="text-right" style="width: 150px;">
-                    <strong>Total: {{ group.total_cost }} /Tsh</strong>
-                  </td>
-                </tr>
-              </table>
+            <div class="order-prem-modal-section-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="order-prem-input-group">
+                    <label>Patient Name</label>
+                    <p class="form-control-static"><b>{{ group.full_name }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="order-prem-input-group">
+                    <label>Date of Birth</label>
+                    <p class="form-control-static"><b>{{ group.patient__dob|date:'d-m-Y' }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="order-prem-input-group">
+                    <label>Gender</label>
+                    <p class="form-control-static"><b>{{ group.patient__gender }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="order-prem-input-group">
+                    <label>File No</label>
+                    <p class="form-control-static"><b>{{ group.patient__mrn }}</b></p>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="order-prem-input-group">
+                    <label>Visit Number</label>
+                    <p class="form-control-static"><b>{{ group.visit__vst }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="order-prem-input-group">
+                    <label>Payment Form</label>
+                    <p class="form-control-static">
+                      <b>
+                        {% if group.patient__payment_form == "Insurance" %}
+                          {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                        {% else %}
+                          {{ group.patient__payment_form }}
+                        {% endif %}
+                      </b>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Footer with Print Option -->
-          <div class="row mt-3">
+          <!-- Order Items Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-list-alt mr-2"></i>Order Items</h6>
+            </div>
+            <div class="order-prem-modal-section-body">
+              <div class="table-responsive">
+                <table class="table table-bordered order-prem-table">
+                  <thead>
+                    <tr>
+                      <th>Service / Description</th>
+                      <th>Order Type</th>
+                      <th>Order Date</th>
+                      <th class="text-right">Price (TZS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ord in group.orders %}
+                    <tr>
+                      <td>{{ ord.order_type }}</td>
+                      <td>{{ ord.type_of_order }}</td>
+                      <td>{{ ord.order_date|date:"d-m-Y" }}</td>
+                      <td class="text-right">{{ ord.cost }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                      <td class="text-right"><strong>{{ group.total_cost }} TZS</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Status Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-credit-card mr-2"></i>Payment Status</h6>
+            </div>
+            <div class="order-prem-modal-section-body">
+              <div class="order-prem-invoice-container">
+                <div class="row">
+                  <div class="col-md-8">
+                    <h5 class="mb-3">Invoice Summary</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                      <span>Subtotal:</span>
+                      <span>{{ group.total_cost }} TZS</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                      <span>Tax (0%):</span>
+                      <span>0 TZS</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                      <strong>Total Amount:</strong>
+                      <strong>{{ group.total_cost }} TZS</strong>
+                    </div>
+                  </div>
+                  <div class="col-md-4 text-center">
+                    <div class="order-prem-badge {% if group.statuses.0 == 'Paid' %}order-prem-badge-paid{% else %}order-prem-badge-pending{% endif %} p-3 mb-3">
+                      <i class="fas {% if group.statuses.0 == 'Paid' %}fa-check-circle{% else %}fa-clock{% endif %} fa-2x mb-2"></i>
+                      <h5 class="mb-0">{{ group.statuses.0 }}</h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download PDF Button -->
+          <div class="row mt-4">
             <div class="col-md-12 text-right">
-              <a href="{% url 'admin_download_invoice_bill' group.patient__id group.visit__id %}" 
-                 class="btn btn-outline-primary btn-sm" >
-                <i class="fa fa-download"></i> Download Invoice
+              <a href="{% url 'resa_admin_download_invoice' group.patient__id group.visit__id %}" 
+                class="btn order-prem-btn-action">
+                <i class="fa fa-download mr-2"></i> Download Invoice
               </a>
             </div>
           </div>
 
-        </div>
-      </div>
+        </div> <!-- /.container-fluid -->
+      </div> <!-- /.modal-body -->
     </div>
   </div>
 </div>
 {% endfor %}
 
+{% include 'hod_template/datatable.html' %}   
 
+<script>
+    // Initialize DataTable
+    new DataTable('#orderTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[5, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search orders...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let paidCount = 0;
+        let pendingCount = 0;
+        let totalRevenue = 0;
+        
+        document.querySelectorAll('#orderTable tbody tr:not([style*="display: none"])').forEach(row => {
+            const status = row.getAttribute('data-status');
+            const cost = parseFloat(row.getAttribute('data-cost')) || 0;
+            
+            // Count paid orders
+            if (status === 'paid') {
+                paidCount++;
+                totalRevenue += cost;
+            } else {
+                pendingCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('paid-orders').textContent = paidCount;
+        document.getElementById('total-revenue').textContent = totalRevenue.toLocaleString();
+        
+        // Update chart values
+        document.getElementById('chart-paid').textContent = paidCount;
+        document.getElementById('chart-pending').textContent = pendingCount;
+        
+        // Update progress bar
+        const totalOrders = paidCount + pendingCount;
+        const paidPercentage = totalOrders > 0 ? (paidCount / totalOrders) * 100 : 0;
+        document.querySelector('.order-prem-progress-bar').style.width = `${paidPercentage}%`;
+        
+        // Update total orders count
+        document.getElementById('total-orders').textContent = totalOrders;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
 
-{% include 'hod_template/datatable.html' %}
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterOrdersByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Reset status filter buttons
+        document.querySelectorAll('.order-prem-status-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('.order-prem-status-btn[data-status="all"]').classList.add('active');
+        
+        // Show all rows
+        document.querySelectorAll('#orderTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count and summary stats
+        calculateSummaryStats();
+    });
+
+    // Filter orders by date range
+    function filterOrdersByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update summary stats
+        calculateSummaryStats();
+    }
+
+    // Status filter functionality
+    document.querySelectorAll('.order-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.order-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterOrdersByStatus(status);
+        });
+    });
+
+    // Filter orders by status
+    function filterOrdersByStatus(status) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update summary stats
+        calculateSummaryStats();
+    }
+
+    // Search functionality
+    document.getElementById('orderPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.order-prem-status-btn.active').getAttribute('data-status');
+        
+        filterOrdersWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('orderPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.order-prem-status-btn.active').getAttribute('data-status');
+        
+        filterOrdersWithSearch(activeStatus, searchText);
+    });
+
+    // Filter orders by both status and search text
+    function filterOrdersWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#orderTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update summary stats
+        calculateSummaryStats();
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('orderPremSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            const activeStatus = document.querySelector('.order-prem-status-btn.active').getAttribute('data-status');
+            filterOrdersWithSearch(activeStatus, searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+</script>
 {% endblock main_content %}

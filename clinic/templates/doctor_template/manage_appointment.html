@@ -1,180 +1,594 @@
 {% extends 'doctor_template/base_template.html' %}
-
+{% load customfilter %}
 {% block title %}
-List of appointment    
+Appointment Management Dashboard
 {% endblock title %}
 
 {% block page_title %}
-List of appointment    
+<div class="d-flex justify-content-between align-items-center">
+    <h4 class="page-title-premium mb-0">Premium Appointment Management</h4>
+    <a href="{% url 'doctor_dashboard' %}" class="btn pat-prem-btn-action">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+    </a>
+</div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>Appointment Schedule Overview</span>
+    <span class="badge pat-prem-badge-mrn">Total: {{ appointments|length }}</span>
+</div>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium styling for appointments */
+    .pat-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pat-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pat-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pat-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .pat-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pat-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pat-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pat-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .pat-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pat-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .pat-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+        margin: 2px;
+    }
+    
+    .pat-prem-btn-success {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(48, 136, 41, 0.2);
+        margin: 2px;
+    }
+    
+    .pat-prem-btn-warning {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+        margin: 2px;
+    }
+    
+    .pat-prem-btn-action:hover, .pat-prem-btn-success:hover, .pat-prem-btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .pat-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-badge-mrn {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-badge-pending {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+    }
+    
+    .pat-prem-badge-completed {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .pat-prem-badge-canceled {
+        background: linear-gradient(120deg, #f44336, #d32f2f);
+        color: white;
+    }
+    
+    .pat-prem-badge-rescheduled {
+        background: linear-gradient(120deg, #2196F3, #1976D2);
+        color: white;
+    }
+    
+    .pat-prem-badge-noshow {
+        background: linear-gradient(120deg, #9e9e9e, #616161);
+        color: white;
+    }
+    
+    .pat-prem-badge-progress {
+        background: linear-gradient(120deg, #9C27B0, #7B1FA2);
+        color: white;
+    }
+    
+    .pat-prem-badge-confirmed {
+        background: linear-gradient(120deg, #00BCD4, #0097A7);
+        color: white;
+    }
+    
+    .pat-prem-badge-arrived {
+        background: linear-gradient(120deg, #607D8B, #455A64);
+        color: white;
+    }
+    
+    .pat-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .page-title-premium {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .modal-prem-content {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+    
+    .modal-prem-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .modal-prem-body {
+        background: #f8f9fa;
+    }
+    
+    .pat-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pat-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pat-prem-flip-card:hover .pat-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-card-front, .pat-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pat-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes patPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pat-prem-animated {
+        animation: patPremFadeIn 0.5s ease forwards;
+    }
+    
+    .appointment-date-highlight {
+        background: linear-gradient(120deg, #e3f2fd, #BBDEFB);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+        color: #0d47a1;
+    }
+    
+    .appointment-time-highlight {
+        background: linear-gradient(120deg, #E8F5E9, #C8E6C9);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+        color: #2E7D32;
+    }
+</style>
 
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0 text-uppercase text-center">
-            <i class="fas fa-calendar-check"></i> Appointment Schedule
-          </h5>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card pat-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Total Appointments</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="pat-prem-summary-value">{{ appointments|length }}</div>
+                    <div class="pat-prem-summary-label">All Appointments</div>
+                </div>
+            </div>
         </div>
-
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm text-nowrap mb-0" id="example">
-              <thead class="thead-light">
-                <tr>
-                  <th>Doctor</th>
-                  <th>Patient</th>
-                  <th>Appointment Date</th>
-                  <th>Start Time</th>
-                  <th>End Time</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for appointment in appointments %}
-                <tr>
-                  <td>{{ appointment.doctor.admin.first_name }} {{ appointment.doctor.middle_name }} {{ appointment.doctor.admin.last_name }}</td>
-                  <td>{{ appointment.patient.mrn }}</td>
-                  <td>{{ appointment.appointment_date|date:"d-m-Y" }}</td>
-                  <td>{{ appointment.start_time }}</td>
-                  <td>{{ appointment.end_time }}</td>
-                  <td>{{ appointment.description }}</td>
-                  <td>
-                    {% if appointment.status == 0 %}
-                      <span class="badge badge-warning">Pending</span>
-                    {% elif appointment.status == 1 %}
-                      <span class="badge badge-success">Completed</span>
-                    {% elif appointment.status == 2 %}
-                      <span class="badge badge-danger">Canceled</span>
-                    {% elif appointment.status == 3 %}
-                      <span class="badge badge-info">Rescheduled</span>
-                    {% elif appointment.status == 4 %}
-                      <span class="badge badge-secondary">No-show</span>
-                    {% elif appointment.status == 5 %}
-                      <span class="badge badge-purple bg-purple text-white">In Progress</span>
-                    {% elif appointment.status == 6 %}
-                      <span class="badge badge-primary">Confirmed</span>
-                    {% elif appointment.status == 7 %}
-                      <span class="badge badge-dark">Arrived</span>
-                    {% else %}
-                      <span class="badge badge-light">Unknown</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if appointment.status == 0 %}
-                      <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#confirmMeetingModal{{ appointment.id }}">
-                        Confirm
-                      </button>
-                    {% else %}
-                      <button class="btn btn-sm btn-success" disabled>Confirmed</button>
-                      <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#editMeetingModal{{ appointment.id }}">
-                        Edit
-                      </button>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+        <div class="col-md-3">
+            <div class="card pat-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-hourglass-half mr-2"></i>Pending</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="pat-prem-summary-value" id="pending-count">{{ appointments|filter_status:0|length }}</div>
+                    <div class="pat-prem-summary-label">Awaiting Confirmation</div>
+                </div>
+            </div>
         </div>
-
-        <div class="card-footer text-muted text-center">
-          Total Appointments: {{ appointments|length }}
+        <div class="col-md-3">
+            <div class="card pat-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Completed</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="pat-prem-summary-value" id="completed-count">{{ appointments|filter_status:1|length }}</div>
+                    <div class="pat-prem-summary-label">Finished Appointments</div>
+                </div>
+            </div>
         </div>
-      </div>
+        <div class="col-md-3">
+            <div class="pat-prem-flip-card">
+                <div class="pat-prem-flip-card-inner">
+                    <div class="pat-prem-flip-card-front">
+                        <div class="pat-prem-flip-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h4>Appointment Analytics</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="pat-prem-flip-card-back">
+                        <div class="pat-prem-flip-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>Premium Insights</h4>
+                        <p>Advanced scheduling analytics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+    
+    <!-- Filter Bar -->
+    <div class="pat-prem-filter-bar">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control pat-prem-form-control" placeholder="Search appointments by patient, doctor, or status..." id="appointmentSearch">
+                    <div class="input-group-append">
+                        <button class="btn pat-prem-btn-action" type="button" id="searchButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end">
+                    <span class="filter-section-label">Filter by Status:</span>
+                    <select class="form-control pat-prem-form-control ml-2" style="width: auto;" id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="0">Pending</option>
+                        <option value="1">Completed</option>
+                        <option value="2">Canceled</option>
+                        <option value="3">Rescheduled</option>
+                        <option value="4">No-show</option>
+                        <option value="5">In Progress</option>
+                        <option value="6">Confirmed</option>
+                        <option value="7">Arrived</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointment Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card pat-prem-gradient shadow-lg">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-white"><i class="fas fa-calendar-check mr-2"></i>Premium Appointment Schedule</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive pat-prem-table-container">
+                        <table class="table table-hover text-nowrap pat-prem-table" id="appointmentTable">
+                            <thead>
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Patient</th>
+                                    <th>Appointment Date</th>
+                                    <th>Time Slot</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in appointments %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-2">
+                                                <i class="fas fa-user-md text-primary"></i>
+                                            </div>
+                                            <div>
+                                                {{ appointment.doctor.admin.first_name }} 
+                                                {{ appointment.doctor.middle_name }} 
+                                                {{ appointment.doctor.admin.last_name }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-2">
+                                                <i class="fas fa-user-injured text-info"></i>
+                                            </div>
+                                            <div>
+                                                {{ appointment.patient.first_name }} {{ appointment.patient.last_name }}
+                                                <div class="small text-muted">MRN: {{ appointment.patient.mrn }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="appointment-date-highlight">
+                                            {{ appointment.appointment_date|date:"d-m-Y" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="appointment-time-highlight">
+                                            {{ appointment.start_time }} - {{ appointment.end_time }}
+                                        </span>
+                                    </td>
+                                    <td>{{ appointment.description|truncatewords:5 }}</td>
+                                    <td>
+                                        {% if appointment.status == 0 %}
+                                            <span class="pat-prem-badge pat-prem-badge-pending">Pending</span>
+                                        {% elif appointment.status == 1 %}
+                                            <span class="pat-prem-badge pat-prem-badge-completed">Completed</span>
+                                        {% elif appointment.status == 2 %}
+                                            <span class="pat-prem-badge pat-prem-badge-canceled">Canceled</span>
+                                        {% elif appointment.status == 3 %}
+                                            <span class="pat-prem-badge pat-prem-badge-rescheduled">Rescheduled</span>
+                                        {% elif appointment.status == 4 %}
+                                            <span class="pat-prem-badge pat-prem-badge-noshow">No-show</span>
+                                        {% elif appointment.status == 5 %}
+                                            <span class="pat-prem-badge pat-prem-badge-progress">In Progress</span>
+                                        {% elif appointment.status == 6 %}
+                                            <span class="pat-prem-badge pat-prem-badge-confirmed">Confirmed</span>
+                                        {% elif appointment.status == 7 %}
+                                            <span class="pat-prem-badge pat-prem-badge-arrived">Arrived</span>
+                                        {% else %}
+                                            <span class="badge badge-light">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if appointment.status == 0 %}
+                                            <button class="btn pat-prem-btn-action btn-sm" data-toggle="modal" data-target="#confirmMeetingModal{{ appointment.id }}">
+                                                <i class="fas fa-check mr-1"></i> Confirm
+                                            </button>
+                                        {% else %}
+                                            <button class="btn pat-prem-btn-success btn-sm" disabled>
+                                                <i class="fas fa-check-circle mr-1"></i> Confirmed
+                                            </button>
+                                            <button class="btn pat-prem-btn-warning btn-sm" data-toggle="modal" data-target="#editMeetingModal{{ appointment.id }}">
+                                                <i class="fas fa-edit mr-1"></i> Edit
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-
 
 {% for appointment in appointments %}
 <!-- Edit Meeting Modal -->
 <div class="modal fade" id="editMeetingModal{{ appointment.id }}" tabindex="-1" role="dialog" aria-labelledby="editMeetingModalLabel{{ appointment.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMeetingModalLabel{{ appointment.id }}">Edit Meeting Time</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-prem-content">
+            <div class="modal-header modal-prem-header">
+                <h5 class="modal-title text-white" id="editMeetingModalLabel{{ appointment.id }}">Edit Meeting Time</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <p>Confirm that you have a meeting with {{ appointment.patient.fullname }} before editing.</p>
-                <!-- Add a form with fields for start time and end time -->
-                <form method="post" action="{% url 'doctor_edit_meeting' appointment.id %}">
+            <div class="modal-body modal-prem-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i> 
+                    Confirm that you have a meeting with <strong>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</strong> (MRN: {{ appointment.patient.mrn }}) before editing.
+                </div>
+                <form method="post" action="{% url 'doctor_edit_meeting' appointment.id %}" onsubmit="return validateTime{{ appointment.id }}()">
                     {% csrf_token %}
                     <div class="form-group">
-                        <label for="start_time">Start Time:</label>
-                        <input type="time" class="form-control" name="start_time" id="start_time" value="{{ appointment.start_time|time:'H:i' }}" required>
+                        <label for="start_time{{ appointment.id }}">Start Time:</label>
+                        <input type="time" class="form-control pat-prem-form-control" name="start_time" id="start_time{{ appointment.id }}" value="{{ appointment.start_time|time:'H:i' }}" required>
                     </div>
                     <div class="form-group">
-                        <label for="end_time">End Time:</label>
-                        <input type="time" class="form-control" name="end_time" id="end_time" value="{{ appointment.end_time|time:'H:i' }}" required>
+                        <label for="end_time{{ appointment.id }}">End Time:</label>
+                        <input type="time" class="form-control pat-prem-form-control" name="end_time" id="end_time{{ appointment.id }}" value="{{ appointment.end_time|time:'H:i' }}" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Edit Meeting</button>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn pat-prem-btn-action">Save Changes</button>
+                    </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                
+                <script>
+                    function validateTime{{ appointment.id }}() {
+                        var startTime = document.getElementById('start_time{{ appointment.id }}').value;
+                        var endTime = document.getElementById('end_time{{ appointment.id }}').value;
+
+                        if (startTime >= endTime) {
+                            alert('End time must be greater than start time.');
+                            return false;
+                        }
+                        return true;
+                    }
+                </script>
             </div>
         </div>
     </div>
 </div>
-
-<!-- JavaScript for time validation -->
-<script>
-    // Function to validate that end time is greater than start time
-    function validateTime() {
-        var startTime = document.getElementById('start_time').value;
-        var endTime = document.getElementById('end_time').value;
-
-        if (startTime >= endTime) {
-            alert('End time must be greater than start time.');
-            return false;
-        }
-        return true;
-    }
-
-    // Attach the validation function to the form submission
-    document.querySelector('form').addEventListener('submit', function (event) {
-        if (!validateTime()) {
-            event.preventDefault();
-        }
-    });
-</script>
-
 {% endfor %}
 
 {% for appointment in appointments %}
 <!-- Confirmation Modal for each appointment -->
 <div class="modal fade" id="confirmMeetingModal{{ appointment.id }}" tabindex="-1" role="dialog" aria-labelledby="confirmMeetingModalLabel{{ appointment.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="confirmMeetingModalLabel{{ appointment.id }}">Confirm Meeting</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-prem-content">
+            <div class="modal-header modal-prem-header">
+                <h5 class="modal-title text-white" id="confirmMeetingModalLabel{{ appointment.id }}">Confirm Appointment</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <p>Have you already met with {{ appointment.patient.fullname }}?</p>
-                <!-- Add a form with a dropdown for selecting the status -->
+            <div class="modal-body modal-prem-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-question-circle mr-2"></i> 
+                    Have you already met with <strong>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</strong> (MRN: {{ appointment.patient.mrn }})?
+                </div>
                 <form method="post" action="{% url 'doctor_confirm_meeting' appointment.id %}">
                     {% csrf_token %}
                     <div class="form-group">
-                        <label for="status">Appointment Status:</label>
-                        <select class="form-control select2bs4" style="width: 100%;" name="status" required>
+                        <label for="status{{ appointment.id }}">Appointment Status:</label>
+                        <select class="form-control select2bs4 pat-prem-form-control" name="status" id="status{{ appointment.id }}" required>
                             <option value="0">Pending</option>
                             <option value="1">Completed</option>
                             <option value="2">Canceled</option>
@@ -185,44 +599,61 @@ List of appointment
                             <option value="7">Arrived</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary">Confirm</button>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn pat-prem-btn-action">Confirm Status</button>
+                    </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 {% endfor %}
 
-<style>
-    .notification-link {
-        position: relative;
-        display: inline-block;
-        margin-right: 20px;
-        color: #333; /* Adjust the color as needed */
-        text-decoration: none;
-    }
 
-    .notification-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        background-color: #dc3545; /* Bootstrap danger color */
-        color: #fff; /* Text color */
-        padding: 5px 8px;
-        border-radius: 50%;
-    }
-</style>
-
-
-
-<script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
-</script>
 {% include 'doctor_template/datatable.html' %}
-{% endblock main_content %}
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        new DataTable('#appointmentTable',{
+            dom: 'Bfrtip',
+            buttons: [''],
+            responsive: true,
+            pageLength: 10,
+            order: [[2, 'asc']], // Sort by appointment date
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search appointments...",
+                lengthMenu: "Show _MENU_ entries"
+            }
+        });
+        
+        // Search functionality
+        $('#appointmentSearch').on('keyup', function() {
+            const searchText = $(this).val().toLowerCase();
+            $('#appointmentTable tbody tr').each(function() {
+                const rowText = $(this).text().toLowerCase();
+                $(this).toggle(rowText.includes(searchText));
+            });
+        });
+        
+        // Status filter functionality
+        $('#statusFilter').on('change', function() {
+            const statusValue = $(this).val();
+            
+            if (statusValue === 'all') {
+                $('#appointmentTable tbody tr').show();
+            } else {
+                $('#appointmentTable tbody tr').each(function() {
+                    const statusCell = $(this).find('td:eq(5)');
+                    const isStatusMatch = statusCell.find('.pat-prem-badge').text().toLowerCase().includes(
+                        $('#statusFilter option:selected').text().toLowerCase()
+                    );
+                    $(this).toggle(isStatusMatch);
+                });
+            }
+        });
+    });
+</script>
 
+{% endblock main_content %}

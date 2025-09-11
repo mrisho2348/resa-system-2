@@ -1,0 +1,1047 @@
+{% extends 'hod_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+{% block title %}
+Financial Analytics Dashboard
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+Financial Analytics Dashboard
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium styling for financial analytics */
+    .finance-prem-gradient {
+        background: linear-gradient(120deg, #0d47a1, #1565C0);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(13, 71, 161, 0.15);
+        border: none;
+    }
+    
+    .finance-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .finance-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .finance-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .finance-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .finance-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .finance-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .finance-prem-btn-action {
+        background: linear-gradient(120deg, #0d47a1, #1565C0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(13, 71, 161, 0.2);
+    }
+    
+    .finance-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.3);
+        color: white;
+    }
+    
+    .finance-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .finance-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .finance-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .finance-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .finance-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .finance-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .finance-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .finance-prem-badge-primary {
+        background: linear-gradient(120deg, #0d47a1, #1565C0);
+        color: white;
+    }
+    
+    .finance-prem-badge-paid {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .finance-prem-badge-pending {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .finance-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .finance-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .finance-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .finance-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .finance-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #0d47a1, #1565C0);
+        color: white;
+    }
+    
+    .finance-prem-status-btn[data-status="paid"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .finance-prem-status-btn[data-status="pending"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    /* Date range picker styling */
+    .finance-prem-date-range {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    
+    .finance-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        height: 100%;
+    }
+    
+    .finance-prem-chart-title {
+        color: #0d47a1;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #E3F2FD;
+    }
+    
+    .finance-prem-kpi-card {
+        text-align: center;
+        padding: 1.5rem;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .finance-prem-kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .finance-prem-kpi-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .finance-prem-kpi-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .finance-prem-trend-up {
+        color: #4CAF50;
+    }
+    
+    .finance-prem-trend-down {
+        color: #F44336;
+    }
+    
+    /* Date filter styles */
+    .finance-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .finance-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .finance-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #0d47a1;
+        min-width: 80px;
+    }
+    
+    .finance-date-filter-input {
+        border: 1px solid #BBDEFB;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for charts */
+    @keyframes financePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .finance-prem-animated {
+        animation: financePremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Custom chart styles */
+    .finance-prem-chart {
+        position: relative;
+        height: 300px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .finance-prem-status-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .finance-prem-status-btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .finance-prem-date-filter {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card finance-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-chart-line mr-2"></i>Financial Analytics Dashboard</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Date Range Filter -->
+                    <div class="finance-prem-filter-bar">
+                        <h6 class="mb-3 text-primary"><i class="fas fa-calendar-alt mr-2"></i>Select Date Range</h6>
+                        <div class="finance-prem-date-filter">
+                            <div class="finance-date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="finance-date-filter-input" id="startDate" value="{{ start_date|date:'Y-m-d' }}">
+                            </div>
+                            <div class="finance-date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="finance-date-filter-input" id="endDate" value="{{ end_date|date:'Y-m-d' }}">
+                            </div>
+                            <button class="btn finance-prem-btn-action" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Date Filter
+                            </button>
+                            <button class="btn finance-prem-btn-action" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-primary" id="total-revenue">{{ total_revenue|floatformat:0|default:0 }}</div>
+                                <div class="finance-prem-kpi-label">Total Revenue (TZS)</div>
+                                <div class="mt-2" id="revenue-trend">
+                                    <small class="finance-prem-trend-up"><i class="fas fa-arrow-up mr-1"></i> <span id="revenue-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-success" id="paid-orders">{{ paid_orders_count|default:0 }}</div>
+                                <div class="finance-prem-kpi-label">Paid Orders</div>
+                                <div class="mt-2" id="paid-trend">
+                                    <small class="finance-prem-trend-up"><i class="fas fa-arrow-up mr-1"></i> <span id="paid-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-danger" id="pending-orders">{{ pending_orders_count|default:0 }}</div>
+                                <div class="finance-prem-kpi-label">Pending Orders</div>
+                                <div class="mt-2" id="pending-trend">
+                                    <small class="finance-prem-trend-down"><i class="fas fa-arrow-down mr-1"></i> <span id="pending-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-info" id="avg-order-value">{{ average_order_value|floatformat:0|default:0 }}</div>
+                                <div class="finance-prem-kpi-label">Avg Order Value (TZS)</div>
+                                <div class="mt-2" id="avg-trend">
+                                    <small class="finance-prem-trend-up"><i class="fas fa-arrow-up mr-1"></i> <span id="avg-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-warning" id="total-orders">{{ total_orders_count|default:0 }}</div>
+                                <div class="finance-prem-kpi-label">Total Orders</div>
+                                <div class="mt-2" id="orders-trend">
+                                    <small class="finance-prem-trend-up"><i class="fas fa-arrow-up mr-1"></i> <span id="orders-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="finance-prem-kpi-card">
+                                <div class="finance-prem-kpi-value text-dark" id="conversion-rate">{{ conversion_rate|floatformat:1|default:0 }}%</div>
+                                <div class="finance-prem-kpi-label">Conversion Rate</div>
+                                <div class="mt-2" id="conversion-trend">
+                                    <small class="finance-prem-trend-up"><i class="fas fa-arrow-up mr-1"></i> <span id="conversion-change">0</span>%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="finance-prem-chart-container">
+                                <h6 class="finance-prem-chart-title"><i class="fas fa-chart-bar mr-2"></i>Revenue Trend</h6>
+                                <div class="finance-prem-chart" id="revenue-chart">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="finance-prem-chart-container">
+                                <h6 class="finance-prem-chart-title"><i class="fas fa-chart-pie mr-2"></i>Payment Methods</h6>
+                                <div class="finance-prem-chart" id="payment-methods-chart">
+                                    <canvas id="paymentMethodsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="finance-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="finance-prem-status-filter">
+                                <button class="finance-prem-status-btn active" data-status="all">All Orders</button>
+                                <button class="finance-prem-status-btn" data-status="paid">Paid Orders</button>
+                                <button class="finance-prem-status-btn" data-status="pending">Pending Orders</button>
+                                <button class="finance-prem-status-btn" data-status="insurance">Insurance</button>
+                                <button class="finance-prem-status-btn" data-status="cash">Cash Payments</button>
+                            </div>
+                            <div>
+                                <button class="btn finance-prem-btn-action" id="exportReportBtn">
+                                    <i class="fas fa-file-export mr-1"></i> Export Report
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search orders..." id="financePremSearch">
+                            <div class="input-group-append">
+                                <button class="btn finance-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive finance-prem-table-container">
+                        <table class="table table-hover text-nowrap finance-prem-table" id="financeTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Order Number</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-money-bill-wave mr-2"></i>Total Cost (TZS)</th>
+                                    <th><i class="fas fa-credit-card mr-2"></i>Payment Method</th>
+                                    <th><i class="fas fa-tasks mr-2"></i>Status</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Order Date</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in grouped_orders %}
+                                {% with latest_order=group.orders|last %}
+                                <tr data-status="{% if group.statuses.0 == 'Paid' %}paid{% else %}pending{% endif %}" 
+                                    data-cost="{{ group.total_cost }}"
+                                    data-payment="{% if group.patient__payment_form == 'Insurance' %}insurance{% else %}cash{% endif %}"
+                                    data-date="{{ latest_order.order_date|date:'Y-m-d' }}">
+                                    <td>{{ latest_order.order_number }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="order-prem-avatar">
+                                                {{ group.full_name|slice:":1" }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ group.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if group.patient__payment_form == "Insurance" %}
+                                                    {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                                                    {% else %}
+                                                    {{ group.patient__payment_form }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ group.visit__vst }}</td>
+                                    <td>{{ group.total_cost }}</td>
+                                    <td>
+                                        {% if group.patient__payment_form == "Insurance" %}
+                                            <span class="finance-prem-badge finance-prem-badge-primary">Insurance</span>
+                                        {% else %}
+                                            <span class="finance-prem-badge finance-prem-badge-primary">Cash</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if group.statuses.0 == 'Paid' %}
+                                            <span class="finance-prem-badge finance-prem-badge-paid">Paid</span>
+                                        {% else %}
+                                            <span class="finance-prem-badge finance-prem-badge-pending">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ latest_order.order_date }}</td>
+                                    <td class="text-center">
+                                        <button class="btn finance-prem-btn-action" data-toggle="modal" data-target="#billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}">
+                                            <i class="fas fa-eye"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>                
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for group in grouped_orders %}
+<!-- Premium Modal for Billing Note -->
+<div class="modal fade" id="billingNoteModal{{ group.patient__id }}_{{ group.visit__id }}" tabindex="-1" role="dialog" aria-labelledby="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content order-prem-modal-content">
+      <div class="modal-header order-prem-modal-header py-3">
+        <h5 class="modal-title text-white" id="billingNoteModalLabel{{ group.patient__id }}_{{ group.visit__id }}">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>Billing Note - Visit {{ group.visit__vst }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body order-prem-modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <header class="header mb-3 text-center">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid" style="max-width: 100%; height: auto;" alt="Header Image">
+          </header>
+
+          <!-- Patient Details Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+            </div>
+            <div class="order-prem-modal-section-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="order-prem-input-group">
+                    <label>Patient Name</label>
+                    <p class="form-control-static"><b>{{ group.full_name }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="order-prem-input-group">
+                    <label>Date of Birth</label>
+                    <p class="form-control-static"><b>{{ group.patient__dob|date:'d-m-Y' }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="order-prem-input-group">
+                    <label>Gender</label>
+                    <p class="form-control-static"><b>{{ group.patient__gender }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="order-prem-input-group">
+                    <label>File No</label>
+                    <p class="form-control-static"><b>{{ group.patient__mrn }}</b></p>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="order-prem-input-group">
+                    <label>Visit Number</label>
+                    <p class="form-control-static"><b>{{ group.visit__vst }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="order-prem-input-group">
+                    <label>Payment Form</label>
+                    <p class="form-control-static">
+                      <b>
+                        {% if group.patient__payment_form == "Insurance" %}
+                          {{ group.patient__payment_form }} - {{ group.patient__insurance_name }}
+                        {% else %}
+                          {{ group.patient__payment_form }}
+                        {% endif %}
+                      </b>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Items Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-list-alt mr-2"></i>Order Items</h6>
+            </div>
+            <div class="order-prem-modal-section-body">
+              <div class="table-responsive">
+                <table class="table table-bordered order-prem-table">
+                  <thead>
+                    <tr>
+                      <th>Service / Description</th>
+                      <th>Order Type</th>
+                      <th>Order Date</th>
+                      <th class="text-right">Price (TZS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ord in group.orders %}
+                    <tr>
+                      <td>{{ ord.order_type }}</td>
+                      <td>{{ ord.type_of_order }}</td>
+                      <td>{{ ord.order_date|date:"d-m-Y" }}</td>
+                      <td class="text-right">{{ ord.cost }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                      <td class="text-right"><strong>{{ group.total_cost }} TZS</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Status Section -->
+          <div class="order-prem-modal-section mb-4">
+            <div class="order-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-credit-card mr-2"></i>Payment Status</h6>
+            </div>
+            <div class="order-prem-modal-section-body">
+              <div class="order-prem-invoice-container">
+                <div class="row">
+                  <div class="col-md-8">
+                    <h5 class="mb-3">Invoice Summary</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                      <span>Subtotal:</span>
+                      <span>{{ group.total_cost }} TZS</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                      <span>Tax (0%):</span>
+                      <span>0 TZS</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                      <strong>Total Amount:</strong>
+                      <strong>{{ group.total_cost }} TZS</strong>
+                    </div>
+                  </div>
+                  <div class="col-md-4 text-center">
+                    <div class="order-prem-badge {% if group.statuses.0 == 'Paid' %}order-prem-badge-paid{% else %}order-prem-badge-pending{% endif %} p-3 mb-3">
+                      <i class="fas {% if group.statuses.0 == 'Paid' %}fa-check-circle{% else %}fa-clock{% endif %} fa-2x mb-2"></i>
+                      <h5 class="mb-0">{{ group.statuses.0 }}</h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download PDF Button -->
+          <div class="row mt-4">
+            <div class="col-md-12 text-right">
+              <a href="{% url 'resa_admin_download_invoice' group.patient__id group.visit__id %}" 
+                class="btn order-prem-btn-action">
+                <i class="fa fa-download mr-2"></i> Download Invoice
+              </a>
+            </div>
+          </div>
+
+        </div> <!-- /.container-fluid -->
+      </div> <!-- /.modal-body -->
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% include 'hod_template/datatable.html' %}   
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Initialize DataTable
+    var financeTable = new DataTable('#financeTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[6, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search orders...",
+            lengthMenu: "Show _MENU_ entries"
+        },
+        createdRow: function(row, data, dataIndex) {
+            // Add data attributes for filtering
+            $(row).attr('data-date', data[6]); // Order date is in column 6
+            $(row).attr('data-status', data[5].includes('Paid') ? 'paid' : 'pending');
+            $(row).attr('data-payment', data[4].includes('Insurance') ? 'insurance' : 'cash');
+            $(row).attr('data-cost', parseFloat(data[3].replace(/,/g, '')) || 0);
+        }
+    });
+
+    // Store initial data for comparison
+    let initialData = {
+        totalRevenue: parseFloat('{{ total_revenue|default:0 }}'),
+        paidOrders: parseInt('{{ paid_orders_count|default:0 }}'),
+        pendingOrders: parseInt('{{ pending_orders_count|default:0 }}'),
+        totalOrders: parseInt('{{ total_orders_count|default:0 }}'),
+        avgOrderValue: parseFloat('{{ average_order_value|default:0 }}'),
+        conversionRate: parseFloat('{{ conversion_rate|default:0 }}')
+    };
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let paidCount = 0;
+        let pendingCount = 0;
+        let insuranceCount = 0;
+        let cashCount = 0;
+        let totalRevenue = 0;
+        
+        // Get all visible rows after filtering
+        financeTable.rows({ search: 'applied' }).every(function() {
+            const row = this.node();
+            const status = $(row).attr('data-status');
+            const payment = $(row).attr('data-payment');
+            const cost = parseFloat($(row).attr('data-cost')) || 0;
+            
+            // Count paid orders
+            if (status === 'paid') {
+                paidCount++;
+                totalRevenue += cost;
+            } else {
+                pendingCount++;
+            }
+            
+            // Count payment methods
+            if (payment === 'insurance') {
+                insuranceCount++;
+            } else {
+                cashCount++;
+            }
+        });
+        
+        const totalOrders = paidCount + pendingCount;
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        const conversionRate = totalOrders > 0 ? (paidCount / totalOrders) * 100 : 0;
+        
+        return { 
+            paidCount, 
+            pendingCount, 
+            insuranceCount, 
+            cashCount, 
+            totalRevenue, 
+            totalOrders,
+            avgOrderValue,
+            conversionRate
+        };
+    }
+    
+    // Update summary cards
+    function updateSummaryCards(stats) {
+        // Update summary cards
+        document.getElementById('paid-orders').textContent = stats.paidCount;
+        document.getElementById('pending-orders').textContent = stats.pendingCount;
+        document.getElementById('total-revenue').textContent = stats.totalRevenue.toLocaleString();
+        document.getElementById('total-orders').textContent = stats.totalOrders;
+        document.getElementById('avg-order-value').textContent = stats.avgOrderValue.toLocaleString(undefined, {maximumFractionDigits: 0});
+        document.getElementById('conversion-rate').textContent = stats.conversionRate.toFixed(1);
+        
+        // Calculate percentage changes
+        const revenueChange = initialData.totalRevenue > 0 ? 
+            ((stats.totalRevenue - initialData.totalRevenue) / initialData.totalRevenue * 100).toFixed(1) : 0;
+        const paidChange = initialData.paidOrders > 0 ? 
+            ((stats.paidCount - initialData.paidOrders) / initialData.paidOrders * 100).toFixed(1) : 0;
+        const pendingChange = initialData.pendingOrders > 0 ? 
+            ((stats.pendingCount - initialData.pendingOrders) / initialData.pendingOrders * 100).toFixed(1) : 0;
+        const ordersChange = initialData.totalOrders > 0 ? 
+            ((stats.totalOrders - initialData.totalOrders) / initialData.totalOrders * 100).toFixed(1) : 0;
+        const avgChange = initialData.avgOrderValue > 0 ? 
+            ((stats.avgOrderValue - initialData.avgOrderValue) / initialData.avgOrderValue * 100).toFixed(1) : 0;
+        const conversionChange = initialData.conversionRate > 0 ? 
+            ((stats.conversionRate - initialData.conversionRate) / initialData.conversionRate * 100).toFixed(1) : 0;
+        
+        // Update trend indicators
+        document.getElementById('revenue-change').textContent = revenueChange;
+        document.getElementById('paid-change').textContent = paidChange;
+        document.getElementById('pending-change').textContent = pendingChange;
+        document.getElementById('orders-change').textContent = ordersChange;
+        document.getElementById('avg-change').textContent = avgChange;
+        document.getElementById('conversion-change').textContent = conversionChange;
+        
+        // Update trend colors
+        document.getElementById('revenue-trend').className = revenueChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+        document.getElementById('paid-trend').className = paidChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+        document.getElementById('pending-trend').className = pendingChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+        document.getElementById('orders-trend').className = ordersChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+        document.getElementById('avg-trend').className = avgChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+        document.getElementById('conversion-trend').className = conversionChange >= 0 ? 
+            'mt-2 finance-prem-trend-up' : 'mt-2 finance-prem-trend-down';
+    }
+    
+    // Initialize summary stats
+    updateSummaryCards(calculateSummaryStats());
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        // Filter table by date range
+        financeTable.rows().every(function() {
+            const row = this.node();
+            const rowDateStr = $(row).attr('data-date');
+            if (!rowDateStr) {
+                this.node().style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                this.node().style.display = '';
+            } else {
+                this.node().style.display = 'none';
+            }
+        });
+        
+        // Update summary stats
+        updateSummaryCards(calculateSummaryStats());
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        financeTable.rows().every(function() {
+            this.node().style.display = '';
+        });
+        
+        // Update summary stats
+        updateSummaryCards(calculateSummaryStats());
+    });
+
+    // Status filter functionality
+    document.querySelectorAll('.finance-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.finance-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            
+            // Filter table by status
+            financeTable.rows().every(function() {
+                const row = this.node();
+                const rowStatus = $(row).attr('data-status');
+                const rowPayment = $(row).attr('data-payment');
+                
+                if (status === 'all' || 
+                    (status === 'paid' && rowStatus === 'paid') ||
+                    (status === 'pending' && rowStatus === 'pending') ||
+                    (status === 'insurance' && rowPayment === 'insurance') ||
+                    (status === 'cash' && rowPayment === 'cash')) {
+                    this.node().style.display = '';
+                } else {
+                    this.node().style.display = 'none';
+                }
+            });
+            
+            // Update summary stats
+            updateSummaryCards(calculateSummaryStats());
+        });
+    });
+
+    // Search functionality
+    document.getElementById('financePremSearch').addEventListener('keyup', function() {
+        financeTable.search(this.value).draw();
+        
+        // Update summary stats after search
+        setTimeout(() => {
+            updateSummaryCards(calculateSummaryStats());
+        }, 100);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        financeTable.search(document.getElementById('financePremSearch').value).draw();
+        
+        // Update summary stats after search
+        setTimeout(() => {
+            updateSummaryCards(calculateSummaryStats());
+        }, 100);
+    });
+
+    // Initialize charts
+    function initializeCharts() {
+        // Revenue Trend Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue (TZS)',
+                    data: [1200000, 1900000, 1500000, 2100000, 1800000, 2300000],
+                    borderColor: '#0d47a1',
+                    backgroundColor: 'rgba(13, 71, 161, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Revenue: ${context.parsed.y.toLocaleString()} TZS`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + ' TZS';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Payment Methods Chart
+        const paymentCtx = document.getElementById('paymentMethodsChart').getContext('2d');
+        const paymentChart = new Chart(paymentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Insurance', 'Cash', 'Mobile Money', 'Credit Card'],
+                datasets: [{
+                    data: [45, 30, 15, 10],
+                    backgroundColor: [
+                        '#0d47a1',
+                        '#42a5f5',
+                        '#64b5f6',
+                        '#90caf9'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize charts when page loads
+    document.addEventListener('DOMContentLoaded', initializeCharts);
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        
+        // Set start date to 30 days ago by default if not already set
+        if (!document.getElementById('startDate').value) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        }
+        
+        // Set end date to today if not already set
+        if (!document.getElementById('endDate').value) {
+            document.getElementById('endDate').value = formattedToday;
+        }
+    });
+</script>
+{% endblock main_content %}

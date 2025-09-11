@@ -1,539 +1,1032 @@
 {% extends 'receptionist_template/base_template.html' %}
+{% load static %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Visit History
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Visit History
 {% endblock title %}
 
 {% block page_title %} 
-<a href="{% url 'receptionist_manage_patients' %}" class="btn btn-secondary btn-sm mb-2">
-    ← Back to Patient List
+<a href="{% url 'receptionist_manage_patients' %}" class="btn btn-prem-back btn-sm mb-2">
+    <i class="fas fa-arrow-left mr-2"></i> Back to Patient List
 </a>
 {% endblock page_title%}
 
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addVisitModal">
-    <i class="fas fa-plus"></i> New Visit
+<a class="btn btn-prem-new-visit float-right text-white" type="button" data-toggle="modal" data-target="#addVisitModal">
+    <i class="fas fa-plus mr-2"></i> New Visit
 </a>
-<!-- Add Import insurance link and modal trigger -->
 {% endblock breadcrumb %}
 
-
-{% load static %}
 {% block main_content %}
+
+<style>
+    /* Premium Patient Visit History Styles */
+    .prem-patient-gradient {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+      
+    }
+    
+    .prem-patient-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .prem-patient-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prem-patient-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #c5cae9;
+    }
+    
+    .prem-patient-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .prem-patient-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 53, 147, 0.1);
+        background: #f5f7ff;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #5c6bc0, #7986cb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(92, 107, 192, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(92, 107, 192, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-new-visit {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 35, 126, 0.2);
+    }
+    
+    .btn-prem-new-visit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 35, 126, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #3949ab, #3f51b5);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(57, 73, 171, 0.2);
+        margin: 2px;
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(57, 73, 171, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-vital {
+        background: linear-gradient(120deg, #00897b, #009688);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 137, 123, 0.2);
+        margin: 2px;
+    }
+    
+    .btn-prem-vital:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 137, 123, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-health {
+        background: linear-gradient(120deg, #7b1fa2, #9c27b0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(123, 31, 162, 0.2);
+        margin: 2px;
+    }
+    
+    .btn-prem-health:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(123, 31, 162, 0.3);
+        color: white;
+    }
+    
+    .prem-modal-header {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-info-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-patient-info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-patient-info-card .card-header {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-patient-info-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-patient-detail-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .prem-patient-detail-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #283593;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .prem-flip-card:hover .prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .prem-flip-card-front, .prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .prem-flip-card-front {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+    }
+    
+    .prem-flip-card-back {
+        background: linear-gradient(120deg, #283593, #1a237e);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .prem-filter-bar {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .prem-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .prem-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #283593;
+        min-width: 80px;
+    }
+    
+    .prem-date-filter-input {
+        border: 1px solid #c5cae9;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for filtering */
+    @keyframes premFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .prem-animated {
+        animation: premFadeIn 0.5s ease forwards;
+    }
+    
+    .visit-type-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .type-normal {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .type-emergency {
+        background: linear-gradient(120deg, #ea4335, #d93025);
+        color: white;
+    }
+    
+    .type-referral {
+        background: linear-gradient(120deg, #4285f4, #1a73e8);
+        color: white;
+    }
+    
+    .type-followup {
+        background: linear-gradient(120deg, #f9ab00, #fbbc04);
+        color: white;
+    }
+    
+    .service-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(120deg, #9c27b0, #7b1fa2);
+        color: white;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row text-uppercase" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
+            <div class="card prem-patient-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Visit History</h5>                       
                     </div>
-                        <div class="row mt-3">
-                            <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
-                         {{ patient.payment_form }}- {{ patient.insurance_name }}   
-                         {% else  %}   
-                         {{ patient.payment_form }}                  
-                    {% endif %}</b>
-                </div>                                                 
-                </div>
-                </div>    
-            </div>
-        </div>
-    </div> 
-    <div class="row">
-        <div class="col-md-12">
-           <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> {{ patient.first_name }} Visit history</h6>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Patient Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Patient Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Full Name</div>
+                                    <div class="prem-patient-detail-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
+                                    
+                                    <div class="prem-patient-detail-label">Date of Birth</div>
+                                    <div class="prem-patient-detail-value">{{ patient.dob|date:'d-m-Y' }} 
+                                        (Age: {% if patient.dob %}
+                                        <script>
+                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                            var now = new Date();
+                                            var ageMilliseconds = now - dob;
+                                            var ageSeconds = ageMilliseconds / 1000;
+                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                            document.write(ageYears + ' years');
+                                        </script>
+                                        {% else %}
+                                        {{ patient.age }}
+                                        {% endif %})
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Patient Details</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Gender</div>
+                                    <div class="prem-patient-detail-value">{{ patient.gender }}</div>
+                                    
+                                    <div class="prem-patient-detail-label">File Number</div>
+                                    <div class="prem-patient-detail-value">{{ patient.mrn }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-credit-card mr-2"></i>Payment Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Payment Mode</div>
+                                    <div class="prem-patient-detail-value">
+                                        {% if patient.payment_form == "Insurance"  %}
+                                            {{ patient.payment_form }} - {{ patient.insurance_name }}   
+                                        {% else  %}   
+                                            {{ patient.payment_form }}                  
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if patient.payment_form == "Insurance" %}
+                                    <div class="prem-patient-detail-label">Insurance Number</div>
+                                    <div class="prem-patient-detail-value">{{ patient.insurance_number }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="prem-flip-card">
+                                <div class="prem-flip-card-inner">
+                                    <div class="prem-flip-card-front">
+                                        <div class="prem-flip-icon">
+                                            <i class="fas fa-history"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="prem-flip-card-back">
+                                        <div class="prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>{{ visits|length }} Total Visits</h4>
+                                        <p>Comprehensive history</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="prem-filter-bar">
+                        <div class="prem-date-filter">
+                            <div class="prem-date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="prem-date-filter-input" id="startDate">
+                            </div>
+                            <div class="prem-date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="prem-date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-prem-action" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-prem-action" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search visit records..." id="visitSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive prem-patient-table-container">
+                        <table class="table table-hover text-nowrap prem-patient-table" id="visitTable">
                             <thead>
                                 <tr>
-                                    <th>Visit number</th>
-                                    <th>Visit Type</th>                           
-                                    <th>Service</th>              
-                                    <th>Date</th>
-                                    <th>Day</th> <!-- New column for the day of the week -->
-                                    <th>Time</th>                         
-                                    <th>Action</th>              
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Visit Type</th>                           
+                                    <th><i class="fas fa-procedures mr-2"></i>Service</th>              
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>                         
+                                    <th><i class="fas fa-cogs mr-2"></i>Actions</th>              
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for visit in visits %}
-                                    <tr>
+                                    <tr data-date="{{ visit.created_at|date:'Y-m-d' }}">
                                         <td>{{ visit.vst }}</td>
-                                        <td>{{ visit.get_visit_type_display }}</td>                             
-                                        <td>{{ visit.primary_service }}</td>                  
-                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td> <!-- Display date -->
-                                        <td>{{ visit.created_at|date:"l" }}</td> <!-- Display day of the week -->
-                                        <td>{{ visit.created_at|time:"H:i:s" }}</td> <!-- Display time -->
                                         <td>
-                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editVisitModal{{ visit.id }}">
-                                            Edit
-                                        </button>
-                                                                            
-                                        <button type="button" class="btn btn-light border btn-sm" data-toggle="modal" data-target="#consultationModal{{ visit.id }}">
-                                            Appointment
-                                        </button>              <!-- Add more action links as needed -->
-                                        <a href="{% url 'receptionist_patient_health_record' visit.patient.id visit.id %}">
-                                            <button type="button" class="btn btn-secondary btn-sm">open health record</button>
-                                        </a>   
-                                        <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#vitalModal{{ visit.id }}">
-                                            Open Vital
-                                        </button>  
-                                    
-                                        </td>
-                      
-                                        <div class="modal fade" id="editVisitModal{{ visit.id }}" tabindex="-1" aria-labelledby="editVisitModalLabel{{ visit.id }}" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="editVisitModalLabel{{ visit.id }}">Edit Visit</h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <form id="editVisitModalForm{{ visit.id }}" method="post"  action="{% url 'receptionist_add_patient_visit' %}">
-                                                            {% csrf_token %}
-                                                            <div class="form-group">
-                                                                <label for="editVisitTypes">Visit Type</label>
-                                                                <select class="form-control select2bs4"  style="width: 100%;"   id="editVisitTypes{{ visit.id }}" name="visitType">
-                                                                    <option value="Normal" {% if visit.visitType == "Normal" %} selected {% endif %}>Normal</option>
-                                                                    <option value="Emergency" {% if visit.visitType == "Emergency" %} selected {% endif %}>Emergency</option>
-                                                                    <option value="Referral" {% if visit.visitType == "Referral" %} selected {% endif %}>Referral</option>
-                                                                    <option value="Follow up" {% if visit.visitType == "Follow up" %} selected {% endif %}>Follow up</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group" id="editVisitReasons{{ visit.id }}" {% if visit.visitType != "Emergency" %} style="display: none;" {% endif %}>
-                                                                <label for="editVisitReasonText">Visit Reason</label>
-                                                                <textarea class="form-control" id="editVisitReasonText" name="visitReason" cols="2">{% if visit.visitReason %}{{ visit.visitReason }}{% endif %}</textarea>
-                                                            </div>
-                                                            <div class="form-group" id="editReferralNumbers{{ visit.id }}" {% if visit.visitType != "Referral" %} style="display: none;" {% endif %}>
-                                                                <label for="EditReferralNumberText">Referral Number</label>
-                                                                <input type="text" class="form-control" id="EditReferralNumberText" name="referralNumber" value="{% if visit.referralNumber %}{{ visit.referralNumber }}{% endif %}">
-                                                                <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
-                                                                <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label class="control-label" id="editprimary_service">Primary Service:</label>
-                                                                <select class="form-control select2bs4" style="width: 100%;" id="editprimary_service" name="primary_service">
-                                                                    <option value="Consultation" {% if visit.primary_service == "Consultation" %} selected {% endif %}>Consultation</option>
-                                                                    <option value="Imaging" {% if visit.primary_service == "Imaging" %} selected {% endif %}>Imaging</option>
-                                                                    <option value="Investigation" {% if visit.primary_service == "Investigation" %} selected {% endif %}>Investigation</option>
-                                                                    <option value="Procedure" {% if visit.primary_service == "Procedure" %} selected {% endif %}>Procedure</option>
-                                                                    <option value="Physiotherapy" {% if visit.primary_service == "Physiotherapy" %} selected {% endif %}>Physiotherapy</option>
-                                                                    <option value="Ambulance" {% if visit.primary_service == "Ambulance" %} selected {% endif %}>Ambulance</option>
-                                                                </select>
-                                                            </div>
-                                                            <div class="form-group" id="editInsuranceFields" {% if patient.payment_form == 'insurance' %} {% endif %}>
-                                                                <label class="control-label">Insurance Name:</label>
-                                                                <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
-                                                                <label class="control-label">Insurance Number:</label>
-                                                                <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
-                                                                <label class="control-label">Verification Code:</label>
-                                                                <input type="text" class="form-control" id="verificationCode" name="verificationCode" value="{{ visit.authorization_code }}" >
-                                                            </div>
-                                                            <div class="row">                                                        
-                                                                <div class="col-md-12">
-                                                                    <div id="MessageContainer">
-                                                                    </div>
-                                                                </div>
-                                                            </div>  
-                                                            <div class="form-group pt-2 float-end">
-                                                                <div class="row">
-                                                                    <div class="col-md-8"></div>
-                                                                    <div class="col-md-4">
-                                                                        <button type="submit" class="btn btn-md btn-primary" id="submitBtn">Save and Continue <i class="mdi mdi-forward"></i></button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                           
-                                                        </form>
-                                                    </div>
-                                              
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <script>
-                                            $(document).ready(function () {
-                                                // Show/hide additional fields based on visit type
-                                                $('#editVisitTypes{{ visit.id }}').change(function () {
-                                                    var visitType = $(this).val();
-                                                    if (visitType == 'Emergency') {
-                                                        $('#editVisitReasons{{ visit.id }}').show();
-                                                        $('#editReferralNumbers{{ visit.id }}').hide();
-                                                    } else if (visitType == 'Referral') {
-                                                        $('#editVisitReasons{{ visit.id }}').hide();
-                                                        $('#editReferralNumbers{{ visit.id }}').show();
-                                                    } else {
-                                                        $('#editVisitReasons{{ visit.id }}').hide();
-                                                        $('#editReferralNumbers{{ visit.id }}').hide();
-                                                    }
-                                                });
-                                        
-                                            
-                                            });
-                                        </script>                                      
-                                        
-                                        
-                                    </tr>
-                    
-                    
-        
-                                    <div class="container-fluid">
-                                        <div class="row">
-                                            <!-- left column -->
-                                            <div class="col-md-12">
-                                                <!-- Bootstrap Modal for consultation form -->
-                                                <div class="modal fade" id="consultationModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="consultationModalLabel{{ visit.id }}" aria-hidden="true">
-                                                    <div class="modal-dialog" role="document">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header">
-                                                                <h5 class="modal-title" id="consultationModalLabel{{ visit.id }}">Add Appoinment</h5>
-                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                    <span aria-hidden="true">&times;</span>
-                                                                </button>
-                                                            </div>
-                                                            <div class="modal-body">
-                                                                <form id="consultationForm{{ visit.id }}">
-                                                                    {% csrf_token %}
-                                                                    <!-- Doctor selection dropdown -->
-                                                                    <div class="row">
-                                                                        <div class="col-md-6">
-                                                                            <div class="form-group">
-                                                                                <label for="doctor{{ visit.id }}">Doctor:</label>
-                                                                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
-                                                                                    <option value="">Select Doctor</option>
-                                                                                    {% for doctor in doctors %}
-                                                                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
-                                                                                    {% endfor %}
-                                                                                </select>
-                                                                            </div>
-                                                                         </div>                                                    
-                                                                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                                                                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
-                                                                        <div class="col-md-6">
-                                                                            <!-- Date of consultation input -->
-                                                                            <div class="form-group">
-                                                                                <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
-                                                                                <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control">
-                    
-                                                                        </div>
-                                                                    </div> 
-                                                                    </div>                                                  
-                                                                    <div class="row">
-                                                                        <div class="col-md-6">
-                                                                            <div class="form-group">
-                                                                                <label for="start_time{{ visit.id }}">Start Time:</label>
-                                                                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}">
-                                                                            </div>
-                                                                         </div>                                                    
-                                                                        <div class="col-md-6">
-                                                                                <!-- Description input -->
-                                                                            <div class="form-group">
-                                                                                <label for="end_time{{ visit.id }}">End Time:</label>
-                                                                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}">
-                                                                            </div>
-                                                                        </div>                                                        
-                                                                    </div>   
-                                                                    <div class="row">                                                        
-                                                                        <div class="col-md-12 mb-5 ">
-                                                                            <!-- Description input -->
-                                                                            <label for="description">Description:</label>
-                                                                            <textarea id="description" name="description" rows="2" class="form-control"></textarea>
-                                                                        </div>
-                                                                    </div>                                               
-                                                                    <div class="row">                                                        
-                                                                        <div class="col-md-12">
-                                                                            <div id="successMessageContainer">
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>                                               
-                                                                
-                                                                    <button type="button" class="btn btn-success btn-block" onclick="addConsultation({{ visit.id }})">Create an Appointment</button>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <script>
-                                        function addConsultation(visitId) {
-                                            var doctor = $('#doctor' + visitId).val();
-                                            var patient_id = $('#patient_id' + visitId).val();
-                                            var visit_id = $('#visit_id' + visitId).val();
-                                            var end_time = $('#end_time' + visitId).val();
-                                            var start_time = $('#start_time' + visitId).val();
-                                            var date_of_consultation = $('#date_of_consultation' + visitId).val();
-                                            var description = $('#description' + visitId).val();
-                                    
-                                            $.ajax({
-                                                type: 'POST',
-                                                url: '{% url "receptionist_appointment_view" %}', 
-                                                data: {
-                                                    doctor: doctor,
-                                                    patient_id: patient_id,
-                                                    visit_id: visit_id,
-                                                    end_time: end_time,
-                                                    start_time: start_time,
-                                                    date_of_consultation: date_of_consultation,
-                                                    description: description
-                                                },
-                                                success: function(response) {
-                                                    if (response.status === 'success') {  
-                                                        $('#successMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');   
-                                                        location.reload(true)                                            
+                                            {% if visit.visit_type == "Normal" %}
+                                                <span class="visit-type-badge type-normal">{{ visit.visit_type }}</span>
+                                            {% elif visit.visit_type == "Emergency" %}
+                                                <span class="visit-type-badge type-emergency">{{ visit.visit_type }}</span>
+                                            {% elif visit.visit_type == "Referral" %}
+                                                <span class="visit-type-badge type-referral">{{ visit.visit_type }}</span>
+                                            {% elif visit.visit_type == "Follow up" %}
+                                                <span class="visit-type-badge type-followup">{{ visit.visit_type }}</span>
+                                            {% else %}
+                                                <span class="visit-type-badge type-normal">{{ visit.visit_type }}</span>
+                                            {% endif %}
+                                        </td>                             
+                                        <td><span class="service-badge">{{ visit.primary_service }}</span></td>                  
+                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ visit.created_at|time:"H:i" }}</td>
+                                        <td>
+                                            <div class="d-flex flex-wrap">
+                                                <button class="btn btn-prem-action btn-sm" data-toggle="modal" data-target="#editVisitModal{{ visit.id }}">
+                                                    <i class="fas fa-edit mr-1"></i> Edit
+                                                </button>
+                                                                                
+                                                <button type="button" class="btn btn-prem-action btn-sm" data-toggle="modal" data-target="#consultationModal{{ visit.id }}">
+                                                    <i class="fas fa-calendar-check mr-1"></i> Appointment
+                                                </button>
                                                 
-                                                    } else {
-                                                        // Handle other status cases if needed
-                                                        $('#successMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
-                                                    }
-                                                },
-                                                error: function(error) {
-                                                    alert(error);
-                                                    // Display error message
-                                                    $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to create an appointment</div>');
-                                                }
-                                            });
-                                        }
-                                    </script>
-                    
+                                                <a href="{% url 'receptionist_patient_health_record' visit.patient.id visit.id %}">
+                                                    <button type="button" class="btn btn-prem-health btn-sm">
+                                                        <i class="fas fa-file-medical mr-1"></i> Health Record
+                                                    </button>
+                                                </a>   
+                                                
+                                                <button type="button" class="btn btn-prem-vital btn-sm" data-toggle="modal" data-target="#vitalModal{{ visit.id }}">
+                                                    <i class="fas fa-heartbeat mr-1"></i> Vitals
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
-        
-                                                <!-- Updated modal with Bootstrap grid -->
-                            <div class="modal fade" id="addVisitModal" tabindex="-1" aria-labelledby="addVisitModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="addVisitModalLabel">Add Visit</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form id="addVisitModalForm" method="post" action="{% url 'receptionist_add_patient_visit' %}">
-                                                    {% csrf_token %}
-                                                    <div class="form-group">
-                                                        <label for="visitType">Visit Type</label>
-                                                        <select class="form-control select2bs4" style="width: 100%;" id="visitTypes" name="visitType">
-                                                            <option value="Normal">Normal</option>
-                                                            <option value="Emergency">Emergency</option>
-                                                            <option value="Referral">Referral</option>
-                                                            <option value="Follow up">Follow up</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="form-group" id="visitReasons" style="display: none;">
-                                                        <label for="visitReasonText">Visit Reason</label>
-                                                        <textarea class="form-control" id="visitReasonText" name="visitReason" cols="2"></textarea>
-                                                    </div>
-                                                    <div class="form-group" id="referralNumbers" style="display: none;">
-                                                        <label for="referralNumberText">Referral Number</label>
-                                                        <input type="text" class="form-control" id="referralNumberText" name="referralNumber">
-                                                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
-                                                        <input type="hidden" class="form-control" id="visit_id" name="visit_id">
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label class="control-label">Primary Service:</label>
-                                                        <select class="form-control select2bs4" style="width: 100%;" id="primary_service" name="primary_service">
-                                                            <option value="Consultation">Consultation</option>
-                                                            <option value="Imaging">Imaging</option>
-                                                            <option value="Investigation">Investigation</option>
-                                                            <option value="Procedure">Procedure</option>
-                                                            <option value="Physiotherapy">Physiotherapy</option>
-                                                            <option value="Ambulance">Ambulance</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="form-group" id="insuranceFields" style="display: none;">
-                                                        <label class="control-label">Insurance Name:</label>
-                                                        <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
-                                                        <label class="control-label">Insurance Number:</label>
-                                                        <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
-                                                        <label class="control-label">Verification Code:</label>
-                                                        <input type="text" class="form-control" id="verificationCode" name="verificationCode">
-                                                    </div>
-                                        
-                                                    <div class="form-row">
-                                                        <div class="col-md-12">
-                                                            <div id="ProcedureResponse"></div>  
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group pt-2 float-end">
-                                                        <div class="row">
-                                                            <div class="col-md-8"></div>
-                                                            <div class="col-md-4">
-                                                                <button type="submit" class="btn btn-md btn-primary">Save and Continue <i class="mdi mdi-forward"></i></button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </div>                                         
-                                        </div>
-                                    </div>
-                                </div>
-        
-                               
-        
-                            <script>
-                                $(document).ready(function () {
-                                    $('#visitTypes').change(function () {
-                                        var visitType = $(this).val();          
-                                        if (visitType === 'Emergency') {
-                                            $('#visitReasons').show();
-                                            $('#referralNumbers').hide();
-                                        } else if (visitType === 'Referral') {
-                                            $('#visitReasons').hide();
-                                            $('#referralNumbers').show();
-                                        } else {
-                                            $('#visitReasons').hide();
-                                            $('#referralNumbers').hide();
-                                        }
-                                    });
-        
-                                    var paymentForm = "{{ patient.payment_form }}";
-                                    if (paymentForm === 'insurance') {
-                                        $('#insuranceFields').show();
-                                    }
-                                });
-                            </script>
                     </div>
                 </div>
-           </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Add Visit Modal -->
+<div class="modal fade" id="addVisitModal" tabindex="-1" aria-labelledby="addVisitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="addVisitModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add New Visit</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addVisitModalForm" method="post" action="{% url 'receptionist_add_patient_visit' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="visitType">Visit Type</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="visitTypes" name="visitType">
+                            <option value="Normal">Normal</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Follow up">Follow up</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="visitReasons" style="display: none;">
+                        <label for="visitReasonText">Visit Reason</label>
+                        <textarea class="form-control" id="visitReasonText" name="visitReason" cols="2"></textarea>
+                    </div>
+                    <div class="form-group" id="referralNumbers" style="display: none;">
+                        <label for="referralNumberText">Referral Number</label>
+                        <input type="text" class="form-control" id="referralNumberText" name="referralNumber">
+                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                        <input type="hidden" class="form-control" id="visit_id" name="visit_id">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">Primary Service:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="primary_service" name="primary_service">
+                            <option value="Consultation">Consultation</option>
+                            <option value="Imaging">Imaging</option>
+                            <option value="Investigation">Investigation</option>
+                            <option value="Procedure">Procedure</option>
+                            <option value="Physiotherapy">Physiotherapy</option>
+                            <option value="Ambulance">Ambulance</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="insuranceFields" style="display: none;">
+                        <label class="control-label">Insurance Name:</label>
+                        <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
+                        <label class="control-label">Insurance Number:</label>
+                        <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
+                        <label class="control-label">Verification Code:</label>
+                        <input type="text" class="form-control" id="verificationCode" name="verificationCode">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <div id="ProcedureResponse"></div>  
+                        </div>
+                    </div>
+                    <div class="form-group pt-2 float-end">
+                        <div class="row">
+                            <div class="col-md-8"></div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-prem-action">
+                                    <i class="fas fa-save mr-2"></i> Save and Continue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>                                         
+        </div>
+    </div>
+</div>
+
+<!-- Edit Visit Modals -->
 {% for visit in visits %}
-    <!-- Modal for each patient visit -->
-<div class="modal fade" id="vitalModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="vitalModalLabel{{ visit.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="vitalModalLabel{{ visit.id }}">Vital Information for Visit #{{ visit.id }}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- Vital Table -->
-        <div class="table-responsive">
-          <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display">
-            <thead>
-              <tr>
-                <th>Was Recorded By</th>
-                <th>Recorded Date</th>
-                <th>Recorded Time</th>
-                <th>RR (bpm)</th>
-                <th>PR (bpm)</th>
-                <th>BR</th>
-                <th>SPO2 (%)</th>
-                <th>Temperature (°C)</th>
-                <th>Weight (Kg)</th>
-                <th>GCS</th>
-                <th>AVPU</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for vital in visit.patientvital_set.all %}
-                <tr>
-                  <td>{{ vital.recorded_by.admin.first_name }} {{ vital.recorded_by.admin.middle_name }} {{ vital.recorded_by.admin.last_name }}</td>
-                  <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
-                  <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
-                  <td>{{ vital.respiratory_rate }}</td>
-                  <td>{{ vital.pulse_rate }}</td>
-                  <td>{{ vital.blood_pressure }}</td>
-                  <td>{{ vital.spo2 }}%</td>
-                  <td>{{ vital.temperature }}</td>
-                  <td>{{ vital.weight }}</td>
-                  <td>{{ vital.gcs }}</td>
-                  <td>{{ vital.avpu }}</td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="11" class="text-center">No vital records available.</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="modal fade" id="editVisitModal{{ visit.id }}" tabindex="-1" aria-labelledby="editVisitModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="editVisitModalLabel{{ visit.id }}"><i class="fas fa-edit mr-2"></i>Edit Visit</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editVisitModalForm{{ visit.id }}" method="post"  action="{% url 'receptionist_add_patient_visit' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="editVisitTypes">Visit Type</label>
+                        <select class="form-control select2bs4"  style="width: 100%;"   id="editVisitTypes{{ visit.id }}" name="visitType">
+                            <option value="Normal" {% if visit.visitType == "Normal" %} selected {% endif %}>Normal</option>
+                            <option value="Emergency" {% if visit.visitType == "Emergency" %} selected {% endif %}>Emergency</option>
+                            <option value="Referral" {% if visit.visitType == "Referral" %} selected {% endif %}>Referral</option>
+                            <option value="Follow up" {% if visit.visitType == "Follow up" %} selected {% endif %}>Follow up</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="editVisitReasons{{ visit.id }}" {% if visit.visitType != "Emergency" %} style="display: none;" {% endif %}>
+                        <label for="editVisitReasonText">Visit Reason</label>
+                        <textarea class="form-control" id="editVisitReasonText" name="visitReason" cols="2">{% if visit.visitReason %}{{ visit.visitReason }}{% endif %}</textarea>
+                    </div>
+                    <div class="form-group" id="editReferralNumbers{{ visit.id }}" {% if visit.visitType != "Referral" %} style="display: none;" {% endif %}>
+                        <label for="EditReferralNumberText">Referral Number</label>
+                        <input type="text" class="form-control" id="EditReferralNumberText" name="referralNumber" value="{% if visit.referralNumber %}{{ visit.referralNumber }}{% endif %}">
+                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" id="editprimary_service">Primary Service:</label>
+                        <select class="form-control select2bs4" style="width: 100%;" id="editprimary_service" name="primary_service">
+                            <option value="Consultation" {% if visit.primary_service == "Consultation" %} selected {% endif %}>Consultation</option>
+                            <option value="Imaging" {% if visit.primary_service == "Imaging" %} selected {% endif %}>Imaging</option>
+                            <option value="Investigation" {% if visit.primary_service == "Investigation" %} selected {% endif %}>Investigation</option>
+                            <option value="Procedure" {% if visit.primary_service == "Procedure" %} selected {% endif %}>Procedure</option>
+                            <option value="Physiotherapy" {% if visit.primary_service == "Physiotherapy" %} selected {% endif %}>Physiotherapy</option>
+                            <option value="Ambulance" {% if visit.primary_service == "Ambulance" %} selected {% endif %}>Ambulance</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="editInsuranceFields" {% if patient.payment_form == 'insurance' %} {% endif %}>
+                        <label class="control-label">Insurance Name:</label>
+                        <input type="text" class="form-control" id="insuranceName" name="insuranceName" value="{{ patient.insurance_name }}" readonly>
+                        <label class="control-label">Insurance Number:</label>
+                        <input type="text" class="form-control" id="insuranceNumber" name="insuranceNumber" value="{{ patient.insurance_number }}" readonly>
+                        <label class="control-label">Verification Code:</label>
+                        <input type="text" class="form-control" id="verificationCode" name="verificationCode" value="{{ visit.authorization_code }}" >
+                    </div>
+                    <div class="row">                                                        
+                        <div class="col-md-12">
+                            <div id="MessageContainer">
+                            </div>
+                        </div>
+                    </div>  
+                    <div class="form-group pt-2 float-end">
+                        <div class="row">
+                            <div class="col-md-8"></div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-prem-action" id="submitBtn">
+                                    <i class="fas fa-save mr-2"></i> Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 
-{% endfor %}
+<!-- Consultation Modals -->
+<div class="modal fade" id="consultationModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="consultationModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="consultationModalLabel{{ visit.id }}"><i class="fas fa-calendar-plus mr-2"></i>Add Appointment</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="consultationForm{{ visit.id }}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="doctor{{ visit.id }}">Doctor:</label>
+                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
+                                    <option value="">Select Doctor</option>
+                                    {% for doctor in doctors %}
+                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                         </div>                                                    
+                         <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                         <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
+                                <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control">
+                            </div>
+                        </div>
+                    </div>                                                  
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="start_time{{ visit.id }}">Start Time:</label>
+                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}">
+                            </div>
+                         </div>                                                    
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="end_time{{ visit.id }}">End Time:</label>
+                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}">
+                            </div>
+                        </div>                                                        
+                    </div>   
+                    <div class="row">                                                        
+                        <div class="col-md-12 mb-5 ">
+                            <label for="description">Description:</label>
+                            <textarea id="description" name="description" rows="2" class="form-control"></textarea>
+                        </div>
+                    </div>                                               
+                    <div class="row">                                                        
+                        <div class="col-md-12">
+                            <div id="successMessageContainer">
+                            </div>
+                        </div>
+                    </div>                                               
+                    <button type="button" class="btn btn-prem-action btn-block" onclick="addConsultation({{ visit.id }})">
+                        <i class="fas fa-calendar-check mr-2"></i> Create Appointment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
+<!-- Vital Modals -->
+<div class="modal fade" id="vitalModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="vitalModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="vitalModalLabel{{ visit.id }}"><i class="fas fa-heartbeat mr-2"></i>Vital Information for Visit #{{ visit.vst }}</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover text-nowrap prem-patient-table">
+                        <thead>
+                        <tr>
+                            <th>Recorded By</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>RR (bpm)</th>
+                            <th>PR (bpm)</th>
+                            <th>BP</th>
+                            <th>SPO2 (%)</th>
+                            <th>Temp (°C)</th>
+                            <th>Weight (Kg)</th>
+                            <th>GCS</th>
+                            <th>AVPU</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for vital in visit.patientvital_set.all %}
+                            <tr>
+                            <td>{{ vital.recorded_by.admin.first_name }} {{ vital.recorded_by.admin.middle_name }} {{ vital.recorded_by.admin.last_name }}</td>
+                            <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
+                            <td>{{ vital.recorded_at|time:"H:i" }}</td>
+                            <td>{{ vital.respiratory_rate }}</td>
+                            <td>{{ vital.pulse_rate }}</td>
+                            <td>{{ vital.blood_pressure }}</td>
+                            <td>{{ vital.spo2 }}%</td>
+                            <td>{{ vital.temperature }}</td>
+                            <td>{{ vital.weight }}</td>
+                            <td>{{ vital.gcs }}</td>
+                            <td>{{ vital.avpu }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                            <td colspan="11" class="text-center">No vital records available.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
+    $(document).ready(function () {
+        // Show/hide additional fields based on visit type
+        $('#editVisitTypes{{ visit.id }}').change(function () {
+            var visitType = $(this).val();
+            if (visitType == 'Emergency') {
+                $('#editVisitReasons{{ visit.id }}').show();
+                $('#editReferralNumbers{{ visit.id }}').hide();
+            } else if (visitType == 'Referral') {
+                $('#editVisitReasons{{ visit.id }}').hide();
+                $('#editReferralNumbers{{ visit.id }}').show();
+            } else {
+                $('#editVisitReasons{{ visit.id }}').hide();
+                $('#editReferralNumbers{{ visit.id }}').hide();
+            }
+        });
+    });
+</script>
+{% endfor %}
+{% include 'receptionist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#visitTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visit records...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Show/hide additional fields based on visit type
+    $('#visitTypes').change(function () {
+        var visitType = $(this).val();          
+        if (visitType === 'Emergency') {
+            $('#visitReasons').show();
+            $('#referralNumbers').hide();
+        } else if (visitType === 'Referral') {
+            $('#visitReasons').hide();
+            $('#referralNumbers').show();
+        } else {
+            $('#visitReasons').hide();
+            $('#referralNumbers').hide();
+        }
+    });
+
+    var paymentForm = "{{ patient.payment_form }}";
+    if (paymentForm === 'insurance') {
+        $('#insuranceFields').show();
+    }
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterVisitsByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+    });
+
+    // Filter visits by date range
+    function filterVisitsByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Search functionality
+    document.getElementById('visitSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterVisitsWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitSearch').value.toLowerCase();
+        filterVisitsWithSearch(searchText);
+    });
+
+    // Filter visits by search text
+    function filterVisitsWithSearch(searchText) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('visitSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            filterVisitsWithSearch(searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+
+    function addConsultation(visitId) {
+        var doctor = $('#doctor' + visitId).val();
+        var patient_id = $('#patient_id' + visitId).val();
+        var visit_id = $('#visit_id' + visitId).val();
+        var end_time = $('#end_time' + visitId).val();
+        var start_time = $('#start_time' + visitId).val();
+        var date_of_consultation = $('#date_of_consultation' + visitId).val();
+        var description = $('#description' + visitId).val();
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "receptionist_appointment_view" %}', 
+            data: {
+                doctor: doctor,
+                patient_id: patient_id,
+                visit_id: visit_id,
+                end_time: end_time,
+                start_time: start_time,
+                date_of_consultation: date_of_consultation,
+                description: description
+            },
+            success: function(response) {
+                if (response.status === 'success') {  
+                    $('#successMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');   
+                    location.reload(true)                                            
+            
+                } else {
+                    // Handle other status cases if needed
+                    $('#successMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');                                               
+                }
+            },
+            error: function(error) {
+                alert(error);
+                // Display error message
+                $('#successMessageContainer').html('<div class="alert alert-danger" role="alert">Failed to create an appointment</div>');
+            }
+        });
     }
 </script>
 
-{% include 'receptionist_template/datatable.html' %}
+
 {% endblock main_content %}

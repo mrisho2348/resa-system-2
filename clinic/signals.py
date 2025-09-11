@@ -56,7 +56,7 @@ def create_laboratory_order(sender, instance, created, **kwargs):
     if created:
         Order.objects.create(
             order_date=instance.order_date,
-            order_type=instance.name.name,
+            order_type=instance.lab_test.name,
             patient=instance.patient,
             doctor=instance.doctor,
              visit=instance.visit,

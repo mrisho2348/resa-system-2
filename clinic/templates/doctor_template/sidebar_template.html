@@ -1,254 +1,785 @@
 {% load static %}
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4 doctor-sidebar">
   <!-- Brand Logo -->
-  <a href="#" class="brand-link">
-    <img src="{% static 'img/resalogo_square.png' %}" 
-    alt="RESA LOGO" 
-    class="ml-2 img-circle shadow-lg"
-    style="
-      width: 50px; 
-      height: 50px; 
-      object-fit: cover; 
-      border-radius: 50%; 
-      border: 4px solid #ffffff;
-      background-color: #ffffff;
-    ">
-      <span class="ml-2 brand-text font-weight-light">Resa Clinic </span>
-  </a>
-  <style>
-    .img-circle {
-        border-radius: 0%; /* Ensures a circular image */
-        width: 90px;       /* Adjust the size as needed */
-        height: 90px;      /* Ensure a perfect circle */
-    }
-    .brand-link {
-        display: flex;        /* Aligns image and text horizontally */
-        align-items: center;  /* Centers image and text vertically */
-        text-decoration: none; /* Removes underline */
-        color: inherit;       /* Keeps default text color */
-    }
-    .brand-image {
-        margin-right: 10px;  /* Space between image and text */
-        opacity: 0.8;        /* Adjust image transparency */
-    }
-    .brand-text {
-        font-weight: lighter; /* Customizes font weight */
-        font-size: 1.2rem;    /* Adjust font size */
-    }
-    .user-panel .image img {
-        width: 50px; /* Adjust size as needed */
-        height: 50px; /* Make sure width and height are equal */
-        object-fit: cover; /* Ensures the image fits well */
-        border-radius: 50%; /* Makes the image circular */
-        border: 2px solid white; /* Optional border */
-    }
-    
-</style>
-  <!-- Sidebar -->
-  <div class="sidebar"> 
-    <div class="user-panel mt-3 pb-3 mb-3 d-flex">   
-        {% if user.staff.id %}
-            <div class="image">
-                {% if user.staff.profile_picture %}
-                    <img src="{{ user.staff.profile_picture.url }}" class="img-circle elevation-2" alt="User Image">
-                {% else %}
-                    <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">
-                {% endif %}
-            </div>
-            <div class="info">
-                {% url 'doctor_edit_staff_profile' user.staff.id as edit_staff_profile %}
-                <a href="{{ edit_staff_profile }}" class="d-block">{{ user.username }}</a>                 
-            </div>      
-        {% else %}
-            <!-- If the user does not have a staff ID -->
-            <div class="image">           
-                <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="img-circle elevation-2" alt="User Image">          
-            </div>
-            <div class="info">
-                <span class="d-block text-white font-weight-bold">{{ user.username }}</span>            
-            </div>      
-        {% endif %}
+  <a href="#" class="brand-link doctor-brand-link">
+    <div class="doctor-brand-container">
+      <div class="doctor-logo-wrapper">
+        <img src="{% static 'img/resalogo_square.png' %}" 
+             alt="RESA LOGO" 
+             class="doctor-brand-logo">
+        <div class="doctor-logo-pulse"></div>
+      </div>
+      <div class="doctor-brand-text">
+        <span class="doctor-brand-title">Resa Clinic</span>
+        <span class="doctor-brand-subtitle">Medical Department</span>
+      </div>
     </div>
+  </a>
 
-      <!-- Sidebar Menu -->
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-            <!-- Home Section -->
+  <!-- Sidebar -->
+  <div class="sidebar doctor-sidebar-inner"> 
+    <!-- Sidebar user panel -->
+    <div class="user-panel doctor-user-panel mt-3 pb-3 mb-3 d-flex">
+      {% if user.staff.id %}
+        <div class="doctor-user-image">
+          {% if user.staff.profile_picture %}
+            <img src="{{ user.staff.profile_picture.url }}" class="doctor-profile-img" alt="User Image">
+            <span class="doctor-status-indicator"></span>
+          {% else %}
+            <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="doctor-profile-img" alt="User Image">
+            <span class="doctor-status-indicator"></span>
+          {% endif %}
+        </div>
+        <div class="doctor-user-info">
+          {% url 'doctor_edit_staff_profile' user.staff.id as edit_staff_profile %}
+          <a href="{{ edit_staff_profile }}" class="doctor-username">{{ user.username }}</a>
+          <div class="doctor-user-role">{{ user.staff.get_role_display|default:"Doctor" }}</div>
+          <div class="doctor-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>   
+      {% else %}
+        <div class="doctor-user-image">           
+          <img src="{% static 'dist/img/user2-160x160.jpg' %}" class="doctor-profile-img" alt="User Image">
+          <span class="doctor-status-indicator"></span>
+        </div>
+        <div class="doctor-user-info">
+          <span class="doctor-username">{{ user.username }}</span>
+          <div class="doctor-user-role">Doctor</div>
+          <div class="doctor-user-status">
+            <i class="fas fa-circle"></i> Online
+          </div>
+        </div>
+      {% endif %}
+    </div>   
+
+    <!-- Quick Stats Panel -->
+    <div class="doctor-stats-panel">
+      <div class="doctor-stat-item">
+        <div class="doctor-stat-icon">
+          <i class="fas fa-user-injured"></i>
+        </div>
+        <div class="doctor-stat-info">
+          <span class="doctor-stat-number" id="doctor-patient-count">0</span>
+          <span class="doctor-stat-label">Patients</span>
+        </div>
+      </div>
+      <div class="doctor-stat-item">
+        <div class="doctor-stat-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="doctor-stat-info">
+          <span class="doctor-stat-number" id="doctor-appointment-count">0</span>
+          <span class="doctor-stat-label">Appointments</span>
+        </div>
+      </div>   
+    </div>
+    
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+      <ul class="nav nav-pills nav-sidebar flex-column doctor-nav" data-widget="treeview" role="menu" data-accordion="false">
+        <!-- Dashboard Section -->
+        <li class="nav-header doctor-nav-header">Dashboard</li>
+        <li class="nav-item">
+          {% url 'doctor_dashboard' as doctor_dashboard %}
+          <a href="{{ doctor_dashboard }}" class="nav-link doctor-nav-link {% if request.path == doctor_dashboard %} active {% endif %}">
+            <i class="nav-icon fas fa-home"></i>
+            <p>Home</p>
+            <span class="doctor-nav-badge"></span>
+          </a>
+        </li>
+
+        <!-- Consultation Section -->
+        <li class="nav-header doctor-nav-header">Consultation</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link doctor-nav-link">
+            <i class="nav-icon fas fa-stethoscope"></i>
+            <p>Consultation <i class="fas fa-angle-left right"></i></p>
+            <span class="doctor-nav-badge" id="doctor-unreadConsultationOrderBadge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item" id="doctor-unreadAppointmentsLink">
+              {% url 'doctor_new_consultation_order' as new_consultation_order %}
+              <a href="{% url 'doctor_new_consultation_order' %}" class="nav-link doctor-nav-link {% if request.path == new_consultation_order %} active {% endif %}">
+                <i class="fas fa-envelope nav-icon"></i>
+                <p>New Order</p>
+                <span class="doctor-nav-badge" id="doctor-unreadConsultationOrderBadgeCount">0</span>
+              </a>
+            </li>
+            <li class="nav-item" id="doctor-readAppointmentsLink">
+              {% url 'doctor_consultation_notes' as consultation_notes %}
+              <a href="{% url 'doctor_consultation_notes' %}" class="nav-link doctor-nav-link {% if request.path == consultation_notes %} active {% endif %}">
+                <i class="fas fa-envelope-open nav-icon"></i>
+                <p>Old Consultation</p>
+                <span class="doctor-nav-badge" id="doctor-readConsultationOrderBadgeCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Patient Management Section -->
+        <li class="nav-header doctor-nav-header">Patient Management</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link doctor-nav-link">
+            <i class="nav-icon fas fa-user-md"></i>
+            <p>Patients <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
             <li class="nav-item">
-                {% url 'doctor_dashboard' as admin_home %}
-                <a href="{% url 'doctor_dashboard' %}" class="nav-link {% if request.path == admin_home %} active {% endif %}">
-                    <i class="nav-icon fas fa-home"></i>
-                    <p>HOME</p>
-                </a>
-            </li>
-                <!-- Consultation Section -->
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-stethoscope"></i>
-                    <p>Consultation <span id="unreadConsultationOrderBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item" id="unreadAppointmentsLink">
-                        {% url 'doctor_new_consultation_order' as new_consultation_order %}
-                        <a href="{% url 'doctor_new_consultation_order' %}" class="nav-link {% if request.path == new_consultation_order %} active {% endif %}">
-                            <i class="nav-icon fas fa-envelope"></i>
-                            <p>New Order <span id="unreadConsultationOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                    <li class="nav-item" id="readAppointmentsLink">
-                        {% url 'doctor_consultation_notes' as consultation_notes %}
-                        <a href="{% url 'doctor_consultation_notes' %}" class="nav-link {% if request.path == consultation_notes %} active {% endif %}">
-                            <i class="nav-icon fas fa-envelope-open"></i>
-                            <p>Old Consultation <span id="readConsultationOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-            <!-- Doctor Section -->
-            <li class="nav-item has-treeview">
-                <a href="#" class="nav-link">
-                    <i class="nav-icon fas fa-user-md"></i>
-                    <p>Patients <i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        {% url 'doctor_manage_patient' as manage_patient %}
-                        <a href="{% url 'doctor_manage_patient' %}" class="nav-link{% if request.path == manage_patient %} active {% endif %}">
-                            <i class="nav-icon fas fa-users"></i>
-                            <p>Patients</p>
-                        </a>
-                    </li>                   
-                </ul>
-            </li>
-    
-            <!-- Medical Procedure Section -->
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-procedures"></i>
-                    <p>Medical Procedure <span id="unreadProcedureOrderBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item" id="unreadAppointmentsLink">
-                        {% url 'doctor_new_procedure_order' as new_procedure_order %}
-                        <a href="{% url 'doctor_new_procedure_order' %}" class="nav-link {% if request.path == new_procedure_order %} active {% endif %}">
-                            <i class="nav-icon fas fa-bell"></i>
-                            <p>New Order <span id="unreadProcedureOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                    <li class="nav-item" id="readAppointmentsLink">
-                        {% url 'doctor_patient_procedure_view' as patient_procedure_view %}
-                        <a href="{% url 'doctor_patient_procedure_view' %}" class="nav-link {% if request.path == patient_procedure_view %} active {% endif %}">
-                            <i class="nav-icon fas fa-history"></i>
-                            <p>Old Procedure <span id="readProcedureOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-    
-            <!-- Radiology Section -->
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-x-ray"></i>
-                    <p>Radiology <span id="unreadRadiologyOrderBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item" id="unreadAppointmentsLink">
-                        {% url 'doctor_new_radiology_order' as new_radiology_order_url %}
-                        <a href="{{ new_radiology_order_url }}" class="nav-link {% if request.path == new_radiology_order_url %} active {% endif %}">
-                            <i class="nav-icon fas fa-bell"></i>
-                            <p>New Order <span id="unreadRadiologyOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                    <li class="nav-item" id="readAppointmentsLink">
-                        {% url 'doctor_radiology_order' as manage_pathodology_url %}
-                        <a href="{{ manage_pathodology_url }}" class="nav-link {% if request.path == manage_pathodology_url %} active {% endif %}">
-                            <i class="nav-icon fas fa-history"></i>
-                            <p>Old Radiology <span id="readRadiologyOrderBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-    
+              {% url 'doctor_manage_patient' as manage_patient %}
+              <a href="{% url 'doctor_manage_patient' %}" class="nav-link doctor-nav-link {% if request.path == manage_patient %} active {% endif %}">
+                <i class="fas fa-users nav-icon"></i>
+                <p>All Patients</p>
+              </a>
+            </li>                   
+          </ul>
+        </li>
 
-    
-            <!-- Appointments Section -->
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-calendar-check"></i>
-                    <p>Appointments <span id="unreadBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item" id="unreadAppointmentsLink">
-                        {% url 'doctor_unread_appointments' as unread_appointments %}
-                        <a href="#" class="nav-link {% if request.path == unread_appointments %} active {% endif %}">
-                            <i class="nav-icon fas fa-bell"></i>
-                            <p>New Appointments <span id="unreadBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                    <li class="nav-item" id="readAppointmentsLink">
-                        {% url 'doctor_appointment_list' as read_appointments %}
-                        <a href="{{ read_appointments }}" class="nav-link {% if request.path == read_appointments %} active {% endif %}">
-                            <i class="nav-icon fas fa-history"></i>
-                            <p>Old Appointments <span id="readBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                </ul>
+        <!-- Laboratory Results Section - MOVED TO MORE PROMINENT POSITION -->
+        <li class="nav-header doctor-nav-header lab-section-header">
+          <i class="fas fa-vials"></i> Laboratory
+        </li>
+        <li class="nav-item has-treeview lab-section-highlight">
+          <a href="#" class="nav-link doctor-nav-link lab-nav-main">
+            <i class="nav-icon fas fa-flask"></i>
+            <p>Laboratory Tests <i class="fas fa-angle-left right"></i></p>
+            <span class="doctor-nav-badge lab-badge-pulse" id="doctor-unreadLabBadge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item" id="doctor-unreadAppointmentsLink">
+              {% url 'doctor_new_lab_order' as new_lab_order %}
+              <a href="{% url 'doctor_new_lab_order' %}" class="nav-link doctor-nav-link {% if request.path == new_lab_order %} active {% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <p>New Lab Order</p>
+                <span class="doctor-nav-badge" id="doctor-unreadLabBadgeCount">0</span>
+              </a>
             </li>
-    
-            <!-- Laboratory Results Section -->
-            <li class="nav-item has-treeview">
-                <a class="nav-link" href="#">
-                    <i class="nav-icon fas fa-vials"></i>
-                    <p>Laboratory Results <span id="unreadLabBadge" class="badge badge-danger">0</span><i class="fas fa-angle-left right"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item" id="unreadAppointmentsLink">
-                        {% url 'doctor_new_lab_order' as new_lab_order %}
-                        <a href="{% url 'doctor_new_lab_order' %}" class="nav-link {% if request.path == new_lab_order %} active {% endif %}">
-                            <i class="nav-icon fas fa-bell"></i>
-                            <p>New Lab <span id="unreadLabBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                    <li class="nav-item" id="readAppointmentsLink">
-                        {% url 'doctor_patient_lab_view' as patient_lab_view %}
-                        <a href="{% url 'doctor_patient_lab_view' %}" class="nav-link {% if request.path == patient_lab_view %} active {% endif %}">
-                            <i class="nav-icon fas fa-history"></i>
-                            <p>Old Lab <span id="readLabBadgeCount" class="badge badge-danger">0</span></p>
-                        </a>
-                    </li>
-                </ul>
+            <li class="nav-item" id="doctor-readAppointmentsLink">
+              {% url 'doctor_patient_lab_view' as patient_lab_view %}
+              <a href="{% url 'doctor_patient_lab_view' %}" class="nav-link doctor-nav-link {% if request.path == patient_lab_view %} active {% endif %}">
+                <i class="fas fa-history nav-icon"></i>
+                <p>View Lab Results</p>
+                <span class="doctor-nav-badge" id="doctor-readLabBadgeCount">0</span>
+              </a>
             </li>
-        </ul>
+            <li class="nav-item">
+              <a href="#" class="nav-link doctor-nav-link lab-quick-stats">
+                <i class="fas fa-chart-bar nav-icon"></i>
+                <p>Lab Analytics</p>
+                <small class="lab-stats-text">Pending: <span id="lab-pending-count">0</span></small>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Medical Procedure Section -->
+        <li class="nav-header doctor-nav-header">Medical Procedures</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link doctor-nav-link">
+            <i class="nav-icon fas fa-procedures"></i>
+            <p>Procedures <i class="fas fa-angle-left right"></i></p>
+            <span class="doctor-nav-badge" id="doctor-unreadProcedureOrderBadge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item" id="doctor-unreadAppointmentsLink">
+              {% url 'doctor_new_procedure_order' as new_procedure_order %}
+              <a href="{% url 'doctor_new_procedure_order' %}" class="nav-link doctor-nav-link {% if request.path == new_procedure_order %} active {% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <p>New Order</p>
+                <span class="doctor-nav-badge" id="doctor-unreadProcedureOrderBadgeCount">0</span>
+              </a>
+            </li>
+            <li class="nav-item" id="doctor-readAppointmentsLink">
+              {% url 'doctor_patient_procedure_view' as patient_procedure_view %}
+              <a href="{% url 'doctor_patient_procedure_view' %}" class="nav-link doctor-nav-link {% if request.path == patient_procedure_view %} active {% endif %}">
+                <i class="fas fa-history nav-icon"></i>
+                <p>Old Procedures</p>
+                <span class="doctor-nav-badge" id="doctor-readProcedureOrderBadgeCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Radiology Section -->
+        <li class="nav-header doctor-nav-header">Diagnostics</li>
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link doctor-nav-link">
+            <i class="nav-icon fas fa-x-ray"></i>
+            <p>Radiology <i class="fas fa-angle-left right"></i></p>
+            <span class="doctor-nav-badge" id="doctor-unreadRadiologyOrderBadge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item" id="doctor-unreadAppointmentsLink">
+              {% url 'doctor_new_radiology_order' as new_radiology_order_url %}
+              <a href="{{ new_radiology_order_url }}" class="nav-link doctor-nav-link {% if request.path == new_radiology_order_url %} active {% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <p>New Order</p>
+                <span class="doctor-nav-badge" id="doctor-unreadRadiologyOrderBadgeCount">0</span>
+              </a>
+            </li>
+            <li class="nav-item" id="doctor-readAppointmentsLink">
+              {% url 'doctor_radiology_order' as manage_pathodology_url %}
+              <a href="{{ manage_pathodology_url }}" class="nav-link doctor-nav-link {% if request.path == manage_pathodology_url %} active {% endif %}">
+                <i class="fas fa-history nav-icon"></i>
+                <p>Old Radiology</p>
+                <span class="doctor-nav-badge" id="doctor-readRadiologyOrderBadgeCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Appointments Section -->
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link doctor-nav-link">
+            <i class="nav-icon fas fa-calendar-check"></i>
+            <p>Appointments <i class="fas fa-angle-left right"></i></p>
+            <span class="doctor-nav-badge" id="doctor-unreadBadge">0</span>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item" id="doctor-unreadAppointmentsLink">
+              {% url 'doctor_unread_appointments' as unread_appointments %}
+              <a href="#" class="nav-link doctor-nav-link {% if request.path == unread_appointments %} active {% endif %}">
+                <i class="fas fa-bell nav-icon"></i>
+                <p>New Appointments</p>
+                <span class="doctor-nav-badge" id="doctor-unreadBadgeCount">0</span>
+              </a>
+            </li>
+            <li class="nav-item" id="doctor-readAppointmentsLink">
+              {% url 'doctor_appointment_list' as read_appointments %}
+              <a href="{{ read_appointments }}" class="nav-link doctor-nav-link {% if request.path == read_appointments %} active {% endif %}">
+                <i class="fas fa-history nav-icon"></i>
+                <p>Old Appointments</p>
+                <span class="doctor-nav-badge" id="doctor-readBadgeCount">0</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
     </nav>
-    
-      <!-- /.sidebar-menu -->
   </div>
-  <!-- /.sidebar -->
+  
+  <!-- Mini Calendar Widget -->
+  <div class="doctor-mini-calendar">
+    <div class="doctor-calendar-header">
+      <span class="doctor-calendar-month" id="doctor-calendar-month"></span>
+      <span class="doctor-calendar-year" id="doctor-calendar-year"></span>
+    </div>
+    <div class="doctor-calendar-date" id="doctor-calendar-date"></div>
+    <div class="doctor-calendar-day" id="doctor-calendar-day"></div>
+  </div>
 </aside>
 
-<script>
-    function fetchConsultationCounts() {
-      $.ajax({
-          type: 'GET',
-          url: '{% url "doctor_fetch_consultation_counts" %}',
-          success: function(data) {
-              $('#unreadBadgeCount').text(data.unreadCount);
-              $('#readBadgeCount').text(data.readCount);
-          },
-          error: function(xhr, status, error) {
-              console.error('Error fetching consultation counts:', error);
-          }
-      });
+<style>
+  /* Doctor Sidebar Specific Styles */
+  .doctor-sidebar {
+    background: linear-gradient(135deg, #0c2461, #1e3799, #4a69bd);
+    box-shadow: 3px 0 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
   }
   
+  .doctor-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    z-index: 0;
+  }
+  
+  .doctor-brand-link {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .doctor-brand-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .doctor-logo-wrapper {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .doctor-brand-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    background-color: #ffffff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    position: relative;
+    z-index: 2;
+  }
+  
+  .doctor-brand-text {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .doctor-brand-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    color: #fff;
+  }
+  
+  .doctor-brand-subtitle {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+    color: #a8d1ff;
+  }
+  
+  .doctor-sidebar-inner {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .doctor-user-panel {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+  }
+  
+  .doctor-user-image {
+    position: relative;
+    margin-right: 15px;
+  }
+  
+  .doctor-profile-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+  }
+  
+  .doctor-status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: #28a745;
+    border: 2px solid #0c2461;
+    border-radius: 50%;
+  }
+  
+  .doctor-user-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .doctor-username {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+  
+  .doctor-user-role {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    color: #a8d1ff;
+    margin-bottom: 3px;
+  }
+  
+  .doctor-user-status {
+    font-size: 0.75rem;
+    color: #28a745;
+  }
+  
+  .doctor-stats-panel {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .doctor-stat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    width: 45%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .doctor-stat-item:hover {
+    transform: translateY(-3px);
+  }
+  
+  .doctor-stat-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: white;
+  }
+  
+  .doctor-stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .doctor-stat-number {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  
+  .doctor-stat-label {
+    font-size: 0.7rem;
+    color: #a8d1ff;
+  }
+  
+  .doctor-nav-header {
+    padding: 15px 20px 5px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: #a8d1ff !important;
+    text-transform: uppercase;
+    opacity: 0.9;
+    position: relative;
+  }
+  
+  .doctor-nav-header::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(168, 209, 255, 0.3), transparent);
+  }
+  
+  .doctor-nav-link {
+    padding: 12px 15px;
+    margin: 3px 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    color: #e9ecef;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .doctor-nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+  
+  .doctor-nav-link:hover::before {
+    left: 100%;
+  }
+  
+  .doctor-nav-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(5px);
+  }
+  
+  .doctor-nav-link.active {
+    background: linear-gradient(135deg, #3494e6, #ec6ead);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .doctor-nav-badge {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+    color: white;
+    border-radius: 10px;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .doctor-mini-calendar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .doctor-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  
+  .doctor-calendar-month, .doctor-calendar-year {
+    font-size: 0.8rem;
+    color: #a8d1ff;
+  }
+  
+  .doctor-calendar-date {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin: 5px 0;
+  }
+  
+  .doctor-calendar-day {
+    font-size: 0.9rem;
+    color: #a8d1ff;
+  }
+  
+  /* Animation for nav items */
+  .doctor-nav .nav-item {
+    transition: transform 0.3s ease;
+  }
+  
+  /* Logo pulse animation */
+  .doctor-logo-pulse {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: transparent;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    animation: doctor-pulse 2s infinite;
+    z-index: 1;
+  }
+  
+  @keyframes doctor-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  /* Treeview arrow rotation */
+  .doctor-nav-link > .right {
+    transition: transform 0.3s ease;
+  }
+  
+  .doctor-nav-link.active > .right {
+    transform: rotate(-90deg);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .doctor-brand-title {
+      font-size: 1rem;
+    }
+    
+    .doctor-brand-subtitle {
+      display: none;
+    }
+    
+    .doctor-stats-panel {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .doctor-stat-item {
+      width: 90%;
+      margin-bottom: 10px;
+    }
+  }
+</style>
+
+<style>
+  /* Doctor Sidebar Specific Styles */
+  .doctor-sidebar {
+    background: linear-gradient(135deg, #0c2461, #1e3799, #4a69bd);
+    box-shadow: 3px 0 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* ... (keep existing styles) ... */
+  
+  /* Laboratory Section Specific Styles */
+  .lab-section-header {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-left: 4px solid #8bc34a;
+    margin-top: 15px !important;
+  }
+  
+  .lab-section-highlight {
+    border-left: 3px solid #8bc34a;
+    background: rgba(139, 195, 74, 0.05);
+    margin: 5px 0 10px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  
+  .lab-nav-main {
+    background: linear-gradient(135deg, rgba(139, 195, 74, 0.2), rgba(139, 195, 74, 0.1)) !important;
+  }
+  
+  .lab-nav-main:hover {
+    background: linear-gradient(135deg, rgba(139, 195, 74, 0.3), rgba(139, 195, 74, 0.2)) !important;
+  }
+  
+  .lab-badge-pulse {
+    animation: lab-pulse 2s infinite;
+    background: linear-gradient(135deg, #8bc34a, #689f38) !important;
+  }
+  
+  @keyframes lab-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(139, 195, 74, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(139, 195, 74, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(139, 195, 74, 0);
+    }
+  }
+  
+  .lab-stat-highlight {
+    background: rgba(139, 195, 74, 0.1) !important;
+    border: 1px solid rgba(139, 195, 74, 0.3);
+  }
+  
+  .lab-stat-highlight .doctor-stat-icon {
+    background: linear-gradient(135deg, #8bc34a, #689f38) !important;
+  }
+  
+  .lab-quick-stats {
+    border-top: 1px dashed rgba(139, 195, 74, 0.3) !important;
+    background: rgba(139, 195, 74, 0.05) !important;
+  }
+  
+  .lab-stats-text {
+    font-size: 0.7rem;
+    color: #8bc34a;
+    margin-left: 10px;
+  }
+  
+  /* Make sure the laboratory section is always visible */
+  .doctor-nav .nav-treeview {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  
+  /* Scrollbar styling */
+  .doctor-nav .nav-treeview::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  .doctor-nav .nav-treeview::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  
+  .doctor-nav .nav-treeview::-webkit-scrollbar-thumb {
+    background: rgba(139, 195, 74, 0.5);
+    border-radius: 10px;
+  }
+  
+  .doctor-nav .nav-treeview::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 195, 74, 0.7);
+  }
+  
+  /* ... (keep the rest of existing styles) ... */
+</style>
+
+<script>
+  // Initialize the calendar
+  function initDoctorCalendar() {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    document.getElementById('doctor-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('doctor-calendar-year').textContent = now.getFullYear();
+    document.getElementById('doctor-calendar-date').textContent = now.getDate();
+    document.getElementById('doctor-calendar-day').textContent = dayNames[now.getDay()];
+  }
+  
+  // Function to update doctor stats
+  function updateDoctorStats() {
+    // Update patient and appointment stats
+    fetch("{% url 'doctor_dashboard_stats_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('doctor-patient-count').textContent = data.patient_count || '0';
+        document.getElementById('doctor-appointment-count').textContent = data.appointment_count || '0';
+        document.getElementById('doctor-lab-count').textContent = data.lab_count || '0';
+      })
+      .catch(err => console.error('Failed to fetch doctor stats:', err));
+  }
+  
+  // Function to fetch lab-specific stats
+  function fetchLabStats() {
+    $.ajax({
+        url: "{% url 'doctor_fetch_lab_stats' %}",
+        type: "GET",
+        success: function(response) {
+            $('#lab-pending-count').text(response.pending_count || '0');
+        },
+        error: function(error) {
+            console.log('Error fetching lab stats:', error);
+        }
+    });
+  }
+  
+  // Function to fetch consultation counts
+  function fetchConsultationCounts() {
+    $.ajax({
+        type: 'GET',
+        url: '{% url "doctor_fetch_consultation_counts" %}',
+        success: function(data) {
+            $('#doctor-unreadBadgeCount').text(data.unreadCount);
+            $('#doctor-readBadgeCount').text(data.readCount);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching consultation counts:', error);
+        }
+    });
+  }
+  
+  // Function to fetch consultation order counts
   function fetchConsultationOrderCounts() {
       $.ajax({
           url: "{% url 'doctor_fetch_order_counts_view' %}",
           type: "GET",
           success: function(response) {
-              $('#unreadConsultationOrderBadge').text(response.unread_count);
-              $('#unreadConsultationOrderBadgeCount').text(response.unread_count);
-              $('#readConsultationOrderBadgeCount').text(response.read_count);
+              $('#doctor-unreadConsultationOrderBadge').text(response.unread_count);
+              $('#doctor-unreadConsultationOrderBadgeCount').text(response.unread_count);
+              $('#doctor-readConsultationOrderBadgeCount').text(response.read_count);
           },
           error: function(error) {
               console.log(error);
@@ -256,14 +787,15 @@
       });
   }
   
+  // Function to fetch radiology order counts
   function fetchRadiologyOrderCounts() {
       $.ajax({
           url: "{% url 'doctor_fetch_radiology_order_counts_view' %}",
           type: "GET",
           success: function(response) {
-              $('#unreadRadiologyOrderBadge').text(response.unread_count);
-              $('#unreadRadiologyOrderBadgeCount').text(response.unread_count);
-              $('#readRadiologyOrderBadgeCount').text(response.read_count);
+              $('#doctor-unreadRadiologyOrderBadge').text(response.unread_count);
+              $('#doctor-unreadRadiologyOrderBadgeCount').text(response.unread_count);
+              $('#doctor-readRadiologyOrderBadgeCount').text(response.read_count);
           },
           error: function(error) {
               console.log(error);
@@ -271,14 +803,15 @@
       });
   }
   
+  // Function to fetch procedure order counts
   function fetchProcedureOrderCounts() {
       $.ajax({
           url: "{% url 'doctor_fetch_procedure_order_counts_view' %}",
           type: "GET",
           success: function(response) {
-              $('#unreadProcedureOrderBadge').text(response.unread_count);
-              $('#unreadProcedureOrderBadgeCount').text(response.unread_count);
-              $('#readProcedureOrderBadgeCount').text(response.read_count);
+              $('#doctor-unreadProcedureOrderBadge').text(response.unread_count);
+              $('#doctor-unreadProcedureOrderBadgeCount').text(response.unread_count);
+              $('#doctor-readProcedureOrderBadgeCount').text(response.read_count);
           },
           error: function(error) {
               console.log(error);
@@ -286,14 +819,15 @@
       });
   }
   
+  // Function to fetch lab order counts
   function fetchLabOrderCounts() {
       $.ajax({
           url: "{% url 'doctor_fetch_lab_order_counts_view' %}",
           type: "GET",
           success: function(response) {
-              $('#unreadLabBadge').text(response.unread_count);
-              $('#unreadLabBadgeCount').text(response.unread_count);
-              $('#readLabBadgeCount').text(response.read_count);
+              $('#doctor-unreadLabBadge').text(response.unread_count);
+              $('#doctor-unreadLabBadgeCount').text(response.unread_count);
+              $('#doctor-readLabBadgeCount').text(response.read_count);
           },
           error: function(error) {
               console.log(error);
@@ -301,20 +835,41 @@
       });
   }
   
-  // Call the function to fetch counts initially
-  $(document).ready(function() {
-      fetchConsultationCounts();
-      fetchConsultationOrderCounts();
-      fetchRadiologyOrderCounts();
-      fetchProcedureOrderCounts();
-      fetchLabOrderCounts();
+  // Initialize on page load
+  $(document).ready(function() {   
+    initDoctorCalendar();
+    updateDoctorStats();
+    fetchLabStats();
+    fetchConsultationCounts();
+    fetchConsultationOrderCounts();
+    fetchRadiologyOrderCounts();
+    fetchProcedureOrderCounts();
+    fetchLabOrderCounts();
+    
+    // Update stats every minute
+    setInterval(updateDoctorStats, 60000);
+    
+    // Update lab stats every 30 seconds
+    setInterval(fetchLabStats, 30000);
+    
+    // Update counts every 10 seconds
+    setInterval(fetchConsultationCounts, 10000);
+    setInterval(fetchConsultationOrderCounts, 10000);
+    setInterval(fetchRadiologyOrderCounts, 10000);
+    setInterval(fetchProcedureOrderCounts, 10000);
+    setInterval(fetchLabOrderCounts, 10000);
+    
+    // Add sidebar toggle animation
+    $('.doctor-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+      $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+    });
+    
+    // Auto-expand laboratory section if on a lab page
+    if (window.location.pathname.includes('lab') || 
+        window.location.pathname.includes('Lab') ||
+        window.location.pathname === "{% url 'doctor_new_lab_order' %}" ||
+        window.location.pathname === "{% url 'doctor_patient_lab_view' %}") {
+      $('.lab-section-highlight').addClass('menu-open');
+    }
   });
-  
-  // Call the function to fetch counts every second
-  setInterval(fetchConsultationCounts, 1000);
-  setInterval(fetchRadiologyOrderCounts, 1000);
-  setInterval(fetchProcedureOrderCounts, 1000);
-  setInterval(fetchConsultationOrderCounts, 1000);
-  setInterval(fetchLabOrderCounts, 1000);
-  </script>
-  
+</script>

@@ -1,0 +1,1451 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load customfilter %}
+{% block title %}
+Premium Prescription Management for {% if patient %}{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}{% else %}Walk-in Customer{% endif %}
+{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">Premium Prescription Management</h5>
+    <a class="btn btn-premium-back" href="{% url 'pharmacist_walkin_prescription_list' %}">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Visits
+    </a>
+</div>
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium OOPS Modal Styles */
+    #oopsModal .modal-dialog {
+        max-width: 500px;
+    }
+    
+    #oopsModal .modal-content {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        border: none;
+    }
+    
+    #oopsModal .modal-header {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        padding: 1.5rem;
+        border-bottom: none;
+        position: relative;
+    }
+    
+    #oopsModal .modal-header .close {
+        color: white;
+        text-shadow: none;
+        opacity: 0.8;
+        position: absolute;
+        right: 1.5rem;
+        top: 1.5rem;
+    }
+    
+    #oopsModal .modal-body {
+        padding: 2rem;
+        text-align: center;
+        background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+    }
+    
+    #oopsModal .oops-icon {
+        font-size: 4rem;
+        color: #ff416c;
+        margin-bottom: 1rem;
+    }
+    
+    #oopsModal .modal-title {
+        font-weight: 700;
+        font-size: 1.8rem;
+    }
+    
+    #oopsModal .modal-footer {
+        border-top: none;
+        padding: 0 2rem 2rem;
+        justify-content: center;
+        background: transparent;
+    }
+    
+    .btn-oops-confirm {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 35px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 176, 155, 0.4);
+    }
+    
+    .btn-oops-confirm:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 176, 155, 0.5);
+        color: white;
+    }
+    
+    .btn-oops-cancel {
+        background: linear-gradient(120deg, #6c757d, #495057);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 35px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+    }
+    
+    .btn-oops-cancel:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(108, 117, 125, 0.5);
+        color: white;
+    }
+
+    /* Premium Prescription Form Styles */
+    .pharm-prescription-gradient {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(74, 0, 224, 0.15);
+        border: none;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-prescription-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-prescription-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-prescription-table th {
+        background: linear-gradient(120deg, #EDE7F6, #D1C4E9);
+        color: #512DA8;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-prescription-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #EDE7F6;
+    }
+    
+    .pharm-prescription-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-prescription-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(81, 45, 168, 0.1);
+        background: #f8f5ff;
+    }
+    
+    .btn-premium-primary {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(74, 0, 224, 0.2);
+    }
+    
+    .btn-premium-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(74, 0, 224, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-back {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(106, 17, 203, 0.2);
+    }
+    
+    .btn-premium-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(106, 17, 203, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-info {
+        background: linear-gradient(120deg, #00b4db, #0083b0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 180, 219, 0.2);
+    }
+    
+    .btn-premium-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 180, 219, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-danger {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 65, 108, 0.2);
+    }
+    
+    .btn-premium-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 65, 108, 0.3);
+        color: white;
+    }
+    
+    .premium-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f8f5ff, #EDE7F6);
+    }
+    
+    .premium-patient-card .card-header {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #D1C4E9;
+    }
+    
+    .premium-patient-info {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-patient-detail {
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .premium-patient-detail:last-child {
+        border-bottom: none;
+    }
+    
+    .premium-form-control {
+        border: 1px solid #D1C4E9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-form-control:focus {
+        border-color: #4A00E0;
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 224, 0.25);
+    }
+    
+    .premium-total-box {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(74, 0, 224, 0.2);
+    }
+    
+    .premium-response-box {
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .premium-response-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .premium-response-error {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .premium-select2 .select2-selection {
+        border: 1px solid #D1C4E9;
+        border-radius: 8px;
+        padding: 0.5rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-select2 .select2-selection:focus {
+        border-color: #4A00E0;
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 224, 0.25);
+    }
+    
+    /* Animation for new rows */
+    @keyframes premiumFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .premium-animated-row {
+        animation: premiumFadeIn 0.5s ease forwards;
+    }
+    
+    /* Status indicators */
+    .premium-status-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .premium-status-primary {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+    }
+    
+    /* Price display styling */
+    .premium-price-display {
+        font-weight: 600;
+        color: #4A00E0;
+        font-size: 1.2rem;
+    }
+    
+    /* Floating action button */
+    .premium-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px rgba(74, 0, 224, 0.3);
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    
+    .premium-fab:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 10px 25px rgba(74, 0, 224, 0.4);
+        color: white;
+    }
+    
+    /* Walk-in customer specific styles */
+    .walkin-customer-badge {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .walkin-payment-section {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Readonly field styling */
+    .readonly-field {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    /* Formulation display styling */
+    .formulation-display {
+        font-weight: 600;
+        color: #4A00E0;
+        text-align: center;
+        padding: 0.5rem;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+    }
+    
+    /* Route display styling */
+    .route-display {
+        font-weight: 600;
+        color: #4A00E0;
+        text-align: center;
+        padding: 0.5rem;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+    }
+    
+    /* Low stock warning */
+    .low-stock-warning {
+        color: #ff5722;
+        font-weight: bold;
+    }
+    
+    /* Outdated medicine warning */
+    .outdated-warning {
+        color: #ff416c;
+        font-weight: bold;
+    }
+
+    /* Preview Modal Styles */
+    #prescriptionPreviewModal .modal-dialog {
+        max-width: 90%;
+    }
+    
+    #prescriptionPreviewModal .modal-header {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    #prescriptionPreviewModal .modal-body {
+        padding: 1.5rem;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    #prescriptionPreviewModal .modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .preview-patient-card {
+        background: linear-gradient(120deg, #f8f5ff, #EDE7F6);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .preview-table-container {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        margin-bottom: 1.5rem;
+    }
+    
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .preview-table th {
+        background: linear-gradient(120deg, #EDE7F6, #D1C4E9);
+        color: #512DA8;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .preview-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #EDE7F6;
+        vertical-align: middle;
+    }
+    
+    .preview-table tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .preview-table tbody tr:hover {
+        background-color: #f5f0ff;
+    }
+    
+    .preview-total-box {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(74, 0, 224, 0.2);
+    }
+    
+    .btn-confirm {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.3);
+    }
+    
+    .btn-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.4);
+        color: white;
+    }
+    
+    .btn-edit {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+    }
+    
+    .btn-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4);
+        color: white;
+    }
+    
+    .preview-section-title {
+        color: #4A00E0;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #D1C4E9;
+    }
+    
+    .stock-status {
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-left: 8px;
+    }
+    
+    .stock-adequate {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+    
+    .stock-low {
+        background-color: #fff3e0;
+        color: #ef6c00;
+    }
+    
+    .stock-out {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+</style>
+<div class="container-fluid">   
+<!-- Walk-in Customer Information Section -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card premium-patient-card">
+            <div class="card-header">
+                <h5 class="card-title text-center mb-0">
+                    <i class="fas fa-user mr-2"></i>Walk-in Customer Information
+                    <span class="walkin-customer-badge">WALK-IN CUSTOMER</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="walkin-payment-section">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="walkin_first_name">First Name *</label>
+                                <input type="text" class="form-control premium-form-control" id="walkin_first_name" name="walkin_first_name" placeholder="Enter first name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="walkin_middle_name">Middle Name</label>
+                                <input type="text" class="form-control premium-form-control" id="walkin_middle_name" name="walkin_middle_name" placeholder="Enter middle name">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="walkin_last_name">Last Name *</label>
+                                <input type="text" class="form-control premium-form-control" id="walkin_last_name" name="walkin_last_name" placeholder="Enter last name" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="walkin_gender">Gender</label>
+                                <select class="form-control premium-select2" id="walkin_gender" name="walkin_gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="walkin_age">Age</label>
+                                <input type="number" class="form-control premium-form-control" id="walkin_age" name="walkin_age" placeholder="Age" min="0" max="120">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="walkin_phone_number">Phone Number</label>
+                                <input type="text" class="form-control premium-form-control" id="walkin_phone_number" name="walkin_phone_number" placeholder="Enter phone number">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="walkin_payment_form">Payment Method *</label>
+                                <select class="form-control premium-select2" id="walkin_payment_form" name="walkin_payment_form" required>
+                                    <option value="cash" selected>Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="mobile_money">Mobile Money</option>
+                                    <option value="insurance">Insurance</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="insurance_details" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="insurance_name">Insurance Provider</label>
+                                <input type="text" class="form-control premium-form-control" id="insurance_name" name="insurance_name" placeholder="Enter insurance provider">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="insurance_number">Insurance Number</label>
+                                <input type="text" class="form-control premium-form-control" id="insurance_number" name="insurance_number" placeholder="Enter insurance number">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="walkin_address">Address</label>
+                                <textarea class="form-control premium-form-control" id="walkin_address" name="walkin_address" placeholder="Enter customer address" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Prescription Form Card -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card pharm-prescription-gradient">
+                <div class="card-header">
+                    <h5 class="card-title text-center text-white mb-0"><i class="fas fa-prescription mr-2"></i>Add Prescription</h5>
+                </div>
+                <div class="card-body">
+                    <form id="addPrescriptionForm" method="post">
+                        {% csrf_token %}
+                        <div class="table-responsive pharm-prescription-table-container">
+                            <table class="table table-hover text-nowrap pharm-prescription-table" id="prescriptionTable">
+                                <thead>
+                                    <tr>
+                                        <th>Drug</th>
+                                        <th>Formulation</th>
+                                        <th>Dosage</th>
+                                        <th>Frequency</th>
+                                        <th>Duration</th>
+                                        <th>Quantity</th>
+                                        <th>Route</th>
+                                        <th>Unit Price</th>
+                                        <th>Total Price</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Total Price Display -->
+                        <div class="premium-total-box">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="mb-0">Total Price</h5>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <input type="hidden" id="sumt" name="Amount" value="0">
+                                    <h4 class="premium-price-display mb-0">Sh <span id="sum">0</span></h4>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Response Message Container -->
+                        <div class="premium-response-box" id="PrescriptionResponse" style="display: none;"></div>
+                        
+                        <!-- Hidden inputs for visit and patient IDs -->
+                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{% if visit %}{{ visit.id }}{% endif %}">
+                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{% if patient %}{{ patient.id }}{% endif %}">
+                        
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-premium-info btn-block" id="addRow">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add Medication
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="text-white">Date</label>
+                                    <input type="date" class="form-control premium-form-control" name="order_date" id="orderDate">
+                                    <script>
+                                        // Set the current date for the order date input
+                                        const currentDate = new Date().toISOString().split('T')[0];
+                                        document.getElementById('orderDate').value = currentDate;
+                                    </script>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-premium-primary btn-block mt-4" id="previewPrescription">
+                                    <i class="fas fa-eye mr-2"></i> Preview Prescription
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview Prescription Modal -->
+    <div class="modal fade" id="prescriptionPreviewModal" tabindex="-1" role="dialog" aria-labelledby="prescriptionPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="prescriptionPreviewModalLabel">
+                        <i class="fas fa-file-prescription mr-2"></i>Prescription Preview
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h5 class="preview-section-title">Patient Information</h5>
+                    <div class="preview-patient-card" id="previewPatientInfo">
+                        <!-- Patient info will be inserted here -->
+                    </div>
+                    
+                    <h5 class="preview-section-title">Prescription Details</h5>
+                    <div class="preview-table-container">
+                        <table class="preview-table">
+                            <thead>
+                                <tr>
+                                    <th>Drug</th>
+                                    <th>Formulation</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Quantity</th>
+                                    <th>Route</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewPrescriptionBody">
+                                <!-- Prescription items will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="preview-total-box">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="mb-0">Total Amount</h5>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <h4 class="premium-price-display mb-0">Sh <span id="previewTotalAmount">0.00</span></h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle mr-2"></i>Please review the prescription carefully before confirming. Once confirmed, the prescription will be saved permanently.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-edit mr-2"></i>Edit Prescription
+                    </button>
+                    <button type="button" class="btn btn-confirm" id="confirmPrescription">
+                        <i class="fas fa-check-circle mr-2"></i>Confirm & Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Premium OOPS Modal -->
+    <div class="modal fade" id="oopsModal" tabindex="-1" role="dialog" aria-labelledby="oopsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="oopsModalLabel">OOPS! Final Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="oops-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h4 class="text-center mb-3">Are you sure you want to save this prescription?</h4>
+                    <p class="text-center text-muted">
+                        Once saved, this prescription cannot be edited or deleted without administrator approval. 
+                        The medicines will be automatically verified and issued from inventory.
+                    </p>
+                    <div class="alert alert-warning mt-4">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Warning:</strong> This action is irreversible. Please double-check all information before proceeding.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-oops-cancel" data-dismiss="modal">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-oops-confirm" id="finalConfirmPrescription">
+                        <i class="fas fa-check-circle mr-2"></i>Yes, Save Prescription
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="errorModalBody">
+                    <!-- Error message will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Warning Modal -->
+    <div class="modal fade" id="warningModal" tabindex="-1" role="dialog" aria-labelledby="warningModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="warningModalLabel">Warning</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="warningModalBody">
+                    <!-- Warning message will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Action Button -->
+    <div class="premium-fab" id="scrollToTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+</div>
+
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    // Preloaded data for performance
+    const medicinesData = {
+        {% for medicine in medicines %}
+        "{{ medicine.id }}": {
+            "name": "{{ medicine.drug_name }}",
+            "cash_price": "{{ medicine.cash_cost }}",
+            "is_dividable": "{{ medicine.is_dividable }}",
+            "formulation_value": "{{ medicine.formulation_value }}",
+            "formulation_unit": "{{ medicine.formulation_unit.name }}",
+            "remain_quantity": {{ medicine.remain_quantity|default:0 }},
+            "expiry_date": "{{ medicine.expiration_date|date:'Y-m-d' }}",
+            "route": {% if medicine.route %}{
+                "id": "{{ medicine.route.id }}",
+                "name": "{{ medicine.route.name }}"
+            }{% else %}null{% endif %},
+            "dosages": [
+                {% for dosage in medicine.dosages.all %}
+                {
+                    "id": "{{ dosage.id }}",
+                    "value": "{{ dosage.dosage_value }}",
+                    "unit": "{{ dosage.unit.name }}"
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    const frequenciesData = [
+        {% for frequency in frequencies %}
+        {
+            "id": "{{ frequency.id }}",
+            "name": "{{ frequency.name }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    $(document).ready(function() {      
+        // Initialize Select2
+        $('.premium-select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+
+        // Show/hide insurance details based on payment method
+        $('#walkin_payment_form').change(function() {
+            if ($(this).val() === 'insurance') {
+                $('#insurance_details').show();
+            } else {
+                $('#insurance_details').hide();
+            }
+        });
+
+        // Event listeners
+        $('#addRow').click(addRow);
+        $('#previewPrescription').click(validateAndPreview);
+        $('#confirmPrescription').click(function() {
+            // Show the OOPS modal instead of directly saving
+            $('#prescriptionPreviewModal').modal('hide');
+            $('#oopsModal').modal('show');
+        });
+        $('#finalConfirmPrescription').click(addPrescription);
+        $(document).on('click', '.delete-row', deleteRow);
+        $(document).on('change', '.medicine-select', updateMedicineDetails);
+        $(document).on('change', '.frequency-select, .duration-select, .dosage-select', updateRowQuantity);
+        $(document).on('input', '.quantity-input', updateTotalPrice);
+
+        // Scroll to top button
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({ scrollTop: 0 }, 'slow');
+        });
+
+        // Initial setup
+        addRow(); // Add the first row
+        updateTotalPrice();
+    });
+    
+    // Function to add a new row to the prescription table
+    function addRow() {
+        var newRow = `
+            <tr class="premium-animated-row">
+                <td>
+                    <select class="form-control premium-select2 medicine-select" style="width: 100%;" name="medicine[]" required>
+                        <option value="">Select Medicine</option>
+                        {% for medicine in medicines %}
+                            <option value="{{ medicine.id }}">
+                                {{ medicine.drug_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control formulation-display readonly-field" name="formulation[]" readonly>
+                </td>
+                <td>
+                    <select class="form-control premium-select2 dosage-select" style="width: 100%;" name="dosage[]" required>
+                        <option value="">Select Dosage</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control premium-select2 frequency-select" style="width: 100%;" name="frequency[]" required>
+                        <option value="">Select Frequency</option>
+                        {% for frequency in frequencies %}
+                            <option value="{{ frequency.id }}">
+                                {{ frequency.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control premium-select2 duration-select" name="duration[]" style="width: 100%;">
+                        {% for rate in range_31 %}
+                            <option value="{{ rate }}">{{ rate }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="number" class="form-control premium-form-control quantity-input" name="quantity[]" value="1" min="1"></td>
+                <td>
+                    <input type="text" class="form-control route-display readonly-field" name="route_display[]" readonly>
+                    <input type="hidden" class="route-input" name="route[]">
+                </td>
+                <td><input type="text" class="form-control premium-form-control unit-price-input readonly-field" value="" readonly></td>
+                <td><input type="text" class="form-control premium-form-control total-price-input readonly-field" name="total_price[]" value="" readonly></td>
+                <td><button type="button" class="btn btn-premium-danger delete-row">Delete</button></td>
+            </tr>`;
+        
+        $('#prescriptionTable tbody').append(newRow);
+        
+        // Reinitialize Select2 on the new row
+        $('#prescriptionTable tbody tr:last .premium-select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+    }
+
+    // Function to delete a row from the prescription table
+    function deleteRow() {
+        $(this).closest('tr').remove();
+        updateTotalPrice();
+    }
+
+    // Function to update medicine details (formulation, dosages and default route) when medicine is selected
+    function updateMedicineDetails() {
+        var selectedMedicineId = $(this).val();
+        var row = $(this).closest('tr');
+        var formulationDisplay = row.find('.formulation-display');
+        var dosageSelect = row.find('.dosage-select');
+        var routeDisplay = row.find('.route-display');
+        var routeInput = row.find('.route-input');
+        var unitPriceInput = row.find('.unit-price-input');
+        
+        // Reset fields
+        formulationDisplay.val('');
+        dosageSelect.empty().append('<option value="">Select Dosage</option>');
+        routeDisplay.val('');
+        routeInput.val('');
+        unitPriceInput.val('');
+        
+        if (!selectedMedicineId) {
+            return;
+        }
+        
+        // Get medicine data from preloaded object
+        const medicineData = medicinesData[selectedMedicineId];
+        
+        if (!medicineData) {
+            return;
+        }
+        
+        // Check if medicine is outdated
+        const expiryDate = new Date(medicineData.expiry_date);
+        const today = new Date();
+        if (medicineData.expiry_date && expiryDate < today) {
+            showWarningModal(`Warning: ${medicineData.name} is expired (Expiry: ${medicineData.expiry_date}). Please select a different medicine.`);
+            $(this).val('').trigger('change');
+            return;
+        }
+        
+        // Check if medicine has low stock
+        if (medicineData.remain_quantity <= 0) {
+            showWarningModal(`Warning: ${medicineData.name} is out of stock. Please select a different medicine.`);
+            $(this).val('').trigger('change');
+            return;
+        } else if (medicineData.remain_quantity < 10) {
+            showWarningModal(`Warning: ${medicineData.name} is low on stock (Only ${medicineData.remain_quantity} remaining).`);
+        }
+        
+        // Set formulation display with both value and unit
+        formulationDisplay.val(medicineData.formulation_value + ' ' + (medicineData.formulation_unit || ''));
+        
+        // Set route display and hidden input
+        if (medicineData.route) {
+            routeDisplay.val(medicineData.route.name);
+            routeInput.val(medicineData.route.id);
+        } else {
+            routeDisplay.val('Not specified');
+            routeInput.val('');
+        }
+        
+        // Populate dosages
+        if (medicineData.dosages && medicineData.dosages.length > 0) {
+            medicineData.dosages.forEach(function(dosage) {
+                dosageSelect.append($('<option>', {
+                    value: dosage.id,
+                    text: dosage.value + ' ' + dosage.unit,
+                    'data-value': dosage.value
+                }));
+            });
+            
+            // Select the first dosage by default
+            dosageSelect.val(medicineData.dosages[0].id).trigger('change');
+        }
+        
+        // Set unit price
+        unitPriceInput.val(medicineData.cash_price);
+        
+        // Update row quantity and total price
+        updateRowQuantity.call(this);
+    }
+
+    // Function to update quantity for a specific row
+    function updateRowQuantity() {
+        const row = $(this).closest('tr');
+        const medicineId = row.find('.medicine-select').val();
+        const frequencyId = row.find('.frequency-select').val();
+        const durationVal = row.find('.duration-select').val();
+        const dosageVal = row.find('.dosage-select').val();
+
+        // Skip if required fields are missing
+        if (!medicineId || !frequencyId || !durationVal || !dosageVal) {
+            return;
+        }
+
+        const duration = parseInt(durationVal);
+        const dosageValue = parseFloat(row.find('.dosage-select option:selected').data('value')) || 1;
+
+        // If not a number, skip
+        if (isNaN(duration) || isNaN(dosageValue)) return;
+
+        // Get data from preloaded objects
+        const medicineData = medicinesData[medicineId];
+        const frequencyData = frequenciesData.find(f => f.id == frequencyId);
+        
+        if (!medicineData || !frequencyData) return;
+
+        let quantity;
+
+        if (frequencyData.name === 'PRN' || medicineData.is_dividable === 'False') {
+            // For PRN or non-dividable medicines, use the manually entered quantity
+            quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+        } else {
+            // Use formulation value for quantity calculation
+            const formulationValue = parseFloat(medicineData.formulation_value) || 1;
+            quantity = calculateTabletQuantity(frequencyData.name, duration, dosageValue, formulationValue);
+        }
+
+        // Check if quantity exceeds available stock
+        if (medicineData.remain_quantity !== null && quantity > medicineData.remain_quantity) {
+            showWarningModal(`Warning: Cannot prescribe ${quantity} units of ${medicineData.name}. Only ${medicineData.remain_quantity} units available in stock.`);
+            quantity = medicineData.remain_quantity;
+        }
+
+        row.find('.quantity-input').val(quantity);
+        
+        // Update total price for this row
+        updateRowTotalPrice(row);
+    }
+
+    // Function to update total price for a specific row
+    function updateRowTotalPrice(row) {
+        const quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+        const unitPrice = parseFloat(row.find('.unit-price-input').val()) || 0;
+        const rowTotalPrice = quantity * unitPrice;
+        row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
+        
+        // Update overall total
+        updateTotalPrice();
+    }
+
+    // Function to update overall total price
+    function updateTotalPrice() {
+        let totalPrice = 0;
+
+        $('#prescriptionTable tbody tr').each(function () {
+            const rowTotal = parseFloat($(this).find('.total-price-input').val()) || 0;
+            totalPrice += rowTotal;
+        });
+
+        $('#sum').text(totalPrice.toFixed(2));
+    }
+
+    // Function to calculate quantity for tablet type medication
+    function calculateTabletQuantity(frequency, duration, dosageValue, formulationValue) {
+        var quantity = 0;
+        
+        // Calculate the number of units needed based on dosage and formulation
+        const unitsNeededPerDose = dosageValue / formulationValue;
+        
+        switch (frequency) {
+            case 'OD':
+            case 'I.C':
+            case 'STAT':
+                quantity = duration * unitsNeededPerDose;
+                break;
+            case 'QID':
+                quantity = duration * 4 * unitsNeededPerDose;
+                break;
+            case 'TID':
+                quantity = duration * 3 * unitsNeededPerDose;
+                break;
+            case 'BID':
+                quantity = duration * 2 * unitsNeededPerDose;
+                break;
+            case 'PRN':
+                quantity = 1; // Default for PRN
+                break;
+            default:
+                quantity = 1;
+                break;
+        }
+        
+        // Round up to the nearest whole number
+        return Math.ceil(quantity);
+    }
+
+    // Function to show error modal
+    function showErrorModal(message) {
+        $('#errorModalBody').text(message);
+        $('#errorModal').modal('show');
+    }
+
+    // Function to show warning modal
+    function showWarningModal(message) {
+        $('#warningModalBody').text(message);
+        $('#warningModal').modal('show');
+    }
+
+    // Function to validate form and show preview
+    function validateAndPreview() {
+        let isValid = true;
+        let errorMsg = "";
+
+        // For walk-in customers, check required fields
+        const firstName = $('#walkin_first_name').val();
+        const lastName = $('#walkin_last_name').val();
+        var paymentForm = $('#walkin_payment_form').val();
+        
+        if (!firstName) {
+            isValid = false;
+            errorMsg = "First name is required for walk-in customers.";
+        } else if (!lastName) {
+            isValid = false;
+            errorMsg = "Last name is required for walk-in customers.";
+        } else if (!paymentForm) {
+            isValid = false;
+            errorMsg = "Please select a payment method for the walk-in customer.";
+        } else if (paymentForm === 'insurance') {
+            var insuranceName = $('#insurance_name').val();
+            var insuranceNumber = $('#insurance_number').val();
+            if (!insuranceName) {
+                isValid = false;
+                errorMsg = "Please provide insurance provider for the walk-in customer.";
+            } else if (!insuranceNumber) {
+                isValid = false;
+                errorMsg = "Please provide insurance number for the walk-in customer.";
+            }
+        }
+
+        // Check if at least one medication is added
+        if ($('#prescriptionTable tbody tr').length === 0) {
+            isValid = false;
+            errorMsg = "Please add at least one medication to the prescription.";
+        }
+
+        $('#prescriptionTable tbody tr').each(function (index, row) {
+            const $row = $(row);
+            const medicine = $row.find('[name="medicine[]"]').val();
+            const formulation = $row.find('[name="formulation[]"]').val();
+            const dosage = $row.find('[name="dosage[]"]').val();
+            const frequency = $row.find('[name="frequency[]"]').val();
+            const duration = $row.find('[name="duration[]"]').val();
+            const quantity = $row.find('[name="quantity[]"]').val();
+            const route = $row.find('[name="route[]"]').val();
+            const unitPrice = $row.find('.unit-price-input').val();
+
+            if (!medicine || !formulation || !dosage || !frequency || !duration || !quantity || !unitPrice) {
+                isValid = false;
+                errorMsg = "Please fill all fields for every row before submitting.";
+                return false; // Break the loop
+            }
+
+            if (isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+                isValid = false;
+                errorMsg = "Quantity and unit price must be positive numbers.";
+                return false;
+            }
+        });
+
+        if (!isValid) {
+            showErrorModal(errorMsg);
+            return;
+        }
+
+    // If validation passes, show the preview modal
+    generatePreview();
+    $('#prescriptionPreviewModal').modal('show');
+}
+    // Function to generate preview content
+    function generatePreview() {
+        // Update patient information in preview
+        const firstName = $('#walkin_first_name').val() || 'Not specified';
+        const middleName = $('#walkin_middle_name').val() || '';
+        const lastName = $('#walkin_last_name').val() || 'Not specified';
+        const gender = $('#walkin_gender').val() || 'Not specified';
+        const age = $('#walkin_age').val() || 'Not specified';
+        const phone = $('#walkin_phone_number').val() || 'Not specified';
+        const address = $('#walkin_address').val() || 'Not specified';
+        
+        const patientInfo = `
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Name:</strong> ${firstName} ${middleName} ${lastName}
+                </div>
+                <div class="col-md-4">
+                    <strong>Gender/Age:</strong> ${gender} / ${age}
+                </div>
+                <div class="col-md-4">
+                    <strong>Phone:</strong> ${phone}
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <strong>Payment Method:</strong> ${$('#walkin_payment_form option:selected').text()}
+                </div>
+                <div class="col-md-4">
+                    <strong>Address:</strong> ${address}
+                </div>
+            </div>
+            ${$('#walkin_payment_form').val() === 'insurance' ? `
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <strong>Insurance Provider:</strong> ${$('#insurance_name').val()}
+                </div>
+                <div class="col-md-4">
+                    <strong>Insurance Number:</strong> ${$('#insurance_number').val()}
+                </div>
+            </div>
+            ` : ''}
+        `;
+        
+        $('#previewPatientInfo').html(patientInfo);
+        
+        // Update prescription details in preview
+        let prescriptionBody = '';
+        let totalAmount = 0;
+        
+        $('#prescriptionTable tbody tr').each(function (index, row) {
+            const $row = $(row);
+            const medicineId = $row.find('[name="medicine[]"]').val();
+            const medicineData = medicinesData[medicineId];
+            const medicineName = medicineData ? medicineData.name : '';
+            const formulation = $row.find('[name="formulation[]"]').val();
+            const dosageText = $row.find('[name="dosage[]"] option:selected').text();
+            const frequencyText = $row.find('[name="frequency[]"] option:selected').text();
+            const duration = $row.find('[name="duration[]"]').val();
+            const quantity = $row.find('[name="quantity[]"]').val();
+            const routeText = $row.find('[name="route_display[]"]').val();
+            const unitPrice = parseFloat($row.find('.unit-price-input').val()) || 0;
+            const totalPrice = parseFloat($row.find('.total-price-input').val()) || 0;
+            
+            totalAmount += totalPrice;
+            
+            // Check stock status
+            let stockStatus = '';
+            if (medicineData) {
+                if (medicineData.remain_quantity <= 0) {
+                    stockStatus = '<span class="stock-status stock-out">Out of Stock</span>';
+                } else if (medicineData.remain_quantity < quantity) {
+                    stockStatus = '<span class="stock-status stock-low">Low Stock</span>';
+                } else {
+                    stockStatus = '<span class="stock-status stock-adequate">In Stock</span>';
+                }
+            }
+            
+            prescriptionBody += `
+                <tr>
+                    <td>${medicineName} ${stockStatus}</td>
+                    <td>${formulation}</td>
+                    <td>${dosageText}</td>
+                    <td>${frequencyText}</td>
+                    <td>${duration} days</td>
+                    <td>${quantity}</td>
+                    <td>${routeText}</td>
+                    <td>Sh ${unitPrice.toFixed(2)}</td>
+                    <td>Sh ${totalPrice.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        $('#previewPrescriptionBody').html(prescriptionBody);
+        $('#previewTotalAmount').text(totalAmount.toFixed(2));
+    }
+
+    // Function to handle form submission using AJAX
+    function addPrescription() {
+        // Close the OOPS modal
+        $('#oopsModal').modal('hide');
+        
+        // Show processing indicator
+        $('#PrescriptionResponse').html('<div class="premium-response-box premium-response-success">Processing prescription, please wait...</div>').show();
+        
+        var formData = $('#addPrescriptionForm').serializeArray();
+        
+        // Add walk-in customer data
+        formData.push({name: 'walkin_first_name', value: $('#walkin_first_name').val()});
+        formData.push({name: 'walkin_middle_name', value: $('#walkin_middle_name').val()});
+        formData.push({name: 'walkin_last_name', value: $('#walkin_last_name').val()});
+        formData.push({name: 'walkin_gender', value: $('#walkin_gender').val()});
+        formData.push({name: 'walkin_age', value: $('#walkin_age').val()});
+        formData.push({name: 'walkin_phone_number', value: $('#walkin_phone_number').val()});
+        formData.push({name: 'walkin_address', value: $('#walkin_address').val()});
+        formData.push({name: 'walkin_payment_form', value: $('#walkin_payment_form').val()});
+        
+        if ($('#walkin_payment_form').val() === 'insurance') {
+            formData.push({name: 'insurance_name', value: $('#insurance_name').val()});
+            formData.push({name: 'insurance_number', value: $('#insurance_number').val()});
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "pharmacist_add_walkin_prescription" %}',
+            data: $.param(formData),
+            success: function (response) {
+                if (response.status === 'success') {
+                    $('#PrescriptionResponse').html('<div class="premium-response-box premium-response-success">' + response.message + '</div>').show();
+                    var redirectUrl = '{% url "pharmacist_walkin_prescription_list"  %}';
+                    setTimeout(function() {
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                } else {
+                    showErrorModal(response.message);
+                }
+            },
+            error: function (xhr) {
+                showErrorModal('An unexpected error occurred. Please try again.');
+            }
+        });
+    }
+</script>
+{% endblock customer_js %}

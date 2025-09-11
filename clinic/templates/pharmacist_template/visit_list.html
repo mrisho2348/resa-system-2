@@ -1,77 +1,723 @@
 {% extends 'pharmacist_template/base_template.html' %}
 {% load static %}
 {% load customfilter %}
-{% block title %}All Patient Visits{% endblock title %}
+{% block title %}
+Premium Patient Visits Management
+{% endblock title %}
 
 {% block main_content %}
-<section class="content">
-  <div class="container-fluid">
-    <div class="card">
-      <div class="card-header bg-primary text-white">
-        <h3 class="card-title">Patient Visit Records</h3>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Visit Number</th>
-                <th>Patient Name</th>
-                <th>Visit Type</th>
-                <th>Primary Service</th>
-                <th>Insurance</th>
-                <th>Reason</th>
-                <th>Date</th>
-                <th>Prescription Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for visit in visits %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ visit.vst }}</td>
-                <td>{{ visit.patient }}</td>
-                <td>{{ visit.get_visit_type_display }}</td>
-                <td>{{ visit.primary_service }}</td>
-                <td>
-                  {% if visit.patient.payment_form == "Insurance" %}
-                    {{ visit.patient.payment_form }} - {{ visit.patient.insurance_name }}
-                  {% else %}
-                    {{ visit.patient.payment_form }}
-                  {% endif %}
-                </td>
-                <td>{{ visit.visit_reason|truncatewords:8 }}</td>
-                <td>{{ visit.created_at|date:"d M Y H:i" }}</td>
-                <td>
-                  {% if prescription_map|get_item:visit.id %}
-                    <span class="badge badge-success">Available</span>
-                  {% else %}
-                    <span class="badge badge-secondary">None</span>
-                  {% endif %}
-                </td>
-                <td>
-                {% if paid_prescription_map|get_item:visit.id or verified_prescription_map|get_item:visit.id or issued_prescription_map|get_item:visit.id %}
-                    <button class="btn btn-sm btn-secondary" disabled title="Prescription locked due to payment, verification, or issue">
-                    <i class="fas fa-lock"></i> Locked
-                    </button>
-                {% else %}
-                    <a href="{% url 'pharmacist_save_prescription' visit.patient.id visit.id %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-pills"></i> Prescription
-                    </a>
-                {% endif %}
-                </td>
+<style>
+    /* Premium Patient Visits Styles - Unique to this template */
+    .pharm-visits-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pharm-visits-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-visits-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-visits-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-visits-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .pharm-visits-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-visits-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-pharm-visits {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-visits:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-visits-prescribe {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-visits-prescribe:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-visits-locked {
+        background: linear-gradient(120deg, #7f8c8d, #636e72);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(127, 140, 141, 0.2);
+        cursor: not-allowed;
+    }
+    
+    .pharm-visits-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-visits-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-visits-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-visits-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .pharm-visits-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-visits-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-visits-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-visits-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pharm-visits-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-visits-badge-normal {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-visits-badge-emergency {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-visits-badge-referral {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-visits-badge-followup {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-visits-badge-prescription-available {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-visits-badge-prescription-none {
+        background: linear-gradient(120deg, #7f8c8d, #636e72);
+        color: white;
+    }
+    
+    .pharm-visits-badge-insurance {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-visits-badge-cash {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-visits-badge-nhif {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-visits-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-visits-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-visits-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-visits-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-visits-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-visits-status-btn[data-status="normal"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-visits-status-btn[data-status="emergency"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-visits-status-btn[data-status="referral"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-visits-status-btn[data-status="followup"] {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmVisitsFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-visits-animated {
+        animation: pharmVisitsFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-visits-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-visits-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-visits-flip-card:hover .pharm-visits-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-visits-flip-card-front, .pharm-visits-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-visits-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-visits-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-visits-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium modal styling */
+    .pharm-visits-modal-xl {
+        max-width: 90%;
+    }
+    
+    /* Tooltip styling */
+    .pharm-visits-tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .pharm-visits-tooltip .pharm-visits-tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: #1a2a6c;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .pharm-visits-tooltip:hover .pharm-visits-tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+</style>
 
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card pharm-visits-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Visits Management</h5>                       
+                    </div>
+                     <a href="{% url 'pharmacist_add_non_registered_prescription' %}" class="btn btn-pharm-visits">
+                    <i class="fas fa-plus-circle mr-1"></i> Non-Registered Patient
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-visits-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Total Visits</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-visits-summary-value" id="total-visits">{{ visits|length }}</div>
+                                    <div class="pharm-visits-summary-label">All Patient Visits</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-visits-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-file-prescription mr-2"></i>With Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-visits-summary-value" id="with-prescriptions">0</div>
+                                    <div class="pharm-visits-summary-label">Visits with Prescriptions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-visits-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-first-aid mr-2"></i>Emergency Visits</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-visits-summary-value" id="emergency-visits">0</div>
+                                    <div class="pharm-visits-summary-label">Emergency Cases</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-visits-flip-card">
+                                <div class="pharm-visits-flip-card-inner">
+                                    <div class="pharm-visits-flip-card-front">
+                                        <div class="pharm-visits-flip-icon">
+                                            <i class="fas fa-stethoscope"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-visits-flip-card-back">
+                                        <div class="pharm-visits-flip-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <h4>Visit Insights</h4>
+                                        <p>Advanced visit tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-visits-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-visits-status-filter">
+                                <button class="pharm-visits-status-btn active" data-status="all">All Visits</button>
+                                <button class="pharm-visits-status-btn" data-status="normal">Normal</button>
+                                <button class="pharm-visits-status-btn" data-status="emergency">Emergency</button>
+                                <button class="pharm-visits-status-btn" data-status="referral">Referral</button>
+                                <button class="pharm-visits-status-btn" data-status="followup">Follow-up</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search visits..." id="visitsSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-visits" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-visits-table-container">
+                        <table class="table table-hover text-nowrap pharm-visits-table" id="visitsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Visit Number</th>
+                                    <th>Patient Name</th>
+                                    <th>Visit Type</th>
+                                    <th>Primary Service</th>
+                                    <th>Insurance</th>
+                                    <th>Reason</th>
+                                    <th>Date</th>
+                                    <th>Prescription Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in visits %}
+                                <tr data-visit-type="{{ visit.visit_type }}" 
+                                    data-prescription-status="{% if prescription_map|get_item:visit.id %}available{% else %}none{% endif %}">  
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ visit.vst }}</td>
+                                    <td>{{ visit.patient }}</td>
+                                    <td>
+                                        <span class="pharm-visits-badge 
+                                            {% if visit.visit_type == 'Normal' %}pharm-visits-badge-normal
+                                            {% elif visit.visit_type == 'Emergency' %}pharm-visits-badge-emergency
+                                            {% elif visit.visit_type == 'Referral' %}pharm-visits-badge-referral
+                                            {% elif visit.visit_type == 'Follow up' %}pharm-visits-badge-followup{% endif %}">
+                                            {{ visit.get_visit_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ visit.primary_service }}</td>
+                                    <td>
+                                        {% if visit.patient.payment_form == "Insurance" %}
+                                            <span class="pharm-visits-badge pharm-visits-badge-insurance">
+                                                {{ visit.patient.payment_form }} - {{ visit.patient.insurance_name }}
+                                            </span>
+                                        {% elif visit.patient.payment_form == "NHIF" %}
+                                            <span class="pharm-visits-badge pharm-visits-badge-nhif">
+                                                {{ visit.patient.payment_form }}
+                                            </span>
+                                        {% else %}
+                                            <span class="pharm-visits-badge pharm-visits-badge-cash">
+                                                {{ visit.patient.payment_form }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ visit.visit_reason|truncatewords:8 }}</td>
+                                    <td>{{ visit.created_at|date:"d M Y H:i" }}</td>
+                                    <td>
+                                        {% if prescription_map|get_item:visit.id %}
+                                            <span class="pharm-visits-badge pharm-visits-badge-prescription-available">Available</span>
+                                        {% else %}
+                                            <span class="pharm-visits-badge pharm-visits-badge-prescription-none">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if prescription_map|get_item:visit.id or paid_prescription_map|get_item:visit.id or verified_prescription_map|get_item:visit.id or issued_prescription_map|get_item:visit.id %}
+                                            <div class="pharm-visits-tooltip">
+                                                <button class="btn btn-pharm-visits-locked">
+                                                    <i class="fas fa-lock"></i> Locked
+                                                </button>
+                                                <span class="pharm-visits-tooltiptext">
+                                                    Prescription locked - Already {% if prescription_map|get_item:visit.id %}prescribed by doctor{% elif paid_prescription_map|get_item:visit.id %}paid{% elif verified_prescription_map|get_item:visit.id %}verified{% elif issued_prescription_map|get_item:visit.id %}issued{% endif %}
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <a href="{% url 'pharmacist_save_prescription' visit.patient.id visit.id %}" class="btn btn-pharm-visits-prescribe">
+                                                <i class="fas fa-pills"></i> Prescribe
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>                        
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-visits-modal-content">
+      <div class="modal-header pharm-visits-modal-header">
+        <h5 class="modal-title text-white" id="notificationModalLabel">Notification</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="notificationModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-pharm-visits" data-dismiss="modal">OK</button>
       </div>
     </div>
   </div>
-</section>
+</div>
 
-{% include 'receptionist_template/datatable.html' %}
 {% endblock main_content %}
+{% block customer_js %}
+{% include 'pharmacist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#visitsTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[7, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visits...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let withPrescriptionsCount = 0;
+        let emergencyVisitsCount = 0;
+        
+        document.querySelectorAll('#visitsTable tbody tr').forEach(row => {
+            const visitType = row.getAttribute('data-visit-type');
+            const prescriptionStatus = row.getAttribute('data-prescription-status');
+            
+            // Count by status
+            if (prescriptionStatus === 'available') {
+                withPrescriptionsCount++;
+            }
+            
+            if (visitType === 'Emergency') {
+                emergencyVisitsCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('with-prescriptions').textContent = withPrescriptionsCount;
+        document.getElementById('emergency-visits').textContent = emergencyVisitsCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pharm-visits-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-visits-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterVisits(status);
+        });
+    });
+
+    // Filter visits by status
+    function filterVisits(status) {
+        const rows = document.querySelectorAll('#visitsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const visitType = row.getAttribute('data-visit-type');
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'normal' && visitType === 'Normal') {
+                showRow = true;
+            } else if (status === 'emergency' && visitType === 'Emergency') {
+                showRow = true;
+            } else if (status === 'referral' && visitType === 'Referral') {
+                showRow = true;
+            } else if (status === 'followup' && visitType === 'Follow up') {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('visitsSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-visits-status-btn.active').getAttribute('data-status');
+        
+        filterVisitsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitsSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-visits-status-btn.active').getAttribute('data-status');
+        
+        filterVisitsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter visits by both status and search text
+    function filterVisitsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#visitsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const visitType = row.getAttribute('data-visit-type');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'normal' && visitType === 'Normal') {
+                statusMatch = true;
+            } else if (status === 'emergency' && visitType === 'Emergency') {
+                statusMatch = true;
+            } else if (status === 'referral' && visitType === 'Referral') {
+                statusMatch = true;
+            } else if (status === 'followup' && visitType === 'Follow up') {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const modalBody = document.getElementById('notificationModalBody');
+        modalBody.textContent = message;
+        
+        // Set appropriate styling based on type
+        const modalContent = document.querySelector('#notificationModal .modal-content');
+        if (type === 'success') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #00b09b, #96c93d)';
+        } else if (type === 'error') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #ff416c, #ff4b2b)';
+        } else {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #1a2a6c, #b21f1f)';
+        }
+        
+        $('#notificationModal').modal('show');
+    }
+</script>
+{% endblock %}

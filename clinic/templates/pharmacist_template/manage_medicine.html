@@ -1,82 +1,577 @@
 {% extends 'pharmacist_template/base_template.html' %}
-
+{% load customfilter %}
 {% block title %}
-   All medicine
+Premium Medicine Management
 {% endblock title %}
 
 {% block breadcrumb %}
 {% include "pharmacist_template/modal_form.html" %}
-<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addMedicineModal">
-    <i class="fas fa-plus"></i> New medicine
-</a>
 {% endblock breadcrumb %}
-
 
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Medicine Management Styles - Unique to this template */
+    .pharm-medicine-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pharm-medicine-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-medicine-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-medicine-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-medicine-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .pharm-medicine-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-medicine-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-pharm-medicine {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-medicine:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-medicine-add {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-medicine-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-medicine-edit {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-medicine-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-medicine-restock {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-medicine-restock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .pharm-medicine-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-medicine-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-medicine-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-medicine-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .pharm-medicine-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-medicine-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-medicine-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-medicine-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pharm-medicine-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-medicine-badge-stock-good {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-medicine-badge-stock-low {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-medicine-badge-stock-critical {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-medicine-badge-stock-out {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    .pharm-medicine-badge-dividable {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-medicine-badge-not-dividable {
+        background: linear-gradient(120deg, #7f8c8d, #636e72);
+        color: white;
+    }
+    
+    .pharm-medicine-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-medicine-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-medicine-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-medicine-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-medicine-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-medicine-status-btn[data-status="good"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-medicine-status-btn[data-status="low"] {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-medicine-status-btn[data-status="critical"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-medicine-status-btn[data-status="out"] {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmMedicineFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-medicine-animated {
+        animation: pharmMedicineFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-medicine-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-medicine-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-medicine-flip-card:hover .pharm-medicine-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-medicine-flip-card-front, .pharm-medicine-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-medicine-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-medicine-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-medicine-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium modal styling */
+    .pharm-medicine-modal-xl {
+        max-width: 90%;
+    }
+    
+    .pharm-medicine-drug-table th {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    /* Progress bar styling */
+    .pharm-medicine-progress {
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .pharm-medicine-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.6s ease;
+    }
+    
+    .pharm-medicine-progress-critical {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+    }
+    
+    .pharm-medicine-progress-warning {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+    }
+    
+    .pharm-medicine-progress-low {
+        background: linear-gradient(120deg, #ffd26f, #ffa64d);
+    }
+    
+    .pharm-medicine-progress-good {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+    }
+    
+    /* Expiry status styling */
+    .pharm-medicine-expiry-expired {
+        color: #ff416c;
+        font-weight: 600;
+    }
+    
+    .pharm-medicine-expiry-soon {
+        color: #ff9966;
+        font-weight: 600;
+    }
+    
+    .pharm-medicine-expiry-valid {
+        color: #00b09b;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> All medicine </h6>
+        <div class="col-md-12">
+            <div class="card pharm-medicine-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-pills mr-2"></i>Premium Medicine Management</h5>
+                        <button class="btn btn-pharm-medicine-add" type="button" data-toggle="modal" data-target="#addMedicineModal">
+                            <i class="fas fa-plus mr-1"></i> New Medicine
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-medicine-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Medicines</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-medicine-summary-value" id="total-medicines">{{ medicines|length }}</div>
+                                    <div class="pharm-medicine-summary-label">All Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-medicine-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-box-open mr-2"></i>In Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-medicine-summary-value" id="in-stock">0</div>
+                                    <div class="pharm-medicine-summary-label">Available Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-medicine-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Low Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-medicine-summary-value" id="low-stock">0</div>
+                                    <div class="pharm-medicine-summary-label">Low Stock Items</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-medicine-flip-card">
+                                <div class="pharm-medicine-flip-card-inner">
+                                    <div class="pharm-medicine-flip-card-front">
+                                        <div class="pharm-medicine-flip-icon">
+                                            <i class="fas fa-capsules"></i>
+                                        </div>
+                                        <h4>Medicine Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-medicine-flip-card-back">
+                                        <div class="pharm-medicine-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Inventory Insights</h4>
+                                        <p>Advanced medicine tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-medicine-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-medicine-status-filter">
+                                <button class="pharm-medicine-status-btn active" data-status="all">All Medicines</button>
+                                <button class="pharm-medicine-status-btn" data-status="good">Good Stock</button>
+                                <button class="pharm-medicine-status-btn" data-status="low">Low Stock</button>
+                                <button class="pharm-medicine-status-btn" data-status="critical">Critical</button>
+                                <button class="pharm-medicine-status-btn" data-status="out">Out of Stock</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search medicines..." id="medicineSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-medicine" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-medicine-table-container">
+                        <table class="table table-hover text-nowrap pharm-medicine-table" id="medicineTable">
                             <thead>
                                 <tr>
                                     <th>Drug Name</th>
                                     <th>Drug Type</th>
-                                    <th>Formulation Unit</th>
+                                    <th>Formulation</th>
                                     <th>Manufacturer</th>
-                                    <th>Remaining Quantity</th>
-                                    <th>Quantity</th>
-                                    <th>Dividable</th>
-                                    <th>Dividing unit</th>
+                                    <th>Stock Level</th>
                                     <th>Batch Number</th>
                                     <th>Expiration Date</th>
-                                    <th>Cash Cost</th>
-                                    <th>Insurance Cost</th>
-                                    <th>NHIF Cost</th>
-                                    <th>Buying Price</th>
-                                    <th>Total Buying Price</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>                           
-                                    <th>Action</th>              
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                    <th>Action</th>               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for medicine in medicines %}
-                                    <tr>
+                                    <tr data-stock-level="{{ medicine.remain_quantity }}" 
+                                        data-total-quantity="{{ medicine.quantity }}"
+                                        data-expiry-date="{{ medicine.expiration_date|date:'Y-m-d' }}">  
                                         <td>{{ medicine.drug_name }}</td>
                                         <td>{{ medicine.drug_type }}</td>
                                         <td>{{ medicine.formulation_unit }}</td>
                                         <td>{{ medicine.manufacturer }}</td>
-                                        <td>{{ medicine.remain_quantity }}</td>
-                                        <td>{{ medicine.quantity }}</td>
-                                        <td>{{ medicine.is_dividable }}</td>
-                                        <td>{{ medicine.dividing_unit }}</td>
-                                        <td>{{ medicine.batch_number }}</td>
-                                        <td>{{ medicine.expiration_date|date:"d/m/Y" }}</td>
-                                        <td>{{ medicine.cash_cost }}</td>
-                                        <td>{{ medicine.insurance_cost }}</td>
-                                        <td>{{ medicine.nhif_cost }}</td>
-                                        <td>{{ medicine.buying_price }}</td>
-                                        <td>{{ medicine.total_buying_price }}</td>
-                                        <td>{{ medicine.created_at|date:"d/m/Y" }}</td>
-                                        <td>{{ medicine.updated_at|date:"d/m/Y" }}</td>
                                         <td>
-                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Edit">
-                                            <i class="fa fa-edit text-white"></i>
-                                        </button>
-                                             
+                                            <div class="d-flex align-items-center">
+                                                <div class="pharm-medicine-progress mr-2" style="width: 100px;">
+                                                    <div class="pharm-medicine-progress-bar 
+                                                        {% if medicine.remain_quantity == 0 %}pharm-medicine-progress-critical
+                                                        {% elif medicine.remain_quantity <= medicine.quantity|multiply:0.1 %}pharm-medicine-progress-critical
+                                                        {% elif medicine.remain_quantity <= medicine.quantity|multiply:0.3 %}pharm-medicine-progress-warning
+                                                        {% elif medicine.remain_quantity <= medicine.quantity|multiply:0.5 %}pharm-medicine-progress-low
+                                                        {% else %}pharm-medicine-progress-good{% endif %}" 
+                                                        role="progressbar" 
+                                                        style="width: {% widthratio medicine.remain_quantity medicine.quantity 100 %}%;" 
+                                                        aria-valuenow="{% widthratio medicine.remain_quantity medicine.quantity 100 %}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <span>{{ medicine.remain_quantity }}/{{ medicine.quantity }}</span>
+                                            </div>
                                         </td>
-                                    </tr>                                      
-                             
+                                        <td>{{ medicine.batch_number }}</td>
+                                        <td class="
+                                            {% if medicine.is_expired %}pharm-medicine-expiry-expired
+                                            {% elif medicine.expiring_soon %}pharm-medicine-expiry-soon
+                                            {% else %}pharm-medicine-expiry-valid{% endif %}">
+                                            {{ medicine.expiration_date|date:"d-m-Y" }}
+                                            {% if medicine.is_expired %}<i class="fas fa-skull-crossbones ml-1"></i>{% endif %}
+                                        </td>
+                                        <td>
+                                            <div>Cash: {{ medicine.cash_cost }}</div>
+                                            <div>Insurance: {{ medicine.insurance_cost }}</div>
+                                            <div>NHIF: {{ medicine.nhif_cost }}</div>
+                                        </td>
+                                        <td>
+                                            {% if medicine.remain_quantity == 0 %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-stock-out">Out of Stock</span>
+                                            {% elif medicine.remain_quantity <= medicine.quantity|multiply:0.1 %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-stock-critical">Critical</span>
+                                            {% elif medicine.remain_quantity <= medicine.quantity|multiply:0.3 %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-stock-low">Low</span>
+                                            {% else %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-stock-good">Good</span>
+                                            {% endif %}
+                                            <br>
+                                            {% if medicine.is_dividable %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-dividable mt-1">Dividable</span>
+                                            {% else %}
+                                                <span class="pharm-medicine-badge pharm-medicine-badge-not-dividable mt-1">Not Dividable</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-pharm-medicine-edit mb-1" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}">
+                                                <i class="fas fa-edit mr-1"></i> Edit
+                                            </button>
+                                            <button type="button" class="btn btn-pharm-medicine-restock" data-toggle="modal" data-target="#restockModal{{ medicine.id }}">
+                                                <i class="fas fa-cart-plus mr-1"></i> Restock
+                                            </button>
+                                        </td>        
+                                    </tr>
                                 {% endfor %}
                             </tbody>
-                        </table>
+                        </table>                        
                     </div>
                 </div>
             </div>
@@ -84,32 +579,36 @@
     </div>
 </div>
 
-
 {% for medicine in medicines %}
+<!-- Edit Medicine Modal -->
 <div class="modal fade" id="editMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="editMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMedicineModalLabel{{ medicine.id }}">Edit Medicine</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content pharm-medicine-modal-content">
+            <div class="modal-header pharm-medicine-modal-header">
+                <h5 class="modal-title text-white" id="editMedicineModalLabel{{ medicine.id }}">
+                    <i class="fas fa-edit mr-2"></i>Edit {{ medicine.drug_name }}
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <div id="editMedicineContainers{{ medicine.id }}" class="alert" role="alert"></div>
                 <form id="editMedicineForm{{ medicine.id }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+                    
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="drug_name{{ medicine.id }}">Drug Name</label>
                                 <input type="text" class="form-control" id="drug_name{{ medicine.id }}" name="drug_name" value="{{ medicine.drug_name }}" required>
-                                <input type="hidden"  id="medicine_id{{ medicine.id }}" name="medicine_id" value="{{ medicine.id }}">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="drug_type{{ medicine.id }}">Drug Type</label>
-                                <select  class="form-control select2bs4" style="width: 100%;" id="drug_type{{ medicine.id }}" name="drug_type" required>
+                                <select class="form-control" id="drug_type{{ medicine.id }}" name="drug_type" required>
                                     <option value="Tablet" {% if medicine.drug_type == 'Tablet' %}selected{% endif %}>Tablet</option>
                                     <option value="Capsule" {% if medicine.drug_type == 'Capsule' %}selected{% endif %}>Capsule</option>
                                     <option value="Injection" {% if medicine.drug_type == 'Injection' %}selected{% endif %}>Injection</option>
@@ -123,25 +622,28 @@
                                     <option value="Suppository" {% if medicine.drug_type == 'Suppository' %}selected{% endif %}>Suppository</option>
                                     <option value="Powder" {% if medicine.drug_type == 'Powder' %}selected{% endif %}>Powder</option>
                                     <option value="Suspension" {% if medicine.drug_type == 'Suspension' %}selected{% endif %}>Suspension</option>
-                                    <option value="Lozenge" {% if medicine.drug_type == 'Lozenge' %}selected{% endif %}>Lozenge</option>                      
-                                    <!-- Add more options as needed -->
+                                    <option value="Lozenge" {% if medicine.drug_type == 'Lozenge' %}selected{% endif %}>Lozenge</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="formulation_unit{{ medicine.id }}">Formulation Unit</label>
                                 <input type="text" class="form-control" id="formulation_unit{{ medicine.id }}" name="formulation_unit" value="{{ medicine.formulation_unit }}" required>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="manufacturer{{ medicine.id }}">Manufacturer</label>
                                 <input type="text" class="form-control" id="manufacturer{{ medicine.id }}" name="manufacturer" value="{{ medicine.manufacturer }}" required>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="quantity{{ medicine.id }}">Quantity</label>
@@ -150,39 +652,43 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="dividable{{ medicine.id }}">Dividable</label>
-                                 <select class="form-control select2bs4 dividable-selector" style="width: 100%;"  name="is_dividable" data-id="{{ medicine.id }}" required>
-                                    <option value="True" {% if medicine.is_dividable == 'True' %}selected{% endif %}>True</option>
-                                    <option value="False" {% if medicine.is_dividable == 'False' %}selected{% endif %}>False</option>
+                                <label for="is_dividable{{ medicine.id }}">Is Dividable</label>
+                                <select class="form-control" id="is_dividable{{ medicine.id }}" name="is_dividable" required>
+                                    <option value="True" {% if medicine.is_dividable %}selected{% endif %}>True</option>
+                                    <option value="False" {% if not medicine.is_dividable %}selected{% endif %}>False</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                         <div class="col-md-4">
-                            <label>Dividing Unit</label>
-                            <input type="number" class="form-control" name="dividing_unit" id="dividing_unit{{ medicine.id }}" value="{{ medicine.dividing_unit }}">
-                        </div>
                         <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="dividing_unit{{ medicine.id }}">Dividing Unit (mg/ml)</label>
+                                <input type="number" class="form-control" id="dividing_unit{{ medicine.id }}" name="dividing_unit" value="{{ medicine.dividing_unit }}" {% if medicine.is_dividable %}required{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="batch_number{{ medicine.id }}">Batch Number</label>
                                 <input type="text" class="form-control" id="batch_number{{ medicine.id }}" name="batch_number" value="{{ medicine.batch_number }}" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="expiration_date{{ medicine.id }}">Expiration Date</label>
                                 <input type="date" class="form-control" id="expiration_date{{ medicine.id }}" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="buying_price{{ medicine.id }}">Buying Price</label>
                                 <input type="number" step="0.01" class="form-control" id="buying_price{{ medicine.id }}" name="buying_price" value="{{ medicine.buying_price }}" required>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="cash_cost{{ medicine.id }}">Cash Cost</label>
@@ -195,110 +701,177 @@
                                 <input type="number" step="0.01" class="form-control" id="insurance_cost{{ medicine.id }}" name="insurance_cost" value="{{ medicine.insurance_cost }}" required>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="nhif_cost{{ medicine.id }}">NHIF Cost</label>
                                 <input type="number" step="0.01" class="form-control" id="nhif_cost{{ medicine.id }}" name="nhif_cost" value="{{ medicine.nhif_cost }}" required>
                             </div>
                         </div>
-                    </div>               
-                    <div class="row">                      
+                    </div>
+                    
+                    <div class="row mt-3">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="editMedicine{{ medicine.id }}">Update Medicine</button>
+                            <button type="button" class="btn btn-pharm-medicine btn-block" id="editMedicine{{ medicine.id }}">
+                                <i class="fas fa-save mr-1"></i> Update Medicine
+                            </button>
                         </div>
-                    </div>                    
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Restock Modal -->
+<div class="modal fade" id="restockModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="restockModalLabel{{ medicine.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content pharm-medicine-modal-content">
+            <div class="modal-header pharm-medicine-modal-header">
+                <h5 class="modal-title text-white" id="restockModalLabel{{ medicine.id }}">
+                    <i class="fas fa-cart-plus mr-2"></i>Restock {{ medicine.drug_name }}
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="restockForm{{ medicine.id }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+                    
+                    <div class="form-group">
+                        <label for="quantityToAdd{{ medicine.id }}">Quantity to Add</label>
+                        <input type="number" class="form-control" id="quantityToAdd{{ medicine.id }}" name="quantity_to_add" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newBatchNumber{{ medicine.id }}">New Batch Number (Optional)</label>
+                        <input type="text" class="form-control" id="newBatchNumber{{ medicine.id }}" name="new_batch_number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newExpiryDate{{ medicine.id }}">New Expiry Date (Optional)</label>
+                        <input type="date" class="form-control" id="newExpiryDate{{ medicine.id }}" name="new_expiry_date">
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <p><strong>Current Stock:</strong> {{ medicine.remain_quantity }}/{{ medicine.quantity }}</p>
+                        <p><strong>Current Batch:</strong> {{ medicine.batch_number }}</p>
+                        <p><strong>Current Expiry:</strong> {{ medicine.expiration_date|date:"d-m-Y" }}</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-pharm-medicine-restock" onclick="restockMedicine({{ medicine.id }})">
+                    <i class="fas fa-check mr-1"></i> Confirm Restock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     $(document).ready(function () {
         $('#editMedicine{{ medicine.id }}').click(function (event) {
             var form = document.getElementById('editMedicineForm{{ medicine.id }}');
-            var dividable = $('#editMedicineForm{{ medicine.id }} select[name="dividable"]').val();
-            var dividingUnitField = $('#dividing_unit{{ medicine.id }}');
+            var isDividable = $('#is_dividable{{ medicine.id }}').val();
+            var dividingUnit = $('#dividing_unit{{ medicine.id }}').val();
 
-            // Conditionally enforce dividing unit field requirement
-            if (dividable === "True") {
-                dividingUnitField.attr('required', true);
-                if (!dividingUnitField.val().trim()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    $('#editMedicineContainers{{ medicine.id }}').html(
-                        '<div class="alert alert-danger">Please enter a dividing unit since this medicine is dividable.</div>'
-                    );
-                    dividingUnitField.focus();
-                    return;
-                }
-            } else {
-                dividingUnitField.removeAttr('required');
-            }
+            // Reset previous messages
+            $('#editMedicineContainers{{ medicine.id }}').html('');
 
-            // Validate the entire form
+            // Validate the form
             if (form.checkValidity() === false) {
                 event.preventDefault();
                 event.stopPropagation();
-            } else {
-                var formData = $('#editMedicineForm{{ medicine.id }}').serialize();
+                form.classList.add('was-validated');
+                return;
+            }
 
-                $.ajax({
-                    url: '{% url "pharmacist_add_medicine" %}', // Make sure this is your actual update URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#editMedicineContainers{{ medicine.id }}').html(
-                                '<div class="alert alert-success">' + response.message + '</div>'
-                            );
-                            location.reload(true);
-                        } else {
-                            $('#editMedicineContainers{{ medicine.id }}').html(
-                                '<div class="alert alert-danger">' + response.message + '</div>'
-                            );
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
+            // Additional validation for dividable medicines
+            if (isDividable === 'True' && (!dividingUnit || dividingUnit <= 0)) {
+                $('#editMedicineContainers{{ medicine.id }}').html(
+                    '<div class="alert alert-danger">Please enter a valid dividing unit for dividable medicine.</div>'
+                );
+                return;
+            }
+
+            // Submit via AJAX
+            var formData = $('#editMedicineForm{{ medicine.id }}').serialize();
+
+            $.ajax({
+                url: '{% url "pharmacist_add_medicine" %}',
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    if (response.success) {
                         $('#editMedicineContainers{{ medicine.id }}').html(
-                            '<div class="alert alert-danger">AJAX request failed</div>'
+                            '<div class="alert alert-success">' + response.message + '</div>'
+                        );
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        $('#editMedicineContainers{{ medicine.id }}').html(
+                            '<div class="alert alert-danger">' + response.message + '</div>'
                         );
                     }
-                });
-            }
+                },
+                error: function () {
+                    $('#editMedicineContainers{{ medicine.id }}').html(
+                        '<div class="alert alert-danger">An error occurred while updating the medicine.</div>'
+                    );
+                }
+            });
 
             form.classList.add('was-validated');
         });
+
+        // Toggle dividing unit requirement based on dividable selection
+        $('#is_dividable{{ medicine.id }}').change(function() {
+            if ($(this).val() === 'True') {
+                $('#dividing_unit{{ medicine.id }}').attr('required', true);
+            } else {
+                $('#dividing_unit{{ medicine.id }}').removeAttr('required');
+            }
+        });
     });
 </script>
-
 {% endfor %}
 
 <!-- Add Medicine Modal -->
 <div class="modal fade" id="addMedicineModal" tabindex="-1" role="dialog" aria-labelledby="addMedicineModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMedicineModalLabel">Add Medicine</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content pharm-medicine-modal-content">
+            <div class="modal-header pharm-medicine-modal-header">
+                <h5 class="modal-title text-white" id="addMedicineModalLabel">
+                    <i class="fas fa-plus-circle mr-2"></i>Add New Medicine
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <div id="addMedicineContainers" class="alert" role="alert"></div>
                 <form id="addMedicineForm" method="post">
+                    {% csrf_token %}
+                    
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="drug_name">Drug Name</label>
                                 <input type="text" class="form-control" id="drug_name" name="drug_name" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_drug_type">Drug Type</label>
-                                <select class="form-control select2bs4"  style="width: 100%;"  id="edit_drug_type" name="drug_type" required>
-                                    <option value=""></option>
+                                <label for="drug_type">Drug Type</label>
+                                <select class="form-control" id="drug_type" name="drug_type" required>
+                                    <option value="">Select Drug Type</option>
                                     <option value="Tablet">Tablet</option>
                                     <option value="Capsule">Capsule</option>
                                     <option value="Injection">Injection</option>
@@ -316,21 +889,24 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="formulation_unit">Formulation Unit</label>
                                 <input type="text" class="form-control" id="formulation_unit" name="formulation_unit" required>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="manufacturer">Manufacturer</label>
-                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+                                <input type="text" class="form-control" id="manufacturer" name="manufacturer" required>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="quantity">Quantity</label>
@@ -340,36 +916,36 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="is_dividable">Is Dividable</label>
-                                <select class="form-control select2bs4" style="width: 100%;"  id="is_dividable" name="is_dividable" required>
+                                <select class="form-control" id="is_dividable" name="is_dividable" required>
                                     <option value="">Select</option>
                                     <option value="True">True</option>
                                     <option value="False">False</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="dividing_unit">Dividing Unit (mg/ml)</label>
-                                <input type="number" class="form-control" id="dividing_unit" name="dividing_unit" placeholder="e.g. 125">
+                                <input type="number" class="form-control" id="dividing_unit" name="dividing_unit">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="batch_number">Batch Number</label>
                                 <input type="text" class="form-control" id="batch_number" name="batch_number" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="expiration_date">Expiration Date</label>
                                 <input type="date" class="form-control" id="expiration_date" name="expiration_date" required>
                             </div>
                         </div>
                     </div>
-
+                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
@@ -390,7 +966,7 @@
                             </div>
                         </div>
                     </div>
-
+                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
@@ -399,11 +975,12 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Submit -->
-                    <div class="row">
+                    
+                    <div class="row mt-3">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="addMedicine">Add Medicine</button>
+                            <button type="button" class="btn btn-pharm-medicine btn-block" id="addMedicine">
+                                <i class="fas fa-save mr-1"></i> Add Medicine
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -412,41 +989,200 @@
     </div>
 </div>
 
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-medicine-modal-content">
+      <div class="modal-header pharm-medicine-modal-header">
+        <h5 class="modal-title text-white" id="notificationModalLabel">Notification</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="notificationModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-pharm-medicine" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+{% endblock main_content %}
+{% block customer_js %}
+{% include 'pharmacist_template/datatable.html' %}
 <script>
+    // Initialize DataTable
+    new DataTable('#medicineTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let inStockCount = 0;
+        let lowStockCount = 0;
+        
+        document.querySelectorAll('#medicineTable tbody tr').forEach(row => {
+            const stockLevel = parseInt(row.getAttribute('data-stock-level'));
+            const totalQuantity = parseInt(row.getAttribute('data-total-quantity'));
+            
+            // Count by status
+            if (stockLevel > 0) {
+                inStockCount++;
+            }
+            
+            if (stockLevel > 0 && stockLevel <= totalQuantity * 0.3) {
+                lowStockCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('in-stock').textContent = inStockCount;
+        document.getElementById('low-stock').textContent = lowStockCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pharm-medicine-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-medicine-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterMedicines(status);
+        });
+    });
+
+    // Filter medicines by status
+    function filterMedicines(status) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const stockLevel = parseInt(row.getAttribute('data-stock-level'));
+            const totalQuantity = parseInt(row.getAttribute('data-total-quantity'));
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'good' && stockLevel > totalQuantity * 0.5) {
+                showRow = true;
+            } else if (status === 'low' && stockLevel > totalQuantity * 0.3 && stockLevel <= totalQuantity * 0.5) {
+                showRow = true;
+            } else if (status === 'critical' && stockLevel > 0 && stockLevel <= totalQuantity * 0.3) {
+                showRow = true;
+            } else if (status === 'out' && stockLevel === 0) {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('medicineSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-medicine-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medicineSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-medicine-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+
+    // Filter medicines by both status and search text
+    function filterMedicinesWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const stockLevel = parseInt(row.getAttribute('data-stock-level'));
+            const totalQuantity = parseInt(row.getAttribute('data-total-quantity'));
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'good' && stockLevel > totalQuantity * 0.5) {
+                statusMatch = true;
+            } else if (status === 'low' && stockLevel > totalQuantity * 0.3 && stockLevel <= totalQuantity * 0.5) {
+                statusMatch = true;
+            } else if (status === 'critical' && stockLevel > 0 && stockLevel <= totalQuantity * 0.3) {
+                statusMatch = true;
+            } else if (status === 'out' && stockLevel === 0) {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // Add medicine functionality
     $(document).ready(function () {
         $('#addMedicine').click(function (event) {
             var form = document.getElementById('addMedicineForm');
-            var isValid = true;
             var isDividable = $('#is_dividable').val();
             var dividingUnit = $('#dividing_unit').val();
 
             // Reset previous messages
             $('#addMedicineContainers').html('');
 
-            // Basic form validation
+            // Validate the form
             if (form.checkValidity() === false) {
-                isValid = false;
-            }
-
-            // Custom validation: check if is_dividable selected
-            if (!isDividable) {
-                isValid = false;
-                $('#addMedicineContainers').append('<div class="alert alert-warning">Please select whether the drug is dividable.</div>');
-            }
-
-            // If dividable is True, dividing_unit must be a positive number
-            if (isDividable === 'True') {
-                if (!dividingUnit || isNaN(dividingUnit) || parseInt(dividingUnit) <= 0) {
-                    isValid = false;
-                    $('#addMedicineContainers').append('<div class="alert alert-warning">Please enter a valid dividing unit greater than zero.</div>');
-                }
-            }
-
-            if (!isValid) {
                 event.preventDefault();
                 event.stopPropagation();
                 form.classList.add('was-validated');
+                return;
+            }
+
+            // Additional validation for dividable medicines
+            if (isDividable === 'True' && (!dividingUnit || dividingUnit <= 0)) {
+                $('#addMedicineContainers').html(
+                    '<div class="alert alert-danger">Please enter a valid dividing unit for dividable medicine.</div>'
+                );
                 return;
             }
 
@@ -454,28 +1190,90 @@
             var formData = $('#addMedicineForm').serialize();
 
             $.ajax({
-                url: '{% url "pharmacist_add_medicine" %}',  // Update to your URL
+                url: '{% url "pharmacist_add_medicine" %}',
                 type: 'POST',
                 data: formData,
                 success: function (response) {
                     if (response.success) {
-                        $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                        location.reload(true);
+                        $('#addMedicineContainers').html(
+                            '<div class="alert alert-success">' + response.message + '</div>'
+                        );
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
                     } else {
-                        $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        $('#addMedicineContainers').html(
+                            '<div class="alert alert-danger">' + response.message + '</div>'
+                        );
                     }
                 },
                 error: function () {
-                    console.error('AJAX request failed');
-                    $('#addMedicineContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    $('#addMedicineContainers').html(
+                        '<div class="alert alert-danger">An error occurred while adding the medicine.</div>'
+                    );
                 }
             });
 
             form.classList.add('was-validated');
         });
+
+        // Toggle dividing unit requirement based on dividable selection
+        $('#is_dividable').change(function() {
+            if ($(this).val() === 'True') {
+                $('#dividing_unit').attr('required', true);
+            } else {
+                $('#dividing_unit').removeAttr('required');
+            }
+        });
     });
+
+    // Restock medicine function
+    function restockMedicine(medicineId) {
+        const quantityToAdd = document.getElementById(`quantityToAdd${medicineId}`).value;
+        const newBatchNumber = document.getElementById(`newBatchNumber${medicineId}`).value;
+        const newExpiryDate = document.getElementById(`newExpiryDate${medicineId}`).value;
+        
+        if (!quantityToAdd || quantityToAdd < 1) {
+            showNotification("Please enter a valid quantity to add.", "error");
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "pharmacist_restock_medicine" %}',
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: { 
+                medicine_id: medicineId,
+                quantity_to_add: quantityToAdd,
+                new_batch_number: newBatchNumber,
+                new_expiry_date: newExpiryDate
+            },
+            success: function (response) {
+                showNotification("Medicine restocked successfully.", "success");
+                setTimeout(() => location.reload(), 1500);
+            },
+            error: function (xhr, status, error) {
+                showNotification("Failed to restock medicine: " + error, "error");
+            }
+        });
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const modalBody = document.getElementById('notificationModalBody');
+        modalBody.textContent = message;
+        
+        // Set appropriate styling based on type
+        const modalContent = document.querySelector('#notificationModal .modal-content');
+        if (type === 'success') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #00b09b, #96c93d)';
+        } else if (type === 'error') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #ff416c, #ff4b2b)';
+        } else {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #1a2a6c, #b21f1f)';
+        }
+        
+        $('#notificationModal').modal('show');
+    }
 </script>
-
-
-{% include 'pharmacist_template/datatable.html' %}
-{% endblock main_content %}
+{% endblock %}

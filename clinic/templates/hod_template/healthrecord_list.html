@@ -1,244 +1,525 @@
 {% extends 'hod_template/base_template.html' %}
+{% load static %}
 
 {% block title %}
-chief complaint
+Chief Complaint Management
 {% endblock title %}
 
 {% block page_title %}
-chief complaint
+Chief Complaint Management
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
-<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addHealthRecordModal">
-    <i class="fas fa-plus"></i> New chief complaint
+<a class="btn btn-gradient float-right" type="button" data-toggle="modal" data-target="#addComplaintModal">
+    <i class="fas fa-plus mr-2"></i> New Chief Complaint
 </a>
 {% endblock breadcrumb %}
 
-
-{% load static %}
 {% block main_content %}
+<style>
+    .card-gradient {
+        background: linear-gradient(120deg, #00897b, #009688);
+        color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .card-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .complaint-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .complaint-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .action-btn {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .modal-header-gradient {
+        background: linear-gradient(120deg, #00897b, #009688);
+        color: white;
+        border-radius: 0;
+    }
+    .modal-header-danger {
+        background: linear-gradient(120deg, #e53935, #b71c1c);
+        color: white;
+        border-radius: 0;
+    }
+    .complaint-table th {
+        background: linear-gradient(120deg, #e0f2f1, #b2dfdb);
+        color: #00695c;
+        font-weight: 600;
+    }
+    .complaint-icon-container {
+        height: 80px;
+        width: 80px;
+        border-radius: 50%;
+        background: #e0f2f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+    }
+    .complaint-icon {
+        font-size: 2rem;
+        color: #009688;
+    }
+    .form-group-icon {
+        position: relative;
+    }
+    .form-group-icon i {
+        position: absolute;
+        left: 12px;
+        top: 38px;
+        color: #009688;
+    }
+    .form-group-icon input, .form-group-icon textarea, .form-group-icon select {
+        padding-left: 40px;
+    }
+    .date-badge {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        background: #f5f5f5;
+        color: #666;
+    }
+    .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+    }
+    .fa-stethoscope {
+        font-size: 1.5rem;
+        color: #009688;
+    }
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .status-indicator {
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-active {
+        background-color: #4caf50;
+    }
+    .status-inactive {
+        background-color: #f44336;
+    }
+</style>
 
+<!-- Global alert container -->
+<div class="alert-container" id="globalAlertContainer"></div>
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> List of chief complaint Records </h6>
+            <div class="card card-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-stethoscope mr-2"></i>Chief Complaint Management</h5>
+                        <div class="d-flex">
+                            <button class="btn btn-light btn-sm mr-2" onclick="location.reload()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="filterDropdown">
+                                    <a class="dropdown-item" href="#">All Complaints</a>
+                                    <a class="dropdown-item" href="#">Active</a>
+                                    <a class="dropdown-item" href="#">Inactive</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example" style="width:100%">
-                            <thead>
+                        <table class="table table-hover complaint-table" id="complaintTable">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>
-                                    <th>Actions</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Complaint</th>
+                                    <th><i class="fas fa-calendar-plus mr-2"></i>Created At</th>
+                                    <th><i class="fas fa-calendar-check mr-2"></i>Updated At</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for record in records %}
-                                    <tr>
-                                        <td>{{ record.name }}</td>
-                                        <td>{{ record.created_at|date:"d-m-Y" }}</td>
-                                        <td>{{ record.updated_at|date:"d-m-Y" }}</td>
-                                        <td>
-                                            <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editHealthRecordModal{{ record.id }}"  data-toggle="tooltip" title="Edit">
-                                                <i class="fa fa-edit text-white"></i>
+                                <tr class="complaint-card">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm mr-2 bg-light-teal rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-stethoscope text-teal"></i>
+                                            </div>
+                                            {{ record.name }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="date-badge">{{ record.created_at|date:"d M Y" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="date-badge">{{ record.updated_at|date:"d M Y" }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center">
+                                            <button class="btn btn-outline-primary action-btn mx-1" 
+                                                    data-toggle="modal" 
+                                                    data-target="#editComplaintModal{{ record.id }}">
+                                                <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteHealthRecordModal{{ record.id }}"  data-toggle="tooltip" title="Delete">
+                                            <button class="btn btn-outline-danger action-btn mx-1" 
+                                                    data-toggle="modal" 
+                                                    data-target="#deleteComplaintModal{{ record.id }}">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                        </td>
-    
-                                                           <!-- Delete Modal -->
-                                            <div class="modal fade" id="deleteHealthRecordModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteHealthRecordModalLabel{{ record.id }}" aria-hidden="true">
-                                                <div class="modal-dialog" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="deleteHealthRecordModalLabel{{ record.id }}">Delete Category</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <p>Are you sure you want to delete this health record: <strong>{{ record.name }}</strong>?</p>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                                            <button type="button" class="btn btn-danger" onclick="deleteHealthRecord({{ record.id }})">Delete</button>
-                                                        </div>
-                                                    </div>
-    
-                                                    <script>
-                                                        function deleteHealthRecord(healthrecordId) {
-                                                            $.ajax({
-                                                                type: 'POST',
-                                                                url: '{% url "admin_delete_health_record" %}',  // Replace with your URL
-                                                                data: { health_record_id: healthrecordId },
-                                                                success: function (data) {
-                                                                    if (data.success) {
-                                                                        $('#deleteHealthRecordModal' + healthrecordId).modal('hide');
-                                                                        location.reload(true);
-                                                                        // Refresh the category list or perform any other actions
-                                                                    } else {
-                                                                        // Handle other status cases if needed
-                                                                        console.log(data.message);
-                                                                    }
-                                                                },
-                                                                error: function (error) {
-                                                                    console.log(error);
-                                                                    // Handle errors if necessary
-                                                                }
-                                                            });
-                                                        }
-                                                    </script>
-                                                </div>
-                                            </div>
-    
-    
-                                 
-    
-                                    </tr>
-                                
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        </div>
-     
-</div>
+    </div>
 </div>
 
 {% for record in records %}
-                   <!-- Bootstrap Modal for Adding Health Record -->
-                   <div class="modal fade" id="editHealthRecordModal{{ record.id }}" tabindex="-1" aria-labelledby="editHealthRecordModalLabel{{ record.id }}" aria-hidden="true">
-                    <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="editHealthRecordModalLabel{{ record.id }}">Add Health Record</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteComplaintModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteComplaintModalLabel{{ record.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-danger py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-trash-alt mr-2"></i>Confirm Complaint Deletion
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Message container for delete operation -->
+                <div id="deleteComplaintMessageContainer{{ record.id }}" class="mb-4"></div>
+                
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h4 class="font-weight-bold">Delete Complaint?</h4>
+                    <p>This action cannot be undone</p>
+                </div>
+                
+                <div class="card mb-4 border-danger">
+                    <div class="card-body text-center">
+                        <div class="complaint-icon-container">
+                            <i class="fas fa-stethoscope complaint-icon text-teal"></i>
                         </div>
-                        <div class="modal-body">
-                        <div id="editresponseContainer{{ record.id }}" class="alert" role="alert"></div>
-                        <form id="editHealthRecordForm{{ record.id }}" method="post">
-                            {% csrf_token %}
-                            <!-- Health Record Form Fields -->
-                            <div class="form-group">
-                            <label for="name">Name:</label>
-                            <input type="text" class="form-control" id="name" name="name"  value="{{record.name}}" required>
-                            <input type="hidden" class="form-control" id="health_record_id" name="health_record_id" value="{{record.id}}">
-                            </div>                                               
-                             <button type="button" class="btn btn-primary btn-block" id="editHealthRecord{{ record.id }}">update Health Record</button>
-                        </form>
+                        <h5 class="font-weight-bold text-danger">{{ record.name }}</h5>
+                        <div class="d-flex justify-content-center mt-3">
+                            <div class="mx-3">
+                                <div class="font-weight-bold text-secondary">Created</div>
+                                <span class="date-badge">{{ record.created_at|date:"d M Y" }}</span>
+                            </div>
+                            <div class="mx-3">
+                                <div class="font-weight-bold text-secondary">Last Updated</div>
+                                <span class="date-badge">{{ record.updated_at|date:"d M Y" }}</span>
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
-                <script>
-                    $(document).ready(function () {
-                        $('#editHealthRecord{{ record.id }}').click(function (event) {
-                            var form = document.getElementById('editHealthRecordForm{{ record.id }}');
-                            if (form.checkValidity() === false) {
-                                event.preventDefault();
-                                event.stopPropagation();
-                            } else {
-                                var formData = $('#editHealthRecordForm{{ record.id }}').serialize();
                 
-                                $.ajax({
-                                    url: '{% url "admin_save_health_record" %}', // Update with your actual URL
-                                    type: 'POST',
-                                    data: formData,
-                                    success: function (response) {
-                                        if (response.success) {
-                                            $('#editresponseContainer{{ record.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                                            location.reload(true);
-                                        } else {
-                                            $('#editresponseContainer{{ record.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                        }
-                                    },
-                                    error: function () {
-                                        console.error('AJAX request failed');
-                                        $('#editresponseContainer{{ record.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
-                                    }
-                                });
-                            }
-                
-                            form.classList.add('was-validated');
-                        });
-                    });
-                </script>
-               
+                <div class="d-flex justify-content-between mt-2">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" onclick="deleteComplaint({{ record.id }})">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endfor %}
 
-                <!-- Bootstrap Modal for Adding Health Record -->
-                <div class="modal fade" id="addHealthRecordModal" tabindex="-1" aria-labelledby="addHealthRecordModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="addHealthRecordModalLabel">Add Health Record</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        </div>
-                        <div class="modal-body">
-                        <div id="addresponseContainer" class="alert" role="alert"></div>
-                        <form id="addHealthRecordForm" method="post">
-                            {% csrf_token %}
-                            <!-- Health Record Form Fields -->
-                            <div class="form-group">
-                            <label for="name">Name:</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                            </div>                 
-                            <button type="button" class="btn btn-primary btn-block" id="addHealthRecord">Add Health Record</button>
-                        </form>
-                        </div>
-                    </div>
-                    </div>
+{% for record in records %}
+<!-- Edit Modal -->
+<div class="modal fade" id="editComplaintModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="editComplaintModalLabel{{ record.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-edit mr-2"></i>Edit Chief Complaint
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="editComplaintMessageContainer{{ record.id }}" class="alert mb-4" role="alert"></div>
+                
+                <div class="complaint-icon-container">
+                    <i class="fas fa-stethoscope complaint-icon text-teal"></i>
                 </div>
-
-                <script>
-                    $(document).ready(function () {
-                        $('#addHealthRecord').click(function (event) {
-                            var form = document.getElementById('addHealthRecordForm');
-                            if (form.checkValidity() === false) {
-                                event.preventDefault();
-                                event.stopPropagation();
-                            } else {
-                                var formData = $('#addHealthRecordForm').serialize();
                 
-                                $.ajax({
-                                    url: '{% url "admin_save_health_record" %}', // Update with your actual URL
-                                    type: 'POST',
-                                    data: formData,
-                                    success: function (response) {
-                                        if (response.success) {
-                                            $('#addresponseContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                                            location.reload(true);
-                                        } else {
-                                            $('#addresponseContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                        }
-                                    },
-                                    error: function () {
-                                        console.error('AJAX request failed');
-                                        $('#addresponseContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
-                                    }
-                                });
-                            }
+                <form id="editComplaintForm{{ record.id }}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="health_record_id" value="{{ record.id }}">
+                    
+                    <div class="form-group form-group-icon">
+                        <label for="editName{{ record.id }}" class="font-weight-bold">Complaint Name</label>
+                        <i class="fas fa-stethoscope"></i>
+                        <input type="text" class="form-control" name="name" 
+                               id="editName{{ record.id }}" value="{{ record.name }}" required>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-gradient px-4" id="editComplaint{{ record.id }}">
+                            <i class="fas fa-save mr-2"></i>Update Complaint
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Add Complaint Modal -->
+<div class="modal fade" id="addComplaintModal" tabindex="-1" role="dialog" aria-labelledby="addComplaintModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-plus-circle mr-2"></i>Add New Chief Complaint
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="addComplaintMessageContainer" class="alert mb-4" role="alert"></div>
                 
-                            form.classList.add('was-validated');
-                        });
-                    });
-                </script>
-              
-  
-
-
+                <div class="complaint-icon-container">
+                    <i class="fas fa-stethoscope complaint-icon text-teal"></i>
+                </div>
+                
+                <form id="addComplaintForm" method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group form-group-icon">
+                        <label for="addName" class="font-weight-bold">Complaint Name</label>
+                        <i class="fas fa-stethoscope"></i>
+                        <input type="text" class="form-control" name="name" 
+                               id="addName" placeholder="e.g., Headache, Chest Pain" required>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-gradient px-4" id="addComplaint">
+                            <i class="fas fa-plus-circle mr-2"></i>Add Complaint
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% include 'hod_template/datatable.html' %}
+<script>
+    new DataTable('#complaintTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+    });
+</script>
 {% endblock main_content %}
+
+{% block customer_js %}
+
+<script>
+    $(document).ready(function() {    
+        // Add hover effect to table rows
+        $('#complaintTable tbody tr').hover(
+            function() {
+                $(this).css('transform', 'translateY(-2px)');
+                $(this).css('box-shadow', '0 8px 25px rgba(0,0,0,0.15)');
+            },
+            function() {
+                $(this).css('transform', '');
+                $(this).css('box-shadow', '0 4px 15px rgba(0,0,0,0.08)');
+            }
+        );
+        
+        // Add Complaint Form Submission
+        $('#addComplaint').click(function(event) {
+            var form = document.getElementById('addComplaintForm');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#addComplaintForm').serialize();
+                submitForm('{% url "resa_admin_save_health_record" %}', formData, '#addComplaintMessageContainer');
+            }
+            form.classList.add('was-validated');
+        });
+        
+        // Edit Complaint Form Submissions
+        {% for record in records %}
+        $('#editComplaint{{ record.id }}').click(function(event) {
+            var form = document.getElementById('editComplaintForm{{ record.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editComplaintForm{{ record.id }}').serialize();
+                submitForm('{% url "resa_admin_save_health_record" %}', formData, '#editComplaintMessageContainer{{ record.id }}');
+            }
+            form.classList.add('was-validated');
+        });
+        {% endfor %}
+        
+        // Generic form submission function
+        function submitForm(url, data, containerSelector) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        $(containerSelector).html('<div class="alert alert-success">' + response.message + '</div>');
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        $(containerSelector).html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? 
+                        xhr.responseJSON.message : 'Server error occurred';
+                    $(containerSelector).html('<div class="alert alert-danger">' + msg + '</div>');
+                }
+            });
+        }
+        
+        // Function to show alert in the global container
+        function showAlert(message, type) {
+            var alertClass = 'alert-' + type;
+            var alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            $('#globalAlertContainer').html(alertHtml);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+        
+        // Delete complaint function
+        window.deleteComplaint = function(complaintId) {
+            // Get the message container for this specific modal
+            var messageContainer = $('#deleteComplaintMessageContainer' + complaintId);
+            
+            // Clear previous messages
+            messageContainer.html('');
+            
+            $.ajax({
+                url: '{% url "resa_admin_delete_health_record" %}',
+                type: 'POST',
+                data: {
+                    'health_record_id': complaintId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                beforeSend: function() {
+                    // Show loading indicator
+                    messageContainer.html(`
+                        <div class="alert alert-info">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Deleting complaint...
+                        </div>
+                    `);
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message in modal
+                        messageContainer.html(`
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle mr-2"></i> ${response.message}
+                            </div>
+                        `);
+                        
+                        // Also show in global container
+                        showAlert('Complaint deleted successfully!', 'success');
+                        
+                        // Close modal and reload after 1.5 seconds
+                        setTimeout(function() {
+                            $('#deleteComplaintModal' + complaintId).modal('hide');
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        // Show error message in modal
+                        messageContainer.html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle mr-2"></i> ${response.message}
+                            </div>
+                        `);
+                        
+                        // Also show in global container
+                        showAlert(response.message, 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? 
+                        xhr.responseJSON.message : 'Error occurred while deleting complaint';
+                    
+                    // Show error message in modal
+                    messageContainer.html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> ${msg}
+                        </div>
+                    `);
+                    
+                    // Also show in global container
+                    showAlert(msg, 'danger');
+                }
+            });
+        };
+    });
+</script>
+{% endblock %}

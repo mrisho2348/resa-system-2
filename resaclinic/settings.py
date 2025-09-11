@@ -28,11 +28,11 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'clinic',
-    'centric',
     'kahamahmis',
     'wkhtmltopdf',
     'django.contrib.humanize',
     'django_ckeditor_5',
+    'pembahmis',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'clinic.LoginCheckMiddleWare.LoginCheckMiddleware',
+   
     
   
 ]
@@ -125,6 +126,11 @@ AUTHENTICATION_BACKENDS = ['clinic.emailBackEnd.EmailBackend']
 # EMAIL_FILE_PATH = os.path.join(BASE_DIR,"sent_emails")
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+
+# Update password reset settings
+LOGIN_URL = 'resa_portal'
+LOGIN_REDIRECT_URL = 'profile'
+LOGOUT_REDIRECT_URL = 'resa_portal'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

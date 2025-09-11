@@ -3,269 +3,610 @@
 {% block title %}
 {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} procedure   
 {% endblock title %}
+
 {% block page_title %}
-<a class="btn btn-primary" type="button"  href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-{% if previous_procedures %}
-    <a class="btn btn-success breadcrumb-link" type="button" 
-    href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %} ">
-    <i class="fas fa-arrow-right"></i> Forward
+<div class="d-flex justify-content-between align-items-center">
+    <a class="btn btn-prem-proc-nav" href="{% url 'kahama_doctor_consultation_save_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back
     </a>
-{% endif %}
+    <h5 class="m-0 text-white">Patient Procedures</h5>
+    {% if previous_procedures %}
+    <a class="btn btn-prem-proc-nav" href="{% url 'kahama_doctor_consultation_save' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+    {% endif %}
+</div>
 {% endblock page_title %}
+
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
 Patient Procedure
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Procedure Styles - Unique to this template */
+    .proc-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .proc-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .proc-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .proc-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .proc-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .proc-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .proc-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-proc {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-proc:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-proc-nav {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        margin-right: 10px;
+    }
+    
+    .btn-prem-proc-nav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .proc-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .proc-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .proc-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .proc-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .proc-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .proc-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .proc-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .proc-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .proc-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .proc-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .proc-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .proc-prem-flip-card:hover .proc-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .proc-prem-flip-card-front, .proc-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .proc-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .proc-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .proc-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes procPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .proc-prem-animated {
+        animation: procPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #b2ebf2;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .proc-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .proc-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+    }
+    
+    .proc-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+    }
+    
+    /* Form section styling */
+    .proc-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0f7fa;
+    }
+    
+    /* Patient info card styling */
+    .proc-prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .proc-prem-patient-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .proc-prem-patient-info {
+        font-size: 0.9rem;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .proc-prem-patient-info b {
+        color: #0F2027;
+    }
+    
+    /* Table styling */
+    .proc-prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .proc-prem-table th {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .proc-prem-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0f7fa;
+    }
+    
+    .proc-prem-table tr:nth-child(even) {
+        background-color: #f8fdff;
+    }
+    
+    .proc-prem-table tr:hover {
+        background-color: #e0f7fa;
+    }
+    
+    /* Modal premium styling */
+    .proc-prem-modal .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .proc-prem-modal .modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    /* List styling */
+    .proc-prem-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .proc-prem-list li {
+        background: #e0f7fa;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #006064;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .proc-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .btn-prem-proc-nav {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .proc-prem-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">              
+            <div class="card proc-prem-patient-card">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header bg-primary-600">
-                                    <h6 class="card-title text-center text-uppercase">Procedure</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <label for="chief_complaints">Patient Information</label>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    <b>PATIENT:</b> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>DOB:</b> {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                                                    <script>
-                                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                        var now = new Date();
-                                                        var ageMilliseconds = now - dob;
-                                                        var ageSeconds = ageMilliseconds / 1000;
-                                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                                        document.write(ageYears + ' years');
-                                                    </script>
-                                                    {% else %}
-                                                    {{ patient.age }}
-                                                    {% endif %}]
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>SEX:</b> {{ patient.gender }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>FILE NO:</b> {{ patient.mrn }}
-                                                </div>
-                                            </div>
-                                            <br>
-                                            <div class="row">
-                                                <div class="col-md-3">
-                                                    <b>Company:</b> {{ patient.company }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <b>Visit Number:</b> {{ visit.vst }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="row proc-prem-patient-info">
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if patient.middle_name %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
                     </div>
-                    <br />                   
-                    
-                </div>
+                    <div class="row proc-prem-patient-info">
+                        <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                        <div class="col-md-3">Visit Number: <b>{{ visit.vst }}</b></div>
+                    </div>
+                </div>    
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="card-title text-center text-uppercase">Diagnosis</h6>
-                        </div>
-                        <div class="col-md-6">
-                            <a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#previousProceduresModal">
-                                <i class="fas fa-eye"></i>  View Previous Procedures
-                            </a>
-                        </div>
-                    </div>
-                   
-                </div>
-                <div class="card-body">
-                    {% for note in consultation_notes %}
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
-                            <tbody>
-                                <tr>
-                                    <th>Preliminary Diagnosis</th>
-                                    <th>Final Diagnosis</th>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <ul class="list-group">
-                                            {% for diagnosis in note.provisional_diagnosis.all %}
-                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </td>
-                                    <td>
-                                        <ul class="list-group">
-                                            {% for diagnosis in note.final_diagnosis.all %}
-                                            <li class="list-group-item">{{ diagnosis}}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>        
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card proc-prem-summary-card">
                 <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">New Procedure</h6>
+                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Previous Procedures</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="proc-prem-summary-value">{{ previous_procedures|length }}</div>
+                    <div class="proc-prem-summary-label">Recorded Procedures</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card proc-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="proc-prem-summary-value">2</div>
+                    <div class="proc-prem-summary-label">Mandatory Fields</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="proc-prem-flip-card">
+                <div class="proc-prem-flip-card-inner">
+                    <div class="proc-prem-flip-card-front">
+                        <div class="proc-prem-flip-icon">
+                            <i class="fas fa-procedures"></i>
+                        </div>
+                        <h4>Medical Procedures</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="proc-prem-flip-card-back">
+                        <div class="proc-prem-flip-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <h4>Procedure Details</h4>
+                        <p>Record medical procedures</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnosis Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card proc-prem-gradient shadow-lg mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-diagnoses mr-2"></i>
+                            Diagnosis Information
+                        </h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <!-- Form for adding a new procedure -->
-                    <form id="addProcedureForm" method="post" action="{% url "kahama_save_remoteprocedure" patient.id visit.id %}" enctype="multipart/form-data">
-                        {% csrf_token %}
+                    <div class="proc-prem-form-container">
+                        {% for note in consultation_notes %}
                         <div class="table-responsive">
-                            <!-- Table to display procedure details -->
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="procedureTable{{ visit.id }}">
-                                <thead>
-                                    <tr>
-                                        <th>Procedure Name</th>
-                                        <th>Description (if any)</th>
-                                        <th>Image</th> <!-- New column for image upload -->
-                                        <th></th> <!-- Column for delete button -->
-                                    </tr>
-                                </thead>
+                            <table class="proc-prem-table">
                                 <tbody>
-                                    <!-- Row for adding a new procedure -->
+                                    <tr>
+                                        <th>Preliminary Diagnosis</th>
+                                        <th>Final Diagnosis</th>
+                                    </tr>
                                     <tr>
                                         <td>
-                                            <!-- Dropdown to select procedure name -->
-                                            <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="name[]" required>
-                                                <option value="">Select Procedure</option>
-                                                {% for procedure in procedures %}
-                                                    <option value="{{ procedure.id }}">{{ procedure.name }}</option>
+                                            <ul class="proc-prem-list">
+                                                {% for diagnosis in note.provisional_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
                                                 {% endfor %}
-                                            </select>
+                                            </ul>
                                         </td>
                                         <td>
-                                            <!-- Textarea for procedure description -->
-                                            <textarea class="form-control description" name="description[]" placeholder="Enter procedure description" rows="5" required></textarea>
-                                        </td>
-                                        <td>
-                                            <!-- File input for image upload -->
-                                            <input type="file" class="form-control-file" name="image[]" accept="image/*">
-                                        </td>
-                                        <td>
-                                            <!-- Button to delete this row -->
-                                            <button type="button" class="btn btn-danger delete-row">Delete</button>
+                                            <ul class="proc-prem-list">
+                                                {% for diagnosis in note.final_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
                                         </td>
                                     </tr>
                                 </tbody>
-                            </table>
-                        </div>                      
-                        <div class="form-group mt-3">
-                            <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Procedure</button>
+                            </table>        
                         </div>
-                        <!-- Button to submit the form -->
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-block">Save to proceed</button>
-                        </div>
-                    </form>
-                </div>
-                <!-- Card footer to display messages -->
-                <div class="card-footer">
-                    {% if messages %}
-                        <div class="row">
-                            <div class="col-12">
-                                {% for message in messages %}
-                                    {% if message.tags == 'error' %}
-                                        <div class="alert alert-danger alert-message">{{ message }}</div>
-                                    {% elif message.tags == 'success' %}
-                                        <div class="alert alert-primary alert-message">{{ message }}</div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            // Add row button functionality
-            $('#addRow{{ visit.id }}').click(function() {
-                var newRow = `
-                    <tr>
-                        <td>
-                            <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="name[]" required>
-                                <option value="">Select Procedure</option>
-                                {% for procedure in procedures %}
-                                    <option value="{{ procedure.id }}">{{ procedure.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>                           
-                            <textarea class="form-control description" name="description[]" placeholder="Enter procedure description" rows="5" required></textarea>
-                        </td>
-                        <td>
-                            <input type="file" class="form-control-file" name="image[]" accept="image/*">
-                        </td>
-                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                    </tr>`;
-                // Append new row to the table body
-                $('#procedureTable{{ visit.id }} tbody').append(newRow);
     
-                // Re-initialize Select2 for the newly added select elements
-                $('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%'
-                });
-            });
-    
-            // Delete row button functionality
-            $(document).on('click', '.delete-row', function() {
-                $(this).closest('tr').remove();
-            });
-        });
-    </script>
-    
-    
-    
+    <!-- Procedure Form Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card proc-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-procedures mr-2"></i>
+                            Medical Procedures
+                        </h5>
+                        <a class="btn btn-prem-proc-nav text-white" type="button" data-toggle="modal" data-target="#previousProceduresModal">
+                            <i class="fas fa-eye mr-2"></i> View Previous Procedures
+                        </a>                      
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="proc-prem-form-container">
+                        <!-- Form for adding a new procedure -->
+                        <form id="addProcedureForm" method="post" action="{% url 'kahama_doctor_procedure_save' patient.id visit.id %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="proc-prem-form-section proc-prem-animated">
+                                <h4 class="proc-prem-section-title">
+                                    <i class="fas fa-procedures mr-2"></i>New Procedure
+                                </h4>
+                                <div class="table-responsive">
+                                    <!-- Table to display procedure details -->
+                                    <table class="proc-prem-table" id="procedureTable{{ visit.id }}">
+                                        <thead>
+                                            <tr>
+                                                <th>Procedure Name <span class="proc-prem-badge proc-prem-badge-required">Required</span></th>
+                                                <th>Description <span class="proc-prem-badge proc-prem-badge-required">Required</span></th>
+                                                <th>Image</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Row for adding a new procedure -->
+                                            <tr>
+                                                <td>
+                                                    <!-- Dropdown to select procedure name -->
+                                                    <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="name[]" required>
+                                                        <option value="">Select Procedure</option>
+                                                        {% for procedure in procedures %}
+                                                            <option value="{{ procedure.id }}">{{ procedure.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <!-- Textarea for procedure description -->
+                                                    <textarea class="form-control description" name="description[]" placeholder="Enter procedure description" rows="3" required></textarea>
+                                                </td>
+                                                <td>
+                                                    <!-- File input for image upload -->
+                                                    <input type="file" class="form-control-file" name="image[]" accept="image/*">
+                                                </td>
+                                                <td>
+                                                    <!-- Button to delete this row -->
+                                                    <button type="button" class="btn btn-danger delete-row">Delete</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>                      
+                                <div class="form-group mt-3">
+                                    <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square mr-2" aria-hidden="true"></i> Add Procedure</button>
+                                </div>
+                                <!-- Button to submit the form -->
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-prem-proc"><i class="fas fa-save mr-2"></i> Save to Proceed</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Messages -->
+                    <div class="card-footer">
+                        {% if messages %}
+                            <div class="row">
+                                <div class="col-12">
+                                    {% for message in messages %}
+                                        {% if message.tags == 'error' %}
+                                            <div class="alert proc-prem-alert proc-prem-alert-error alert-message">{{ message }}</div>
+                                        {% elif message.tags == 'success' %}
+                                            <div class="alert proc-prem-alert proc-prem-alert-success alert-message">{{ message }}</div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<script>
-    // Fade out alerts after 5 seconds (5000ms)
-    setTimeout(function() {
-        document.querySelectorAll('.alert-message').forEach(function(el) {
-            el.style.transition = 'opacity 0.5s ease-out';
-            el.style.opacity = '0';
-            setTimeout(() => el.style.display = 'none', 500);
-        });
-    }, 5000);
-</script>
-<div class="modal fade" id="previousProceduresModal" tabindex="-1" role="dialog" aria-labelledby="previousProceduresModalLabel" aria-hidden="true">
+
+<!-- Previous Procedures Modal -->
+<div class="modal fade proc-prem-modal" id="previousProceduresModal" tabindex="-1" role="dialog" aria-labelledby="previousProceduresModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">          
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content proc-prem-modal-content">
+            <div class="modal-header proc-prem-modal-header">
+                <h5 class="modal-title" id="previousProceduresModalLabel">
+                    <i class="fas fa-history mr-2"></i>Previous Procedures
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -284,15 +625,15 @@ Patient Procedure
                 </div>
 
                 <!-- Patient Details Section -->
-                <div class="container-fluid py-5">
+                <div class="container-fluid py-1">
                     <div class="row">
                         <div class="col-12">
-                            <div class="card patient-details-card">
-                                <div class="card-header bg-dark text-white">
+                            <div class="card proc-prem-patient-card">
+                                <div class="card-header" style="background: linear-gradient(120deg, #0F2027, #203A43); color: white;">
                                     <h2 class="card-title">Patient Details</h2>
                                 </div>
                                 <div class="card-body">
-                                    <table class="table table-bordered">
+                                    <table class="proc-prem-table text-nowrap">
                                         <tbody>
                                             <tr>
                                                 <th>Patient:</th>
@@ -330,13 +671,13 @@ Patient Procedure
                 <div class="container-fluid py-1">
                     <div class="row">
                         <div class="col-12">
-                            <div class="card patient-details-card">
-                                <div class="card-header bg-dark text-white">
-                                    <h2 class="card-title">Procedures details</h2>
+                            <div class="card proc-prem-patient-card">
+                                <div class="card-header" style="background: linear-gradient(120deg, #0F2027, #203A43); color: white;">
+                                    <h2 class="card-title">Procedures Details</h2>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display">
+                                        <table class="proc-prem-table">
                                             <thead>
                                                 <tr>
                                                     <th>Date</th>
@@ -372,7 +713,6 @@ Patient Procedure
                         </div>
                     </div>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -382,7 +722,58 @@ Patient Procedure
 </div>
 
 
-  
 {% include 'kahama_template/datatable.html' %}    
-
 {% endblock main_content %}
+
+{% block customer_js %}
+
+<script>
+    $(document).ready(function() {
+        // Add row button functionality
+        $('#addRow{{ visit.id }}').click(function() {
+            var newRow = `
+                <tr>
+                    <td>
+                        <select class="form-control select2bs4 procedure-name" style="width: 100%;" name="name[]" required>
+                            <option value="">Select Procedure</option>
+                            {% for procedure in procedures %}
+                                <option value="{{ procedure.id }}">{{ procedure.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>                           
+                        <textarea class="form-control description" name="description[]" placeholder="Enter procedure description" rows="3" required></textarea>
+                    </td>
+                    <td>
+                        <input type="file" class="form-control-file" name="image[]" accept="image/*">
+                    </td>
+                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                </tr>`;
+            // Append new row to the table body
+            $('#procedureTable{{ visit.id }} tbody').append(newRow);
+    
+            // Re-initialize Select2 for the newly added select elements
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+        });
+    
+        // Delete row button functionality
+        $(document).on('click', '.delete-row', function() {
+            $(this).closest('tr').remove();
+        });
+    });
+</script>
+
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
+{% endblock customer_js %}

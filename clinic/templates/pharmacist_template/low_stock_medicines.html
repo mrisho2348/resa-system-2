@@ -1,0 +1,792 @@
+{% extends 'pharmacist_template/base_template.html' %}
+{% load customfilter %}
+{% block title %}
+Premium Low Stock Medicines Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pharmacist_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Low Stock Medicines Styles - Unique to this template */
+    .pharm-lowstock-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pharm-lowstock-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-lowstock-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-lowstock-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-lowstock-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .pharm-lowstock-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-lowstock-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-pharm-lowstock {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-lowstock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-lowstock-restock {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-lowstock-restock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-lowstock-edit {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-lowstock-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .pharm-lowstock-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-lowstock-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-lowstock-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-lowstock-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .pharm-lowstock-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-lowstock-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-lowstock-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-lowstock-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pharm-lowstock-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-lowstock-badge-critical {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-lowstock-badge-warning {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-lowstock-badge-low {
+        background: linear-gradient(120deg, #ffd26f, #ffa64d);
+        color: white;
+    }
+    
+    .pharm-lowstock-badge-expired {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    .pharm-lowstock-badge-expiring {
+        background: linear-gradient(120deg, #f5515f, #9f041b);
+        color: white;
+    }
+    
+    .pharm-lowstock-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-lowstock-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-lowstock-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-lowstock-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-lowstock-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-lowstock-status-btn[data-status="critical"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-lowstock-status-btn[data-status="warning"] {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+        color: white;
+    }
+    
+    .pharm-lowstock-status-btn[data-status="low"] {
+        background: linear-gradient(120deg, #ffd26f, #ffa64d);
+        color: white;
+    }
+    
+    .pharm-lowstock-status-btn[data-status="expired"] {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmLowStockFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-lowstock-animated {
+        animation: pharmLowStockFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-lowstock-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-lowstock-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-lowstock-flip-card:hover .pharm-lowstock-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-lowstock-flip-card-front, .pharm-lowstock-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-lowstock-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-lowstock-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-lowstock-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium modal styling */
+    .pharm-lowstock-modal-xl {
+        max-width: 90%;
+    }
+    
+    .pharm-lowstock-drug-table th {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    /* Progress bar styling */
+    .pharm-lowstock-progress {
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .pharm-lowstock-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.6s ease;
+    }
+    
+    .pharm-lowstock-progress-critical {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+    }
+    
+    .pharm-lowstock-progress-warning {
+        background: linear-gradient(120deg, #ff9966, #ff5e62);
+    }
+    
+    .pharm-lowstock-progress-low {
+        background: linear-gradient(120deg, #ffd26f, #ffa64d);
+    }
+    
+    .pharm-lowstock-progress-good {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card pharm-lowstock-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-exclamation-triangle mr-2"></i>Premium Low Stock Medicines Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-lowstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Low Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-lowstock-summary-value" id="total-lowstock">{{ low_stock_medicines|length }}</div>
+                                    <div class="pharm-lowstock-summary-label">Low Stock Items</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-lowstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-skull-crossbones mr-2"></i>Critical Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-lowstock-summary-value" id="critical-stock">0</div>
+                                    <div class="pharm-lowstock-summary-label">Critical Level</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-lowstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-circle mr-2"></i>Expiring Soon</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-lowstock-summary-value" id="expiring-soon">0</div>
+                                    <div class="pharm-lowstock-summary-label">Expiring in 30 Days</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-lowstock-flip-card">
+                                <div class="pharm-lowstock-flip-card-inner">
+                                    <div class="pharm-lowstock-flip-card-front">
+                                        <div class="pharm-lowstock-flip-icon">
+                                            <i class="fas fa-capsules"></i>
+                                        </div>
+                                        <h4>Stock Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-lowstock-flip-card-back">
+                                        <div class="pharm-lowstock-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Inventory Insights</h4>
+                                        <p>Advanced stock tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-lowstock-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-lowstock-status-filter">
+                                <button class="pharm-lowstock-status-btn active" data-status="all">All Low Stock</button>
+                                <button class="pharm-lowstock-status-btn" data-status="critical">Critical</button>
+                                <button class="pharm-lowstock-status-btn" data-status="warning">Warning</button>
+                                <button class="pharm-lowstock-status-btn" data-status="low">Low</button>
+                                <button class="pharm-lowstock-status-btn" data-status="expired">Expired</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search medicines..." id="medicineSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-lowstock" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-lowstock-table-container">
+                        <table class="table table-hover text-nowrap pharm-lowstock-table" id="lowstockTable">
+                            <thead>
+                                <tr>
+                                    <th>Medicine</th>
+                                    <th>Stock Level</th>
+                                    <th>Type</th>
+                                    <th>Batch Number</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                    <th>Action</th>               
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for medicine in low_stock_medicines %}
+                                    <tr data-stock-level="{{ medicine.remain_quantity_percentage }}" 
+                                        data-expiry-status="{% if medicine.is_expired %}expired{% elif medicine.expiring_soon %}expiring{% else %}valid{% endif %}">  
+                                        <td>{{ medicine.drug_name }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="pharm-lowstock-progress mr-2" style="width: 100px;">
+                                                    <div class="pharm-lowstock-progress-bar 
+                                                        {% if medicine.remain_quantity_percentage < 10 %}pharm-lowstock-progress-critical
+                                                        {% elif medicine.remain_quantity_percentage < 30 %}pharm-lowstock-progress-warning
+                                                        {% elif medicine.remain_quantity_percentage < 50 %}pharm-lowstock-progress-low
+                                                        {% else %}pharm-lowstock-progress-good{% endif %}" 
+                                                        role="progressbar" 
+                                                        style="width: {{ medicine.remain_quantity_percentage }}%;" 
+                                                        aria-valuenow="{{ medicine.remain_quantity_percentage }}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <span>{{ medicine.remain_quantity }}/{{ medicine.quantity }}</span>
+                                            </div>
+                                        </td>
+                                        <td>{{ medicine.drug_type }}</td>
+                                        <td>{{ medicine.batch_number }}</td>
+                                        <td class="{% if medicine.is_expired %}text-danger{% elif medicine.expiring_soon %}text-warning{% endif %}">
+                                            {{ medicine.expiration_date|date:"d-m-Y" }}
+                                            {% if medicine.is_expired %}<i class="fas fa-skull-crossbones ml-1"></i>{% endif %}
+                                        </td>
+                                        
+                                        <td>
+                                            {% if medicine.is_expired %}
+                                                <span class="pharm-lowstock-badge pharm-lowstock-badge-expired">Expired</span>
+                                            {% elif medicine.expiring_soon %}
+                                                <span class="pharm-lowstock-badge pharm-lowstock-badge-expiring">Expiring Soon</span>
+                                            {% elif medicine.remain_quantity_percentage < 10 %}
+                                                <span class="pharm-lowstock-badge pharm-lowstock-badge-critical">Critical</span>
+                                            {% elif medicine.remain_quantity_percentage < 30 %}
+                                                <span class="pharm-lowstock-badge pharm-lowstock-badge-warning">Warning</span>
+                                            {% else %}
+                                                <span class="pharm-lowstock-badge pharm-lowstock-badge-low">Low</span>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <td>
+                                            <button type="button" class="btn btn-pharm-lowstock-restock mr-1" data-toggle="modal" data-target="#restockModal{{ medicine.id }}">
+                                                <i class="fas fa-cart-plus mr-1"></i> Restock
+                                            </button>
+                                            <a href="#" class="btn btn-pharm-lowstock-edit">
+                                                <i class="fas fa-edit mr-1"></i> Edit
+                                            </a>                                    
+                                        </td>        
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for medicine in low_stock_medicines %}
+<!-- Restock Modal -->
+<div class="modal fade" id="restockModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="restockModalLabel{{ medicine.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-lowstock-modal-content">
+      <div class="modal-header pharm-lowstock-modal-header">
+        <h5 class="modal-title text-white" id="restockModalLabel{{ medicine.id }}">
+          <i class="fas fa-cart-plus mr-2"></i>Restock {{ medicine.drug_name }}
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="restockForm{{ medicine.id }}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="quantityToAdd{{ medicine.id }}">Quantity to Add</label>
+            <input type="number" class="form-control" id="quantityToAdd{{ medicine.id }}" name="quantity_to_add" min="1" required>
+          </div>
+          <div class="form-group">
+            <label for="newBatchNumber{{ medicine.id }}">New Batch Number (Optional)</label>
+            <input type="text" class="form-control" id="newBatchNumber{{ medicine.id }}" name="new_batch_number">
+          </div>
+          <div class="form-group">
+            <label for="newExpiryDate{{ medicine.id }}">New Expiry Date (Optional)</label>
+            <input type="date" class="form-control" id="newExpiryDate{{ medicine.id }}" name="new_expiry_date">
+          </div>
+          <div class="alert alert-info">
+            <p><strong>Current Stock:</strong> {{ medicine.remain_quantity }}/{{ medicine.quantity }}</p>
+            <p><strong>Current Batch:</strong> {{ medicine.batch_number }}</p>
+            <p><strong>Current Expiry:</strong> {{ medicine.expiration_date|date:"d-m-Y" }}</p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-pharm-lowstock-restock" onclick="restockMedicine({{ medicine.id }})">
+          <i class="fas fa-check mr-1"></i> Confirm Restock
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Bootstrap Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-lowstock-modal-content">
+      <div class="modal-header pharm-lowstock-modal-header">
+        <h5 class="modal-title text-white" id="notificationModalLabel">Notification</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="notificationModalBody">
+        <!-- Message will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-pharm-lowstock" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% include 'pharmacist_template/datatable.html' %}
+{% endblock main_content %}
+
+{% block customer_js %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#lowstockTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[1, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let criticalCount = 0;
+        let expiringCount = 0;
+        
+        document.querySelectorAll('#lowstockTable tbody tr').forEach(row => {
+            const stockLevel = parseFloat(row.getAttribute('data-stock-level'));
+            const expiryStatus = row.getAttribute('data-expiry-status');
+            
+            // Count by status
+            if (stockLevel < 10) {
+                criticalCount++;
+            }
+            
+            if (expiryStatus === 'expiring' || expiryStatus === 'expired') {
+                expiringCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('critical-stock').textContent = criticalCount;
+        document.getElementById('expiring-soon').textContent = expiringCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pharm-lowstock-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-lowstock-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterMedicines(status);
+        });
+    });
+
+    // Filter medicines by status
+    function filterMedicines(status) {
+        const rows = document.querySelectorAll('#lowstockTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const stockLevel = parseFloat(row.getAttribute('data-stock-level'));
+            const expiryStatus = row.getAttribute('data-expiry-status');
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'critical' && stockLevel < 10) {
+                showRow = true;
+            } else if (status === 'warning' && stockLevel >= 10 && stockLevel < 30) {
+                showRow = true;
+            } else if (status === 'low' && stockLevel >= 30 && stockLevel < 50) {
+                showRow = true;
+            } else if (status === 'expired' && expiryStatus === 'expired') {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-lowstock').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('medicineSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-lowstock-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medicineSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-lowstock-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+
+    // Filter medicines by both status and search text
+    function filterMedicinesWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#lowstockTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const stockLevel = parseFloat(row.getAttribute('data-stock-level'));
+            const expiryStatus = row.getAttribute('data-expiry-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'critical' && stockLevel < 10) {
+                statusMatch = true;
+            } else if (status === 'warning' && stockLevel >= 10 && stockLevel < 30) {
+                statusMatch = true;
+            } else if (status === 'low' && stockLevel >= 30 && stockLevel < 50) {
+                statusMatch = true;
+            } else if (status === 'expired' && expiryStatus === 'expired') {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-lowstock').textContent = visibleCount;
+    }
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // Restock medicine function
+    function restockMedicine(medicineId) {
+        const quantityToAdd = document.getElementById(`quantityToAdd${medicineId}`).value;
+        const newBatchNumber = document.getElementById(`newBatchNumber${medicineId}`).value;
+        const newExpiryDate = document.getElementById(`newExpiryDate${medicineId}`).value;
+        
+        if (!quantityToAdd || quantityToAdd < 1) {
+            showNotification("Please enter a valid quantity to add.", "error");
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "pharmacist_restock_medicine" %}',
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: { 
+                medicine_id: medicineId,
+                quantity_to_add: quantityToAdd,
+                new_batch_number: newBatchNumber,
+                new_expiry_date: newExpiryDate
+            },
+            success: function (response) {
+                showNotification("Medicine restocked successfully.", "success");
+                setTimeout(() => location.reload(), 1500);
+            },
+            error: function (xhr, status, error) {
+                showNotification("Failed to restock medicine: " + error, "error");
+            }
+        });
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const modalBody = document.getElementById('notificationModalBody');
+        modalBody.textContent = message;
+        
+        // Set appropriate styling based on type
+        const modalContent = document.querySelector('#notificationModal .modal-content');
+        if (type === 'success') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #00b09b, #96c93d)';
+        } else if (type === 'error') {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #ff416c, #ff4b2b)';
+        } else {
+            modalContent.querySelector('.modal-header').style.background = 'linear-gradient(120deg, #1a2a6c, #b21f1f)';
+        }
+        
+        $('#notificationModal').modal('show');
+    }
+</script>
+{% endblock customer_js %}

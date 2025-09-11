@@ -1,67 +1,214 @@
 {% extends 'hod_template/base_template.html' %}
+{% load static %}
 
 {% block title %}
-Ambulance Route List
+Ambulance Route Management
 {% endblock title %}
 
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addAmbulanceRouteModal">
-    <i class="fas fa-plus"></i> New  route
+<a class="btn btn-gradient float-right" type="button" data-toggle="modal" data-target="#addAmbulanceRouteModal">
+    <i class="fas fa-plus mr-2"></i> New Route
 </a>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    .card-gradient {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+        color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .card-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .route-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .route-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .badge-cost {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .badge-primary {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+        color: white;
+    }
+    .badge-success {
+        background: linear-gradient(120deg, #43a047, #1b5e20);
+        color: white;
+    }
+    .badge-warning {
+        background: linear-gradient(120deg, #ff9800, #e65100);
+        color: white;
+    }
+    .action-btn {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .modal-header-gradient {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+        color: white;
+        border-radius: 0;
+    }
+    .modal-header-danger {
+        background: linear-gradient(120deg, #e53935, #b71c1c);
+        color: white;
+        border-radius: 0;
+    }
+    .route-table th {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #0d47a1;
+        font-weight: 600;
+    }
+    .map-container {
+        height: 180px;
+        background: #f5f5f5;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .map-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(rgba(30, 136, 229, 0.2), rgba(13, 71, 161, 0.3));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    .map-marker {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        background: #e53935;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+    }
+    .map-marker::after {
+        content: '';
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: white;
+        border-radius: 50%;
+        top: 5px;
+        left: 5px;
+    }
+    .form-group-icon {
+        position: relative;
+    }
+    .form-group-icon i {
+        position: absolute;
+        left: 12px;
+        top: 38px;
+        color: #1e88e5;
+    }
+    .form-group-icon input {
+        padding-left: 40px;
+    }
+    .cost-summary {
+        background: linear-gradient(120deg, #e8f5e9, #c8e6c9);
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Ambulance Route List</h6>
+            <div class="card card-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-route mr-2"></i>Ambulance Route Management</h5>
+                        <div class="d-flex">
+                            <button class="btn btn-light btn-sm mr-2">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="btn btn-light btn-sm">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">    
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead>
+                    <div class="table-responsive">
+                        <table class="table table-hover route-table" id="routeTable">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>From Location</th>
-                                    <th>To Location</th>
-                                    <th>Distance</th>
-                                    <th>Cost</th>
-                                    <th>Profit</th>
-                                    <th>Advanced Ambulance Cost</th>
-                                    <th>Total</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>
-                                    <th>Action</th>
+                                    <th><i class="fas fa-map-marker-alt mr-2"></i>From Location</th>
+                                    <th><i class="fas fa-map-marker-alt mr-2"></i>To Location</th>
+                                    <th><i class="fas fa-road mr-2"></i>Distance</th>
+                                    <th><i class="fas fa-money-bill-wave mr-2"></i>Cost</th>
+                                    <th><i class="fas fa-chart-line mr-2"></i>Profit</th>
+                                    <th><i class="fas fa-ambulance mr-2"></i>Advanced Cost</th>
+                                    <th><i class="fas fa-calculator mr-2"></i>Total</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for route in ambulance_routes %}
-                                <tr>
+                                <tr class="route-card">
                                     <td>{{ route.from_location }}</td>
                                     <td>{{ route.to_location }}</td>
-                                    <td>{{ route.distance }}</td>
-                                    <td>{{ route.cost }}</td>
-                                    <td>{{ route.profit }}</td>
-                                    <td>{{ route.advanced_ambulance_cost }}</td>
-                                    <td>{{ route.total }}</td>
-                                    <td>{{ route.created_at|date:'d/m/Y' }}</td>
-                                    <td>{{ route.updated_at|date:'d/m/Y' }}</td>
-                                    <td>  
-                                        <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editAmbulanceRouteModal{{ route.id }}" data-toggle="tooltip" title="Edit">
-                                            <i class="fa fa-edit text-white"></i>
-                                        </button>
-                                        <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteAmbulanceRouteModal{{ route.id }}" data-toggle="tooltip" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    <td>{{ route.distance }} km</td>
+                                    <td>
+                                        <span class="badge-cost badge-primary">${{ route.cost }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge-cost badge-success">${{ route.profit }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge-cost badge-warning">${{ route.advanced_ambulance_cost }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="font-weight-bold text-primary">${{ route.total }}</span>
+                                    </td>
+                                    <td>{{ route.created_at|date:"d/m/Y" }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center">
+                                            <button class="btn btn-outline-primary action-btn mx-1" 
+                                                    data-toggle="modal" 
+                                                    data-target="#editAmbulanceRouteModal{{ route.id }}">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger action-btn mx-1" 
+                                                    data-toggle="modal" 
+                                                    data-target="#deleteAmbulanceRouteModal{{ route.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>                        
-
-                                {% endfor %}                                
+                                {% endfor %}
                             </tbody>
-                                         
-                                            
                         </table>
                     </div>
                 </div>
@@ -71,236 +218,404 @@ Ambulance Route List
 </div>
 
 {% for route in ambulance_routes %}
+<!-- Delete Modal -->
 <div class="modal fade" id="deleteAmbulanceRouteModal{{ route.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteAmbulanceRouteModalLabel{{ route.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteAmbulanceRouteModalLabel{{ route.id }}">Delete Ambulance Route</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-dialog-centered  modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-danger py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-trash-alt mr-2"></i>Confirm Route Deletion
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this ambulance route? <b>{{ route }}</b></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDelete({{ route.id }})">Delete</button>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h4 class="font-weight-bold">Delete Route?</h4>
+                    <p>This action cannot be undone</p>
+                </div>
+                
+                <div class="card mb-4 border-danger">
+                    <div class="card-body text-center">
+                        <div class="map-container">
+                            <div class="map-overlay">
+                                <div class="map-marker" style="top: 40%; left: 30%;"></div>
+                                <div class="map-marker" style="top: 60%; left: 70%;"></div>
+                                <div class="route-text">
+                                    <i class="fas fa-route fa-2x mb-2"></i>
+                                    <div>{{ route.from_location }} to {{ route.to_location }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <h5 class="font-weight-bold text-danger">{{ route.from_location }} → {{ route.to_location }}</h5>
+                        <p class="mb-1"><strong>Distance:</strong> {{ route.distance }} km</p>
+                        <p class="mb-0"><strong>Total Cost:</strong> ${{ route.total }}</p>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-2">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" onclick="confirmDelete({{ route.id }})">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endfor %}
-
-<script>
-    // Function to handle delete confirmation
-    function confirmDelete(routeId) {
-        // Send the delete request to the server via AJAX
-        $.ajax({
-            url: '{% url 'admin_delete_ambulance_route' %}',
-            type: 'POST',
-            data: {
-                'route_id': routeId,
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            success: function(response) {
-                // Handle success response
-                if (response.status === "success") {
-                    $('#deleteAmbulanceRouteModal' + routeId).modal('hide'); // Hide the modal
-                    location.reload(true); // Reload the page
-                } else {
-                    // Display error message
-                    alert(response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                // Handle error response
-                alert('Error: ' + xhr.status + ' ' + xhr.statusText);
-            }
-        });
-    }
-</script>
-
 
 {% for route in ambulance_routes %}
+<!-- Edit Modal -->
 <div class="modal fade" id="editAmbulanceRouteModal{{ route.id }}" tabindex="-1" role="dialog" aria-labelledby="editAmbulanceRouteModalLabel{{ route.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editAmbulanceRouteModalLabel{{ route.id }}">Edit Ambulance Route</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-lg  modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-route mr-2"></i>Edit Ambulance Route
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div id="editAmbulanceRouteContainers{{ route.id }}" class="alert" role="alert"></div>
+            <div class="modal-body p-4">
+                <div id="editAmbulanceRouteContainers{{ route.id }}" class="alert mb-4" role="alert"></div>
+                
+                <div class="map-container mb-4">
+                    <div class="map-overlay">
+                        <div class="map-marker" style="top: 40%; left: 30%;"></div>
+                        <div class="map-marker" style="top: 60%; left: 70%;"></div>
+                        <div class="text-center">
+                            <i class="fas fa-route fa-2x mb-2"></i>
+                            <h5>Route Visualization</h5>
+                            <p>{{ route.from_location }} to {{ route.to_location }}</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <form id="editAmbulanceRouteForm{{ route.id }}" method="post">
                     {% csrf_token %}
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="fromLocation{{ route.id }}">From Location:</label>
-                                <input type="text" class="form-control" id="fromLocation{{ route.id }}" name="from_location" value="{{ route.from_location }}" required>
-                                <input type="hidden" class="form-control" id="route_id{{ route.id }}" name="route_id" value="{{ route.id }}">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="toLocation{{ route.id }}">To Location:</label>
-                                <input type="text" class="form-control" id="toLocation{{ route.id }}" name="to_location" value="{{ route.to_location }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="distance{{ route.id }}">Distance:</label>
-                                <input type="number" class="form-control" id="distance{{ route.id }}" name="distance" value="{{ route.distance }}" required>
+                    <input type="hidden" name="route_id" value="{{ route.id }}">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="fromLocation{{ route.id }}" class="font-weight-bold">From Location</label>
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-control" id="fromLocation{{ route.id }}" 
+                                       name="from_location" value="{{ route.from_location }}" required>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="cost{{ route.id }}">Cost:</label>
-                                <input type="number" class="form-control" id="cost{{ route.id }}" name="cost" value="{{ route.cost }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="profit{{ route.id }}">Profit:</label>
-                                <input type="number" class="form-control" id="profit{{ route.id }}" name="profit" value="{{ route.profit }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="advancedAmbulanceCost{{ route.id }}">Advanced Ambulance Cost:</label>
-                                <input type="number" class="form-control" id="advancedAmbulanceCost{{ route.id }}" name="advanced_ambulance_cost" value="{{ route.advanced_ambulance_cost }}" required>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="toLocation{{ route.id }}" class="font-weight-bold">To Location</label>
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-control" id="toLocation{{ route.id }}" 
+                                       name="to_location" value="{{ route.to_location }}" required>
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="distance{{ route.id }}" class="font-weight-bold">Distance (km)</label>
+                                <i class="fas fa-road"></i>
+                                <input type="number" class="form-control" id="distance{{ route.id }}" 
+                                       name="distance" value="{{ route.distance }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cost-summary mb-4">
+                        <h6 class="font-weight-bold mb-3"><i class="fas fa-calculator mr-2"></i>Cost Breakdown</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="cost{{ route.id }}" class="font-weight-bold">Base Cost</label>
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <input type="number" class="form-control" id="cost{{ route.id }}" 
+                                           name="cost" value="{{ route.cost }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="profit{{ route.id }}" class="font-weight-bold">Profit</label>
+                                    <i class="fas fa-chart-line"></i>
+                                    <input type="number" class="form-control" id="profit{{ route.id }}" 
+                                           name="profit" value="{{ route.profit }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="advancedAmbulanceCost{{ route.id }}" class="font-weight-bold">Advanced Cost</label>
+                                    <i class="fas fa-ambulance"></i>
+                                    <input type="number" class="form-control" id="advancedAmbulanceCost{{ route.id }}" 
+                                           name="advanced_ambulance_cost" value="{{ route.advanced_ambulance_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                    <div class="font-weight-bold">Total Cost:</div>
+                                    <div class="h4 text-primary">${{ route.total }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-gradient px-4" id="editAmbulanceRoute{{ route.id }}">
+                            <i class="fas fa-save mr-2"></i>Update Route
+                        </button>
+                    </div>
                 </form>
             </div>
-            <div class="form-group row">
-                <div class="col-md-12">
-                    <button type="button" class="btn btn-primary btn-block" id="editAmbulanceRoute{{ route.id }}">Update Route</button>
-                </div>
-            </div>           
         </div>
     </div>
 </div>
-<script>
-    $(document).ready(function () {
-        $('#editAmbulanceRoute{{ route.id }}').click(function (event) {
-            var form = document.getElementById('editAmbulanceRouteForm{{ route.id }}');
-            if (form.checkValidity() === false) {
-                event.preventDefault();
-                event.stopPropagation();
-            } else {
-                var formData = $('#editAmbulanceRouteForm{{ route.id }}').serialize();
-
-                $.ajax({
-                    url: '{% url "admin_add_or_edit_ambulance_route" %}', // Update with your actual URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#editAmbulanceRouteContainers{{ route.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                            location.reload(true);
-                        } else {
-                            $('#editAmbulanceRouteContainers{{ route.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#editAmbulanceRouteContainers{{ route.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
-                    }
-                });
-            }
-
-            form.classList.add('was-validated');
-        });
-    });
-</script>
 {% endfor %}
 
-
-   
+<!-- Add Route Modal -->
 <div class="modal fade" id="addAmbulanceRouteModal" tabindex="-1" role="dialog" aria-labelledby="addAmbulanceRouteModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addAmbulanceRouteModalLabel">Add Ambulance Route</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-lg  modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header modal-header-gradient py-3">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-route mr-2"></i>Add New Ambulance Route
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div id="addAmbulanceRouteContainers" class="alert" role="alert"></div>
+            <div class="modal-body p-4">
+                <div id="addAmbulanceRouteContainers" class="alert mb-4" role="alert"></div>
+                
+                <div class="map-container mb-4">
+                    <div class="map-overlay">
+                        <div class="map-marker" style="top: 40%; left: 30%;"></div>
+                        <div class="map-marker" style="top: 60%; left: 70%;"></div>
+                        <div class="text-center">
+                            <i class="fas fa-route fa-2x mb-2"></i>
+                            <h5>New Route Visualization</h5>
+                            <p>Define your new ambulance route</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <form id="ambulanceRouteForm" method="post">
                    {% csrf_token %}
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="fromLocation">From Location:</label>
-                                <input type="text" class="form-control" id="fromLocation" name="from_location" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="toLocation">To Location:</label>
-                                <input type="text" class="form-control" id="toLocation" name="to_location" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="distance">Distance:</label>
-                                <input type="number" class="form-control" id="distance" name="distance" required>
+                   
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="fromLocation" class="font-weight-bold">From Location</label>
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-control" id="fromLocation" 
+                                       name="from_location" placeholder="e.g., Main Hospital" required>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="cost">Cost:</label>
-                                <input type="number" class="form-control" id="cost" name="cost" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="profit">Profit:</label>
-                                <input type="number" class="form-control" id="profit" name="profit" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="advancedAmbulanceCost">Advanced Ambulance Cost:</label>
-                                <input type="number" class="form-control" id="advancedAmbulanceCost" name="advanced_ambulance_cost" required>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="toLocation" class="font-weight-bold">To Location</label>
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-control" id="toLocation" 
+                                       name="to_location" placeholder="e.g., City Center" required>
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group form-group-icon">
+                                <label for="distance" class="font-weight-bold">Distance (km)</label>
+                                <i class="fas fa-road"></i>
+                                <input type="number" class="form-control" id="distance" 
+                                       name="distance" placeholder="e.g., 25" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cost-summary mb-4">
+                        <h6 class="font-weight-bold mb-3"><i class="fas fa-calculator mr-2"></i>Cost Breakdown</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="cost" class="font-weight-bold">Base Cost</label>
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <input type="number" class="form-control" id="cost" 
+                                           name="cost" placeholder="e.g., 50" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="profit" class="font-weight-bold">Profit</label>
+                                    <i class="fas fa-chart-line"></i>
+                                    <input type="number" class="form-control" id="profit" 
+                                           name="profit" placeholder="e.g., 20" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <div class="form-group form-group-icon">
+                                    <label for="advancedAmbulanceCost" class="font-weight-bold">Advanced Cost</label>
+                                    <i class="fas fa-ambulance"></i>
+                                    <input type="number" class="form-control" id="advancedAmbulanceCost" 
+                                           name="advanced_ambulance_cost" placeholder="e.g., 30" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                    <div class="font-weight-bold">Total Cost:</div>
+                                    <div class="h4 text-primary" id="totalCostPreview">$0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-gradient px-4" id="addAmbulanceRoute">
+                            <i class="fas fa-plus-circle mr-2"></i>Add Route
+                        </button>
+                    </div>
                 </form>
             </div>
-            <div class="form-group row">
-                <div class="col-md-12">
-                    <button type="button" class="btn btn-primary btn-block" id="addAmbulanceRoute">Add Route</button>
-                </div>
-            </div>          
         </div>
     </div>
 </div>
+{% include 'hod_template/datatable.html' %}
 <script>
-    $(document).ready(function () {
-        $('#addAmbulanceRoute').click(function (event) {
+    $(document).ready(function() {
+        // Initialize DataTable
+      
+        // Add hover effect to table rows
+        $('#routeTable tbody tr').hover(
+            function() {
+                $(this).css('transform', 'translateY(-2px)');
+                $(this).css('box-shadow', '0 8px 25px rgba(0,0,0,0.15)');
+            },
+            function() {
+                $(this).css('transform', '');
+                $(this).css('box-shadow', '0 4px 15px rgba(0,0,0,0.08)');
+            }
+        );
+        
+        // Calculate total cost in real-time for the add form
+        function calculateTotal() {
+            const cost = parseFloat($('#cost').val()) || 0;
+            const profit = parseFloat($('#profit').val()) || 0;
+            const advancedCost = parseFloat($('#advancedAmbulanceCost').val()) || 0;
+            const total = cost + profit + advancedCost;
+            $('#totalCostPreview').text('$' + total.toFixed(2));
+        }
+        
+        // Bind calculation to input changes
+        $('#cost, #profit, #advancedAmbulanceCost').on('input', calculateTotal);
+        
+        // Initialize total cost
+        calculateTotal();
+        
+        // Add Route Form Submission
+        $('#addAmbulanceRoute').click(function(event) {
             var form = document.getElementById('ambulanceRouteForm');
             if (form.checkValidity() === false) {
                 event.preventDefault();
                 event.stopPropagation();
             } else {
                 var formData = $('#ambulanceRouteForm').serialize();
-
-                $.ajax({
-                    url: '{% url "admin_add_or_edit_ambulance_route" %}', // Update with your actual URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#addAmbulanceRouteContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                            location.reload(true);
-                        } else {
-                            $('#addAmbulanceRouteContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#addAmbulanceRouteContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
-                    }
-                });
+                submitForm('{% url "resa_admin_add_ambulance_route" %}', formData, '#addAmbulanceRouteContainers');
             }
-
             form.classList.add('was-validated');
         });
+        
+        // Edit Route Form Submissions
+        {% for route in ambulance_routes %}
+        $('#editAmbulanceRoute{{ route.id }}').click(function(event) {
+            var form = document.getElementById('editAmbulanceRouteForm{{ route.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editAmbulanceRouteForm{{ route.id }}').serialize();
+                submitForm('{% url "resa_admin_add_ambulance_route" %}', formData, '#editAmbulanceRouteContainers{{ route.id }}');
+            }
+            form.classList.add('was-validated');
+        });
+        {% endfor %}
+        
+        // Generic form submission function
+        function submitForm(url, data, containerSelector) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        $(containerSelector).html('<div class="alert alert-success">' + response.message + '</div>');
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
+                    } else {
+                        $(containerSelector).html('<div class="alert alert-danger">' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? 
+                        xhr.responseJSON.message : 'Server error occurred';
+                    $(containerSelector).html('<div class="alert alert-danger">' + msg + '</div>');
+                }
+            });
+        }
+        
+        // Delete route function
+        window.confirmDelete = function(routeId) {
+            $.ajax({
+                url: '{% url 'resa_admin_delete_ambulance_route' %}',
+                type: 'POST',
+                data: {
+                    'route_id': routeId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === "success") {
+                        $('#deleteAmbulanceRouteModal' + routeId).modal('hide');
+                        // Show success message
+                        alert('Route deleted successfully!');
+                        // Reload after 1 second
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1000);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error occurred: ' + xhr.statusText);
+                }
+            });
+        };
     });
 </script>
 
-  
-{% include 'hod_template/datatable.html' %}
+
 {% endblock main_content %}

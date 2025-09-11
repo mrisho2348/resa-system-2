@@ -1,0 +1,879 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% block title %}
+   Premium Service Management    
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembaadmin_template/modal_form.html" %}
+<a class="btn btn-prem-service-add float-right mr-2" type="button" data-toggle="modal" data-target="#addRemoteServiceModal">
+  <i class="fas fa-plus"></i> New Premium Service
+</a>   
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Service Management Styles - Unique to this template */
+    .service-prem-gradient {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(44, 62, 80, 0.15);
+        border: none;
+    }
+    
+    .service-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .service-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .service-prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #303F9F;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .service-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .service-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .service-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 63, 159, 0.1);
+        background: #f5f6ff;
+    }
+    
+    .btn-prem-service {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.2);
+    }
+    
+    .btn-prem-service:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-service-add {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-service-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-service-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-service-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-service-delete {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+    }
+    
+    .btn-prem-service-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(244, 67, 54, 0.3);
+        color: white;
+    }
+    
+    .service-prem-modal-header {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .service-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .service-prem-input-group label {
+        font-weight: 600;
+        color: #303F9F;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .service-prem-input-group .form-control {
+        border: 1px solid #c5cae9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .service-prem-input-group .form-control:focus {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+    }
+    
+    .service-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .service-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .service-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        color: #303F9F;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .service-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .service-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #303F9F;
+        margin-bottom: 0.5rem;
+    }
+    
+    .service-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .service-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .service-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .service-prem-badge-procedure {
+        background: linear-gradient(120deg, #AB47BC, #CE93D8);
+        color: white;
+    }
+    
+    .service-prem-badge-laboratory {
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    .service-prem-badge-consultation {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .service-prem-badge-imaging {
+        background: linear-gradient(120deg, #FFA726, #FFCC80);
+        color: white;
+    }
+    
+    .service-prem-filter-bar {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .service-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .service-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .service-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .service-prem-status-btn[data-category="all"] {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+    }
+    
+    .service-prem-status-btn[data-category="Procedure"] {
+        background: linear-gradient(120deg, #AB47BC, #CE93D8);
+        color: white;
+    }
+    
+    .service-prem-status-btn[data-category="Laboratory"] {
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    .service-prem-status-btn[data-category="Consultation"] {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .service-prem-status-btn[data-category="Imaging"] {
+        background: linear-gradient(120deg, #FFA726, #FFCC80);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes servicePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .service-prem-animated {
+        animation: servicePremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .service-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .service-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .service-prem-flip-card:hover .service-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .service-prem-flip-card-front, .service-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .service-prem-flip-card-front {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+    }
+    
+    .service-prem-flip-card-back {
+        background: linear-gradient(120deg, #4A235A, #2C3E50);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .service-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card service-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-concierge-bell mr-2"></i>Premium Service Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card service-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-concierge-bell mr-2"></i>Total Services</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="service-prem-summary-value" id="total-services">{{ services|length }}</div>
+                                    <div class="service-prem-summary-label">All Services</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card service-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Procedure Services</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="service-prem-summary-value" id="procedure-services">0</div>
+                                    <div class="service-prem-summary-label">Procedures</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card service-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-vial mr-2"></i>Laboratory Services</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="service-prem-summary-value" id="laboratory-services">0</div>
+                                    <div class="service-prem-summary-label">Laboratory</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="service-prem-flip-card">
+                                <div class="service-prem-flip-card-inner">
+                                    <div class="service-prem-flip-card-front">
+                                        <div class="service-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Premium Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="service-prem-flip-card-back">
+                                        <div class="service-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Service Insights</h4>
+                                        <p>Advanced service tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="service-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="service-prem-status-filter">
+                                <button class="service-prem-status-btn active" data-category="all">All Services</button>
+                                <button class="service-prem-status-btn" data-category="Procedure">Procedures</button>
+                                <button class="service-prem-status-btn" data-category="Laboratory">Laboratory</button>
+                                <button class="service-prem-status-btn" data-category="Consultation">Consultation</button>
+                                <button class="service-prem-status-btn" data-category="Imaging">Imaging</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search services..." id="servicePremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-service" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive service-prem-table-container">
+                        <table class="table table-hover text-nowrap service-prem-table" id="serviceTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-tag mr-2"></i>Service Name</th>                           
+                                    <th><i class="fas fa-align-left mr-2"></i>Description</th>
+                                    <th><i class="fas fa-folder mr-2"></i>Category</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in services %}
+                                <tr data-category="{{ service.category }}">
+                                    <td>{{ service.name }}</td>              
+                                    <td>{{ service.description }}</td>
+                                    <td>
+                                        <span class="service-prem-badge service-prem-badge-{{ service.category|lower }}">
+                                            {{ service.category }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">  
+                                        <button class="btn btn-prem-service-edit" data-toggle="modal" data-target="#editRemoteServiceModal{{ service.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-prem-service-delete" data-toggle="modal" data-target="#deleteServiceModal{{ service.id }}" data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>   
+                                    </td>       
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Deleting Service -->
+{% for service in services %}
+<div class="modal fade" id="deleteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteServiceModalLabel{{ service.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content service-prem-modal-content">
+            <div class="modal-header service-prem-modal-header">
+                <h5 class="modal-title text-white" id="deleteServiceModalLabel{{ service.id }}"><i class="fas fa-trash mr-2"></i>Delete Service</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the service "{{ service.name }}"?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-prem-service-delete" onclick="deleteService('{{ service.id }}')">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    function deleteService(serviceId) {
+        $.ajax({
+            url: '{% url "pemba_admin_delete_service" %}',
+            type: 'POST',
+            data: {
+                service_id: serviceId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    // Handle error
+                    console.error('Delete service error:', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+</script>
+
+{% for service in services %}
+<!-- Bootstrap Modal for Editing Service -->
+<div class="modal fade" id="editRemoteServiceModal{{ service.id }}" tabindex="-1" role="dialog" aria-labelledby="editRemoteServiceModalLabel{{ service.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content service-prem-modal-content">
+
+      <div class="modal-header service-prem-modal-header">
+        <h5 class="modal-title text-white" id="editRemoteServiceModalLabel{{ service.id }}"><i class="fas fa-edit mr-2"></i>Edit Premium Service</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div id="serviceMessageContainer{{ service.id }}" class="alert" role="alert" style="display: none;"></div>
+
+        <form id="editRemoteServiceForm{{ service.id }}" method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="serviceName{{ service.id }}">Service Name</label>
+              <input type="text" class="form-control" id="serviceName{{ service.id }}" name="name" value="{{ service.name }}" required>
+              <input type="hidden" name="service_id" value="{{ service.id }}">
+            </div>
+
+            <div class="form-group col-md-6">
+              <label for="serviceCategory{{ service.id }}">Category</label>
+              <select class="form-control select2bs4" style="width: 100%;" id="serviceCategory{{ service.id }}" name="category">
+                <option value="Procedure" {% if service.category == "Procedure" %}selected{% endif %}>Procedure</option>
+                <option value="Laboratory" {% if service.category == "Laboratory" %}selected{% endif %}>Laboratory</option>
+                <option value="Consultation" {% if service.category == "Consultation" %}selected{% endif %}>Consultation</option>
+                <option value="Imaging" {% if service.category == "Imaging" %}selected{% endif %}>Imaging</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-12">
+              <label for="serviceDescription{{ service.id }}">Description</label>
+              <textarea class="form-control" id="serviceDescription{{ service.id }}" name="description" rows="3">{{ service.description }}</textarea>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-prem-service btn-block" id="editRemoteService{{ service.id }}">
+                <i class="fas fa-save mr-2"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ======================= ADD REMOTE SERVICE MODAL ======================= -->
+<div class="modal fade" id="addRemoteServiceModal" tabindex="-1" role="dialog" aria-labelledby="addRemoteServiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content service-prem-modal-content">
+
+      <div class="modal-header service-prem-modal-header">
+        <h5 class="modal-title text-white" id="addRemoteServiceModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add Premium Service</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div id="serviceMessageContainer" class="alert" role="alert" style="display: none;"></div>
+
+        <form id="addRemoteServiceForm" method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="serviceName">Service Name</label>
+              <input type="text" class="form-control" id="serviceName" name="name" required>
+            </div>
+
+            <div class="form-group col-md-6">
+              <label for="serviceCategory">Category</label>
+              <select class="form-control select2bs4" style="width: 100%;" id="serviceCategory" name="category" required>
+                <option value="">-- Select Category --</option>
+                <option value="Procedure">Procedure</option>
+                <option value="Laboratory">Laboratory</option>
+                <option value="Consultation">Consultation</option>
+                <option value="Imaging">Imaging</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-12">
+              <label for="serviceDescription">Description</label>
+              <textarea class="form-control" id="serviceDescription" name="description" rows="3"></textarea>
+            </div>
+          </div>
+
+          <input type="hidden" name="service_id" id="service_id">
+
+          <div class="form-group">
+            <button type="button" class="btn btn-prem-service-add btn-block" id="addRemoteServices">
+              <i class="fas fa-plus-circle mr-2"></i> Add Premium Service
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% include 'pembaadmin_template/datatable.html' %}
+    
+<script>
+    // Initialize DataTable
+    new DataTable('#serviceTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search services...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let procedureCount = 0;
+        let laboratoryCount = 0;
+        let consultationCount = 0;
+        let imagingCount = 0;
+        
+        document.querySelectorAll('#serviceTable tbody tr').forEach(row => {
+            const category = row.getAttribute('data-category');
+            
+            // Count by category
+            if (category === 'Procedure') {
+                procedureCount++;
+            } else if (category === 'Laboratory') {
+                laboratoryCount++;
+            } else if (category === 'Consultation') {
+                consultationCount++;
+            } else if (category === 'Imaging') {
+                imagingCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('procedure-services').textContent = procedureCount;
+        document.getElementById('laboratory-services').textContent = laboratoryCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Category filter functionality
+    document.querySelectorAll('.service-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.service-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const category = this.getAttribute('data-category');
+            filterServices(category);
+        });
+    });
+
+    // Filter services by category
+    function filterServices(category) {
+        const rows = document.querySelectorAll('#serviceTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            
+            if (category === 'all' || rowCategory === category) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-services').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('servicePremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeCategory = document.querySelector('.service-prem-status-btn.active').getAttribute('data-category');
+        
+        filterServicesWithSearch(activeCategory, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('servicePremSearch').value.toLowerCase();
+        const activeCategory = document.querySelector('.service-prem-status-btn.active').getAttribute('data-category');
+        
+        filterServicesWithSearch(activeCategory, searchText);
+    });
+
+    // Filter services by both category and search text
+    function filterServicesWithSearch(category, searchText) {
+        const rows = document.querySelectorAll('#serviceTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            const rowText = row.textContent.toLowerCase();
+            
+            const categoryMatch = category === 'all' || rowCategory === category;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (categoryMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-services').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+  <script>
+   {% for service in services %}
+  $(document).ready(function () {
+    $('#editRemoteService{{ service.id }}').click(function (event) {
+      var form = document.getElementById('editRemoteServiceForm{{ service.id }}');
+      if (form.checkValidity() === false) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        var formData = $('#editRemoteServiceForm{{ service.id }}').serialize();
+
+        $.ajax({
+          url: '{% url "pemba_admin_save_service" %}',
+          type: 'POST',
+          data: formData,
+          success: function (response) {
+            if (response.success) {
+              $('#serviceMessageContainer{{ service.id }}')
+                .removeClass('alert-danger')
+                .addClass('alert-success')
+                .text(response.message)
+                .show();
+              setTimeout(() => location.reload(true), 1000);
+            } else {
+              $('#serviceMessageContainer{{ service.id }}')
+                .removeClass('alert-success')
+                .addClass('alert-danger')
+                .text(response.message)
+                .show();
+            }
+          },
+          error: function () {
+            $('#serviceMessageContainer{{ service.id }}')
+              .removeClass('alert-success')
+              .addClass('alert-danger')
+              .text('AJAX request failed')
+              .show();
+          }
+        });
+      }
+
+      form.classList.add('was-validated');
+    });
+  });
+  {% endfor %}
+</script>
+
+ <script>
+  $(document).ready(function () {
+    $('#addRemoteServices').click(function (event) {
+      var form = document.getElementById('addRemoteServiceForm');
+      if (form.checkValidity() === false) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        var formData = $('#addRemoteServiceForm').serialize();
+
+        $.ajax({
+          url: '{% url "pemba_admin_save_service" %}',
+          type: 'POST',
+          data: formData,
+          success: function (response) {
+            if (response.success) {
+              $('#serviceMessageContainer')
+                .removeClass('alert-danger')
+                .addClass('alert-success')
+                .text(response.message)
+                .show();
+              setTimeout(() => location.reload(true), 1000);
+            } else {
+              $('#serviceMessageContainer')
+                .removeClass('alert-success')
+                .addClass('alert-danger')
+                .text(response.message)
+                .show();
+            }
+          },
+          error: function () {
+            $('#serviceMessageContainer')
+              .removeClass('alert-success')
+              .addClass('alert-danger')
+              .text('AJAX request failed')
+              .show();
+          }
+        });
+      }
+
+      form.classList.add('was-validated');
+    });
+  });
+</script>
+
+{% endblock %}

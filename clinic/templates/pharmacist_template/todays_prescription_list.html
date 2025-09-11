@@ -1,70 +1,667 @@
 {% extends 'pharmacist_template/base_template.html' %}
 {% load customfilter %}
 {% block title %}
-Today's Prescriptions
+Today Prescription Management 
 {% endblock title %}
+
 {% block breadcrumb %}
 {% include "pharmacist_template/modal_form.html" %}
 {% endblock breadcrumb %}
+
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Prescription Management Styles - Unique to this template */
+    .pharm-prescription-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pharm-prescription-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-prescription-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-prescription-table th {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-prescription-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .pharm-prescription-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-prescription-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #f8f9fa;
+    }
+    
+    .btn-pharm-prescription {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-prescription:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-prescription-add {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-prescription-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-prescription-view {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-pharm-prescription-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-prescription-verify {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-prescription-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-prescription-unverify {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 65, 108, 0.2);
+    }
+    
+    .btn-pharm-prescription-unverify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 65, 108, 0.3);
+        color: white;
+    }
+    
+    .pharm-prescription-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-prescription-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-prescription-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-prescription-summary-card .card-header {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .pharm-prescription-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-prescription-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-prescription-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-prescription-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pharm-prescription-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-prescription-badge-verified {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-unverified {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-partially-verified {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-issued {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-partially-issued {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-paid {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-unpaid {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-partially-paid {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    .pharm-prescription-badge-no-prescriptions {
+        background: linear-gradient(120deg, #6c757d, #5a6268);
+        color: white;
+    }
+    
+    .pharm-prescription-filter-bar {
+        background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-prescription-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-prescription-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-prescription-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Date range filter styles */
+    .pharm-prescription-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #1a2a6c;
+        min-width: 80px;
+    }
+    
+    .date-filter-input {
+        border: 1px solid #d2e3fc;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Status button colors */
+    .pharm-prescription-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="verified"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="not_verified"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="partially_verified"] {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="issued"] {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="not_issued"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="partially_issued"] {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="paid"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="unpaid"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-prescription-status-btn[data-status="partially_paid"] {
+        background: linear-gradient(120deg, #fdbb2d, #f8a51a);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmPrescriptionFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-prescription-animated {
+        animation: pharmPrescriptionFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-prescription-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-prescription-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-prescription-flip-card:hover .pharm-prescription-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-prescription-flip-card-front, .pharm-prescription-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-prescription-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .pharm-prescription-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-prescription-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium modal styling */
+    .pharm-prescription-modal-xl {
+        max-width: 90%;
+    }
+    
+    .pharm-prescription-drug-table th {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    /* Status indicators */
+    .pharm-prescription-status-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+    
+    /* Confirmation modal styles */
+    .confirmation-modal .modal-content {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    
+    .confirmation-modal .modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border-bottom: none;
+    }
+    
+    .confirmation-modal .modal-body {
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .confirmation-modal .modal-footer {
+        border-top: none;
+        justify-content: center;
+        padding-bottom: 2rem;
+    }
+    
+    .confirmation-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    .confirmation-warning {
+        color: #ff4b2b;
+    }
+    
+    .confirmation-success {
+        color: #00b09b;
+    }
+    
+    .confirmation-question {
+        color: #1a2a6c;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> Today's Prescriptions </h6>
+            <div class="card pharm-prescription-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-prescription mr-2"></i>Today Prescription Management</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="example" style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-prescription mr-2"></i>Total Prescriptions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-prescription-summary-value" id="total-prescriptions">{{ visit_total_prices|length }}</div>
+                                    <div class="pharm-prescription-summary-label">All Prescriptions</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Verified</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-prescription-summary-value" id="verified-prescriptions">0</div>
+                                    <div class="pharm-prescription-summary-label">Verified</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-prescription-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-truck-loading mr-2"></i>Issued</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-prescription-summary-value" id="issued-prescriptions">0</div>
+                                    <div class="pharm-prescription-summary-label">Issued</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-prescription-flip-card">
+                                <div class="pharm-prescription-flip-card-inner">
+                                    <div class="pharm-prescription-flip-card-front">
+                                        <div class="pharm-prescription-flip-icon">
+                                            <i class="fas fa-capsules"></i>
+                                        </div>
+                                        <h4>Pharmacy Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-prescription-flip-card-back">
+                                        <div class="pharm-prescription-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Prescription Insights</h4>
+                                        <p>Advanced tracking & analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-prescription-filter-bar">
+                        <!-- Date Range Filter -->
+                        <div class="pharm-prescription-date-filter">
+                            <div class="date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="date-filter-input" id="startDate">
+                            </div>
+                            <div class="date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-pharm-prescription" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-pharm-prescription" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        
+                        <div class="pharm-prescription-status-filter">
+                            <button class="pharm-prescription-status-btn active" data-status="all">All Prescriptions</button>
+                            <button class="pharm-prescription-status-btn" data-status="verified">Verified</button>
+                            <button class="pharm-prescription-status-btn" data-status="not_verified">Not Verified</button>
+                            <button class="pharm-prescription-status-btn" data-status="partially_verified">Partially Verified</button>
+                            <button class="pharm-prescription-status-btn" data-status="issued">Issued</button>
+                            <button class="pharm-prescription-status-btn" data-status="not_issued">Not Issued</button>
+                            <button class="pharm-prescription-status-btn" data-status="partially_issued">Partially Issued</button>
+                            <button class="pharm-prescription-status-btn" data-status="paid">Paid</button>
+                            <button class="pharm-prescription-status-btn" data-status="unpaid">Unpaid</button>
+                            <button class="pharm-prescription-status-btn" data-status="partially_paid">Partially Paid</button>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search prescriptions..." id="prescriptionSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-prescription" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-prescription-table-container">
+                        <table class="table table-hover text-nowrap pharm-prescription-table" id="prescriptionTable">
                             <thead>
-                                <tr> 
+                                <tr>
                                     <th>Date</th>     
                                     <th>Visit Number</th>
                                     <th>Patient</th>              
                                     <th>Billing Amount</th> 
-                                    <th>Verified</th>  <!-- Add this column -->
-                                    <th>Issued</th>   <!-- Add this column -->
-                                    <th>Status</th>   <!-- Add this column -->
+                                    <th>Verified</th>
+                                    <th>Issued</th>
+                                    <th>Status</th>
                                     <th>Action</th>               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for visit_total in visit_total_prices %}
-                                    <tr>  
-                                        <td>{{ visit_total.visit__created_at|date:"d/m/Y" }}</td> <!-- Format date as dd/mm/yyyy -->
-                                        <td>{{ visit_total.visit__vst }}</td> <!-- Display visit number -->
-                                        <td>{{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }}  {{ visit_total.visit__patient__last_name }}</td> <!-- Display patient name -->
-                                        <td>{{ visit_total.total_price }}</td> <!-- Display total price for the visit -->
+                                    <tr data-date="{{ visit_total.visit__created_at|date:'Y-m-d' }}" data-verified="{{ visit_total.verified_status }}" data-issued="{{ visit_total.issued_status }}" data-status="{{ visit_total.payment_status }}">  
+                                        <td>{{ visit_total.visit__created_at|date:"d/m/Y" }}</td>
+                                        <td>{{ visit_total.visit__vst }}</td>
+                                        <td>{{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }}  {{ visit_total.visit__patient__last_name }}</td>
+                                        <td>{{ visit_total.total_price }}</td>
                                         
                                         <td>
-                                            <p  {% if visit_total.verified == 'verified' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}>
-                                                {{ visit_total.verified }}
-                                            </p>
-                                          
-                                        </td>  <!-- Display verified field -->
+                                            <span class="pharm-prescription-status-indicator 
+                                                {% if visit_total.verified_status == 'verified' %}pharm-prescription-badge-verified
+                                                {% elif visit_total.verified_status == 'not_verified' %}pharm-prescription-badge-unverified
+                                                {% elif visit_total.verified_status == 'partially_verified' %}pharm-prescription-badge-partially-verified
+                                                {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                                                {{ visit_total.verified_status|title }}
+                                            </span>
+                                        </td>
                                         
                                         <td>
-                                            <p  {% if visit_total.issued == 'issued' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.issued }}</p>
-                                           
-                                        </td>   <!-- Display issued field -->
-                                        
-                                        <td >
-                                           <p {% if visit_total.status == 'Paid' %}   style="background-color: #308829;color: white;" {% else %}  style="background-color: #DD0000;color: white;" {% endif %}> {{ visit_total.status }}</p>
-                                        </td>   <!-- Display payment status field -->
+                                            <span class="pharm-prescription-status-indicator 
+                                                {% if visit_total.issued_status == 'issued' %}pharm-prescription-badge-issued
+                                                {% elif visit_total.issued_status == 'not_issued' %}pharm-prescription-badge-unverified
+                                                {% elif visit_total.issued_status == 'partially_issued' %}pharm-prescription-badge-partially-issued
+                                                {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                                                {{ visit_total.issued_status|title }}
+                                            </span>
+                                        </td>
                                         
                                         <td>
-                                             <!-- Modal Trigger Button -->
-                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#prescriptionDetailModal{{ visit_total.visit__vst }}">
-                                                <i class="fas fa-eye"></i> Issue/Verify
+                                            <span class="pharm-prescription-status-indicator 
+                                                {% if visit_total.payment_status == 'paid' %}pharm-prescription-badge-paid
+                                                {% elif visit_total.payment_status == 'unpaid' %}pharm-prescription-badge-unpaid
+                                                {% elif visit_total.payment_status == 'partially_paid' %}pharm-prescription-badge-partially-paid
+                                                {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                                                {{ visit_total.payment_status|title }}
+                                            </span>
+                                        </td>
+                                        
+                                        <td>
+                                            <!-- Modal Trigger Button -->
+                                            <button type="button" class="btn btn-pharm-prescription-view" data-toggle="modal" data-target="#prescriptionDetailModal{{ visit_total.visit__vst }}">
+                                                <i class="fas fa-eye mr-1"></i> Details
                                             </button>                                    
                                         </td>        
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>                        
-                      </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -72,12 +669,14 @@ Today's Prescriptions
 </div>
 
 {% for visit_total in visit_total_prices %}
+<!-- Premium Prescription Detail Modal -->
 <div class="modal fade" id="prescriptionDetailModal{{ visit_total.visit__vst }}" tabindex="-1" role="dialog" aria-labelledby="prescriptionDetailModalLabel{{ visit_total.visit__vst }}" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="prescriptionDetailModalLabel{{ visit_total.visit__vst }}">
-          Prescription Details - Visit #{{ visit_total.visit__vst }}
+  <div class="modal-dialog modal-xl modal-dialog-scrollable pharm-prescription-modal-xl" role="document">
+    <div class="modal-content pharm-prescription-modal-content">
+
+      <div class="modal-header pharm-prescription-modal-header">
+        <h5 class="modal-title text-white" id="prescriptionDetailModalLabel{{ visit_total.visit__vst }}">
+          <i class="fas fa-file-prescription mr-2"></i>Prescription Details - Visit #{{ visit_total.visit__vst }}
         </h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
@@ -86,63 +685,121 @@ Today's Prescriptions
 
       <div class="modal-body">
         <!-- Header Image -->
-        <div class="mb-3">
-          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+        <div class="mb-3 text-center">
+          <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid rounded" alt="Header Image" style="max-height: 120px;">
         </div>
 
         <!-- Patient Info -->
-        <div class="card mb-3">
-          <div class="card-header bg-dark text-white">Patient Details</div>
+        <div class="card mb-3 shadow-sm">
+          <div class="card-header bg-dark text-white">
+            <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+          </div>
           <div class="card-body">
-            <table class="table table-borderless table-sm">
-              <tr>
-                <td><strong>Patient:</strong> {{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</td>
-                <td><strong>Visit No:</strong> {{ visit_total.visit__vst }}</td>
-                <td><strong>Date:</strong> {{ visit_total.visit__created_at|date:"d-m-Y" }}</td>
-              </tr>
-              <tr>
-                <td colspan="3">
-                  <strong>Status:</strong> {{ visit_total.status }} &nbsp; 
-                  <strong>Verified:</strong> {{ visit_total.verified }} &nbsp; 
-                  <strong>Issued:</strong> {{ visit_total.issued }}
-                </td>
-              </tr>
-            </table>
+            <div class="row">
+              <div class="col-md-4">
+                <p><strong>Patient Name:</strong><br>{{ visit_total.visit__patient__first_name }} {{ visit_total.visit__patient__middle_name }} {{ visit_total.visit__patient__last_name }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Visit Number:</strong><br>{{ visit_total.visit__vst }}</p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Date:</strong><br>{{ visit_total.visit__created_at|date:"d-m-Y" }}</p>
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-4">
+                <p><strong>Status:</strong><br>
+                  <span class="pharm-prescription-status-indicator 
+                    {% if visit_total.payment_status == 'paid' %}pharm-prescription-badge-paid
+                    {% elif visit_total.payment_status == 'unpaid' %}pharm-prescription-badge-unpaid
+                    {% elif visit_total.payment_status == 'partially_paid' %}pharm-prescription-badge-partially-paid
+                    {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                    {{ visit_total.payment_status|title }}
+                  </span>
+                </p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Verified:</strong><br>
+                  <span class="pharm-prescription-status-indicator 
+                    {% if visit_total.verified_status == 'verified' %}pharm-prescription-badge-verified
+                    {% elif visit_total.verified_status == 'not_verified' %}pharm-prescription-badge-unverified
+                    {% elif visit_total.verified_status == 'partially_verified' %}pharm-prescription-badge-partially-verified
+                    {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                    {{ visit_total.verified_status|title }}
+                  </span>
+                </p>
+              </div>
+              <div class="col-md-4">
+                <p><strong>Issued:</strong><br>
+                  <span class="pharm-prescription-status-indicator 
+                    {% if visit_total.issued_status == 'issued' %}pharm-prescription-badge-issued
+                    {% elif visit_total.issued_status == 'not_issued' %}pharm-prescription-badge-unverified
+                    {% elif visit_total.issued_status == 'partially_issued' %}pharm-prescription-badge-partially-issued
+                    {% else %}pharm-prescription-badge-no-prescriptions{% endif %}">
+                    {{ visit_total.issued_status|title }}
+                  </span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Prescription Table -->
-        <div class="card">
+        <div class="card shadow-sm">
           <div class="card-header bg-secondary text-white">
-            <h6 class="mb-0 text-uppercase">Prescribed Drugs</h6>
+            <h6 class="mb-0 text-uppercase"><i class="fas fa-pills mr-2"></i>Prescribed Drugs</h6>
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm">
-                <thead>
+              <table class="table table-bordered table-sm pharm-prescription-drug-table">
+                <thead class="thead-light">
                   <tr>
                     <th>Drug</th>
-                    <th>Dose</th>
+                    <th>Formulation/Dose</th>
+                    <th>Dosage Instructions</th>
+                    <th>Route</th>
                     <th>Frequency</th>
                     <th>Duration</th>
                     <th>Quantity</th>
                     <th>Unit Price</th>
                     <th>Total Price</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for prescription in visit_total.prescriptions %}
                   <tr>
                     <td>{{ prescription.medicine.drug_name }}</td>
-                    <td>{{ prescription.dose }}</td>
+                    <td>{{ prescription.formulation_dose }}</td>
+                    <td>{{ prescription.dosage }}</td>
+                    <td>{{ prescription.route }}</td>
                     <td>{{ prescription.frequency }}</td>
                     <td>{{ prescription.duration }} days</td>
                     <td>{{ prescription.quantity_used }}</td>
                     <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
                     <td>{{ prescription.total_price }}</td>
+                    <td>
+                      <span class="pharm-prescription-status-indicator 
+                        {% if prescription.verified == 'verified' and prescription.issued == 'issued' and prescription.status == 'paid' %}pharm-prescription-badge-verified
+                        {% elif prescription.verified == 'verified' and prescription.issued == 'issued' %}pharm-prescription-badge-issued
+                        {% elif prescription.verified == 'verified' %}pharm-prescription-badge-verified
+                        {% else %}pharm-prescription-badge-unverified{% endif %}">
+                        {% if prescription.verified == 'verified' and prescription.issued == 'issued' and prescription.status == 'paid' %}Complete
+                        {% elif prescription.verified == 'verified' and prescription.issued == 'issued' %}Issued
+                        {% elif prescription.verified == 'verified' %}Verified
+                        {% else %}Pending{% endif %}
+                      </span>
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
+                <tfoot>
+                  <tr class="table-active">
+                    <td colspan="8" class="text-right"><strong>Total:</strong></td>
+                    <td><strong>{{ visit_total.total_price }}</strong></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -150,21 +807,33 @@ Today's Prescriptions
 
         <!-- Action Buttons -->
         <div class="row mt-4">
-          <div class="col-md-4">
-            {% if visit_total.verified %}
-              <button class="btn btn-danger btn-block" onclick="toggleVerification('{{ visit_total.visit__vst }}', 'unverify')">Unverify</button>
+          <div class="col-md-6 mb-2">
+            {% if visit_total.verified_status == 'not_verified' or visit_total.verified_status == 'partially_verified' %}
+              <button class="btn btn-pharm-prescription-verify btn-block" onclick="showConfirmationModal('verify', '{{ visit_total.visit__vst }}')">
+                <i class="fas fa-check-circle mr-1"></i> Verify All
+              </button>
             {% else %}
-              <button class="btn btn-success btn-block" onclick="toggleVerification('{{ visit_total.visit__vst }}', 'verify')">Verify</button>
+              <button class="btn btn-success btn-block" disabled>
+                <i class="fas fa-check-circle mr-1"></i> Verified
+              </button>
             {% endif %}
           </div>
 
-          <div class="col-md-4">
-            {% if visit_total.verified %}
-              {% if visit_total.issued %}
-                <button class="btn btn-danger btn-block" onclick="toggleIssued('{{ visit_total.visit__vst }}', 'unissue')">Unissue</button>
+          <div class="col-md-6 mb-2">
+            {% if visit_total.verified_status == 'verified' %}
+              {% if visit_total.issued_status == 'not_issued' or visit_total.issued_status == 'partially_issued' %}
+                <button class="btn btn-pharm-prescription-verify btn-block" onclick="showConfirmationModal('issue', '{{ visit_total.visit__vst }}')">
+                  <i class="fas fa-truck-loading mr-1"></i> Issue All
+                </button>
               {% else %}
-                <button class="btn btn-primary btn-block" onclick="toggleIssued('{{ visit_total.visit__vst }}', 'issue')">Issue</button>
+                <button class="btn btn-success btn-block" disabled>
+                  <i class="fas fa-truck-loading mr-1"></i> Issued
+                </button>
               {% endif %}
+            {% else %}
+              <button class="btn btn-secondary btn-block" disabled>
+                Verify First
+              </button>
             {% endif %}
           </div>
         </div>
@@ -175,14 +844,40 @@ Today's Prescriptions
 </div>
 {% endfor %}
 
-
-<!-- Bootstrap Notification Modal -->
-<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-hidden="true">
+<!-- Confirmation Modal -->
+<div class="modal fade confirmation-modal" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
-      <div class="modal-header bg-info text-white">
-        <h5 class="modal-title" id="paymentStatusModalLabel">Payment Status</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmationModalLabel">Confirmation Required</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="confirmation-icon" id="confirmationIcon">
+          <i class="fas fa-question-circle confirmation-question"></i>
+        </div>
+        <h4 id="confirmationTitle">Are you sure?</h4>
+        <p id="confirmationMessage">This action cannot be undone.</p>
+        <input type="hidden" id="confirmationAction">
+        <input type="hidden" id="confirmationVisitNumber">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmActionButton">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap Notification Modal with Accessibility Fixes -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1" role="dialog" aria-labelledby="paymentStatusModalLabel" aria-modal="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pharm-prescription-modal-content">
+      <div class="modal-header pharm-prescription-modal-header" id="paymentStatusModalHeader">
+        <h5 class="modal-title text-white" id="paymentStatusModalLabel">Operation Status</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" id="modalCloseButton">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -190,62 +885,474 @@ Today's Prescriptions
         <!-- Message will be inserted here -->
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+        <button type="button" class="btn btn-pharm-prescription" id="confirmModalClose">OK</button>
       </div>
     </div>
   </div>
 </div>
+
+{% endblock main_content %}
+{% block customer_js %}
 <script>
+// Store notification type globally
+let notificationType = '';
+let reloadOnClose = false;
+
+// Show notification
+function showNotification(message, type) {
+    // First, ensure any focused elements in other modals are blurred
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+    
+    // Close all other modals first with proper focus management
+    $('.modal').not('#paymentStatusModal').each(function() {
+        const modal = $(this);
+        // Ensure no elements in the modal have focus before hiding
+        if (modal.hasClass('show')) {
+            modal.find(':focus').blur();
+            modal.modal('hide');
+        }
+    });
+    
+    const modalBody = $('#paymentStatusModalBody');
+    modalBody.html(`<p>${message}</p>`);
+    
+    // Set appropriate styling based on type
+    const modalHeader = $('#paymentStatusModalHeader');
+    if (type === 'success') {
+        modalHeader.css('background', 'linear-gradient(120deg, #00b09b, #96c93d)');
+        reloadOnClose = true;
+    } else if (type === 'error') {
+        modalHeader.css('background', 'linear-gradient(120deg, #ff416c, #ff4b2b)');
+        reloadOnClose = false;
+    } else {
+        modalHeader.css('background', 'linear-gradient(120deg, #1a2a6c, #b21f1f)');
+        reloadOnClose = false;
+    }
+    
+    // Store the notification type
+    notificationType = type;
+    
+    // Show modal after a brief delay to ensure other modals are fully hidden
+    setTimeout(function() {
+        $('#paymentStatusModal').modal('show');
+        
+        // Set focus to the OK button for accessibility
+        setTimeout(function() {
+            $('#confirmModalClose').focus();
+        }, 100);
+    }, 50);
+}
+
+// Handle modal events
+$(document).ready(function() {
+    // Handle modal close events - FIXED VERSION
+    $('#paymentStatusModal').on('hidden.bs.modal', function (e) {
+        console.log('Modal hidden, reloadOnClose:', reloadOnClose);
+        if (reloadOnClose) {
+            console.log('Reloading page...');
+            location.reload();
+        }
+    });
+    
+    // Handle OK button click
+    $('#confirmModalClose').on('click', function() {
+        // Move focus away before hiding
+        $('body').focus();
+        $('#paymentStatusModal').modal('hide');
+    });
+    
+    // Handle close button click
+    $('#modalCloseButton').on('click', function() {
+        // Move focus away before hiding
+        $('body').focus();
+        $('#paymentStatusModal').modal('hide');
+    });
+    
+    // Ensure proper focus management when modals are shown
+    $('.modal').on('show.bs.modal', function() {
+        // Hide all other modals with proper focus management
+        $('.modal').not(this).each(function() {
+            const otherModal = $(this);
+            if (otherModal.hasClass('show')) {
+                otherModal.find(':focus').blur();
+                otherModal.modal('hide');
+            }
+        });
+    });
+    
+    // Handle focus when modal is about to be hidden
+    $('.modal').on('hide.bs.modal', function() {
+        // Blur any focused elements in this modal before hiding
+        $(this).find(':focus').blur();
+    });
+
+    // Initialize DataTable
+    $('#prescriptionTable').DataTable({
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search prescriptions...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    calculateSummaryStats();
+
+    // Status filter functionality
+    $('.pharm-prescription-status-btn').on('click', function() {
+        // Toggle active class
+        $('.pharm-prescription-status-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        const status = $(this).data('status');
+        filterPrescriptions(status);
+    });
+
+    // Search functionality
+    $('#prescriptionSearch').on('keyup', function() {
+        const searchText = $(this).val().toLowerCase();
+        const activeStatus = $('.pharm-prescription-status-btn.active').data('status');
+        
+        filterPrescriptionsWithSearch(activeStatus, searchText);
+    });
+    
+    $('#searchButton').on('click', function() {
+        const searchText = $('#prescriptionSearch').val().toLowerCase();
+        const activeStatus = $('.pharm-prescription-status-btn.active').data('status');
+        
+        filterPrescriptionsWithSearch(activeStatus, searchText);
+    });
+
+    // Handle confirmation button click
+    $('#confirmActionButton').on('click', function() {
+        const action = $('#confirmationAction').val();
+        const visitNumber = $('#confirmationVisitNumber').val();
+        
+        // Move focus away before hiding
+        $('body').focus();
+        $('#confirmationModal').modal('hide');
+        
+        if (action === 'verify') {
+            toggleVerification(visitNumber, action);
+        } else if (action === 'issue') {
+            toggleIssued(visitNumber, action);
+        }
+    });
+
+    // Date range filter functionality
+    $('#applyDateFilter').on('click', function() {
+        const startDateInput = $('#startDate').val();
+        const endDateInput = $('#endDate').val();
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterPrescriptionsByDate(startDate, endDate);
+    });
+    
+    $('#clearDateFilter').on('click', function() {
+        $('#startDate').val('');
+        $('#endDate').val('');
+        
+        // Show all rows
+        $('#prescriptionTable tbody tr').each(function() {
+            $(this).show();
+        });
+        
+        // Update total count
+        $('#total-prescriptions').text($('#prescriptionTable tbody tr:visible').length);
+        calculateSummaryStats();
+    });
+
+    // Set default dates (last 30 days) and apply filter on page load
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    $('#endDate').val(today.toISOString().split('T')[0]);
+    $('#startDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
+    
+    // Apply the default filter after a short delay to ensure DOM is ready
+    setTimeout(function() {
+        $('#applyDateFilter').click();
+    }, 500);
+});
+
+// Calculate summary statistics
+function calculateSummaryStats() {
+    let verifiedCount = 0;
+    let issuedCount = 0;
+    
+    $('#prescriptionTable tbody tr:visible').each(function() {
+        const verified = $(this).data('verified');
+        const issued = $(this).data('issued');
+        
+        // Count by status
+        if (verified === 'verified') {
+            verifiedCount++;
+        }
+        
+        if (issued === 'issued') {
+            issuedCount++;
+        }
+    });
+    
+    // Update summary cards
+    $('#verified-prescriptions').text(verifiedCount);
+    $('#issued-prescriptions').text(issuedCount);
+}
+
+// Filter prescriptions by status
+function filterPrescriptions(status) {
+    const rows = $('#prescriptionTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.each(function() {
+        const rowVerified = $(this).data('verified');
+        const rowIssued = $(this).data('issued');
+        const rowStatus = $(this).data('status');
+        
+        let showRow = false;
+        
+        if (status === 'all') {
+            showRow = true;
+        } else if (status === 'verified' && rowVerified === 'verified') {
+            showRow = true;
+        } else if (status === 'not_verified' && rowVerified === 'not_verified') {
+            showRow = true;
+        } else if (status === 'partially_verified' && rowVerified === 'partially_verified') {
+            showRow = true;
+        } else if (status === 'issued' && rowIssued === 'issued') {
+            showRow = true;
+        } else if (status === 'not_issued' && rowIssued === 'not_issued') {
+            showRow = true;
+        } else if (status === 'partially_issued' && rowIssued === 'partially_issued') {
+            showRow = true;
+        } else if (status === 'paid' && rowStatus === 'paid') {
+            showRow = true;
+        } else if (status === 'unpaid' && rowStatus === 'unpaid') {
+            showRow = true;
+        } else if (status === 'partially_paid' && rowStatus === 'partially_paid') {
+            showRow = true;
+        }
+        
+        if (showRow) {
+            $(this).show();
+            visibleCount++;
+        } else {
+            $(this).hide();
+        }
+    });
+    
+    // Update total count
+    $('#total-prescriptions').text(visibleCount);
+    calculateSummaryStats();
+}
+
+// Filter prescriptions by both status and search text
+function filterPrescriptionsWithSearch(status, searchText) {
+    const rows = $('#prescriptionTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.each(function() {
+        const rowVerified = $(this).data('verified');
+        const rowIssued = $(this).data('issued');
+        const rowStatus = $(this).data('status');
+        const rowText = $(this).text().toLowerCase();
+        
+        let statusMatch = false;
+        
+        if (status === 'all') {
+            statusMatch = true;
+        } else if (status === 'verified' && rowVerified === 'verified') {
+            statusMatch = true;
+        } else if (status === 'not_verified' && rowVerified === 'not_verified') {
+            statusMatch = true;
+        } else if (status === 'partially_verified' && rowVerified === 'partially_verified') {
+            statusMatch = true;
+        } else if (status === 'issued' && rowIssued === 'issued') {
+            statusMatch = true;
+        } else if (status === 'not_issued' && rowIssued === 'not_issued') {
+            statusMatch = true;
+        } else if (status === 'partially_issued' && rowIssued === 'partially_issued') {
+            statusMatch = true;
+        } else if (status === 'paid' && rowStatus === 'paid') {
+            statusMatch = true;
+        } else if (status === 'unpaid' && rowStatus === 'unpaid') {
+            statusMatch = true;
+        } else if (status === 'partially_paid' && rowStatus === 'partially_paid') {
+            statusMatch = true;
+        }
+        
+        const searchMatch = searchText === '' || rowText.includes(searchText);
+        
+        if (statusMatch && searchMatch) {
+            $(this).show();
+            visibleCount++;
+        } else {
+            $(this).hide();
+        }
+    });
+    
+    // Update total count
+    $('#total-prescriptions').text(visibleCount);
+    calculateSummaryStats();
+}
+
+// Filter prescriptions by date range
+function filterPrescriptionsByDate(startDate, endDate) {
+    const rows = $('#prescriptionTable tbody tr');
+    let visibleCount = 0;
+    
+    rows.each(function() {
+        const rowDateStr = $(this).data('date');
+        if (!rowDateStr) {
+            $(this).hide();
+            return;
+        }
+        
+        // Parse row date
+        const rowDateParts = rowDateStr.split('-');
+        const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+        
+        // Determine if row should be shown
+        let showRow = true;
+        
+        if (startDate && endDate) {
+            // Both dates provided - check if row date is in range
+            showRow = rowDate >= startDate && rowDate <= endDate;
+        } else if (startDate) {
+            // Only start date provided - check if row date is on or after start
+            showRow = rowDate >= startDate;
+        } else if (endDate) {
+            // Only end date provided - check if row date is on or before end
+            showRow = rowDate <= endDate;
+        }
+        // If neither date is provided, showRow remains true
+        
+        if (showRow) {
+            $(this).show();
+            visibleCount++;
+        } else {
+            $(this).hide();
+        }
+    });
+    
+    // Update total count
+    $('#total-prescriptions').text(visibleCount);
+    calculateSummaryStats();
+}
+
 function getCSRFToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    return $('[name=csrfmiddlewaretoken]').val();
+}
+
+// Show confirmation modal
+function showConfirmationModal(action, visitNumber) {
+    // Close all other modals first with proper focus management
+    $('.modal').not('#confirmationModal').each(function() {
+        const modal = $(this);
+        if (modal.hasClass('show')) {
+            modal.find(':focus').blur();
+            modal.modal('hide');
+        }
+    });
+    
+    const modalElement = document.getElementById('confirmationModal');
+    const modal = new bootstrap.Modal(modalElement);
+    
+    const title = $('#confirmationTitle');
+    const message = $('#confirmationMessage');
+    const icon = $('#confirmationIcon');
+    const actionInput = $('#confirmationAction');
+    const visitInput = $('#confirmationVisitNumber');
+    
+    // Set action and visit number
+    actionInput.val(action);
+    visitInput.val(visitNumber);
+    
+    // Customize based on action type
+    switch(action) {
+        case 'verify':
+            title.text('Verify Prescription');
+            message.html(`Are you sure you want to verify all prescriptions for visit #${visitNumber}?<br><strong>This action cannot be undone.</strong>`);
+            icon.html('<i class="fas fa-check-circle confirmation-success"></i>');
+            break;
+        case 'issue':
+            title.text('Issue Medication');
+            message.html(`Are you sure you want to mark all medications as issued for visit #${visitNumber}?<br><strong>This action cannot be undone.</strong>`);
+            icon.html('<i class="fas fa-truck-loading confirmation-success"></i>');
+            break;
+    }
+    
+    // Show after a brief delay to ensure other modals are fully hidden
+    setTimeout(function() {
+        modal.show();
+        
+        // Set focus to the confirm button for accessibility
+        setTimeout(function() {
+            $('#confirmActionButton').focus();
+        }, 100);
+    }, 50);
 }
 
 // Toggle verification status
 function toggleVerification(visitNumber, action) {
-    const url = action === 'verify'
-        ? '{% url "pharmacist_verify_prescriptions" %}'
-        : '{% url "pharmacist_unverify_prescriptions" %}';
+    const url = '{% url "pharmacist_verify_prescriptions" %}';
 
     $.ajax({
         url: url,
         method: 'POST',
         headers: { 'X-CSRFToken': getCSRFToken() },
         data: { visit_number: visitNumber },
-        success: function () {
-            alert("Verification status updated.");
-            location.reload();
+        success: function (response) {
+            if (response.success) {
+                showNotification(response.message || "Prescriptions verified successfully.", "success");
+            } else {
+                showNotification(response.message || "Failed to verify prescriptions.", "error");
+            }
         },
-        error: function () {
-            alert("Failed to update verification status.");
+        error: function (xhr) {
+            const response = xhr.responseJSON || {};
+            showNotification(response.message || "Failed to verify prescriptions.", "error");
         }
     });
 }
 
 // Toggle issue status
 function toggleIssued(visitNumber, action) {
-    const url = action === 'issue'
-        ? '{% url "pharmacist_issue_prescriptions" %}'
-        : '{% url "pharmacist_unissue_prescriptions" %}';
+    const url = '{% url "pharmacist_issue_prescriptions" %}';
 
     $.ajax({
         url: url,
         method: 'POST',
         headers: { 'X-CSRFToken': getCSRFToken() },
         data: { visit_number: visitNumber },
-        success: function () {
-            alert("Issue status updated.");
-            location.reload();
+        success: function (response) {
+            if (response.success) {
+                showNotification(response.message || "Medications issued successfully.", "success");
+            } else {
+                showNotification(response.message || "Failed to issue medications.", "error");
+            }
         },
-        error: function () {
-            alert("Failed to update issue status.");
+        error: function (xhr) {
+            const response = xhr.responseJSON || {};
+            showNotification(response.message || "Failed to issue medications.", "error");
         }
     });
 }
 </script>
-
-
-
-
-</script>
-{% include 'pharmacist_template/datatable.html' %}
-{% endblock main_content %}
+{% endblock %}

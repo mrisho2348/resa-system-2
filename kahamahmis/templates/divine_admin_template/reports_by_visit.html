@@ -1,44 +1,441 @@
 {% extends 'divine_admin_template/base_template.html' %}
 {% block title %}
-Visits Reports    
+Premium Visits Reports    
 {% endblock title %}
-{% block breadcrumb %}   
+
+{% block breadcrumb %}
+<div class="d-flex justify-content-between align-items-center">
+    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Patient Visits Analytics Dashboard</h6>
+    <div>
+        <button class="btn btn-prem-visit-export mr-2" id="exportExcelBtn">
+            <i class="fas fa-file-excel mr-1"></i> Export Excel
+        </button>
+        <button class="btn btn-prem-visit-export mr-2" id="exportPDFBtn">
+            <i class="fas fa-file-pdf mr-1"></i> Export PDF
+        </button>
+        <button class="btn btn-prem-visit-refresh" id="refreshDataBtn">
+            <i class="fas fa-sync-alt mr-1"></i> Refresh
+        </button>
+    </div>
+</div>
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Visits Report Styles - Unique to this template */
+    .visit-prem-gradient {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 41, 128, 0.15);
+        border: none;
+    }
+    
+    .visit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .visit-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        background: white;
+    }
+    
+    .visit-prem-table th {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e3f2fd;
+    }
+    
+    .visit-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .visit-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f5f9ff;
+    }
+    
+    .btn-prem-visit {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 41, 128, 0.2);
+    }
+    
+    .btn-prem-visit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 41, 128, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-visit-export {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-visit-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-visit-refresh {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-visit-refresh:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-visit-view {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 41, 128, 0.2);
+    }
+    
+    .btn-prem-visit-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 41, 128, 0.3);
+        color: white;
+    }
+    
+    .visit-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .visit-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f9ff, #e3f2fd);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #bbdefb;
+    }
+    
+    .visit-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .visit-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .visit-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-badge-male {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+    }
+    
+    .visit-prem-badge-female {
+        background: linear-gradient(120deg, #D4145A, #FBB03B);
+        color: white;
+    }
+    
+    .visit-prem-filter-bar {
+        background: linear-gradient(120deg, #f5f9ff, #e3f2fd);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .visit-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .visit-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .visit-prem-status-btn[data-gender="all"] {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-gender="Male"] {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-gender="Female"] {
+        background: linear-gradient(120deg, #D4145A, #FBB03B);
+        color: white;
+    }
+    
+    /* Flip card effect for premium feature */
+    .visit-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .visit-prem-flip-card:hover .visit-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-card-front, .visit-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-flip-card-front {
+        background: linear-gradient(120deg, #1A2980, #26D0CE);
+        color: white;
+    }
+    
+    .visit-prem-flip-card-back {
+        background: linear-gradient(120deg, #26D0CE, #1A2980);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for view switching */
+    @keyframes visitPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .visit-prem-animated {
+        animation: visitPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Chart container styling */
+    .visit-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> Patient Visits Reports   </h6>
+            <div class="card visit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-file-medical-alt mr-2"></i>Premium Patient Visits Analytics</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                            <thead class="thead-dark">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Total Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="total-patients">{{ patients_with_visit_counts|length }}</div>
+                                    <div class="visit-prem-summary-label">All Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-male mr-2"></i>Male Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="male-patients">0</div>
+                                    <div class="visit-prem-summary-label">Male</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-female mr-2"></i>Female Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="female-patients">0</div>
+                                    <div class="visit-prem-summary-label">Female</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="visit-prem-flip-card">
+                                <div class="visit-prem-flip-card-inner">
+                                    <div class="visit-prem-flip-card-front">
+                                        <div class="visit-prem-flip-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="visit-prem-flip-card-back">
+                                        <div class="visit-prem-flip-icon">
+                                            <i class="fas fa-clinic-medical"></i>
+                                        </div>
+                                        <h4>Visit Patterns</h4>
+                                        <p>Advanced visit tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="visit-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="visit-prem-status-filter">
+                                <button class="visit-prem-status-btn active" data-gender="all">All Patients</button>
+                                <button class="visit-prem-status-btn" data-gender="Male">Male</button>
+                                <button class="visit-prem-status-btn" data-gender="Female">Female</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search patients..." id="visitPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-visit" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive visit-prem-table-container">
+                        <table class="table table-hover text-nowrap visit-prem-table" id="visitTable">
+                            <thead>
                                 <tr>
-                                    <th>Patient number</th>
-                                    <th>Patient Name</th>
-                                    <th>Gender</th>
-                                    <th>Age</th>                                
-                                    <th>Company</th>
-                                    <th>Total Visit</th>                               
-                                    <th>Action</th>                               
+                                    <th><i class="fas fa-id-card mr-2"></i>Patient Number</th>
+                                    <th><i class="fas fa-user mr-2"></i>Patient Name</th>
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>                                
+                                    <th><i class="fas fa-building mr-2"></i>Company</th>
+                                    <th class="text-center"><i class="fas fa-visit mr-2"></i>Total Visits</th>                               
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>                               
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in patients_with_visit_counts %}
-                                <tr>
+                                <tr data-gender="{{ item.patient.gender }}">
                                     <td>{{ item.patient.mrn }}</td>
                                     <td>{{ item.patient.first_name }} {{ item.patient.middle_name }}  {{ item.patient.last_name }}</td>                
-                                    <td>{{ item.patient.gender }}</td>
+                                    <td>
+                                        <span class="visit-prem-badge visit-prem-badge-{{ item.patient.gender|lower }}">
+                                            {{ item.patient.gender }}
+                                        </span>
+                                    </td>
                                     <td>{{ item.patient.age }}</td>
                                     <td>{{ item.patient.company }}</td>  
-                                    <td>{{ item.total_visits }}</td>
-                                    <td><a href="{% url "divine_individual_visit" item.patient.id %}"   data-toggle="tooltip" title="View">
-                                        <button type="button" class="btn btn-light border btn-sm"  ><i class="fa fa-eye text-dark"></i></button>
-                                    </a></td>
+                                    <td class="text-center">{{ item.total_visits }}</td>
+                                    <td class="text-center">
+                                        <a href="{% url "divine_individual_visit" item.patient.id %}" data-toggle="tooltip" title="View Details">
+                                            <button type="button" class="btn btn-prem-visit-view btn-sm">
+                                                <i class="fa fa-eye"></i> View
+                                            </button>
+                                        </a>
+                                    </td>
                                 </tr>                
                                 {% endfor %}
                             </tbody>
@@ -49,6 +446,281 @@ Visits Reports
         </div>
     </div>
 </div>
+
+<!-- Include necessary libraries for export functionality -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 {% include 'divine_admin_template/datatable.html' %}   
+
+<script>
+    // Initialize DataTable
+    new DataTable('#visitTable', {
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excel',
+                className: 'btn-prem-visit-export',
+                text: '<i class="fas fa-file-excel mr-1"></i> Excel'
+            },
+            {
+                extend: 'pdf',
+                className: 'btn-prem-visit-export',
+                text: '<i class="fas fa-file-pdf mr-1"></i> PDF'
+            },
+            {
+                extend: 'print',
+                className: 'btn-prem-visit-export',
+                text: '<i class="fas fa-print mr-1"></i> Print'
+            }
+        ],
+        responsive: true,
+        pageLength: 10,
+        order: [[5, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search patients...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let maleCount = 0;
+        let femaleCount = 0;
+        
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            const gender = row.getAttribute('data-gender');
+            
+            // Count by gender
+            if (gender === 'Male') {
+                maleCount++;
+            } else if (gender === 'Female') {
+                femaleCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('male-patients').textContent = maleCount;
+        document.getElementById('female-patients').textContent = femaleCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Gender filter functionality
+    document.querySelectorAll('.visit-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.visit-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const gender = this.getAttribute('data-gender');
+            filterPatients(gender);
+        });
+    });
+
+    // Filter patients by gender
+    function filterPatients(gender) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowGender = row.getAttribute('data-gender');
+            
+            if (gender === 'all' || rowGender === gender) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('visitPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeGender = document.querySelector('.visit-prem-status-btn.active').getAttribute('data-gender');
+        
+        filterPatientsWithSearch(activeGender, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitPremSearch').value.toLowerCase();
+        const activeGender = document.querySelector('.visit-prem-status-btn.active').getAttribute('data-gender');
+        
+        filterPatientsWithSearch(activeGender, searchText);
+    });
+
+    // Filter patients by both gender and search text
+    function filterPatientsWithSearch(gender, searchText) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowGender = row.getAttribute('data-gender');
+            const rowText = row.textContent.toLowerCase();
+            
+            const genderMatch = gender === 'all' || rowGender === gender;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (genderMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+
+    // Export to Excel functionality
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        // Get table data
+        const table = document.getElementById('visitTable');
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Patient Visits Report');
+        
+        // Add header row
+        const headerRow = [];
+        document.querySelectorAll('#visitTable thead th').forEach(th => {
+            headerRow.push(th.textContent.trim());
+        });
+        worksheet.addRow(headerRow);
+        
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF1A2980' }
+        };
+        worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+        
+        // Add data rows
+        document.querySelectorAll('#visitTable tbody tr:not([style*="display: none"])').forEach(tr => {
+            const rowData = [];
+            tr.querySelectorAll('td').forEach(td => {
+                // Remove button text if present
+                let cellText = td.textContent.trim();
+                if (cellText.includes('View')) {
+                    cellText = cellText.replace('View', '').trim();
+                }
+                rowData.push(cellText);
+            });
+            worksheet.addRow(rowData);
+        });
+        
+        // Auto fit columns
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const columnLength = cell.value ? cell.value.toString().length : 10;
+                if (columnLength > maxLength) {
+                    maxLength = columnLength;
+                }
+            });
+            column.width = maxLength < 10 ? 10 : maxLength;
+        });
+        
+        // Download the Excel file
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "patient_visits_report.xlsx";
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+    });
+
+    // Export to PDF functionality
+    document.getElementById('exportPDFBtn').addEventListener('click', function() {
+        // Get table data
+        const table = document.getElementById('visitTable');
+        const visibleRows = Array.from(table.querySelectorAll('tbody tr:not([style*="display: none"])'));
+        
+        // Prepare table content for PDF
+        const tableBody = [];
+        
+        // Add header row
+        const headerRow = [];
+        document.querySelectorAll('#visitTable thead th').forEach(th => {
+            headerRow.push({ text: th.textContent.trim(), style: 'tableHeader' });
+        });
+        tableBody.push(headerRow);
+        
+        // Add data rows
+        visibleRows.forEach(tr => {
+            const rowData = [];
+            tr.querySelectorAll('td').forEach(td => {
+                // Remove button text if present
+                let cellText = td.textContent.trim();
+                if (cellText.includes('View')) {
+                    cellText = cellText.replace('View', '').trim();
+                }
+                rowData.push(cellText);
+            });
+            tableBody.push(rowData);
+        });
+        
+        // Create PDF document
+        const docDefinition = {
+            pageOrientation: 'landscape',
+            content: [
+                { text: 'Patient Visits Report', style: 'header' },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: Array(headerRow.length).fill('*'),
+                        body: tableBody
+                    }
+                }
+            ],
+            styles: {
+                header: {
+                    fontSize: 18,
+                    bold: true,
+                    margin: [0, 0, 0, 10],
+                    alignment: 'center'
+                },
+                tableHeader: {
+                    bold: true,
+                    fontSize: 13,
+                    color: 'white',
+                    fillColor: '#1A2980'
+                }
+            }
+        };
+        
+        // Generate and download PDF
+        pdfMake.createPdf(docDefinition).download('patient_visits_report.pdf');
+    });
+
+    // Refresh data functionality
+    document.getElementById('refreshDataBtn').addEventListener('click', function() {
+        const btn = this;
+        const originalHtml = btn.innerHTML;
+        
+        // Show loading state
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> Refreshing...';
+        btn.disabled = true;
+        
+        // Simulate refresh (in a real application, this would be an AJAX call)
+        setTimeout(function() {
+            location.reload();
+        }, 1000);
+    });
+</script>
 
 {% endblock main_content %}

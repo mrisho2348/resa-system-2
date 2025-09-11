@@ -1,0 +1,728 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+
+{% block title %}
+   Disease Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+<a class="btn btn-prem-disease-add float-right mr-2" type="button" data-toggle="modal" data-target="#addDiseaseModal">
+  <i class="fas fa-plus"></i> New Disease
+</a>   
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Disease Management Styles - Unique to this template */
+    .disease-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #4A569D);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .disease-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .disease-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .disease-prem-table th {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #1565C0;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .disease-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e3f2fd;
+    }
+    
+    .disease-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .disease-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(21, 101, 192, 0.1);
+        background: #f4f9ff;
+    }
+    
+    .btn-prem-disease {
+        background: linear-gradient(120deg, #1a2a6c, #4A569D);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-prem-disease:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-disease-add {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-disease-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-disease-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-disease-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-disease-delete {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+    }
+    
+    .btn-prem-disease-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(244, 67, 54, 0.3);
+        color: white;
+    }
+    
+    .disease-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #4A569D);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .disease-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .disease-prem-input-group label {
+        font-weight: 600;
+        color: #1565C0;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .disease-prem-input-group .form-control {
+        border: 1px solid #bbdefb;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .disease-prem-input-group .form-control:focus {
+        border-color: #1565C0;
+        box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.25);
+    }
+    
+    .disease-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .disease-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .disease-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f4f9ff, #e3f2fd);
+        color: #1565C0;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #bbdefb;
+    }
+    
+    .disease-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .disease-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1565C0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .disease-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .disease-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .disease-prem-code-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    .disease-prem-filter-bar {
+        background: linear-gradient(120deg, #f4f9ff, #e3f2fd);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .disease-prem-search-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .disease-prem-search-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #1a2a6c, #4A569D);
+        color: white;
+    }
+    
+    .disease-prem-search-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Flip card effect for premium feature */
+    .disease-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .disease-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .disease-prem-flip-card:hover .disease-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .disease-prem-flip-card-front, .disease-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .disease-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #4A569D);
+        color: white;
+    }
+    
+    .disease-prem-flip-card-back {
+        background: linear-gradient(120deg, #4A569D, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .disease-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for view switching */
+    @keyframes diseasePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .disease-prem-animated {
+        animation: diseasePremFadeIn 0.5s ease forwards;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card disease-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-disease mr-2"></i>Disease Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card disease-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-disease mr-2"></i>Total Diseases</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="disease-prem-summary-value" id="total-diseases">{{ disease_records|length }}</div>
+                                    <div class="disease-prem-summary-label">All Diseases</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card disease-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-bacteria mr-2"></i>Infectious</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="disease-prem-summary-value" id="infectious-diseases">0</div>
+                                    <div class="disease-prem-summary-label">Infectious Diseases</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card disease-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-dna mr-2"></i>Genetic</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="disease-prem-summary-value" id="genetic-diseases">0</div>
+                                    <div class="disease-prem-summary-label">Genetic Disorders</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="disease-prem-flip-card">
+                                <div class="disease-prem-flip-card-inner">
+                                    <div class="disease-prem-flip-card-front">
+                                        <div class="disease-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Disease Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="disease-prem-flip-card-back">
+                                        <div class="disease-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Disease Insights</h4>
+                                        <p>Advanced disease tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="disease-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="disease-prem-search-group">
+                                <button class="disease-prem-search-btn" id="searchDiseaseBtn">
+                                    <i class="fas fa-search mr-1"></i> Search Diseases
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search diseases by name or code..." id="diseasePremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-disease" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive disease-prem-table-container">
+                        <table class="table table-hover text-nowrap disease-prem-table" id="diseaseTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-disease mr-2"></i>Disease Name</th>                           
+                                    <th><i class="fas fa-code mr-2"></i>Code</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disease in disease_records %}
+                                <tr>
+                                    <td>{{ disease.disease_name }}</td>              
+                                    <td>
+                                        <span class="disease-prem-code-badge">
+                                            {{ disease.code }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">  
+                                        <button class="btn btn-prem-disease-edit" data-toggle="modal" data-target="#editDiseaseModal{{ disease.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-prem-disease-delete" data-toggle="modal" data-target="#deleteDiseaseModal{{ disease.id }}" data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>   
+                                    </td>       
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Modal for Deleting Disease -->
+{% for disease in disease_records %}
+<div class="modal fade" id="deleteDiseaseModal{{ disease.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteDiseaseModalLabel{{ disease.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content disease-prem-modal-content">
+            <div class="modal-header disease-prem-modal-header">
+                <h5 class="modal-title text-white" id="deleteDiseaseModalLabel{{ disease.id }}"><i class="fas fa-trash mr-2"></i>Delete Disease</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the disease "{{ disease.disease_name }}"?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-prem-disease-delete" onclick="deleteDisease('{{ disease.id }}')">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% for disease in disease_records %}
+<!-- Bootstrap Modal for Editing Disease -->
+<div class="modal fade" id="editDiseaseModal{{ disease.id }}" tabindex="-1" role="dialog" aria-labelledby="editDiseaseModalLabel{{ disease.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content disease-prem-modal-content">
+
+      <div class="modal-header disease-prem-modal-header">
+        <h5 class="modal-title text-white" id="editDiseaseModalLabel{{ disease.id }}"><i class="fas fa-edit mr-2"></i>Edit Disease</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div id="diseaseMessageContainer{{ disease.id }}" class="alert" role="alert" style="display: none;"></div>
+
+        <form id="editDiseaseForm{{ disease.id }}" method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group col-md-6 disease-prem-input-group">
+              <label for="diseaseName{{ disease.id }}">Disease Name</label>
+              <input type="text" class="form-control" id="diseaseName{{ disease.id }}" name="Disease" value="{{ disease.disease_name }}" required>
+              <input type="hidden" name="disease_id" value="{{ disease.id }}">
+            </div>
+
+            <div class="form-group col-md-6 disease-prem-input-group">
+              <label for="diseaseCode{{ disease.id }}">Code</label>
+              <input type="text" class="form-control" id="diseaseCode{{ disease.id }}" name="Code" value="{{ disease.code }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-prem-disease btn-block" id="editDisease{{ disease.id }}">
+                <i class="fas fa-save mr-2"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ======================= ADD DISEASE MODAL ======================= -->
+<div class="modal fade" id="addDiseaseModal" tabindex="-1" role="dialog" aria-labelledby="addDiseaseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content disease-prem-modal-content">
+
+      <div class="modal-header disease-prem-modal-header">
+        <h5 class="modal-title text-white" id="addDiseaseModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add New Disease</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div id="addDiseaseMessageContainer" class="alert" role="alert" style="display: none;"></div>
+
+        <form id="addDiseaseForm" method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group col-md-6 disease-prem-input-group">
+              <label for="newDiseaseName">Disease Name</label>
+              <input type="text" class="form-control" id="newDiseaseName" name="Disease" required>
+            </div>
+
+            <div class="form-group col-md-6 disease-prem-input-group">
+              <label for="newDiseaseCode">Code</label>
+              <input type="text" class="form-control" id="newDiseaseCode" name="Code" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-prem-disease-add btn-block" id="submitAddDisease">
+                <i class="fas fa-plus-circle mr-2"></i> Add Disease
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% include 'pembadoctor_template/datatable.html' %}
+    
+<script>
+    // Initialize DataTable
+    new DataTable('#diseaseTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search diseases...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Search functionality
+    document.getElementById('diseasePremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        filterDiseases(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('diseasePremSearch').value.toLowerCase();
+        
+        filterDiseases(searchText);
+    });
+
+    // Filter diseases by search text
+    function filterDiseases(searchText) {
+        const rows = document.querySelectorAll('#diseaseTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const diseaseName = row.cells[0].textContent.toLowerCase();
+            const diseaseCode = row.cells[1].textContent.toLowerCase();
+            
+            const nameMatch = diseaseName.includes(searchText);
+            const codeMatch = diseaseCode.includes(searchText);
+            
+            if (searchText === '' || nameMatch || codeMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-diseases').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    function deleteDisease(diseaseId) {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "kahama_admin_delete_disease_record" %}',
+            data: {
+                disease_id: diseaseId,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function (data) {
+                if (data.status === 'success') {
+                    $(`#deleteDiseaseModal${diseaseId}`).modal('hide');
+                    location.reload(true);
+                } else {
+                    console.log(data.message);
+                }
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+</script>
+
+<script>
+    {% for disease in disease_records %}
+    $(document).ready(function () {
+        $('#editDisease{{ disease.id }}').click(function (event) {
+            var form = document.getElementById('editDiseaseForm{{ disease.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editDiseaseForm{{ disease.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "kahama_admin_add_disease" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#diseaseMessageContainer{{ disease.id }}')
+                                .removeClass('alert-danger')
+                                .addClass('alert-success')
+                                .text(response.message)
+                                .show();
+                            setTimeout(() => location.reload(true), 1000);
+                        } else {
+                            $('#diseaseMessageContainer{{ disease.id }}')
+                                .removeClass('alert-success')
+                                .addClass('alert-danger')
+                                .text(response.message)
+                                .show();
+                        }
+                    },
+                    error: function () {
+                        $('#diseaseMessageContainer{{ disease.id }}')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .text('AJAX request failed')
+                            .show();
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+    {% endfor %}
+</script>
+
+<script>
+  $(document).ready(function () {
+    $('#submitAddDisease').click(function (event) {
+      var form = document.getElementById('addDiseaseForm');
+      if (form.checkValidity() === false) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        var formData = $('#addDiseaseForm').serialize();
+
+        $.ajax({
+          url: '{% url "kahama_admin_add_disease" %}',
+          type: 'POST',
+          data: formData,
+          success: function (response) {
+            let container = $('#addDiseaseMessageContainer');
+            if (response.success) {
+              container
+                .removeClass('alert-danger')
+                .addClass('alert-success')
+                .text(response.message)
+                .show();
+              setTimeout(() => location.reload(true), 1000);
+            } else {
+              container
+                .removeClass('alert-success')
+                .addClass('alert-danger')
+                .text(response.message)
+                .show();
+            }
+          },
+          error: function () {
+            $('#addDiseaseMessageContainer')
+              .removeClass('alert-success')
+              .addClass('alert-danger')
+              .text('AJAX request failed')
+              .show();
+          }
+        });
+      }
+
+      form.classList.add('was-validated');
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,530 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+Premium Patient Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Patient List Styles - Unique to this template */
+    .patient-list-prem-gradient {
+        background: linear-gradient(120deg, #0c2461, #1e3799, #4a69bd);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(12, 36, 97, 0.15);
+        border: none;
+    }
+    
+    .patient-list-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-list-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        background: white;
+    }
+    
+    .patient-list-prem-table th {
+        background: linear-gradient(120deg, #0c2461, #4a69bd);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-list-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .patient-list-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .patient-list-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(12, 36, 97, 0.1);
+        background: #f8fbff;
+    }
+    
+    .btn-prem-patient-view {
+        background: linear-gradient(120deg, #4a69bd, #6a89cc);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(74, 105, 189, 0.2);
+    }
+    
+    .btn-prem-patient-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(74, 105, 189, 0.3);
+        color: white;
+    }
+    
+    .patient-list-prem-header {
+        background: linear-gradient(120deg, #0c2461, #1e3799);
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(12, 36, 97, 0.2);
+    }
+    
+    .patient-list-prem-header h4 {
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .patient-list-prem-header h4 i {
+        margin-right: 10px;
+        font-size: 1.8rem;
+    }
+    
+    .patient-list-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .patient-list-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .patient-list-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f8fbff, #d6e4ff);
+        color: #0c2461;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #d6e4ff;
+    }
+    
+    .patient-list-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .patient-list-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0c2461;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-list-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-list-prem-filter-bar {
+        background: linear-gradient(120deg, #f8fbff, #d6e4ff);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Flip card effect for premium feature */
+    .patient-list-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-list-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .patient-list-prem-flip-card:hover .patient-list-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .patient-list-prem-flip-card-front, .patient-list-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .patient-list-prem-flip-card-front {
+        background: linear-gradient(120deg, #0c2461, #1e3799);
+        color: white;
+    }
+    
+    .patient-list-prem-flip-card-back {
+        background: linear-gradient(120deg, #1e3799, #0c2461);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .patient-list-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Patient type badges */
+    .patient-list-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-list-prem-badge-primary {
+        background: linear-gradient(120deg, #0c2461, #4a69bd);
+        color: white;
+    }
+    
+    .patient-list-prem-badge-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .patient-list-prem-badge-warning {
+        background: linear-gradient(120deg, #f6b93b, #e55039);
+        color: white;
+    }
+    
+    /* Gender icons */
+    .patient-list-prem-gender-male {
+        color: #4a69bd;
+    }
+    
+    .patient-list-prem-gender-female {
+        color: #fd79a8;
+    }
+    
+    /* Animation for table rows */
+    @keyframes patientListPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-list-prem-animated-row {
+        animation: patientListPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Button active state */
+    .btn-outline-primary.active {
+        background: linear-gradient(120deg, #0c2461, #4a69bd);
+        color: white;
+        border-color: #0c2461;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="patient-list-prem-header">
+        <h4><i class="fas fa-user-injured"></i> Premium Patient Management</h4>
+        <p class="mb-0">Comprehensive overview of all patients in the system</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card patient-list-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-users mr-2"></i>All Patients</h5>                      
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="patient-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Total Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-list-prem-summary-value">{{ patients|length }}</div>
+                                    <div class="patient-list-prem-summary-label">All Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="patient-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-male mr-2"></i>Male Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-list-prem-summary-value" id="male-count">0</div>
+                                    <div class="patient-list-prem-summary-label">Male</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="patient-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-female mr-2"></i>Female Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-list-prem-summary-value" id="female-count">0</div>
+                                    <div class="patient-list-prem-summary-label">Female</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="patient-list-prem-flip-card">
+                                <div class="patient-list-prem-flip-card-inner">
+                                    <div class="patient-list-prem-flip-card-front">
+                                        <div class="patient-list-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Patient Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="patient-list-prem-flip-card-back">
+                                        <div class="patient-list-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Demographics</h4>
+                                        <p>Advanced insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="patient-list-prem-filter-bar">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search patients..." id="patientListSearch">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-prem-patient-view" type="button" id="searchButton">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex flex-wrap">
+                                    <div class="btn-group mr-2" role="group">
+                                        <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                                        <button type="button" class="btn btn-outline-primary" data-filter="male">Male</button>
+                                        <button type="button" class="btn btn-outline-primary" data-filter="female">Female</button>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary" data-sort="newest">Newest</button>
+                                        <button type="button" class="btn btn-outline-primary" data-sort="oldest">Oldest</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive patient-list-prem-table-container">
+                        <table class="table table-hover text-nowrap patient-list-prem-table" id="patientTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-id-card mr-2"></i>MRN</th>
+                                    <th><i class="fas fa-user mr-2"></i>Name</th>           
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-building mr-2"></i>Company</th>
+                                    <th><i class="fas fa-phone mr-2"></i>Phone</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created At</th>              
+                                    <th><i class="fas fa-tag mr-2"></i>Patient Type</th>               
+                           
+                                </tr>
+                            </thead>
+                            <tbody id="patient-table-body">
+                                {% for patient in patients %}
+                                <tr class="patient-list-prem-animated-row" data-gender="{{ patient.gender|lower }}" data-created="{{ patient.created_at|date:'U' }}">
+                                    <td>{{ patient.mrn }}</td>
+                                    <td>
+                                        <strong>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</strong>
+                                    </td>                
+                                    <td>
+                                        {% if patient.gender == 'Male' %}
+                                            <i class="fas fa-male patient-list-prem-gender-male"></i> Male
+                                        {% else %}
+                                            <i class="fas fa-female patient-list-prem-gender-female"></i> Female
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ patient.age }}</td>
+                                    <td>{{ patient.company }}</td>
+                                    <td>{{ patient.phone }}</td>
+                                    <td>{{ patient.created_at|date:'d-m-Y' }}</td>              
+                                    <td>
+                                        <span class="patient-list-prem-badge 
+                                        {% if patient.patient_type == 'Inpatient' %}patient-list-prem-badge-primary
+                                        {% elif patient.patient_type == 'Outpatient' %}patient-list-prem-badge-success
+                                        {% else %}patient-list-prem-badge-warning{% endif %}">
+                                            {{ patient.patient_type }}
+                                        </span>
+                                    </td>             
+                                   
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'pembadoctor_template/datatable.html' %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize DataTable
+        new DataTable('#patientTable', {
+            dom: 'Bfrtip',
+            buttons: ['excel', 'pdf', 'print'],
+            responsive: true,
+            pageLength: 10,
+            order: [[6, 'desc']], // Default sort by created date (column index 6)
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search patients...",
+                lengthMenu: "Show _MENU_ entries"
+            }
+        });
+
+        // Calculate summary statistics
+        function calculateSummaryStats() {
+            let maleCount = 0;
+            let femaleCount = 0;
+            
+            document.querySelectorAll('#patientTable tbody tr').forEach(row => {
+                const gender = row.getAttribute('data-gender');
+                
+                if (gender === 'male') {
+                    maleCount++;
+                } else if (gender === 'female') {
+                    femaleCount++;
+                }
+            });
+            
+            // Update summary cards
+            document.getElementById('male-count').textContent = maleCount;
+            document.getElementById('female-count').textContent = femaleCount;
+        }
+        
+        // Initialize summary stats
+        calculateSummaryStats();
+
+        // Search functionality
+        document.getElementById('patientListSearch').addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            
+            const rows = document.querySelectorAll('#patientTable tbody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                
+                if (searchText === '' || rowText.includes(searchText)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const searchText = document.getElementById('patientListSearch').value.toLowerCase();
+            const event = new Event('keyup');
+            document.getElementById('patientListSearch').dispatchEvent(event);
+        });
+
+        // Filter functionality
+        document.querySelectorAll('[data-filter]').forEach(button => {
+            button.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                
+                // Update active state
+                document.querySelectorAll('[data-filter]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                const rows = document.querySelectorAll('#patientTable tbody tr');
+                
+                rows.forEach(row => {
+                    if (filter === 'all') {
+                        row.style.display = '';
+                    } else {
+                        const gender = row.getAttribute('data-gender');
+                        if (gender === filter) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        });
+
+        // Sort functionality
+        document.querySelectorAll('[data-sort]').forEach(button => {
+            button.addEventListener('click', function() {
+                const sort = this.getAttribute('data-sort');
+                
+                const rows = Array.from(document.querySelectorAll('#patientTable tbody tr'));
+                
+                rows.sort((a, b) => {
+                    const aCreated = parseInt(a.getAttribute('data-created'));
+                    const bCreated = parseInt(b.getAttribute('data-created'));
+                    
+                    if (sort === 'newest') {
+                        return bCreated - aCreated;
+                    } else {
+                        return aCreated - bCreated;
+                    }
+                });
+                
+                const tbody = document.querySelector('#patientTable tbody');
+                tbody.innerHTML = '';
+                
+                rows.forEach(row => {
+                    tbody.appendChild(row);
+                });
+            });
+        });
+    });
+</script>
+
+{% endblock main_content %}

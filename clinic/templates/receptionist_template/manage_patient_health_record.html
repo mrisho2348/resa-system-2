@@ -1,54 +1,365 @@
 {% extends 'receptionist_template/base_template.html' %}
 {% load customfilter %}
+{% load static %}
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} - Health Record
+{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} - Premium Health Record
 {% endblock title %}
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
     <a href="{% url 'receptionist_patient_visit_history_view' patient.id %}" class="btn btn-success float-right" type="button">
         <i class="fas fa-arrow-left"></i> Back
     </a>
-
-
 {% endblock breadcrumb %}
 
-
-{% load static %}
 {% block main_content %}
+
+<style>
+    /* Premium Health Record Styles */
+    .phr-prem-gradient {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 115, 232, 0.15);
+        border: none;
+    }
+    
+    .phr-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .phr-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .phr-prem-table th {
+        background: linear-gradient(120deg, #e8f0fe, #d2e3fc);
+        color: #1a73e8;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .phr-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #d2e3fc;
+    }
+    
+    .phr-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .phr-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.1);
+        background: #f8fbff;
+    }
+    
+    .btn-prem-phr {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 115, 232, 0.2);
+    }
+    
+    .btn-prem-phr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 115, 232, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-phr-view {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 157, 88, 0.2);
+    }
+    
+    .btn-prem-phr-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 157, 88, 0.3);
+        color: white;
+    }
+    
+    .phr-prem-modal-header {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .phr-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .phr-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .phr-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        color: #1a73e8;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #d2e3fc;
+    }
+    
+    .phr-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .phr-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a73e8;
+        margin-bottom: 0.5rem;
+    }
+    
+    .phr-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .phr-prem-filter-bar {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .phr-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .phr-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .phr-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #1a73e8;
+        min-width: 80px;
+    }
+    
+    .phr-date-filter-input {
+        border: 1px solid #d2e3fc;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Premium Navigation Styles */
+    .phr-prem-navigation {
+        padding-left: 0;
+        list-style: none;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .phr-prem-navigation-header {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+        font-weight: bold;
+        padding: 12px 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .phr-prem-navigation-item {
+        margin-bottom: 0;
+        border-bottom: 1px solid #e8f0fe;
+    }
+    
+    .phr-prem-navigation-item:last-child {
+        border-bottom: none;
+    }
+    
+    .phr-prem-navigation-item a {
+        color: #1a73e8;
+        text-decoration: none;
+        display: block;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .phr-prem-navigation-item.active a {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+    }
+    
+    .phr-prem-navigation-item a:hover {
+        background: #e8f0fe;
+        color: #1a73e8;
+    }
+    
+    .phr-prem-navigation-item a i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+    
+    /* Custom Tabs Styling */
+    .phr-custom-tabs {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        border-radius: 8px;
+        padding: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .phr-custom-tabs .list-inline-item {
+        margin-right: 5px;
+    }
+    
+    .phr-custom-tabs .list-inline-item a {
+        padding: 8px 15px;
+        border-radius: 6px;
+        color: #1a73e8;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .phr-custom-tabs .list-inline-item.active a {
+        background: linear-gradient(120deg, #1a73e8, #4285f4);
+        color: white;
+    }
+    
+    .phr-custom-tabs .list-inline-item a:hover {
+        background: #d2e3fc;
+    }
+    
+    /* Patient Header Styles */
+    .phr-patient-header {
+        background: linear-gradient(120deg, #f8fbff, #e8f0fe);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .phr-patient-detail {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .phr-patient-label {
+        font-weight: 600;
+        color: #1a73e8;
+    }
+    
+    .phr-patient-value {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    /* Status badges */
+    .status-badge-phr {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-available {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .status-pending {
+        background: linear-gradient(120deg, #f9ab00, #fbbc04);
+        color: white;
+    }
+    
+    /* Animation for tab content */
+    @keyframes phrFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .phr-prem-animated {
+        animation: phrFadeIn 0.5s ease forwards;
+    }
+    
+    /* Cost badge styling */
+    .phr-cost-badge {
+        background: linear-gradient(120deg, #ea4335, #fbbc04);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-4">
-            <div class="card">            
-                <div class="card-body">
-                    <ul class="navigation list-group">
-                        <li class="list-group-item navigation-header">Navigation</li>
-                        <li class="list-group-item active">
+            <!-- Premium Navigation Panel -->
+            <div class="card phr-prem-summary-card">            
+                <div class="card-body p-0">
+                    <ul class="phr-prem-navigation">
+                        <li class="phr-prem-navigation-header">Navigation</li>
+                        <li class="phr-prem-navigation-item active">
                             <a href="#health" data-toggle="tab" aria-expanded="true">
                                 <i class="fas fa-heartbeat"></i> Health Records
                             </a>
                         </li>
-                        <li class="list-group-item">
+                        <li class="phr-prem-navigation-item">
                             <a href="#investigation" data-toggle="tab" aria-expanded="false">
                                 <i class="far fa-file"></i> Orders Request
                             </a>
                         </li>
-                        <li class="list-group-item">
+                        <li class="phr-prem-navigation-item">
                             <a href="#lab_result" data-toggle="tab" aria-expanded="false">
                                 <i class="far fa-file-alt"></i> Lab Result
                             </a>
                         </li>
-                        <li class="list-group-item">
+                        <li class="phr-prem-navigation-item">
                             <a href="#procedure_result" data-toggle="tab" aria-expanded="false">
                                 <i class="fas fa-file-medical"></i> Procedures Result
                             </a>
                         </li>
-                        <li class="list-group-item">
+                        <li class="phr-prem-navigation-item">
                             <a href="#prescription" data-toggle="tab" aria-expanded="false">
                                 <i class="fas fa-file-prescription"></i> Prescriptions
                             </a>
                         </li>
-                        <li class="list-group-item">
+                        <li class="phr-prem-navigation-item">
                             <a href="#radiology" data-toggle="tab" aria-expanded="false">
                                 <i class="fas fa-x-ray"></i> Radiology
                             </a>
@@ -58,501 +369,455 @@
             </div>
         </div>
         <div class="col-md-8">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">                       
-                        <div class="card-body">
-                            <div class="row" style="font-size:13px;">
-                                <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                                <div class="col-md-3 text-uppercase">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                                    <script>
-                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                        var now = new Date();
-                                        var ageMilliseconds = now - dob;
-                                        var ageSeconds = ageMilliseconds / 1000;
-                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                        document.write(ageYears + ' years');
-                                    </script>
-                                    {% else %}
-                                    {{ patient.age }}
-                                    {% endif %}]</b></div>
-                                <div class="col-md-3 text-uppercase" >SEX: <b>{{ patient.gender }}</b></div>
-                                <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
+            <div class="card phr-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Health Record</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Patient Summary -->
+                    <div class="phr-patient-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">PATIENT:</span>
+                                    <span class="phr-patient-value text-uppercase"><b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></span>
+                                </div>
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">DOB:</span>
+                                    <span class="phr-patient-value"><b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                                        <script>
+                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                            var now = new Date();
+                                            var ageMilliseconds = now - dob;
+                                            var ageSeconds = ageMilliseconds / 1000;
+                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                            document.write(ageYears + ' years');
+                                        </script>
+                                        {% else %}
+                                        {{ patient.age }}
+                                        {% endif %}]</b></span>
+                                </div>
                             </div>
-                                <div class="row mt-3">
-                                     <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                            <div class="col-md-6">
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">SEX:</span>
+                                    <span class="phr-patient-value text-uppercase"><b>{{ patient.gender }}</b></span>
+                                </div>
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">FILE NO:</span>
+                                    <span class="phr-patient-value"><b>{{ patient.mrn }}</b></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">PAYMENT MODE:</span>
+                                    <span class="phr-patient-value"><b>{% if patient.payment_form == "Insurance"  %}
                                         {{ patient.payment_form }}- {{ patient.insurance_name }}   
                                         {% else  %}   
                                         {{ patient.payment_form }}                  
-                                    {% endif %}</b>
+                                    {% endif %}</b></span>
                                 </div>
-                                    <div class="col-md-3 text-uppercase">
-                                        Visit number:  <b>{{ visit.vst }}</b>
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="phr-patient-detail">
+                                    <span class="phr-patient-label">VISIT NUMBER:</span>
+                                    <span class="phr-patient-value text-uppercase"><b>{{ visit.vst }}</b></span>
                                 </div>
-                        </div>        
-                    
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="health">
-                                    <div class="panel panel-flat">                                     
-                                        <div class="panel-body">
-                                            <div class="tabbable">
-                                                <!-- Navigation tabs with additional styles -->
-                                             <div class="container mb-3 ">
-                                                <ul class="nav nav-tabs nav-tabs-highlight custom-tabs">
-                                                    <li class="list-inline-item active"><a href="#left-icon-tab1" data-toggle="tab" aria-expanded="true" onclick="changeActiveTab(event, 'left-icon-tab1')"><i class="icon-menu7 position-left"></i> Vital Sign</a></li>
-                                                    <li class="list-inline-item"><a href="#left-icon-tab2" data-toggle="tab" aria-expanded="true" onclick="changeActiveTab(event, 'left-icon-tab2')">Diagnosis</a></li>
-                                                </ul>
-                                             </div>
-                                                                                            
-                                                <div class="tab-content">
-                                                    <div class="tab-pane active in" id="left-icon-tab1">
-                                                        <div class="container">
-                                                            <div class="row">
-                                                                <div class="col-md-12">
-                                                                    <div class="card">
-                                                                        <div class="card-header">
-                                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">vital information</h6>
-                                                                        </div>
-                                                                        <div class="card-body">
-                                                                            <div class="table-responsive">
-                                                                                <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example6" style="width:100%">
-                                                                                    <thead>
-                                                                                        <tr>                                                                                        
-                                                                                            <th>Respiratory Rate</th>
-                                                                                            <th>Pulse Rate</th>
-                                                                                            <th>Blood Pressure</th>
-                                                                                            <th>AVPU</th>
-                                                                                            <th>SPO2</th>
-                                                                                            <th>Temperature</th>
-                                                                                            <th>Weight</th>
-                                                                                            <th>GCS</th>
-                                                                                            <th>Date</th>
-                                                                                            <th>Day</th> <!-- New column for the day of the week -->
-                                                                                            <th>Time</th>                                                           
-                                                                                        </tr>
-                                                                                    </thead>
-                                                                                    <tbody>
-                                                                                        {% for vital in vitals %}
-                                                                                        <tr>                                                                                          
-                                                                                            <td>{{ vital.respiratory_rate }}</td>
-                                                                                            <td>{{ vital.pulse_rate }}</td>
-                                                                                            <td>{{ vital.blood_pressure }}</td>
-                                                                                            <td>{{ vital.avpu }}</td>
-                                                                                            <td>{{ vital.spo2 }}</td>
-                                                                                            <td>{{ vital.temperature }}</td>
-                                                                                            <td>{{ vital.weight }}</td>
-                                                                                            <td>{{ vital.gcs }}</td>
-                                                                                            <!-- Split recorded_at into date, day of the week, and time components -->
-                                                                                            <td>{{ vital.recorded_at|date:"d-m-Y" }}</td> <!-- Display date -->
-                                                                                            <td>{{ vital.recorded_at|date:"l" }}</td> <!-- Display day of the week -->
-                                                                                            <td>{{ vital.recorded_at|time:"H:i:s" }}</td><!-- Display time -->
-                                                                                            
-                                                                                        </tr>
-                                                                                       
-                                                                                        {% endfor %}
-                                                                                    </tbody>
-                                                                                </table>
-                                                                               </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                
-                                                    <div class="tab-pane" id="left-icon-tab2">
-                                                        <div class="container">
-                                                            <div class="row">
-                                                                <div class="col-md-12">
-                                                                    <div class="card">
-                                                                        <div class="card-header">
-                                                                            <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Diagnosis information</h6>
-                                                                        </div>
-                                                                        <div class="card-body">
-                                                                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
-                                                                                <tbody>
-                                                                                    <tr>
-                                                                                        <th>Preliminary Diagnosis</th>
-                                                                                        <th>Final Diagnosis</th>
-                                                                                    </tr>
-                                                                                    <tr>
-                                                                                        <td>
-                                                                                            <ul class="list-group">
-                                                                                                {% for diagnosis in consultation_notes.provisional_diagnosis.all %}
-                                                                                                <li class="list-group-item">{{ diagnosis.diagnosis_name }}</li>
-                                                                                                {% endfor %}
-                                                                                            </ul>
-                                                                                        </td>
-                                                                                        <td>
-                                                                                            <ul class="list-group">
-                                                                                                {% for diagnosis in consultation_notes.final_diagnosis.all %}
-                                                                                                <li class="list-group-item">{{ diagnosis.diagnosis_name }}</li>
-                                                                                                {% endfor %}
-                                                                                            </ul>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                </tbody>
-                                                                            </table>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="tab-pane fade" id="investigation">
-                                    <h5 class="panel-title">Orders Request</h5>                                    <!-- Content for Orders Request tab -->
-                                    <div class="panel panel-flat">
-                                        <div class="panel-body">
-                                            <a class="btn btn-default" href="{% url 'receptionist_patient_consultation_detail' patient.id visit.id %}">Consultation</a>
-                                            <a class="btn btn-default" href="{% url 'receptionist_save_laboratory' patient.id visit.id %}">Laboratory</a>
-                                            <a class="btn btn-default" href="{% url 'receptionist_add_radiology' patient.id visit.id %}">Imaging</a>
-                                            <a class="btn btn-default" href="{% url 'receptionist_save_remoteprocedure' patient.id visit.id %}">Procedure</a>
-                                            <a class="btn btn-default" href="#">Physiotherapy</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="lab_result">                                   
-                                    <div class="panel panel-flat">                                   
-                                        <div class="panel-body">
-                                            <div class="container">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="card">
-                                                            <div class="card-header">
-                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Lab Result and total amount <span style="background-color: red;">{{lab_tests_cost}}</span></h6>                                  
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div  class="table-responsive">
-                                                                    <table  class="table table-hover text-nowrap table-bordered table-striped" id="example4">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th>Doctor</th>                                                        
-                                                                                <th>Lab Number</th>                                                       
-                                                                                                                  
-                                                                                <th>Test Name</th>
-                                                                                <th>Description</th>                                                                                
-                                                                                <th>Test Result</th>
-                                                                                <th>Cost</th>
-                                                                                <th>Order Date</th>
-                                                                                <th>Day</th> 
-                                                                                <th>Time</th>   
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {% for order in lab_tests %}
-                                                                            <tr>
-                                                                                <td>{{ order.doctor }}</td>                                                        
-                                                                                <td>{{ order.lab_number }}</td>                                                       
-                                                                                                                                      
-                                                                                <td>{{ order.name }}</td>
-                                                                                <td>{{ order.description }}</td>                                                                             
-                                                                                <td>{{ order.result|safe }}</td>
-                                                                                <td>{{ order.cost }}</td>
-                                                                                <td>{{ order.order_date|date:"d-m-Y" }}</td> 
-                                                                                <td>{{ order.order_date|date:"l" }}</td>
-                                                                                <td>{{ order.updated_at|time:"H:i:s" }}</td>                                                                                
-                                                                            </tr>
-                                                                            {% endfor %}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="procedure_result">                                    
-                                    <div class="panel panel-flat">                                       
-                                        <div class="panel-body">
-                                            <div class="container">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="card">
-                                                            <div class="card-header">
-                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Procedures and total amount <span style="background-color: red;">{{total_procedure_cost}}</span></h5>                                   
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover text-nowrap table-bordered table-striped" id="example">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th>Doctor</th>
-                                                                                <th>Name</th>
-                                                                                <th>Result</th>                                                                            
-                                                                                <th>Description</th>                                                                            
-                                                                                <th>Equipments Used</th>
-                                                                                <th>Cost</th>
-                                                                                <th>Date</th>
-                                                                                <th>Day</th> 
-                                                                                <th>Time</th>   
-                                                                     
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {% for procedure in procedures %}
-                                                                            <tr>
-                                                                                <td>{{ procedure.doctor }}</td>
-                                                                                <td>{{ procedure.name }}</td>
-                                                                                <td>{{ procedure.result|safe }}</td>                                                                           
-                                                                                <td>{{ procedure.description }}</td>                                                                           
-                                                                                <td>{{ procedure.equipments_used }}</td>
-                                                                                <td>{{ procedure.cost }}</td>
-                                                                                <td>{{ procedure.created_at|date:"d-m-Y" }}</td> 
-                                                                                <td>{{ procedure.created_at|date:"l" }}</td>
-                                                                                <td>{{ procedure.created_at|time:"H:i:s" }}</td>                                                                              
-                                                                            
-                                                                            </tr>
-                                                                            {% endfor %}
-                                                                        </tbody>
-                                                                    </table>
-                                                                   </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="tab-pane fade" id="prescription">                                   
-                                    <div class="panel panel-flat">                                     
-                                        <div class="panel-body">
-                                            <div class="container">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="card">
-                                                            <div class="card-header">
-                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Prescription and total amount <span style="background-color: red;">{{total_price}}</span></h5>
-                                                            </div>
-                                                            <div class="card-body">
-                                                               <div class="table-responsive">
-                                                                     <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example5"  style="width:100%">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>Prescriber</th>
-                                                                            <th>Drug</th>                                                      
-                                                                            <th>Dose</th>
-                                                                            <th>Frequency</th>
-                                                                            <th>Duration</th>
-                                                                            <th>Quantity</th>
-                                                                            <th>Unit Price</th>
-                                                                            <th>Total Price</th>
-                                                                            <th>Date</th>
-                                                                            <th>Day</th> 
-                                                                            <th>Time</th>   
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for prescription in prescriptions %}
-                                                                        <tr>
-                                                                            <td>{{ prescription.entered_by }}</td>
-                                                                            <td>{{ prescription.medicine.drug_name }}</td>
-                                                                            <td>{{ prescription.dose }}</td>                                                       
-                                                                            <td>{{ prescription.frequency }}</td>
-                                                                            <td>{{ prescription.duration }}</td>
-                                                                            <td>{{ prescription.quantity_used }}</td>
-                                                                            <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
-                                                                            <td>{{ prescription.total_price }}</td>
-                                                                            <td>{{ prescription.created_at|date:"d-m-Y" }}</td> 
-                                                                            <td>{{ prescription.created_at|date:"l" }}</td>
-                                                                            <td>{{ prescription.created_at|time:"H:i:s" }}</td>    
-                                                                        </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>   
-                                                               </div>                                                          
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="tab-pane fade" id="radiology">                                    
-                                    <div class="panel panel-flat">                                     
-                                        <div class="panel-body">
-                                            <div class="container">
-                                                <div class="row">
-                                                    <div class="col-md">
-                                                        <div class="card">
-                                                            <div class="card-header">
-                                                                <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Imaging and total amount <span style="background-color: red;">{{total_imaging_cost}}</span></h6>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example7"  style="width:100%">
-                                                                        <thead>
-                                                                            <tr>                                                 
-                                                                                <th>Doctor</th>
-                                                                                <th>Image Name</th>
-                                                                                <th>Description</th>                           
-                                                                                <th>Cost</th>
-                                                                                <th>Date</th>
-                                                                                <th>Day</th> 
-                                                                                <th>Time</th>   
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {% for record in imaging_records %}
-                                                                            <tr>                                               
-                                                                                <td>{{ record.doctor }}</td>
-                                                                                <td>{{ record.imaging.name }}</td>
-                                                                                <td>{{ record.description }}</td>                            
-                                                                                <td>{{ record.cost }}</td>
-                                                                                <td>{{ record.created_at|date:"d-m-Y" }}</td> 
-                                                                                <td>{{ record.created_at|date:"l" }}</td>
-                                                                                <td>{{ record.created_at|time:"H:i:s" }}</td>  
-                                                                            </tr>
-                                                                            {% endfor %}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>                                                             
-                                
+                            </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- Health Records Tab -->
+                        <div class="tab-pane fade show active" id="health">
+                            <div class="panel panel-flat">                                     
+                                <div class="panel-body">
+                                    <div class="tabbable">
+                                        <!-- Navigation tabs with premium styles -->
+                                        <div class="phr-custom-tabs mb-3">
+                                            <ul class="nav nav-tabs nav-tabs-highlight list-inline" role="tablist">
+                                                <li class="list-inline-item active">
+                                                    <a href="#left-icon-tab1" data-toggle="tab" role="tab" aria-selected="true">
+                                                        <i class="fas fa-heartbeat mr-1"></i> Vital Sign
+                                                    </a>
+                                                </li>
+                                                <li class="list-inline-item">
+                                                    <a href="#left-icon-tab2" data-toggle="tab" role="tab" aria-selected="false">
+                                                        <i class="fas fa-diagnoses mr-1"></i> Diagnosis
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                                                        
+                                        <div class="tab-content">
+                                            <!-- Vital Signs Tab -->
+                                            <div class="tab-pane fade show active" id="left-icon-tab1" role="tabpanel">
+                                                <div class="card phr-prem-summary-card">
+                                                    <div class="card-header">
+                                                        <h6 class="header-title text-center mt-0 mb-1 text-uppercase"><i class="fas fa-heartbeat mr-2"></i>Vital Information</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="table-responsive phr-prem-table-container">
+                                                            <table class="table table-hover text-nowrap table-bordered table-striped table-sm phr-prem-table" id="vitals-table" style="width:100%">
+                                                                <thead>
+                                                                    <tr>                                                                                        
+                                                                        <th>Respiratory Rate</th>
+                                                                        <th>Pulse Rate</th>
+                                                                        <th>Blood Pressure</th>
+                                                                        <th>AVPU</th>
+                                                                        <th>SPO2</th>
+                                                                        <th>Temperature</th>
+                                                                        <th>Weight</th>
+                                                                        <th>GCS</th>
+                                                                        <th>Date</th>
+                                                                        <th>Day</th>
+                                                                        <th>Time</th>                                                           
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for vital in vitals %}
+                                                                    <tr>                                                                                          
+                                                                        <td>{{ vital.respiratory_rate }}</td>
+                                                                        <td>{{ vital.pulse_rate }}</td>
+                                                                        <td>{{ vital.blood_pressure }}</td>
+                                                                        <td>{{ vital.avpu }}</td>
+                                                                        <td>{{ vital.spo2 }}</td>
+                                                                        <td>{{ vital.temperature }}</td>
+                                                                        <td>{{ vital.weight }}</td>
+                                                                        <td>{{ vital.gcs }}</td>
+                                                                        <td>{{ vital.recorded_at|date:"d-m-Y" }}</td>
+                                                                        <td>{{ vital.recorded_at|date:"l" }}</td>
+                                                                        <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                            
+                                            <!-- Diagnosis Tab -->
+                                            <div class="tab-pane fade" id="left-icon-tab2" role="tabpanel">
+                                                <div class="card phr-prem-summary-card">
+                                                    <div class="card-header">
+                                                        <h6 class="header-title text-center mt-0 mb-1 text-uppercase"><i class="fas fa-diagnoses mr-2"></i>Diagnosis Information</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm" style="width:100%">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Preliminary Diagnosis</th>
+                                                                    <th>Final Diagnosis</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td>
+                                                                        <ul class="list-group">
+                                                                            {% for diagnosis in consultation_notes.provisional_diagnosis.all %}
+                                                                            <li class="list-group-item">{{ diagnosis.diagnosis_name }}</li>
+                                                                            {% endfor %}
+                                                                        </ul>
+                                                                    </td>
+                                                                    <td>
+                                                                        <ul class="list-group">
+                                                                            {% for diagnosis in consultation_notes.final_diagnosis.all %}
+                                                                            <li class="list-group-item">{{ diagnosis.diagnosis_name }}</li>
+                                                                            {% endfor %}
+                                                                        </ul>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Orders Request Tab -->
+                        <div class="tab-pane fade" id="investigation">
+                            <div class="panel panel-flat">
+                                <div class="panel-body">
+                                    <h5 class="panel-title mb-3"><i class="far fa-file mr-2"></i>Orders Request</h5>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <a class="btn btn-prem-phr" href="{% url 'receptionist_patient_consultation_detail' patient.id visit.id %}">Consultation</a>
+                                        <a class="btn btn-prem-phr" href="{% url 'receptionist_save_laboratory' patient.id visit.id %}">Laboratory</a>
+                                        <a class="btn btn-prem-phr" href="{% url 'receptionist_add_radiology' patient.id visit.id %}">Imaging</a>
+                                        <a class="btn btn-prem-phr" href="{% url 'receptionist_save_remoteprocedure' patient.id visit.id %}">Procedure</a>
+                                        <a class="btn btn-prem-phr" href="#">Physiotherapy</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lab Result Tab -->
+                        <div class="tab-pane fade" id="lab_result">                                   
+                            <div class="panel panel-flat">                                   
+                                <div class="panel-body">
+                                    <div class="card phr-prem-summary-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h6 class="header-title mt-0 mb-0 text-uppercase"><i class="far fa-file-alt mr-2"></i>Lab Results</h6>
+                                            <span class="phr-cost-badge">Total: {{lab_tests_cost}}</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive phr-prem-table-container">
+                                                <table class="table table-hover text-nowrap table-bordered table-striped phr-prem-table" id="lab-results-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Doctor</th>                                                        
+                                                            <th>Lab Number</th>                                                       
+                                                            <th>Test Name</th>
+                                                            <th>Description</th>                                                                                
+                                                            <th>Test Result</th>
+                                                            <th>Cost</th>
+                                                            <th>Order Date</th>
+                                                            <th>Day</th> 
+                                                            <th>Time</th>   
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for order in lab_tests %}
+                                                        <tr>
+                                                            <td>{{ order.doctor }}</td>                                                        
+                                                            <td>{{ order.lab_number }}</td>                                                       
+                                                            <td>{{ order.name }}</td>
+                                                            <td>{{ order.description }}</td>                                                                             
+                                                            <td>
+                                                                {% if order.result %}
+                                                                    <span class="status-badge-phr status-available">Available</span>
+                                                                {% else %}
+                                                                    <span class="status-badge-phr status-pending">Pending</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ order.cost }}</td>
+                                                            <td>{{ order.order_date|date:"d-m-Y" }}</td> 
+                                                            <td>{{ order.order_date|date:"l" }}</td>
+                                                            <td>{{ order.updated_at|time:"H:i:s" }}</td>                                                                                
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Procedures Result Tab -->
+                        <div class="tab-pane fade" id="procedure_result">                                    
+                            <div class="panel panel-flat">                                       
+                                <div class="panel-body">
+                                    <div class="card phr-prem-summary-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h6 class="header-title mt-0 mb-0 text-uppercase"><i class="fas fa-file-medical mr-2"></i>Procedures</h6>
+                                            <span class="phr-cost-badge">Total: {{total_procedure_cost}}</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive phr-prem-table-container">
+                                                <table class="table table-hover text-nowrap table-bordered table-striped phr-prem-table" id="procedures-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Doctor</th>
+                                                            <th>Name</th>
+                                                            <th>Result</th>                                                                            
+                                                            <th>Description</th>                                                                            
+                                                            <th>Equipments Used</th>
+                                                            <th>Cost</th>
+                                                            <th>Date</th>
+                                                            <th>Day</th> 
+                                                            <th>Time</th>   
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for procedure in procedures %}
+                                                        <tr>
+                                                            <td>{{ procedure.doctor }}</td>
+                                                            <td>{{ procedure.name }}</td>
+                                                            <td>
+                                                                {% if procedure.result %}
+                                                                    <span class="status-badge-phr status-available">Available</span>
+                                                                {% else %}
+                                                                    <span class="status-badge-phr status-pending">Pending</span>
+                                                                {% endif %}
+                                                            </td>                                                                           
+                                                            <td>{{ procedure.description }}</td>                                                                           
+                                                            <td>{{ procedure.equipments_used }}</td>
+                                                            <td>{{ procedure.cost }}</td>
+                                                            <td>{{ procedure.created_at|date:"d-m-Y" }}</td> 
+                                                            <td>{{ procedure.created_at|date:"l" }}</td>
+                                                            <td>{{ procedure.created_at|time:"H:i:s" }}</td>                                                                              
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Prescriptions Tab -->
+                        <div class="tab-pane fade" id="prescription">                                   
+                            <div class="panel panel-flat">                                     
+                                <div class="panel-body">
+                                    <div class="card phr-prem-summary-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h6 class="header-title mt-0 mb-0 text-uppercase"><i class="fas fa-file-prescription mr-2"></i>Prescriptions</h6>
+                                            <span class="phr-cost-badge">Total: {{total_price}}</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive phr-prem-table-container">
+                                                <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm phr-prem-table" id="prescriptions-table" style="width:100%">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Prescriber</th>
+                                                            <th>Drug</th>                                                      
+                                                            <th>Dose</th>
+                                                            <th>Frequency</th>
+                                                            <th>Duration</th>
+                                                            <th>Quantity</th>
+                                                            <th>Unit Price</th>
+                                                            <th>Total Price</th>
+                                                            <th>Date</th>
+                                                            <th>Day</th> 
+                                                            <th>Time</th>   
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for prescription in prescriptions %}
+                                                        <tr>
+                                                            <td>{{ prescription.entered_by }}</td>
+                                                            <td>{{ prescription.medicine.drug_name }}</td>
+                                                            <td>{{ prescription.dose }}</td>                                                       
+                                                            <td>{{ prescription.frequency }}</td>
+                                                            <td>{{ prescription.duration }}</td>
+                                                            <td>{{ prescription.quantity_used }}</td>
+                                                            <td>{{ prescription.total_price|divide:prescription.quantity_used }}</td>
+                                                            <td>{{ prescription.total_price }}</td>
+                                                            <td>{{ prescription.created_at|date:"d-m-Y" }}</td> 
+                                                            <td>{{ prescription.created_at|date:"l" }}</td>
+                                                            <td>{{ prescription.created_at|time:"H:i:s" }}</td>    
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>   
+                                            </div>                                                          
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Radiology Tab -->
+                        <div class="tab-pane fade" id="radiology">                                    
+                            <div class="panel panel-flat">                                     
+                                <div class="panel-body">
+                                    <div class="card phr-prem-summary-card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h6 class="header-title mt-0 mb-0 text-uppercase"><i class="fas fa-x-ray mr-2"></i>Radiology</h6>
+                                            <span class="phr-cost-badge">Total: {{total_imaging_cost}}</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive phr-prem-table-container">
+                                                <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm phr-prem-table" id="radiology-table" style="width:100%">
+                                                    <thead>
+                                                        <tr>                                                 
+                                                            <th>Doctor</th>
+                                                            <th>Image Name</th>
+                                                            <th>Description</th>                           
+                                                            <th>Cost</th>
+                                                            <th>Date</th>
+                                                            <th>Day</th> 
+                                                            <th>Time</th>   
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for record in imaging_records %}
+                                                        <tr>                                               
+                                                            <td>{{ record.doctor }}</td>
+                                                            <td>{{ record.imaging.name }}</td>
+                                                            <td>{{ record.description }}</td>                            
+                                                            <td>{{ record.cost }}</td>
+                                                            <td>{{ record.created_at|date:"d-m-Y" }}</td> 
+                                                            <td>{{ record.created_at|date:"l" }}</td>
+                                                            <td>{{ record.created_at|time:"H:i:s" }}</td>  
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                                                             
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
-
-
+{% endblock main_content %}
+{% block customer_js %}
 <script>
     $(document).ready(function() {
-        $('.navigation a').on('click', function(e) {
+        // Handle main navigation tabs
+        $('.phr-prem-navigation a').on('click', function(e) {
             e.preventDefault();
-            $(this).tab('show');
+            var target = $(this).attr('href');
+            
             // Remove active class from all list items
-            $('.navigation li').removeClass('active');
+            $('.phr-prem-navigation-item').removeClass('active');
             // Add active class to the clicked list item
-            $(this).closest('li').addClass('active');
+            $(this).closest('.phr-prem-navigation-item').addClass('active');
+            
+            // Show the target tab using Bootstrap's method
+            $('.tab-content .tab-pane').removeClass('show active');
+            $(target).addClass('show active');
+        });
+        
+        // Initialize DataTables with premium styling
+        $('#vitals-table, #lab-results-table, #procedures-table, #prescriptions-table, #radiology-table').each(function() {
+            $(this).DataTable({
+                dom: 'Bfrtip',
+                buttons: ['excel', 'pdf', 'print'],
+                responsive: true,
+                pageLength: 10,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search records...",
+                    lengthMenu: "Show _MENU_ entries"
+                }
+            });
+        });
+        
+        // Fix for inner tabs - ensure they work properly
+        $('.phr-custom-tabs a[data-toggle="tab"]').on('click', function(e) {
+            e.preventDefault();
+            var target = $(this).attr('href');
+            
+            // Remove active class from all inner tabs
+            $(this).closest('.phr-custom-tabs').find('.list-inline-item').removeClass('active');
+            // Add active class to the clicked tab
+            $(this).closest('.list-inline-item').addClass('active');
+            
+            // Show the target tab content
+            $(this).closest('.tabbable').find('.tab-content .tab-pane').removeClass('show active');
+            $(target).addClass('show active');
         });
     });
 </script>
-
-
-
-
-   
-<style>
-    /* Reset default margin and padding */
-.navigation {
-    padding-left: 0;
-    list-style: none;
-}
-
-/* Style for the header */
-.navigation-header {
-    background-color: #f0f0f0; /* Header background color */
-    color: #333; /* Header text color */
-    font-weight: bold;
-    padding: 10px; /* Add padding to the header */
-    border-radius: 5px; /* Add border radius */
-    margin-bottom: 10px; /* Add space between header and links */
-}
-
-/* Style for each list item */
-.navigation li {
-    margin-bottom: 5px;
-}
-
-/* Style for each link */
-.navigation li a {
-    color: #333; /* Default text color */
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease; /* Smooth transition for background color */
-}
-
-/* Style for the active link */
-.navigation li.active a {
-    background-color: #007bff; /* Active background color */
-    color: #fff; /* Active text color */
-}
-
-/* Style for link hover */
-.navigation li a:hover {
-    background-color: #e0e0e0; /* Hover background color */
-    color: #000; /* Change text color on hover */
-}
-
-    
-</style>
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
-
-{% include 'receptionist_template/datatable.html' %}
-{% endblock main_content %}
+{% endblock customer_js %}

@@ -1,44 +1,379 @@
 {% extends 'kahama_template/base_template.html' %}
+{% load static %}
+
 {% block title %}
-Visits Reports    
+Premium Visits Reports
 {% endblock title %}
-{% block breadcrumb %}   
-{% endblock breadcrumb %}
+
 {% block main_content %}
-<div class="container">
+<style>
+    /* Premium Visits Reports Styles - Unique to this template */
+    .visits-report-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .visits-report-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .visits-report-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        background: white;
+    }
+    
+    .visits-report-prem-table th {
+        background: linear-gradient(120deg, #1a2a6c, #fdbb2d);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visits-report-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .visits-report-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .visits-report-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #fff9f0;
+    }
+    
+    .btn-prem-visit-view {
+        background: linear-gradient(120deg, #4facfe, #00f2fe);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(79, 172, 254, 0.2);
+    }
+    
+    .btn-prem-visit-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(79, 172, 254, 0.3);
+        color: white;
+    }
+    
+    .visits-report-prem-header {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(26, 42, 108, 0.2);
+    }
+    
+    .visits-report-prem-header h4 {
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .visits-report-prem-header h4 i {
+        margin-right: 10px;
+        font-size: 1.8rem;
+    }
+    
+    .visits-report-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .visits-report-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .visits-report-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ffd89b;
+    }
+    
+    .visits-report-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .visits-report-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .visits-report-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visits-report-prem-filter-bar {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Flip card effect for premium feature */
+    .visits-report-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .visits-report-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .visits-report-prem-flip-card:hover .visits-report-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .visits-report-prem-flip-card-front, .visits-report-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .visits-report-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .visits-report-prem-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .visits-report-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Gender icons */
+    .visits-report-prem-gender-male {
+        color: #1a2a6c;
+    }
+    
+    .visits-report-prem-gender-female {
+        color: #b21f1f;
+    }
+    
+    /* Animation for table rows */
+    @keyframes visitsReportPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .visits-report-prem-animated-row {
+        animation: visitsReportPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Day of week styling */
+    .visits-report-prem-day {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .visits-report-prem-day-weekday {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .visits-report-prem-day-weekend {
+        background: linear-gradient(120deg, #f6b93b, #e55039);
+        color: white;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="visits-report-prem-header">
+        <h4><i class="fas fa-file-medical-alt"></i> Premium Visits Reports</h4>
+        <p class="mb-0">Comprehensive overview of all patient visits</p>
+    </div>
+    
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase">Visits Reports </h6>
+            <div class="card visits-report-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-calendar-check mr-2"></i>All Visits Report</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="visits-report-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Total Visits</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visits-report-prem-summary-value">{{ visits|length }}</div>
+                                    <div class="visits-report-prem-summary-label">All Visits</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="visits-report-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Unique Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visits-report-prem-summary-value" id="unique-patients">0</div>
+                                    <div class="visits-report-prem-summary-label">Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="visits-report-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-building mr-2"></i>Companies</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visits-report-prem-summary-value" id="unique-companies">0</div>
+                                    <div class="visits-report-prem-summary-label">Companies</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="visits-report-prem-flip-card">
+                                <div class="visits-report-prem-flip-card-inner">
+                                    <div class="visits-report-prem-flip-card-front">
+                                        <div class="visits-report-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="visits-report-prem-flip-card-back">
+                                        <div class="visits-report-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Visit Patterns</h4>
+                                        <p>Advanced insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="visits-report-prem-filter-bar">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search visits..." id="visitsReportSearch">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-prem-visit-view" type="button" id="searchButton">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex flex-wrap">
+                                    <div class="btn-group mr-2" role="group">
+                                        <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                                        <button type="button" class="btn btn-outline-primary" data-filter="male">Male</button>
+                                        <button type="button" class="btn btn-outline-primary" data-filter="female">Female</button>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary" data-sort="recent">Recent</button>
+                                        <button type="button" class="btn btn-outline-primary" data-sort="oldest">Oldest</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive visits-report-prem-table-container">
+                        <table class="table table-hover text-nowrap visits-report-prem-table" id="visitsReportTable">
                             <thead>
                                 <tr>
-                                    <th>Patient Number</th>
-                                    <th>Visit number</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Day</th>
-                                    <th>Full Name</th>
-                                    <th>Age</th>
-                                    <th>Gender</th>           
-                                    <th>Company</th>
+                                    <th><i class="fas fa-id-card mr-2"></i>Patient Number</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit number</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th><i class="fas fa-calendar-week mr-2"></i>Day</th>
+                                    <th><i class="fas fa-user mr-2"></i>Full Name</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>           
+                                    <th><i class="fas fa-building mr-2"></i>Company</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for visit in visits %}
-                                <tr>
+                                <tr class="visits-report-prem-animated-row" data-gender="{{ visit.patient.gender|lower }}" data-date="{{ visit.created_at|date:'U' }}" data-day="{{ visit.created_at|date:'l' }}">
                                     <td>{{ visit.patient.mrn }}</td>
                                     <td>{{ visit.vst }}</td>
                                     <td>{{ visit.created_at|date:"d-m-Y" }}</td>
                                     <td>{{ visit.created_at|time:"H:i" }}</td>
-                                    <td>{{ visit.created_at|date:"l" }}</td>
-                                    <td>{{ visit.patient.first_name }} {{ visit.patient.middle_name }} {{ visit.patient.last_name }}</td>
+                                    <td>
+                                        <span class="visits-report-prem-day {% if visit.created_at|date:'l' in 'Saturday,Sunday' %}visits-report-prem-day-weekend{% else %}visits-report-prem-day-weekday{% endif %}">
+                                            {{ visit.created_at|date:"l"|slice:":3" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ visit.patient.first_name }} {{ visit.patient.middle_name }} {{ visit.patient.last_name }}</strong>
+                                    </td>
                                     <td>{{ visit.patient.age }}</td>
-                                    <td>{{ visit.patient.gender }}</td>          
+                                    <td>
+                                        {% if visit.patient.gender == 'Male' %}
+                                            <i class="fas fa-male visits-report-prem-gender-male"></i> Male
+                                        {% else %}
+                                            <i class="fas fa-female visits-report-prem-gender-female"></i> Female
+                                        {% endif %}
+                                    </td>          
                                     <td>{{ visit.patient.company }}</td>
                                 </tr>
                                 {% endfor %}
@@ -50,6 +385,125 @@ Visits Reports
         </div>
     </div>
 </div> 
-{% include 'kahama_template/datatable.html' %}  
 
+{% include 'kahama_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#visitsReportTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visits...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let uniquePatients = new Set();
+        let uniqueCompanies = new Set();
+        
+        document.querySelectorAll('#visitsReportTable tbody tr').forEach(row => {
+            const patientId = row.cells[0].textContent;
+            const company = row.cells[8].textContent;
+            
+            uniquePatients.add(patientId);
+            if (company) uniqueCompanies.add(company);
+        });
+        
+        // Update summary cards
+        document.getElementById('unique-patients').textContent = uniquePatients.size;
+        document.getElementById('unique-companies').textContent = uniqueCompanies.size;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('visitsReportSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        const rows = document.querySelectorAll('#visitsReportTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitsReportSearch').value.toLowerCase();
+        const event = new Event('keyup');
+        document.getElementById('visitsReportSearch').dispatchEvent(event);
+    });
+
+    // Filter functionality
+    document.querySelectorAll('[data-filter]').forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.getAttribute('data-filter');
+            
+            // Update active state
+            document.querySelectorAll('[data-filter]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const rows = document.querySelectorAll('#visitsReportTable tbody tr');
+            
+            rows.forEach(row => {
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else {
+                    const gender = row.getAttribute('data-gender');
+                    if (gender === filter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+
+    // Sort functionality
+    document.querySelectorAll('[data-sort]').forEach(button => {
+        button.addEventListener('click', function() {
+            const sort = this.getAttribute('data-sort');
+            
+            const rows = Array.from(document.querySelectorAll('#visitsReportTable tbody tr'));
+            
+            rows.sort((a, b) => {
+                const aDate = parseInt(a.getAttribute('data-date'));
+                const bDate = parseInt(b.getAttribute('data-date'));
+                
+                if (sort === 'recent') {
+                    return bDate - aDate;
+                } else {
+                    return aDate - bDate;
+                }
+            });
+            
+            const tbody = document.querySelector('#visitsReportTable tbody');
+            tbody.innerHTML = '';
+            
+            rows.forEach(row => {
+                tbody.appendChild(row);
+            });
+        });
+    });
+
+
+</script>
 {% endblock main_content %}

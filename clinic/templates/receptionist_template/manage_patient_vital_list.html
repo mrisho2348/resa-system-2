@@ -1,169 +1,658 @@
 {% extends 'receptionist_template/base_template.html' %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Vital Information
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Vital Information
 {% endblock title %}
 
 {% block page_title %}
-Patient Vital Information
+<a href="{% url 'receptionist_manage_patients' %}" class="btn btn-prem-back btn-sm mb-2">
+    <i class="fas fa-arrow-left mr-2"></i> Back to Patient List
+</a>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
-<a class="btn btn-primary float-right" type="button" data-toggle="modal" data-target="#addPatientVitalModal">
-    <i class="fas fa-plus"></i> New Vital
+<a class="btn btn-prem-new-visit float-right text-white" type="button" data-toggle="modal" data-target="#addPatientVitalModal">
+    <i class="fas fa-plus mr-2"></i> New Vital
 </a>
-
 {% endblock breadcrumb %}
-
 
 {% load static %}
 {% block main_content %}
 
+<style>
+    /* Premium Patient Vital Information Styles */
+    .prem-patient-gradient {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+    }
+    
+    .prem-patient-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .prem-patient-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .prem-patient-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #c5cae9;
+    }
+    
+    .prem-patient-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .prem-patient-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 53, 147, 0.1);
+        background: #f5f7ff;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #5c6bc0, #7986cb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(92, 107, 192, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(92, 107, 192, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-new-visit {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 35, 126, 0.2);
+    }
+    
+    .btn-prem-new-visit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 35, 126, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #3949ab, #3f51b5);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(57, 73, 171, 0.2);
+        margin: 2px;
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(57, 73, 171, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-edit {
+        background: linear-gradient(120deg, #ff9800, #fb8c00);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+        margin: 2px;
+    }
+    
+    .btn-prem-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .prem-modal-header {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-patient-info-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-patient-info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-patient-info-card .card-header {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-patient-info-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-patient-detail-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .prem-patient-detail-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #283593;
+        margin-bottom: 0.5rem;
+    }
+    
+    .prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .prem-flip-card:hover .prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .prem-flip-card-front, .prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .prem-flip-card-front {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+    }
+    
+    .prem-flip-card-back {
+        background: linear-gradient(120deg, #283593, #1a237e);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .prem-filter-bar {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .prem-date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .prem-date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #283593;
+        min-width: 80px;
+    }
+    
+    .prem-date-filter-input {
+        border: 1px solid #c5cae9;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for filtering */
+    @keyframes premFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .prem-animated {
+        animation: premFadeIn 0.5s ease forwards;
+    }
+    
+    .vital-value-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .vital-normal {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .vital-warning {
+        background: linear-gradient(120deg, #f9ab00, #fbbc04);
+        color: white;
+    }
+    
+    .vital-danger {
+        background: linear-gradient(120deg, #ea4335, #d93025);
+        color: white;
+    }
+    
+    .vital-info {
+        background: linear-gradient(120deg, #4285f4, #1a73e8);
+        color: white;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-               
-                <div class="card-body">
-                    <div class="row" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'Y-m-d' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
+            <div class="card prem-patient-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-heartbeat mr-2"></i>Premium Patient Vital Information</h5>                       
                     </div>
-                        <div class="row mt-3">
-                            <div class="col-md-3">PAYMENT MODE: <b>{{ patient.payment_form }}</b></div>
+                </div>
+                <div class="card-body">
+                    <!-- Patient Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Patient Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Full Name</div>
+                                    <div class="prem-patient-detail-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</div>
+                                    
+                                    <div class="prem-patient-detail-label">Date of Birth</div>
+                                    <div class="prem-patient-detail-value">{{ patient.dob|date:'d-m-Y' }} 
+                                        (Age: {% if patient.dob %}
+                                        <script>
+                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                            var now = new Date();
+                                            var ageMilliseconds = now - dob;
+                                            var ageSeconds = ageMilliseconds / 1000;
+                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                            document.write(ageYears + ' years');
+                                        </script>
+                                        {% else %}
+                                        {{ patient.age }}
+                                        {% endif %})
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                </div>           
-            
-            </div>
-        </div>
-    </div>
-   <div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-condensed text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Recorded Date</th>
-                                <th>Recorded Time</th>
-                                <th>RR (bpm)</th>
-                                <th>PR (bpm)</th>
-                                <th>BR</th>
-                                <th>SPO2 (%)</th>
-                                <th>Temperature (°C)</th>
-                                <th>weight (Kg)</th>
-                                <th>GCS</th>
-                                <th>AVPU</th>                      
-                                <th>Action</th>              
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for vital in patient_vitals %}
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Patient Details</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Gender</div>
+                                    <div class="prem-patient-detail-value">{{ patient.gender }}</div>
+                                    
+                                    <div class="prem-patient-detail-label">File Number</div>
+                                    <div class="prem-patient-detail-value">{{ patient.mrn }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card prem-patient-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-credit-card mr-2"></i>Payment Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="prem-patient-detail-label">Payment Mode</div>
+                                    <div class="prem-patient-detail-value">
+                                        {% if patient.payment_form == "Insurance"  %}
+                                            {{ patient.payment_form }} - {{ patient.insurance_name }}   
+                                        {% else  %}   
+                                            {{ patient.payment_form }}                  
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if patient.payment_form == "Insurance" %}
+                                    <div class="prem-patient-detail-label">Insurance Number</div>
+                                    <div class="prem-patient-detail-value">{{ patient.insurance_number }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="prem-flip-card">
+                                <div class="prem-flip-card-inner">
+                                    <div class="prem-flip-card-front">
+                                        <div class="prem-flip-icon">
+                                            <i class="fas fa-heartbeat"></i>
+                                        </div>
+                                        <h4>Vital Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="prem-flip-card-back">
+                                        <div class="prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>{{ patient_vitals|length }} Vital Records</h4>
+                                        <p>Comprehensive history</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="prem-filter-bar">
+                        <div class="prem-date-filter">
+                            <div class="prem-date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="prem-date-filter-input" id="startDate">
+                            </div>
+                            <div class="prem-date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="prem-date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-prem-action" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-prem-action" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search vital records..." id="vitalSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive prem-patient-table-container">
+                        <table class="table table-hover text-nowrap prem-patient-table" id="vitalTable">
+                            <thead>
                                 <tr>
-                                    <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
-                                    <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
-                                    <td>{{ vital.respiratory_rate }}</td>
-                                    <td>{{ vital.pulse_rate }}</td>
-                                    <td>{{ vital.blood_pressure }}</td>
-                                    <td>{{ vital.spo2 }}%</td>
-                                    <td>{{ vital.temperature }}</td>
-                                    <td>{{ vital.weight }}</td>
-                                    <td>{{ vital.gcs }}</td>
-                                    <td>{{ vital.avpu }}</td>
-                                    <td>
-                                      <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editPatientVitalModal{{ vital.id }}"  data-toggle="tooltip" title="Edit">
-                                        <i class="fa fa-edit text-white"></i>
-                                    </button>
-                                      <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePatientVitalModal{{ vital.id }}"  data-toggle="tooltip" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                              
-                                    </td>
-                
-                                </tr>              
-                
-                
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    <th><i class="fas fa-calendar mr-2"></i>Recorded Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Recorded Time</th>
+                                    <th><i class="fas fa-lungs mr-2"></i>RR (bpm)</th>
+                                    <th><i class="fas fa-heart mr-2"></i>PR (bpm)</th>
+                                    <th><i class="fas fa-tint mr-2"></i>BP</th>
+                                    <th><i class="fas fa-wind mr-2"></i>SPO2 (%)</th>
+                                    <th><i class="fas fa-thermometer-half mr-2"></i>Temp (°C)</th>
+                                    <th><i class="fas fa-weight mr-2"></i>Weight (Kg)</th>
+                                    <th><i class="fas fa-brain mr-2"></i>GCS</th>
+                                    <th><i class="fas fa-eye mr-2"></i>AVPU</th>
+                                    <th><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vital in patient_vitals %}
+                                    <tr data-date="{{ vital.recorded_at|date:'Y-m-d' }}">
+                                        <td>{{ vital.recorded_at|date:"Y-m-d" }}</td>
+                                        <td>{{ vital.recorded_at|time:"H:i:s" }}</td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.respiratory_rate >= 12 and vital.respiratory_rate <= 20 %}vital-normal{% elif vital.respiratory_rate >= 10 and vital.respiratory_rate <= 24 %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.respiratory_rate }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.pulse_rate >= 60 and vital.pulse_rate <= 100 %}vital-normal{% elif vital.pulse_rate >= 50 and vital.pulse_rate <= 110 %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.pulse_rate }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.blood_pressure %}vital-info{% endif %}">
+                                                {{ vital.blood_pressure }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.spo2 >= 95 %}vital-normal{% elif vital.spo2 >= 90 %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.spo2 }}%
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.temperature >= 36.1 and vital.temperature <= 37.2 %}vital-normal{% elif vital.temperature >= 35.8 and vital.temperature <= 37.5 %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.temperature }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge vital-info">
+                                                {{ vital.weight }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.gcs == 15 %}vital-normal{% elif vital.gcs >= 13 %}vital-warning{% elif vital.gcs >= 9 %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.gcs }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="vital-value-badge {% if vital.avpu == 'Alert' %}vital-normal{% elif vital.avpu == 'Verbal' %}vital-warning{% elif vital.avpu == 'Pain' %}vital-warning{% else %}vital-danger{% endif %}">
+                                                {{ vital.avpu }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-prem-edit btn-sm" data-toggle="modal" data-target="#editPatientVitalModal{{ vital.id }}" data-toggle="tooltip" title="Edit">
+                                                <i class="fa fa-edit mr-1"></i> Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-   </div>
 </div>
 
-{% for vital in patient_vitals %}
-    <!-- Delete Modal -->
-    <div class="modal fade" id="deletePatientVitalModal{{ vital.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePatientVitalModalLabel{{ vital.id }}" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deletePatientVitalModalLabel{{ vital.id }}">Delete Vital</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this vital: <strong>{{ vital }}</strong>?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" onclick="deletePatientVital({{ vital.id }})">Delete</button>
+<!-- Add Vital Modal -->
+<div class="modal fade" id="addPatientVitalModal" tabindex="-1" aria-labelledby="addPatientVitalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="addPatientVitalModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add New Vital</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="VitalMessageContainer" class="alert" role="alert"></div>
+                        <form method="post" id="AddPatientVitalForm">
+                            {% csrf_token %}
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="respiratory_rate">Respiratory Rate (breaths per minute)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="respiratoryRate" name="respiratory_rate" required>
+                                        <option value=""></option>
+                                        {% for rate in range_51 %}
+                                            <option value="{{ rate }}">{{ rate }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <input type="hidden" name="patient_id" id="patient_id" value="{{ patient.id }}">
+                                <input type="hidden" name="vital_id" id="vital_id" value="">
+                                <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
+                                <div class="form-group col-md-6">
+                                    <label for="pulse_rate">Pulse Rate (beats per minute)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="pulseRate" name="pulse_rate" required>
+                                        <option value=""></option>
+                                        {% for rate in range_301 %}
+                                            <option value="{{ rate }}">{{ rate }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="sbp">Systolic Blood Pressure (mmHg)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="sbp" name="sbp" required>
+                                        <option value=""></option>
+                                        {% for value in range_301 %}
+                                            <option value="{{ value }}">{{ value }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="dbp">Diastolic Blood Pressure (mmHg)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="dbp" name="dbp" required>
+                                        <option value=""></option>
+                                        {% for value in range_301 %}
+                                            <option value="{{ value }}">{{ value }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="avpu">AVPU Scale</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="avpu" name="avpu" required>
+                                        <option value=""></option>
+                                        <option value="Alert">Alert</option>
+                                        <option value="Verbal">Verbal</option>
+                                        <option value="Pain">Pain</option>
+                                        <option value="Unresponsive">Unresponsive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="spo2">SPO2 (%)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="spo2" name="spo2" required>
+                                        <option value=""></option>
+                                        {% for percentage in range_101 %}
+                                            <option value="{{ percentage }}">{{ percentage }}%</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="temperature">Temperature (°C)</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="temperature" name="temperature" required >
+                                        <option value=""></option>
+                                        {% for temp in temps %}
+                                            <option value="{{ temp }}">{{ temp }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="gcs">Glasgow Coma Scale</label>
+                                    <select class="form-control select2bs4" style="width: 100%;" id="gcs" name="gcs" required>
+                                        <option value=""></option>
+                                        {% for score in range_15  %}
+                                            <option value="{{ score }}">{{ score }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>                 
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-group">
+                                        <label for="weight" class="form-label">Weight (Kg)</label>
+                                        <select class="form-control select2bs4" style="width: 100%;" id="weight" name="weight" required>
+                                            {% for weight in range_301 %}
+                                                <option value="{{ weight }}">{{ weight }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>                                                                            
+                            </div>
+                            <div class="form-row">
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-prem-action btn-block" onclick="addRemotePatientVital()">
+                                        <i class="fas fa-save mr-2"></i> Add New Vital
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-{% endfor %}
+</div>
 
-<script>
-    function deletePatientVital(vitalId) {
-        $.ajax({
-            type: 'POST',
-            url: '/delete_patient_vital/',  // Your URL endpoint
-            data: {
-                vital_id: vitalId,  // Send vitalId as POST data
-                csrfmiddlewaretoken: '{{ csrf_token }}'  // Include CSRF token for security
-            },
-            success: function (data) {
-                if (data.status === 'success') {
-                    $('#deletePatientVitalModal' + vitalId).modal('hide');
-                    location.reload(true);  // Force reload from the server
-                } else {
-                    alert(data.message);  // Display message for other statuses
-                }
-            },
-            error: function (error) {
-                alert('An error occurred: ' + error);  // Handle AJAX errors
-            }
-        });
-    }
-</script>
-
-
+<!-- Edit Vital Modals -->
 {% for vital in patient_vitals %}
-<div class="modal fade" id="editPatientVitalModal{{ vital.id }}" tabindex="-1" aria-labelledby="patientVitalModalLabel{{ vital.id }}" aria-hidden="true">
+<div class="modal fade" id="editPatientVitalModal{{ vital.id }}" tabindex="-1" aria-labelledby="editPatientVitalModalLabel{{ vital.id }}" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPatientVitalModalLabel{{ vital.id }}">Edit Patient Vital</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header prem-modal-header">
+                <h5 class="modal-title" id="editPatientVitalModalLabel{{ vital.id }}"><i class="fas fa-edit mr-2"></i>Edit Patient Vital</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -286,7 +775,7 @@ Patient Vital Information
                         <!-- Column 1 -->
                         <div class="col-md-6">
                             <div class="mb-3 form-group">
-                                <label for="weight{{ vital.id }}" class="form-label">Weight</label>
+                                <label for="weight{{ vital.id }}" class="form-label">Weight (Kg)</label>
                                 <select class="form-control select2bs4" style="width: 100%;" id="weight{{ vital.id }}" name="weight" required>
                                     {% for weight in range_301 %}
                                         <option value="{{ weight }}" {% if weight == vital.weight %} selected {% endif %}>{{ weight }}</option>
@@ -299,7 +788,9 @@ Patient Vital Information
                     <!-- Submit Button -->
                     <div class="form-row">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" onclick="updateRemotePatientVital({{ vital.id }})">Update Patient Vital</button>
+                            <button type="button" class="btn btn-prem-action btn-block" onclick="updateRemotePatientVital({{ vital.id }})">
+                                <i class="fas fa-save mr-2"></i> Update Patient Vital
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -307,163 +798,131 @@ Patient Vital Information
         </div>
     </div>
 </div>  
+{% endfor %}
+
 <script>
-    // Handle form submission using AJAX
-    function updateRemotePatientVital(vitalId) {
-        $.ajax({
-            type: 'POST',
-            url: '{% url "receptionist_save_remotepatient_vital" %}',  // Replace with your URL
-            data: $('#editPatientVitalForm' + vitalId).serialize(),
-            success: function (response) {
-                // If the request is successful, display a success message
-                if (response.status) {
-                    $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-success">' + response.message + '</div>');
-                        location.reload(true)
-                } else {
-                    $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-danger">' + response.message + '</div>');
-                }
-            },
-            error: function (xhr, error) {
-                // If the request fails, display an error message
-                $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+    // Initialize DataTable
+    new DataTable('#vitalTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'desc'], [1, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search vital records...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterVitalsByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        document.querySelectorAll('#vitalTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+    });
+
+    // Filter vitals by date range
+    function filterVitalsByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#vitalTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
         });
     }
-</script>                        
-{% endfor %}
 
-
-   <!-- Modal -->
-   <div class="modal fade" id="addPatientVitalModal" tabindex="-1" role="dialog" aria-labelledby="addPatientVitalModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addPatientVitalModalLabel">Add Patient Vital</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="card">
-            <div class="card-header">Add Patient Vital</div>
-            <div class="card-body">
-                <div id="VitalMessageContainer{{ vital.id }}" class="alert" role="alert"></div>
-                <form method="post" id="AddPatientVitalForm">
-                    {% csrf_token %}
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="respiratory_rate">Respiratory Rate (breaths per minute)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="respiratoryRate" name="respiratory_rate" required>
-                                <option value=""></option>
-                                {% for rate in range_15 %}
-                                    <option value="{{ rate }}">{{ rate }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <input type="hidden" name="patient_id" id="patient_id" value="{{ patient.id }}">
-                        <input type="hidden" name="vital_id" id="vital_id" value="">
-                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{{ visit.id }}">
-                        <div class="form-group col-md-6">
-                            <label for="pulse_rate">Pulse Rate (beats per minute)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="pulseRate" name="pulse_rate" required>
-                                <option value=""></option>
-                                {% for rate in range_301 %}
-                                    <option value="{{ rate }}">{{ rate }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="sbp">Systolic Blood Pressure (mmHg)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="sbp" name="sbp" required>
-                                <option value=""></option>
-                                {% for value in range_301 %}
-                                    <option value="{{ value }}">{{ value }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="dbp">Diastolic Blood Pressure (mmHg)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="dbp" name="dbp" required>
-                                <option value=""></option>
-                                {% for value in range_301 %}
-                                    <option value="{{ value }}">{{ value }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="avpu">AVPU Scale</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="avpu" name="avpu" required>
-                                <option value=""></option>
-                                <option value="Alert">Alert</option>
-                                <option value="Verbal">Verbal</option>
-                                <option value="Pain">Pain</option>
-                                <option value="Unresponsive">Unresponsive</option>
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="spo2">SPO2 (%)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="spo2" name="spo2" required>
-                                <option value=""></option>
-                                {% for percentage in range_101 %}
-                                    <option value="{{ percentage }}">{{ percentage }}%</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="temperature">Temperature (°C)</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="temperature" name="temperature" required >
-                                <option value=""></option>
-                                {% for temp in temps %}
-                                    <option value="{{ temp }}">{{ temp }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="gcs">Glasgow Coma Scale</label>
-                            <select class="form-control select2bs4" style="width: 100%;" id="gcs" name="gcs" required>
-                                <option value=""></option>
-                                {% for score in range_15  %}
-                                    <option value="{{ score }}">{{ score }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>                 
-                      <!-- Row 5 -->
-                      <div class="row">
-                        <!-- Column 1 -->
-                        <div class="col-md-6">
-                            <div class="mb-3 form-group">
-                                <label for="weight{{ vital.id }}" class="form-label">Weight</label>
-                                <select class="form-control select2bs4" style="width: 100%;" id="weight{{ vital.id }}" name="weight" required>
-                                    {% for weight in range_301 %}
-                                        <option value="{{ weight }}">{{ weight }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>                                                                            
-                    </div>
-                    <div class="form-row">
-                        <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" onclick="addRemotePatientVital()">Add new patient vital</button>
-                        </div>
-                    </div>
-                
-                </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+    // Search functionality
+    document.getElementById('vitalSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterVitalsWithSearch(searchText);
+    });
     
-  <script>
-    // Handle form submission using AJAX
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('vitalSearch').value.toLowerCase();
+        filterVitalsWithSearch(searchText);
+    });
+
+    // Filter vitals by search text
+    function filterVitalsWithSearch(searchText) {
+        const rows = document.querySelectorAll('#vitalTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+
+    // Handle form submission using AJAX for adding vitals
     function addRemotePatientVital() {
         // Validate form fields
         if (!validateForm()) {
@@ -476,13 +935,15 @@ Patient Vital Information
         // Perform AJAX request
         $.ajax({
             type: 'POST',
-            url: '{% url "receptionist_save_remotepatient_vital" %}',  // Replace with your URL
+            url: '{% url "receptionist_save_remotepatient_vital" %}',
             data: $('#AddPatientVitalForm').serialize(),
             success: function (response) {
                 // If the request is successful, display a success message
                 if (response.status) {
                     $('#VitalMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                    location.reload(true)
+                    setTimeout(function() {
+                        location.reload(true);
+                    }, 1500);
                 } else {
                     $('#VitalMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
                 }
@@ -507,6 +968,31 @@ Patient Vital Information
         });
         return isValid;
     }
+
+    // Handle form submission using AJAX for editing vitals
+    function updateRemotePatientVital(vitalId) {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "receptionist_save_remotepatient_vital" %}',
+            data: $('#editPatientVitalForm' + vitalId).serialize(),
+            success: function (response) {
+                // If the request is successful, display a success message
+                if (response.status) {
+                    $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-success">' + response.message + '</div>');
+                    setTimeout(function() {
+                        location.reload(true);
+                    }, 1500);
+                } else {
+                    $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function (xhr, error) {
+                // If the request fails, display an error message
+                $('#editVitalMessageContainer' + vitalId).html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+            }
+        });
+    }
 </script>
+
 {% include 'receptionist_template/datatable.html' %}
 {% endblock main_content %}

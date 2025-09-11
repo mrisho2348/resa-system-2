@@ -1,10 +1,12 @@
 import calendar
 from datetime import  date, datetime
+from decimal import Decimal
 import os
 from django.urls import reverse
 from django.utils import timezone
 import logging
-from django.db import IntegrityError
+from collections import defaultdict
+from django.db import transaction, IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
@@ -13,10 +15,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from clinic.forms import CounselingForm, DischargesNotesForm, LaboratoryOrderForm, ObservationRecordForm
+from clinic.forms import CounselingForm, DischargesNotesForm, LaboratoryOrderForm, ObservationRecordForm, StaffProfileForm
 from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
-from .models import AmbulanceOrder, ClinicChiefComplaint, ConsultationNotes, ConsultationOrder, Counseling, Country,  Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency,  Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder
+from .models import AmbulanceOrder, ClinicChiefComplaint, ConsultationNotes, ConsultationOrder, Counseling, Country,  Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency,  Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder, WalkInPrescription, WalkInVisit
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from django.db.models import Max,Sum,Q,Count
@@ -24,9 +26,9 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
-from kahamahmis.forms import StaffProfileForm
 from django.views import View
 import re
+from io import BytesIO
 # Create your views here.
 
 @require_POST
@@ -120,6 +122,91 @@ def receptionist_dashboard(request):
     return render(request, "receptionist_template/home_content.html", context)
 
 
+
+@login_required
+def appointment_list(request):
+    # Appointment list view
+    today = timezone.now().date()
+    appointments = Consultation.objects.filter(appointment_date=today).order_by('appointment_time')
+    context = {
+        'appointments': appointments,
+        'today': today
+    }
+    return render(request, 'receptionist_template/appointment_list.html', context)
+
+@login_required
+def all_orders_view(request):
+    # All orders view (pending bills)
+    pending_orders = Order.objects.filter(status='Pending').order_by('-created_at')
+    context = {
+        'orders': pending_orders
+    }
+    return render(request, 'receptionist_template/all_orders.html', context)
+
+
+
+@login_required
+def service_status_data(request):
+    # AJAX view for service status data
+    try:
+        # Get counts for different services
+        lab_orders_count = LaboratoryOrder.objects.count()
+        imaging_records_count = ImagingRecord.objects.count()
+        procedures_count = Procedure.objects.count()
+        appointments_count = Consultation.objects.count()
+        
+        data = {
+            'labels': ['Lab Tests', 'Imaging', 'Procedures', 'Appointments'],
+            'data': [lab_orders_count, imaging_records_count, procedures_count, appointments_count],
+            'colors': ['#3498db', '#9b59b6', '#27ae60', '#f39c12']
+        }
+        
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+def get_gender_monthly_data(request):
+    # AJAX view for gender-based monthly data
+    try:
+        year = request.GET.get('year', datetime.now().year)
+        
+        # Get monthly patient counts by gender
+        monthly_data = {}
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        male_data = []
+        female_data = []
+        
+        for month in range(1, 13):
+            male_count = Patients.objects.filter(
+                gender='Male',
+                created_at__year=year,
+                created_at__month=month
+            ).count()
+            
+            female_count = Patients.objects.filter(
+                gender='Female',
+                created_at__year=year,
+                created_at__month=month
+            ).count()
+            
+            male_data.append(male_count)
+            female_data.append(female_count)
+        
+        data = {
+            'labels': months,
+            'maleData': male_data,
+            'femaleData': female_data
+        }
+        
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+
+
 def get_patient_completion_status(request):
     # Imaging Records
     imaging_with_result = ImagingRecord.objects.exclude(Q(result__isnull=True) | Q(result='')).values('patient').distinct().count()
@@ -165,67 +252,129 @@ def get_earnings_data(request):
     try:
         today = date.today()
 
-        # Helper function to calculate earnings from multiple querysets
-        def aggregate_earnings(querysets, field='cost'):
-            totals = {'nhif': 0, 'cash': 0, 'other': 0}
+        # ----------------------
+        # Helper Functions
+        # ----------------------
+        def aggregate_paid_earnings(querysets, field="cost"):
+            """
+            Aggregate earnings by payment type from querysets related to Patients, only for paid orders.
+            """
+            totals = {"insurance": 0, "cash": 0, "other": 0}
 
             for qs in querysets:
-                # NHIF Insurance Earnings
-                totals['nhif'] += qs.filter(
-                    patient__payment_form='Insurance',
-                    patient__insurance_name__icontains='nhif'
-                ).aggregate(total=Sum(field))['total'] or 0
+                # Insurance - only paid orders
+                totals["insurance"] += qs.filter(
+                    patient__payment_form="insurance",
+                    status="Paid"  # Only include paid orders
+                ).aggregate(total=Sum(field))["total"] or 0
 
-                # Cash Payments
-                totals['cash'] += qs.filter(
-                    patient__payment_form='Cash'
-                ).aggregate(total=Sum(field))['total'] or 0
+                # Cash - only paid orders
+                totals["cash"] += qs.filter(
+                    patient__payment_form="cash",
+                    status="Paid"  # Only include paid orders
+                ).aggregate(total=Sum(field))["total"] or 0
 
-                # Other Insurance (non-NHIF)
-                totals['other'] += qs.filter(
-                    patient__payment_form='Insurance'
-                ).exclude(
-                    patient__insurance_name__icontains='nhif'
-                ).aggregate(total=Sum(field))['total'] or 0
+                # Other - only paid orders
+                totals["other"] += qs.exclude(
+                    patient__payment_form__in=["insurance", "cash"]
+                ).filter(
+                    status="Paid"  # Only include paid orders
+                ).aggregate(total=Sum(field))["total"] or 0
 
             return totals
 
-        # Helper function to compute total earnings
         def compute_total(totals_dict):
-            return totals_dict['nhif'] + totals_dict['cash'] + totals_dict['other']
+            return sum(totals_dict.values())
 
-        # DAILY EARNINGS: group related hospital and prescription queries
-        daily_hospital_querysets = [
-            LaboratoryOrder.objects.filter(order_date=today),
-            Procedure.objects.filter(order_date=today),
-            ImagingRecord.objects.filter(order_date=today),
-            ConsultationOrder.objects.filter(order_date=today),
-        ]
+        # ----------------------
+        # Hospital Services (linked to Patients) - Only Paid Orders
+        # ----------------------
+        # Get all paid orders for today
+        paid_orders_today = Order.objects.filter(
+            order_date=today,
+            status="Paid"
+        )
 
-        daily_prescription_querysets = [
-            Prescription.objects.filter(created_at__date=today),
-        ]
+        # Calculate hospital earnings from paid orders
+        hospital_earnings = {
+            "insurance": paid_orders_today.filter(
+                patient__payment_form="insurance",
+                type_of_order__in=["Laboratory", "Procedure", "Imaging", "Consultation"]
+            ).aggregate(total=Sum("cost"))["total"] or 0,
+            "cash": paid_orders_today.filter(
+                patient__payment_form="cash",
+                type_of_order__in=["Laboratory", "Procedure", "Imaging", "Consultation"]
+            ).aggregate(total=Sum("cost"))["total"] or 0,
+            "other": paid_orders_today.exclude(
+                patient__payment_form__in=["insurance", "cash"]
+            ).filter(
+                type_of_order__in=["Laboratory", "Procedure", "Imaging", "Consultation"]
+            ).aggregate(total=Sum("cost"))["total"] or 0,
+            "walkin": 0  # Will be calculated separately
+        }
 
-        # Process hospital and prescription earnings
-        hospital_earnings = aggregate_earnings(daily_hospital_querysets)
-        prescription_earnings = aggregate_earnings(daily_prescription_querysets, field='total_price')
+        # ----------------------
+        # Prescriptions (linked to Patients) - Only Paid Prescriptions
+        # ----------------------
+        paid_prescriptions = Prescription.objects.filter(
+            created_at__date=today,
+            status="paid"  # Only paid prescriptions
+        )
 
-        # Build JSON response
+        prescription_earnings = {
+            "insurance": paid_prescriptions.filter(
+                patient__payment_form="insurance"
+            ).aggregate(total=Sum("total_price"))["total"] or 0,
+            "cash": paid_prescriptions.filter(
+                patient__payment_form="cash"
+            ).aggregate(total=Sum("total_price"))["total"] or 0,
+            "other": paid_prescriptions.exclude(
+                patient__payment_form__in=["insurance", "cash"]
+            ).aggregate(total=Sum("total_price"))["total"] or 0,
+        }
+
+        # ----------------------
+        # Walk-In Prescriptions (linked to WalkInCustomer) - Only Paid Prescriptions
+        # ----------------------
+        paid_walkin_prescriptions = WalkInPrescription.objects.filter(
+            created_at__date=today,
+            status="paid"  # Only paid prescriptions
+        )
+
+        walkin_insurance = paid_walkin_prescriptions.filter(
+            visit__customer__payment_form="insurance"
+        ).aggregate(total=Sum("total_price"))["total"] or 0
+
+        walkin_cash = paid_walkin_prescriptions.filter(
+            visit__customer__payment_form="cash"
+        ).aggregate(total=Sum("total_price"))["total"] or 0
+
+        walkin_other = paid_walkin_prescriptions.exclude(
+            visit__customer__payment_form__in=["insurance", "cash"]
+        ).aggregate(total=Sum("total_price"))["total"] or 0
+
+        # Add Walk-In earnings to hospital earnings        
+        hospital_earnings["walkin"] = walkin_insurance + walkin_cash + walkin_other
+
+        # ----------------------
+        # Response Data
+        # ----------------------
         response_data = {
-            'daily': {
-                'hospital': {
-                    'nhif': hospital_earnings['nhif'],
-                    'cash': hospital_earnings['cash'],
-                    'other': hospital_earnings['other'],
-                    'total': compute_total(hospital_earnings),
+            "daily": {
+                "hospital": {
+                    "insurance": hospital_earnings["insurance"],
+                    "cash": hospital_earnings["cash"],
+                    "other": hospital_earnings["other"],
+                    "walkin": hospital_earnings["walkin"],
+                    "total": compute_total(hospital_earnings),
                 },
-                'prescription': {
-                    'nhif': prescription_earnings['nhif'],
-                    'cash': prescription_earnings['cash'],
-                    'other': prescription_earnings['other'],
-                    'total': compute_total(prescription_earnings),
+                "prescription": {
+                    "insurance": prescription_earnings["insurance"],
+                    "cash": prescription_earnings["cash"],
+                    "other": prescription_earnings["other"],
+                    "total": compute_total(prescription_earnings),
                 },
-                'grand_total': compute_total(hospital_earnings) + compute_total(prescription_earnings),
+                "grand_total": compute_total(hospital_earnings) + compute_total(prescription_earnings),
             }
         }
 
@@ -233,8 +382,7 @@ def get_earnings_data(request):
 
     except Exception as e:
         logger.error(f"[get_earnings_data] Error: {str(e)}")
-        return JsonResponse({'error': 'An error occurred while retrieving earnings data.'}, status=500)
-
+        return JsonResponse({"error": "An error occurred while retrieving earnings data."}, status=500)
 
 
 
@@ -317,33 +465,7 @@ def get_gender_yearly_data(request):
         # Return an error response if the request method is not GET or if it's not an AJAX request
         return JsonResponse({'error': 'Invalid request'})
     
-def get_gender_monthly_data(request):
-    if request.method == 'GET':
-        selected_year = request.GET.get('year')       
-        # Initialize a dictionary to store gender-wise monthly data
-        gender_monthly_data = {}
 
-        # Loop through each month and calculate gender-wise counts
-        for month in range(1, 13):
-            # Get the number of males and females for the current month and year
-            male_count = Patients.objects.filter(
-                gender='Male',
-                created_at__year=selected_year,
-                created_at__month=month
-            ).count()            
-            female_count = Patients.objects.filter(
-                gender='Female',
-                created_at__year=selected_year,
-                created_at__month=month
-            ).count()
-
-            # Store the counts in the dictionary
-            month_name = calendar.month_name[month]
-            gender_monthly_data[month_name] = {'Male': male_count, 'Female': female_count}
-
-        return JsonResponse(gender_monthly_data)
-    else:
-        return JsonResponse({'error': 'Invalid request'})
     
     
 @login_required
@@ -900,39 +1022,63 @@ def add_procedure(request):
         
         return JsonResponse({'status': 'success', 'message': 'Procedures added successfully', 'created_procedures': created_procedures})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)    
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)  
+
 
 @login_required
 def save_remoteprocedure(request, patient_id, visit_id):
     try:
-        # Retrieve visit history for the specified patient
-        try:
-            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
-        except PatientVisits.DoesNotExist:
-            visit = None    
-
         patient = Patients.objects.get(id=patient_id)
-
-        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
-        # Fetching services based on coverage and type
+        visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        
+        # Get all procedure orders for this visit
+        procedure_orders = Order.objects.filter(
+            patient=patient, 
+            visit=visit, 
+            type_of_order="Procedure"
+        )
+        
+        # Check if all orders are paid
+        all_orders_paid = True
+        if procedure_orders.exists():
+            for order in procedure_orders:
+                if order.status != 'Paid':
+                    all_orders_paid = False
+                    break
+        else:
+            all_orders_paid = False
+        
+        # Calculate total procedure cost
+        total_procedure_cost = procedure_orders.aggregate(total=Sum('cost'))['total'] or 0
+        
+        # Filter procedure services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='procedure') & Q(coverage=patient.payment_form)
+                type_service='Procedure',
+                coverage=patient.payment_form
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
-            remote_service = Service.objects.filter(type_service='procedure')
-
-        return render(request, 'receptionist_template/procedure_template.html', {
+            remote_service = Service.objects.filter(type_service='Procedure')
+        
+        # Get surgeons/procedure doctors
+        surgeons = Staffs.objects.filter(role='doctor', work_place="resa")
+        
+        context = {
+            'patient': patient,
             'visit': visit,
-            'patient': patient,      
-            'doctors': doctors,        
-            'remote_service': remote_service,          
-        })
+            'procedure_orders': procedure_orders,
+            'total_procedure_cost': total_procedure_cost,
+            'remote_service': remote_service,
+            'doctors': surgeons,
+            'all_orders_paid': all_orders_paid,
+        }
+        
+        return render(request, 'receptionist_template/procedure_template.html', context)
+        
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
+        return render(request, '404.html', {'error_message': str(e)})
+
+
 
 @login_required         
 def save_prescription(request, patient_id, visit_id):
@@ -963,37 +1109,61 @@ def save_prescription(request, patient_id, visit_id):
         # Handle other exceptions if necessary
         return render(request, '404.html', {'error_message': str(e)})   
 
+
 @login_required
 def save_laboratory(request, patient_id, visit_id):
     try:
-       
-        try:
-            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
-        except PatientVisits.DoesNotExist:
-            visit = None   
-        doctors = Staffs.objects.filter(role='labTechnician',work_place="resa")
         patient = Patients.objects.get(id=patient_id)
-
-        # Fetching services based on coverage and type
+        visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        
+        # Get all lab orders for this visit
+        lab_orders = Order.objects.filter(
+            patient=patient, 
+            visit=visit, 
+            type_of_order="Laboratory"
+        )
+        
+        # Check if all orders are paid
+        all_orders_paid = True
+        if lab_orders.exists():
+            for order in lab_orders:
+                if order.status != 'Paid':
+                    all_orders_paid = False
+                    break
+        else:
+            all_orders_paid = False
+        
+        # Calculate total lab cost
+        total_lab_cost = lab_orders.aggregate(total=Sum('cost'))['total'] or 0
+        
+        # Filter laboratory services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='Laboratory') & Q(coverage=patient.payment_form)
+                type_service='Laboratory',
+                coverage=patient.payment_form
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Laboratory')
-
-        return render(request, 'receptionist_template/laboratory_template.html', {
-            'visit': visit,
+        
+        # Get lab technicians
+        lab_technicians = Staffs.objects.filter(role='labTechnician', work_place="resa")
+        
+        context = {
             'patient': patient,
-            'doctors': doctors,          
+            'visit': visit,
+            'lab_orders': lab_orders,
+            'total_lab_cost': total_lab_cost,
             'remote_service': remote_service,
-       
-        })
+            'doctors': lab_technicians,
+            'all_orders_paid': all_orders_paid,
+        }
+        
+        return render(request, 'receptionist_template/laboratory_template.html', context)
+        
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)}) 
+        return render(request, '404.html', {'error_message': str(e)})
+
+
     
 
 @csrf_exempt
@@ -1018,7 +1188,7 @@ def add_investigation(request):
                     visit_id=visit_id,
                     order_date=order_date,
                     data_recorder=data_recorder,
-                    name_id=investigation_names[i],
+                    lab_test_id=investigation_names[i],
                     description=descriptions[i],                 
                     cost=costs[i],
                     # Set other fields as needed
@@ -1207,15 +1377,30 @@ def ambulance_order_view(request):
     return render(request, template_name, {'ambulance_orders': ambulance_orders})
 
 @login_required
-def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None): 
+def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None):
     # Get the patient and visit objects based on IDs
     patient = get_object_or_404(Patients, id=patient_id)
     visit = get_object_or_404(PatientVisits, id=visit_id)
-    range_31 = range(1,31)
+    
+    # Get all ambulance orders for this visit
+    ambulance_orders = Order.objects.filter(patient=patient, visit=visit, order_type='Ambulance')
+    total_ambulance_cost = ambulance_orders.aggregate(Sum('cost'))['cost__sum'] or 0
+    
+    # Check if all orders are paid
+    all_orders_paid = not ambulance_orders.filter(status__in=['Unpaid', 'Partially Paid']).exists()
+    
+    # Get remote services for dropdown
+    remote_service = Service.objects.all()
+    range_31 = range(1, 31)
+    
     context = {
         'patient': patient,
         'visit': visit,
-        'days': range_31
+        'days': range_31,
+        'remote_service': remote_service,
+        'ambulance_orders': ambulance_orders,
+        'total_ambulance_cost': total_ambulance_cost,
+        'all_orders_paid': all_orders_paid,
     }
 
     # Check if ambulance_id is provided, indicating an edit operation
@@ -1235,11 +1420,15 @@ def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None):
             # Set the data recorder as the current user
             data_recorder = request.user.staff
             
+            # Get the service object
+            service_id = request.POST.get('service')
+            service = get_object_or_404(Service, id=service_id)
+            
             # Assign values to the AmbulanceOrder fields
             ambulance_order.patient = patient
             ambulance_order.visit = visit
             ambulance_order.data_recorder = data_recorder
-            ambulance_order.service = request.POST.get('service')
+            ambulance_order.service = service.name
             ambulance_order.from_location = request.POST.get('from_location')
             ambulance_order.to_location = request.POST.get('to_location')
             ambulance_order.age = request.POST.get('age')
@@ -1255,21 +1444,43 @@ def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None):
 
             # Save the AmbulanceOrder object
             ambulance_order.save()
+            
+            # Create or update the corresponding Order record
+            order, created = Order.objects.get_or_create(
+                ambulanceorder=ambulance_order,
+                defaults={
+                    'patient': patient,
+                    'visit': visit,
+                    'order_type': 'Ambulance',
+                    'order_date': timezone.now(),
+                    'order_number': f'AMB{timezone.now().strftime("%Y%m%d%H%M%S")}',
+                    'cost': ambulance_order.cost,
+                    'status': 'Unpaid',
+                    'data_recorder': data_recorder,
+                }
+            )
+            
+            if not created:
+                order.cost = ambulance_order.cost
+                order.save()
 
             # Define success message
             if ambulance_id:
-                message = 'Ambulance order updated successfully'
+                messages.success(request, 'Ambulance order updated successfully')
             else:
-                message = 'Ambulance order saved successfully'
-            # Redirect to another URL upon successful data saving
-            return redirect(reverse('receptionist_ambulance_order_view'))        
+                messages.success(request, 'Ambulance order saved successfully')
+                
+            # Redirect to the same page to show updated list
+            return redirect(reverse('receptionist_save_ambulance_order', args=[patient_id, visit_id]))
+            
         except Exception as e:
             # Render the template with error message in case of exception
             messages.error(request, f'Error adding/editing ambulance record: {str(e)}')
             return render(request, 'receptionist_template/add_ambulance_order.html', context)
     else:
-        # Render the template with patient and visit data for GET request
+        # Render the template with all context data for GET request
         return render(request, 'receptionist_template/add_ambulance_order.html', context)
+    
     
 @login_required    
 def ambulance_order_detail(request, order_id):
@@ -1677,42 +1888,61 @@ def save_service_data(request):
 
 
 
-
-
-
 @login_required
 def patient_consultation_detail(request, patient_id, visit_id):
-    try:        
-        try:
-            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)                  
-        except PatientVisits.DoesNotExist:
-            visit= None    
-                
+    try:
         patient = Patients.objects.get(id=patient_id)
-         # Fetching services based on coverage and type
+        visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        
+        # Get all consultation orders for this visit
+        consultation_orders = Order.objects.filter(
+            patient=patient, 
+            visit=visit, 
+            type_of_order="Consultation"
+        )
+        
+        # Check if all orders are paid
+        all_orders_paid = True
+        if consultation_orders.exists():
+            for order in consultation_orders:
+                if order.status != 'Paid':
+                    all_orders_paid = False
+                    break
+        else:
+            all_orders_paid = False
+        
+        # Calculate total consultation cost
+        total_consultation_cost = consultation_orders.aggregate(total=Sum('cost'))['total'] or 0
+        
+        # Filter consultation services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='Consultation') & Q(coverage=patient.payment_form)
+                type_service='Consultation',
+                coverage=patient.payment_form
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Consultation')
-     
-       
-        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
-        return render(request, 'receptionist_template/patient_consultation_detail.html', {      
-             'visit': visit,
-            'patient': patient,       
-            'doctors': doctors,     
-          
-            'remote_service': remote_service,
         
-        })
+        # Get doctors
+        doctors = Staffs.objects.filter(role='doctor', work_place="resa")
+        
+        context = {
+            'patient': patient,
+            'visit': visit,
+            'consultation_orders': consultation_orders,
+            'total_consultation_cost': total_consultation_cost,
+            'remote_service': remote_service,
+            'doctors': doctors,
+            'all_orders_paid': all_orders_paid,
+        }
+        
+        return render(request, 'receptionist_template/patient_consultation_detail.html', context)
+        
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
-    
+        return render(request, '404.html', {'error_message': str(e)})
+
+
+
     
 
 @csrf_exempt
@@ -1872,6 +2102,7 @@ def patient_visit_history_view(request, patient_id):
 
 @login_required
 def prescription_list(request):
+    """View for prescription list"""
     # Step 1: Fetch prescriptions grouped by visit
     grouped_visits = (
         Prescription.objects
@@ -1895,24 +2126,269 @@ def prescription_list(request):
         .order_by('-visit__created_at')
     )
 
-    # Step 2: Attach related prescriptions to each grouped visit
+    # Step 2: Attach related prescriptions to each grouped visit and get status
+    visit_list = []
     for visit in grouped_visits:
-        prescriptions = Prescription.objects.filter(visit__id=visit['visit__id']).select_related('medicine')
-        visit['prescriptions'] = prescriptions
-
-        # Optional: Derive consistent status, issued, verified if all match
-        statuses = prescriptions.values_list('status', flat=True).distinct()
-        issued = prescriptions.values_list('issued', flat=True).distinct()
-        verified = prescriptions.values_list('verified', flat=True).distinct()
-
-        visit['status'] = statuses[0] if len(statuses) == 1 else "Mixed"
-        visit['issued'] = issued[0] if len(issued) == 1 else "Mixed"
-        visit['verified'] = verified[0] if len(verified) == 1 else "Mixed"
+        visit_id = visit['visit__id']
+        visit_instance = PatientVisits.objects.get(id=visit_id)
+        
+        # Get the status using the model method
+        status = Prescription.get_visit_status(visit_instance)
+        
+        # Get all prescriptions for this visit
+        prescriptions = Prescription.objects.filter(visit_id=visit_id).select_related('medicine', 'frequency')
+        
+        # Create a new dictionary with all the data
+        visit_data = {
+            **visit,
+            'prescriptions': prescriptions,
+            'verified_status': status['verified'],
+            'issued_status': status['issued'],
+            'payment_status': status['status']
+        }
+        
+        visit_list.append(visit_data)
 
     return render(request, 'receptionist_template/manage_prescription_list.html', {
-        'visit_total_prices': grouped_visits,
+        'visit_total_prices': visit_list,
     })
+
+
+@login_required
+def walkin_prescription_list(request):
+    """View for walk-in prescription list grouped by visit, including visit status."""
+    try:
+        # Step 1: Fetch grouped visits with aggregated total price
+        grouped_visits = (
+            WalkInPrescription.objects
+            .values(
+                'visit__id',
+                'visit__visit_number',
+                'visit__visit_date',
+                'visit__customer__id',
+                'visit__customer__first_name',
+                'visit__customer__middle_name',
+                'visit__customer__last_name',
+                'visit__customer__gender',
+                'visit__customer__age',
+                'visit__customer__pharmacy_number',
+                'visit__customer__address',
+                'visit__customer__phone_number',
+                'visit__customer__payment_form',
+            )
+            .annotate(total_price=Sum('total_price'))
+            .order_by('-visit__visit_date')
+        )
+
+        # Step 2: Fetch prescriptions for those visits
+        visit_ids = [v['visit__id'] for v in grouped_visits]
+        prescriptions = (
+            WalkInPrescription.objects
+            .filter(visit_id__in=visit_ids)
+            .select_related('medicine', 'frequency', 'entered_by')
+        )
+
+        # Step 3: Group prescriptions by visit ID
+        prescriptions_by_visit = defaultdict(list)
+        for p in prescriptions:
+            prescriptions_by_visit[p.visit_id].append(p)
+
+        # Step 4: Attach prescriptions + visit status to each grouped visit
+        for visit in grouped_visits:
+            visit_id = visit['visit__id']
+            related_prescriptions = prescriptions_by_visit.get(visit_id, [])
+            visit['prescriptions'] = related_prescriptions
+
+            # Get visit object to compute status
+            try:
+                visit_obj = WalkInVisit.objects.get(id=visit_id)
+                visit['visit_status'] = WalkInPrescription.get_visit_status(visit_obj)
+            except WalkInVisit.DoesNotExist:
+                visit['visit_status'] = {
+                    "verified": "visit_not_found",
+                    "issued": "visit_not_found",
+                    "status": "visit_not_found"
+                }
+
+        return render(request, 'receptionist_template/manage_walkin_prescription_list.html', {
+            'visit_total_prices': grouped_visits,
+        })
+
+    except Exception as e:
+        return render(request, '404.html', {
+            'error_message': f"An error occurred: {str(e)}"
+        })
+
+@login_required
+def update_walkin_payment_status(request):
+    """Update payment status for walk-in prescriptions and visit with inventory management"""
+    if request.method == 'POST':
+        try:
+            visit_id = request.POST.get('visit_id')
+            action = request.POST.get('action')  # 'pay' or 'unpay'
+            
+            if not visit_id or not action:
+                return JsonResponse({'status': 'error', 'message': 'Missing parameters.'})
+            
+            # Map action → status
+            status_map = {
+                'pay': 'paid',
+                'unpay': 'unpaid',
+            }
+            
+            if action not in status_map:
+                return JsonResponse({'status': 'error', 'message': 'Invalid action.'})
+            
+            new_status = status_map[action]
+            
+            # Get visit and prescriptions
+            with transaction.atomic():
+                visit = WalkInVisit.objects.select_for_update().get(id=visit_id)
+                prescriptions = WalkInPrescription.objects.filter(visit=visit)
+                
+                # If trying to mark as paid, enforce validation and update inventory
+                if new_status == 'paid':
+                    # Check if all prescriptions are verified and issued
+                    if not all(p.verified == 'verified' for p in prescriptions):
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'Cannot mark as paid until all prescriptions are verified.'
+                        })
+                    
+                    if not all(p.issued == 'issued' for p in prescriptions):
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'Cannot mark as paid until all prescriptions are issued.'
+                        })
+                    
+                    # Deduct medicine quantities from inventory
+                    for prescription in prescriptions:
+                        medicine = prescription.medicine
+                        if medicine.remain_quantity < prescription.quantity_used:
+                            return JsonResponse({
+                                'status': 'error', 
+                                'message': f'Insufficient inventory for {medicine.drug_name}. Only {medicine.quantity} available but {prescription.quantity_used} required.'
+                            })
+                        
+                        # Deduct the quantity
+                        medicine.remain_quantity -= prescription.quantity_used
+                        medicine.save()
+                
+                # If unpaying, restore inventory (if previously paid)
+                elif new_status == 'unpaid':
+                    # Check if currently paid
+                    if all(p.status == 'paid' for p in prescriptions):
+                        # Restore medicine quantities to inventory
+                        for prescription in prescriptions:
+                            medicine = prescription.medicine
+                            medicine.remain_quantity += prescription.quantity_used
+                            medicine.save()
+                
+                # Update all prescriptions
+                prescriptions.update(status=new_status)
+                
+                # Also update visit status (if your WalkInVisit has a field for this)
+                if hasattr(visit, "status"):
+                    visit.status = new_status
+                    visit.save()
+                
+                message = f"Payment status updated to {new_status} for visit {visit.visit_number}."
+                return JsonResponse({'status': 'success', 'message': message})
+        
+        except WalkInVisit.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Visit not found.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
     
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def generate_walkin_receipt_pdf(request, visit_id):
+    """Generate PDF receipt for a walk-in visit"""
+    try:
+        # --- 1. Get visit and prescriptions ---
+        visit = WalkInVisit.objects.get(id=visit_id)
+        prescriptions = WalkInPrescription.objects.filter(visit=visit)
+
+        # --- 2. Check if visit is paid and needs receipt number ---
+        has_paid = prescriptions.filter(status="paid").exists()
+        if has_paid and not visit.receipt_number:
+            visit.generate_receipt_number()  # auto-generate receipt
+
+        # --- 3. Calculate totals ---
+        total_price = sum(p.total_price for p in prescriptions if p.total_price)
+        tax_rate = Decimal("0.10")  # 10% tax
+        tax = total_price * tax_rate
+        grand_total = total_price + tax
+
+        context = {
+            "visit": visit,
+            "prescriptions": prescriptions,
+            "total_price": total_price,
+            "tax": tax,
+            "grand_total": grand_total,
+            'pharmacist': request.user.staff if hasattr(request.user, 'staff') else None,
+        }
+
+        # --- 4. Render HTML template ---
+        html_string = render_to_string(
+            "receptionist_template/walkin_receipt_pdf.html", context
+        )
+
+        # --- 5. Generate PDF with WeasyPrint ---
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        result = html.write_pdf()
+
+        # --- 6. Create response ---
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="receipt_{visit.visit_number}.pdf"'
+        )
+        response.write(result)
+        return response
+
+    except WalkInVisit.DoesNotExist:
+        return HttpResponse("Visit not found", status=404)
+    except Exception as e:
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+@login_required
+def download_prescription_notes(request, visit_id):
+    """
+    Generate or download prescription notes PDF for a visit.
+    Auto-generates prescription_notes_id if it doesn't exist.
+    """
+    # 1. Get the visit
+    visit = get_object_or_404(WalkInVisit, id=visit_id)
+
+    # 2. Generate prescription_notes_id if missing
+    if not visit.prescription_notes_id:
+        visit.generate_prescription_notes_id()  # This will save the ID in DB
+
+    # 3. Get prescriptions for this visit
+    prescriptions = WalkInPrescription.objects.filter(visit=visit)
+
+    # 4. Prepare context for template
+    context = {
+        'visit': visit,
+        'prescriptions': prescriptions,
+         'pharmacist': request.user.staff if hasattr(request.user, 'staff') else None,
+    }
+
+    # 5. Render HTML template
+    html_string = render_to_string('receptionist_template/prescription_notes_pdf.html', context)
+
+    # 6. Create PDF in memory
+    buffer = BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(buffer)
+    pdf_content = buffer.getvalue()
+    buffer.close()
+
+    # 7. Create HTTP response
+    response = HttpResponse(pdf_content, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="prescription_notes_{visit.prescription_notes_id}.pdf"'
+
+    return response
 
 @login_required
 def prescription_detail(request, visit_number, patient_id):
@@ -2132,24 +2608,69 @@ def issue_prescriptions(request):
     else:
         return JsonResponse({'error': 'Invalid request.'}, status=400)
 
-# View to update payment status
 @csrf_exempt
+@require_POST
 def update_payment_status(request):
-    if request.method == 'POST':
+    try:
         visit_number = request.POST.get('visit_number')
-        # Perform logic to update payment status for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
+        
+        if not visit_number:
+            return JsonResponse({'status': 'error', 'message': 'Visit number is required.'})
+        
+        with transaction.atomic():
+            # Get the visit and lock it for update to prevent race conditions
+            visit = get_object_or_404(PatientVisits, vst=visit_number)
+            
+            # Use select_for_update to lock prescriptions for the duration of the transaction
+            prescriptions = Prescription.objects.select_for_update().filter(visit=visit)
+            
+            if not prescriptions.exists():
+                return JsonResponse({'status': 'error', 'message': 'No prescriptions found for this visit.'})
+            
+            # Check if all prescriptions are verified and issued
+            unverified_prescriptions = prescriptions.exclude(verified='verified')
+            if unverified_prescriptions.exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Cannot mark as paid until {unverified_prescriptions.count()} prescription(s) are verified.'
+                })
+            
+            unissued_prescriptions = prescriptions.exclude(issued='issued')
+            if unissued_prescriptions.exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Cannot mark as paid until {unissued_prescriptions.count()} prescription(s) are issued.'
+                })
+            
+            # Check inventory and deduct quantities
             for prescription in prescriptions:
-                prescription.status = 'Paid'
-                prescription.save()
-            return JsonResponse({'message': 'Payment status updated successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
-
+                medicine = prescription.medicine
+                if medicine.remain_quantity < prescription.quantity_used:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'Insufficient inventory for {medicine.drug_name}. Only {medicine.remain_quantity} available but {prescription.quantity_used} required.'
+                    })
+                
+                # Deduct the quantity from inventory
+                medicine.remain_quantity -= prescription.quantity_used
+                medicine.save()
+            
+            # Update all prescriptions to paid status
+            prescriptions.update(status='paid')
+            
+            # Update visit payment status if such a field exists
+            if hasattr(visit, "payment_status"):
+                visit.payment_status = 'paid'
+                visit.save()
+            
+            return JsonResponse({
+                'status': 'success', 
+                'message': f'Payment status updated to paid for visit {visit_number} and inventory updated.'
+            })
+    
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'})
+    
     
 # View to unverify prescriptions
 @csrf_exempt
@@ -2494,45 +3015,61 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
     context['form'] = form    
     return render(request, 'receptionist_template/edit_lab_result.html', context)   
 
+
 @login_required
 def add_radiology(request, patient_id, visit_id):
-    try:    
-        try:
-            visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
-        except PatientVisits.DoesNotExist:
-            visit = None
-       
-        doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
+    try:
         patient = Patients.objects.get(id=patient_id)
-        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
-        radiology_record = ImagingRecord.objects.filter(patient=patient_id, visit=visit_id)
-        consultation_note = ConsultationNotes.objects.filter(patient=patient, visit=visit).first()
-        provisional_record, _ = PatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)     
-        final_provisional_diagnosis= provisional_record.final_diagnosis.values_list('id', flat=True)
-        # Fetching services based on coverage and type
+        visit = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
+        
+        # Get all imaging orders for this visit
+        imaging_orders = Order.objects.filter(
+            patient=patient, 
+            visit=visit, 
+            type_of_order="Imaging"
+        )
+        
+        # Check if all orders are paid
+        all_orders_paid = True
+        if imaging_orders.exists():
+            for order in imaging_orders:
+                if order.status != 'Paid':
+                    all_orders_paid = False
+                    break
+        else:
+            all_orders_paid = False
+        
+        # Calculate total imaging cost
+        total_imaging_cost = imaging_orders.aggregate(total=Sum('cost'))['total'] or 0
+        
+        # Filter imaging services based on payment form
         if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
             remote_service = Service.objects.filter(
-                Q(type_service='Imaging') & Q(coverage=patient.payment_form)
+                type_service='Imaging',
+                coverage=patient.payment_form
             )
         else:
-            # If payment form is cash, fetch all services of type procedure
             remote_service = Service.objects.filter(type_service='Imaging')
-       
-        return render(request, 'receptionist_template/add_radiology.html', {
-            'visit': visit,
-            'patient': patient,
-            'radiology_record': radiology_record,          
-            'final_provisional_diagnosis': final_provisional_diagnosis,          
-            'doctors': doctors,          
-            'consultation_note': consultation_note,          
-            'consultation_notes': consultation_notes,          
-            'remote_service': remote_service,
         
-        })
+        # Get radiologists
+        radiologists = Staffs.objects.filter(role='doctor', work_place="resa")
+        
+        context = {
+            'patient': patient,
+            'visit': visit,
+            'imaging_orders': imaging_orders,
+            'total_imaging_cost': total_imaging_cost,
+            'remote_service': remote_service,
+            'doctors': radiologists,
+            'all_orders_paid': all_orders_paid,
+        }
+        
+        return render(request, 'receptionist_template/add_radiology.html', context)
+        
     except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})     
+        return render(request, '404.html', {'error_message': str(e)})
+
+
 
 @login_required
 @csrf_exempt
@@ -2616,6 +3153,115 @@ def patient_procedure_view(request):
     }
     return render(request, 'receptionist_template/manage_procedure.html', context)
 
+@require_POST
+@csrf_exempt
+@login_required
+def update_appointment_status(request):
+    """
+    AJAX view to update appointment status
+    """
+    try:
+        appointment_id = request.POST.get('appointment_id')
+        new_status = request.POST.get('status')
+        notes = request.POST.get('notes', '')
+        
+        appointment = get_object_or_404(Consultation, id=appointment_id)
+        
+        # Update status
+        appointment.status = new_status
+        
+        # Add notes to description if provided
+        if notes:
+            current_desc = appointment.description or ""
+            timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
+            appointment.description = f"{current_desc}\n\n[{timestamp}] Status changed to {appointment.get_status_display()}: {notes}"
+        
+        appointment.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Appointment status updated to {appointment.get_status_display()} successfully.'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error updating appointment status: {str(e)}'
+        })
+
+@csrf_exempt
+@require_POST
+def update_appointment_details(request):
+    if request.method == 'POST':
+        try:
+            # Get the appointment ID from the request
+            appointment_id = request.POST.get('appointment_id')
+            
+            # Get the appointment object
+            appointment = Consultation.objects.get(id=appointment_id)
+            
+            # Update the appointment details
+            doctor_id = request.POST.get('doctor')
+            patient_id = request.POST.get('patient')
+            appointment_date = request.POST.get('appointment_date')
+            start_time = request.POST.get('start_time')
+            end_time = request.POST.get('end_time')
+            notes = request.POST.get('notes')
+            
+            # Update doctor if changed
+            if doctor_id and doctor_id != str(appointment.doctor.id):
+                doctor = Staffs.objects.get(id=doctor_id)
+                appointment.doctor = doctor
+            
+            # Update patient if changed
+            if patient_id and patient_id != str(appointment.patient.id):
+                patient = Patients.objects.get(id=patient_id)
+                appointment.patient = patient
+            
+            # Update date and time
+            if appointment_date:
+                appointment.appointment_date = appointment_date
+            if start_time:
+                appointment.start_time = start_time
+            if end_time:
+                appointment.end_time = end_time
+            if notes is not None:
+                appointment.description = notes
+            
+            # Validate and save the appointment
+            appointment.full_clean()
+            appointment.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Appointment updated successfully!'
+            })
+            
+        except Consultation.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Appointment not found.'
+            })
+        except Staffs.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Doctor not found.'
+            })
+        except Patients.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Patient not found.'
+            })
+        except ValidationError as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'An error occurred: {str(e)}'
+            })
 
 @login_required
 def patient_procedure_detail_view(request, mrn, visit_number):
@@ -3158,7 +3804,7 @@ def download_all_procedures_pdf(request, patient_mrn, visit_vst):
 def download_lab_result_pdf(request, lab_id):
     # Fetch the lab order or return 404 if not found
     lab = get_object_or_404(
-        LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+                    LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'lab_test'),
         id=lab_id
     )
 
@@ -3352,7 +3998,7 @@ def download_consultation_summary_pdf(request, patient_id, visit_id):
     imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
 
     # NEW: Add Laboratory Orders
-    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('lab_test', 'data_recorder')
 
     # Prepare context
     context = {

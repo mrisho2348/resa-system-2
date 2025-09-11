@@ -1,5 +1,9 @@
 import calendar
-from datetime import  date, datetime
+from collections import defaultdict
+from datetime import  date, datetime, timedelta
+from decimal import Decimal
+from io import BytesIO
+import json
 from django.utils import timezone
 import logging
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,22 +16,28 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.mail import send_mail
+from clinic.forms import StaffProfileForm
 from clinic.models import Consultation,  CustomUser, DiseaseRecode,  Medicine,  PathodologyRecord,  Procedure, Staffs
 from django.db import IntegrityError
+from django.db import transaction
+from django.db import models
 from django.views.decorators.http import require_POST
-from django.db.models import OuterRef, Subquery
 from django.utils.decorators import method_decorator
-from kahamahmis.forms import StaffProfileForm
 from django.views import View
-from .models import AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, ClinicChiefComplaint, ConsultationNotes,  ConsultationOrder, Counseling,   Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment,  HealthRecord,  HospitalVehicle, ImagingRecord, LaboratoryOrder,  MedicineRoute, MedicineUnitMeasure, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Reagent,  Referral, SalaryChangeRecord, SalaryPayment,  Service
-from django.db.models import Max,Sum,Q,Count
+from .models import  Activity, AmbulanceActivity, AmbulanceOrder, AmbulanceRoute, AmbulanceVehicleOrder, ClinicChiefComplaint, ConsultationNotes,  ConsultationOrder, Counseling,   Diagnosis, DischargesNotes, Employee, EmployeeDeduction, Equipment,  HealthRecord,  HospitalVehicle, ImagingRecord, LaboratoryOrder, MedicineBatch, MedicineDosage,  MedicineRoute, MedicineType, MedicineUnitMeasure, ObservationRecord, Order,  PatientVisits, PatientVital, Prescription, PrescriptionFrequency, Procedure, Patients,  Reagent,  Referral, SalaryChangeRecord, SalaryPayment,  Service, WalkInPrescription, WalkInVisit
+from django.db.models import Max,Sum,Q,Count, F, Case, When, Value, CharField, Prefetch
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
 from weasyprint import HTML
 from django.template.loader import render_to_string
+from django.contrib.auth import get_user_model
+from django.db.models.functions import Concat, TruncDate, TruncWeek, TruncMonth
+from django.contrib.postgres.aggregates import ArrayAgg
 import os 
+import xlwt
+from django_mysql.models import GroupConcat
 
 @login_required
 def dashboard(request):
@@ -76,154 +86,507 @@ def get_earnings_data(request):
         current_month = today.month
         current_year = today.year
 
+        def to_float(value):
+            """Convert value to float safely"""
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return 0.0
+
         def aggregate_earnings(querysets, field='cost'):
-            earnings = {'nhif': 0, 'cash': 0, 'other': 0}
+            earnings = {'insurance': 0.0, 'cash': 0.0, 'other': 0.0}
             for qs in querysets:
-                earnings['nhif'] += qs.filter(
-                    patient__payment_form='Insurance',
-                    patient__insurance_name__icontains='nhif'
-                ).aggregate(total=Sum(field))['total'] or 0
+                # Insurance
+                insurance = qs.filter(
+                    patient__payment_form='insurance'
+                ).aggregate(total=Sum(field))['total'] or 0.0
+                earnings['insurance'] += to_float(insurance)
+                
+                # Cash
+                cash = qs.filter(
+                    patient__payment_form='cash'
+                ).aggregate(total=Sum(field))['total'] or 0.0
+                earnings['cash'] += to_float(cash)
+                
+                # Other payment forms
+                other = qs.exclude(
+                    patient__payment_form__in=['insurance', 'cash']
+                ).aggregate(total=Sum(field))['total'] or 0.0
+                earnings['other'] += to_float(other)
+                
+            return earnings
 
-                earnings['cash'] += qs.filter(
-                    patient__payment_form='Cash'
-                ).aggregate(total=Sum(field))['total'] or 0
+        def aggregate_walkin_earnings(queryset, field='total_price'):
+            earnings = {'insurance': 0.0, 'cash': 0.0, 'other': 0.0}
+            
+            # Insurance
+            insurance = queryset.filter(
+                visit__customer__payment_form='insurance'
+            ).aggregate(total=Sum(field))['total'] or 0.0
+            earnings['insurance'] += to_float(insurance)
+            
+            # Cash
+            cash = queryset.filter(
+                visit__customer__payment_form='cash'
+            ).aggregate(total=Sum(field))['total'] or 0.0
+            earnings['cash'] += to_float(cash)
+            
+            # Other payment forms
+            other = queryset.exclude(
+                visit__customer__payment_form__in=['insurance', 'cash']
+            ).aggregate(total=Sum(field))['total'] or 0.0
+            earnings['other'] += to_float(other)
+            
+            return earnings
 
-                earnings['other'] += qs.filter(
-                    patient__payment_form='Insurance'
-                ).exclude(patient__insurance_name__icontains='nhif'
-                ).aggregate(total=Sum(field))['total'] or 0
+        def aggregate_order_earnings(queryset):
+            earnings = {'insurance': 0.0, 'cash': 0.0, 'other': 0.0}
+            
+            # Insurance
+            insurance = queryset.filter(
+                patient__payment_form='insurance'
+            ).aggregate(total=Sum('cost'))['total'] or 0.0
+            earnings['insurance'] += to_float(insurance)
+            
+            # Cash
+            cash = queryset.filter(
+                patient__payment_form='cash'
+            ).aggregate(total=Sum('cost'))['total'] or 0.0
+            earnings['cash'] += to_float(cash)
+            
+            # Other payment forms
+            other = queryset.exclude(
+                patient__payment_form__in=['insurance', 'cash']
+            ).aggregate(total=Sum('cost'))['total'] or 0.0
+            earnings['other'] += to_float(other)
+            
             return earnings
 
         def compile_total(data):
-            return data['nhif'] + data['cash'] + data['other']
+            return data['insurance'] + data['cash'] + data['other']
 
+        # Get only paid orders and prescriptions
+        paid_filter = {'status': 'Paid'}
+        paid_prescription_filter = {'status': 'paid'}
+        
+        # Define hospital order types
+        hospital_order_types = ['Laboratory', 'Procedure', 'Imaging', 'Consultation']
+        
         # DAILY
-        daily_hospital_qs = [
-            LaboratoryOrder.objects.filter(order_date=today),
-            Procedure.objects.filter(order_date=today),
-            ImagingRecord.objects.filter(order_date=today),
-            ConsultationOrder.objects.filter(order_date=today),
-        ]
-
+        daily_orders = Order.objects.filter(
+            order_date=today, 
+            status='Paid',
+            type_of_order__in=hospital_order_types
+        )
         daily_prescription_qs = [
-            Prescription.objects.filter(created_at__date=today),
+            Prescription.objects.filter(created_at__date=today, **paid_prescription_filter),
         ]
+        daily_walkin_qs = WalkInPrescription.objects.filter(
+            created_at__date=today, **paid_prescription_filter
+        )
 
-        daily_hospital_data = aggregate_earnings(daily_hospital_qs)
+        daily_order_data = aggregate_order_earnings(daily_orders)
         daily_prescription_data = aggregate_earnings(daily_prescription_qs, field='total_price')
+        daily_walkin_data = aggregate_walkin_earnings(daily_walkin_qs)
 
         # MONTHLY
-        monthly_hospital_qs = [
-            LaboratoryOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            Procedure.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            ImagingRecord.objects.filter(order_date__month=current_month, order_date__year=current_year),
-            ConsultationOrder.objects.filter(order_date__month=current_month, order_date__year=current_year),
-        ]
-
+        monthly_orders = Order.objects.filter(
+            order_date__month=current_month, 
+            order_date__year=current_year,
+            status='Paid',
+            type_of_order__in=hospital_order_types
+        )
         monthly_prescription_qs = [
-            Prescription.objects.filter(created_at__month=current_month, created_at__year=current_year),
+            Prescription.objects.filter(created_at__month=current_month, created_at__year=current_year, **paid_prescription_filter),
         ]
+        monthly_walkin_qs = WalkInPrescription.objects.filter(
+            created_at__month=current_month, created_at__year=current_year, **paid_prescription_filter
+        )
 
-        monthly_hospital_data = aggregate_earnings(monthly_hospital_qs)
+        monthly_order_data = aggregate_order_earnings(monthly_orders)
         monthly_prescription_data = aggregate_earnings(monthly_prescription_qs, field='total_price')
+        monthly_walkin_data = aggregate_walkin_earnings(monthly_walkin_qs)
 
         # YEARLY
-        yearly_hospital_qs = [
-            LaboratoryOrder.objects.filter(order_date__year=current_year),
-            Procedure.objects.filter(order_date__year=current_year),
-            ImagingRecord.objects.filter(order_date__year=current_year),
-            ConsultationOrder.objects.filter(order_date__year=current_year),
-        ]
-
+        yearly_orders = Order.objects.filter(
+            order_date__year=current_year,
+            status='Paid',
+            type_of_order__in=hospital_order_types
+        )
         yearly_prescription_qs = [
-            Prescription.objects.filter(created_at__year=current_year),
+            Prescription.objects.filter(created_at__year=current_year, **paid_prescription_filter),
         ]
+        yearly_walkin_qs = WalkInPrescription.objects.filter(
+            created_at__year=current_year, **paid_prescription_filter
+        )
 
-        yearly_hospital_data = aggregate_earnings(yearly_hospital_qs)
+        yearly_order_data = aggregate_order_earnings(yearly_orders)
         yearly_prescription_data = aggregate_earnings(yearly_prescription_qs, field='total_price')
+        yearly_walkin_data = aggregate_walkin_earnings(yearly_walkin_qs)
 
         # ALL-TIME
-        alltime_hospital_qs = [
-            LaboratoryOrder.objects.all(),
-            Procedure.objects.all(),
-            ImagingRecord.objects.all(),
-            ConsultationOrder.objects.all(),
-        ]
-
+        alltime_orders = Order.objects.filter(
+            status='Paid',
+            type_of_order__in=hospital_order_types
+        )
         alltime_prescription_qs = [
-            Prescription.objects.all(),
+            Prescription.objects.filter(**paid_prescription_filter),
         ]
+        alltime_walkin_qs = WalkInPrescription.objects.filter(**paid_prescription_filter)
 
-        alltime_hospital_data = aggregate_earnings(alltime_hospital_qs)
+        alltime_order_data = aggregate_order_earnings(alltime_orders)
         alltime_prescription_data = aggregate_earnings(alltime_prescription_qs, field='total_price')
+        alltime_walkin_data = aggregate_walkin_earnings(alltime_walkin_qs)
+
+        # Combine hospital and walk-in data
+        def combine_hospital_walkin(hospital_data, walkin_data):
+            return {
+                'insurance': hospital_data['insurance'] + walkin_data['insurance'],
+                'cash': hospital_data['cash'] + walkin_data['cash'],
+                'other': hospital_data['other'] + walkin_data['other'],
+                'walkin': compile_total(walkin_data),
+                'total': compile_total(hospital_data) + compile_total(walkin_data),
+            }
 
         return JsonResponse({
             'daily': {
-                'hospital': {
-                    'nhif': daily_hospital_data['nhif'],
-                    'cash': daily_hospital_data['cash'],
-                    'other': daily_hospital_data['other'],
-                    'total': compile_total(daily_hospital_data),
-                },
+                'hospital': combine_hospital_walkin(daily_order_data, daily_walkin_data),
                 'prescription': {
-                    'nhif': daily_prescription_data['nhif'],
+                    'insurance': daily_prescription_data['insurance'],
                     'cash': daily_prescription_data['cash'],
                     'other': daily_prescription_data['other'],
                     'total': compile_total(daily_prescription_data),
                 },
-                'grand_total': compile_total(daily_hospital_data) + compile_total(daily_prescription_data),
+                'grand_total': compile_total(daily_order_data) + compile_total(daily_walkin_data) + compile_total(daily_prescription_data),
             },
             'monthly': {
-                'hospital': {
-                    'nhif': monthly_hospital_data['nhif'],
-                    'cash': monthly_hospital_data['cash'],
-                    'other': monthly_hospital_data['other'],
-                    'total': compile_total(monthly_hospital_data),
-                },
+                'hospital': combine_hospital_walkin(monthly_order_data, monthly_walkin_data),
                 'prescription': {
-                    'nhif': monthly_prescription_data['nhif'],
+                    'insurance': monthly_prescription_data['insurance'],
                     'cash': monthly_prescription_data['cash'],
                     'other': monthly_prescription_data['other'],
                     'total': compile_total(monthly_prescription_data),
                 },
-                'grand_total': compile_total(monthly_hospital_data) + compile_total(monthly_prescription_data),
+                'grand_total': compile_total(monthly_order_data) + compile_total(monthly_walkin_data) + compile_total(monthly_prescription_data),
             },
             'yearly': {
-                'hospital': {
-                    'nhif': yearly_hospital_data['nhif'],
-                    'cash': yearly_hospital_data['cash'],
-                    'other': yearly_hospital_data['other'],
-                    'total': compile_total(yearly_hospital_data),
-                },
+                'hospital': combine_hospital_walkin(yearly_order_data, yearly_walkin_data),
                 'prescription': {
-                    'nhif': yearly_prescription_data['nhif'],
+                    'insurance': yearly_prescription_data['insurance'],
                     'cash': yearly_prescription_data['cash'],
                     'other': yearly_prescription_data['other'],
                     'total': compile_total(yearly_prescription_data),
                 },
-                'grand_total': compile_total(yearly_hospital_data) + compile_total(yearly_prescription_data),
+                'grand_total': compile_total(yearly_order_data) + compile_total(yearly_walkin_data) + compile_total(yearly_prescription_data),
             },
             'alltime': {
-                'hospital': {
-                    'nhif': alltime_hospital_data['nhif'],
-                    'cash': alltime_hospital_data['cash'],
-                    'other': alltime_hospital_data['other'],
-                    'total': compile_total(alltime_hospital_data),
-                },
+                'hospital': combine_hospital_walkin(alltime_order_data, alltime_walkin_data),
                 'prescription': {
-                    'nhif': alltime_prescription_data['nhif'],
+                    'insurance': alltime_prescription_data['insurance'],
                     'cash': alltime_prescription_data['cash'],
                     'other': alltime_prescription_data['other'],
                     'total': compile_total(alltime_prescription_data),
                 },
-                'grand_total': compile_total(alltime_hospital_data) + compile_total(alltime_prescription_data),
+                'grand_total': compile_total(alltime_order_data) + compile_total(alltime_walkin_data) + compile_total(alltime_prescription_data),
             },
         })
 
     except Exception as e:
         logger.error(f"Error in get_earnings_data view: {str(e)}")
         return JsonResponse({'error': f'An error occurred while retrieving earnings data. {str(e)}'}, status=500)
+    
 
+def financial_chart_data(request):
+    timeframe = request.GET.get('timeframe', 'daily')
+    today = timezone.now()  # aware datetime
+    data = {"labels": [], "hospital": [], "prescription": []}
+
+    # --- DAILY ---
+    if timeframe == 'daily':
+        hours = range(8, 20)  # 8 AM to 8 PM
+        for hour in hours:
+            # Build aware start/end time for each hour
+            start_time = timezone.make_aware(
+                datetime.combine(today.date(), datetime.min.time()).replace(hour=hour)
+            )
+            end_time = start_time + timedelta(hours=1)
+
+            # Hospital earnings
+            hospital_earnings = (
+                (LaboratoryOrder.objects.filter(order_date__gte=start_time, order_date__lt=end_time).aggregate(total=Sum('cost'))['total'] or 0) +
+                (Procedure.objects.filter(order_date__gte=start_time, order_date__lt=end_time).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ImagingRecord.objects.filter(order_date__gte=start_time, order_date__lt=end_time).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ConsultationOrder.objects.filter(order_date__gte=start_time, order_date__lt=end_time).aggregate(total=Sum('cost'))['total'] or 0)
+            )
+
+            # Prescription earnings
+            prescription_earnings = (
+                Prescription.objects.filter(created_at__gte=start_time, created_at__lt=end_time)
+                .aggregate(total=Sum('total_price'))['total'] or 0
+            )
+
+            data['labels'].append(f"{hour}:00")
+            data['hospital'].append(float(hospital_earnings))
+            data['prescription'].append(float(prescription_earnings))
+
+    # --- MONTHLY ---
+    elif timeframe == 'monthly':
+        for week in range(1, 5):
+            start_of_week = today - timedelta(days=today.weekday() + (week - 1) * 7)
+            end_of_week = start_of_week + timedelta(days=6)
+
+            # Make timezone-aware
+            start_of_week = timezone.make_aware(datetime.combine(start_of_week.date(), datetime.min.time()))
+            end_of_week = timezone.make_aware(datetime.combine(end_of_week.date(), datetime.max.time()))
+
+            # Hospital earnings
+            hospital_earnings = (
+                (LaboratoryOrder.objects.filter(order_date__gte=start_of_week, order_date__lte=end_of_week).aggregate(total=Sum('cost'))['total'] or 0) +
+                (Procedure.objects.filter(order_date__gte=start_of_week, order_date__lte=end_of_week).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ImagingRecord.objects.filter(order_date__gte=start_of_week, order_date__lte=end_of_week).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ConsultationOrder.objects.filter(order_date__gte=start_of_week, order_date__lte=end_of_week).aggregate(total=Sum('cost'))['total'] or 0)
+            )
+
+            # Prescription earnings
+            prescription_earnings = (
+                Prescription.objects.filter(created_at__gte=start_of_week, created_at__lte=end_of_week)
+                .aggregate(total=Sum('total_price'))['total'] or 0
+            )
+
+            data['labels'].append(f"Week {week}")
+            data['hospital'].append(float(hospital_earnings))
+            data['prescription'].append(float(prescription_earnings))
+
+    # --- YEARLY ---
+    elif timeframe == 'yearly':
+        for month in range(1, 13):
+            start_of_month = datetime(today.year, month, 1)
+            if month == 12:
+                end_of_month = datetime(today.year + 1, 1, 1) - timedelta(days=1)
+            else:
+                end_of_month = datetime(today.year, month + 1, 1) - timedelta(days=1)
+
+            # Make timezone-aware
+            start_of_month = timezone.make_aware(datetime.combine(start_of_month.date(), datetime.min.time()))
+            end_of_month = timezone.make_aware(datetime.combine(end_of_month.date(), datetime.max.time()))
+
+            # Hospital earnings
+            hospital_earnings = (
+                (LaboratoryOrder.objects.filter(order_date__gte=start_of_month, order_date__lte=end_of_month).aggregate(total=Sum('cost'))['total'] or 0) +
+                (Procedure.objects.filter(order_date__gte=start_of_month, order_date__lte=end_of_month).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ImagingRecord.objects.filter(order_date__gte=start_of_month, order_date__lte=end_of_month).aggregate(total=Sum('cost'))['total'] or 0) +
+                (ConsultationOrder.objects.filter(order_date__gte=start_of_month, order_date__lte=end_of_month).aggregate(total=Sum('cost'))['total'] or 0)
+            )
+
+            # Prescription earnings
+            prescription_earnings = (
+                Prescription.objects.filter(created_at__gte=start_of_month, created_at__lte=end_of_month)
+                .aggregate(total=Sum('total_price'))['total'] or 0
+            )
+
+            data['labels'].append(start_of_month.strftime('%b'))
+            data['hospital'].append(float(hospital_earnings))
+            data['prescription'].append(float(prescription_earnings))
+
+    return JsonResponse(data)
+
+class ActivityLogView(View):
+    template_name = 'hod_template/activity_log.html'
+
+    def get(self, request):
+        """
+        Display activity logs safely.
+        Handles cases where related models are missing or unrelated to patients.
+        """
+
+        # === 1. Fetch activity log with related fields ===
+        activities = (
+            Activity.objects
+            .select_related('user', 'patient', 'content_type')
+            .order_by('-timestamp')[:500]  # Limit for performance
+        )
+
+        # === 2. Annotate safe display fields ===
+        for activity in activities:
+            # --- USER INFO ---
+            activity.user_role = "System"
+            activity.user_workplace = "N/A"
+
+            if activity.user:
+                staff_obj = getattr(activity.user, 'staff', None)
+                if staff_obj:
+                    activity.user_role = staff_obj.role or "N/A"
+                    activity.user_workplace = staff_obj.work_place or "N/A"
+                elif activity.user.is_superuser:
+                    activity.user_role = "Administrator"
+                    activity.user_workplace = "System"
+
+            # --- PATIENT INFO (may not exist for some models) ---
+            patient_obj = getattr(activity, 'patient', None)
+            activity.patient_name = patient_obj.full_name if patient_obj else "N/A"
+            activity.patient_mrn = patient_obj.mrn if patient_obj else "N/A"
+
+            # --- CONTENT TYPE NAME (e.g., DiseaseRecord, Prescription) ---
+            content_type_obj = getattr(activity, 'content_type', None)
+            activity.content_type_name = content_type_obj.name if content_type_obj else "N/A"
+
+            # --- SAFE CONTENT OBJECT STRING ---
+            activity.safe_object_str = "N/A"
+            if activity.content_type and activity.object_id:
+                model_class = activity.content_type.model_class()
+
+                if model_class:
+                    try:
+                        # Attempt to fetch the actual object
+                        obj = model_class._base_manager.get(pk=activity.object_id)
+                        activity.safe_object_str = str(obj)
+                    except model_class.DoesNotExist:
+                        activity.safe_object_str = "Object deleted"
+                    except Exception:
+                        activity.safe_object_str = "Object not found"
+                else:
+                    activity.safe_object_str = "Model not found"
+
+        # === 3. Get users for dropdown filter (future use) ===
+        User = get_user_model()
+        users = User.objects.filter(
+            Q(staff__isnull=False) | Q(is_superuser=True)
+        ).distinct()
+
+        # === 4. Render context ===
+        context = {
+            'activities': activities,
+            'users': users,
+        }
+        return render(request, self.template_name, context)
+
+class TodayActivitiesView(View):
+    def get(self, request):
+        today = timezone.now().date()
+        activities = Activity.objects.filter(
+            timestamp__date=today
+        ).select_related('user', 'patient', 'content_type').order_by('-timestamp')[:20]
+        
+        results = []
+        for activity in activities:
+            # Get patient name if available
+            patient_name = activity.patient.full_name if activity.patient and hasattr(activity.patient, 'full_name') else ''
+            
+            # Get staff/user name
+            staff_name = ''
+            if activity.user:
+                if hasattr(activity.user, 'get_full_name'):
+                    staff_name = activity.user.get_full_name()
+                elif hasattr(activity.user, 'username'):
+                    staff_name = activity.user.username
+            
+            # Get activity description based on type
+            description = self.get_activity_description(activity)
+            
+            results.append({
+                'type': activity.activity_type,
+                'title': self.get_activity_title(activity),
+                'description': description,
+                'time': activity.timestamp.strftime("%I:%M %p"),
+                'patient': patient_name,
+                'staff': staff_name,
+                'icon': self.get_icon(activity),
+                'url': self.get_detail_url(activity)
+            })
+        
+        return JsonResponse({'activities': results})
+    
+    def get_activity_title(self, activity):
+        """Generate a human-readable title based on activity type"""
+        activity_type = activity.activity_type
+        model_name = activity.content_type.model_class().__name__ if activity.content_type else 'Record'
+        
+        titles = {
+            'login': 'User Login',
+            'logout': 'User Logout',
+            'create': f'New {model_name} Created',
+            'update': f'{model_name} Updated',
+            'delete': f'{model_name} Deleted',
+        }
+        return titles.get(activity_type, 'Activity')
+    
+    def get_activity_description(self, activity):
+        """Generate a description based on activity details"""
+        if activity.activity_type in ['create', 'update', 'delete']:
+            if activity.content_object:
+                return f"{activity.content_type.name} - {str(activity.content_object)}"
+            return f"{activity.content_type.name} record modified"
+        
+        if activity.activity_type in ['login', 'logout']:
+            ip = activity.details.get('ip', '') if activity.details else ''
+            return f"From IP: {ip}" if ip else "Authentication activity"
+        
+        return ""
+    
+    def get_icon(self, activity):
+        """Get appropriate icon based on activity type and content type"""
+        # First try content type specific icons
+        if activity.content_type:
+            model_icons = {
+                'Patient': 'fa-user-injured',
+                'Consultation': 'fa-user-md',
+                'LaboratoryOrder': 'fa-vial',
+                'Prescription': 'fa-prescription-bottle',
+                'Procedure': 'fa-procedures',
+                'ImagingRecord': 'fa-x-ray',
+                'Payment': 'fa-credit-card',
+                'Invoice': 'fa-file-invoice',
+                'Employee': 'fa-user-tie',
+                'Medicine': 'fa-pills',
+            }
+            
+            model_name = activity.content_type.model_class().__name__
+            if model_name in model_icons:
+                return model_icons[model_name]
+        
+        # Fallback to activity type icons
+        activity_icons = {
+            'login': 'fa-sign-in-alt',
+            'logout': 'fa-sign-out-alt',
+            'create': 'fa-plus-circle',
+            'update': 'fa-edit',
+            'delete': 'fa-trash-alt',
+        }
+        return activity_icons.get(activity.activity_type, 'fa-tasks')
+    
+    def get_detail_url(self, activity):
+        """Generate URL to the detail view of the related object"""
+        if not activity.content_type or not activity.object_id:
+            return '#'
+        
+        model_name = activity.content_type.model
+        obj_id = activity.object_id
+        
+        # Map content types to detail URLs
+        url_patterns = {
+            'patient': f"/patients/{obj_id}",
+            'consultation': f"/consultations/{obj_id}",
+            'laboratoryorder': f"/laboratory/orders/{obj_id}",
+            'prescription': f"/pharmacy/prescriptions/{obj_id}",
+            'procedure': f"/procedures/{obj_id}",
+            'imagingrecord': f"/imaging/{obj_id}",
+            'invoice': f"/billing/invoices/{obj_id}",
+            'employee': f"/hr/employees/{obj_id}",
+            'medicine': f"/inventory/medicines/{obj_id}",
+        }
+        
+        # Try direct match first
+        if model_name in url_patterns:
+            return url_patterns[model_name]
+        
+        # Try plural versions (Django often uses plural model names in URLs)
+        plural_model = f"{model_name}s"
+        if plural_model in url_patterns:
+            return url_patterns[plural_model]
+        
+        # Fallback for unknown models
+        return '#'
+        
 
 def get_monthly_earnings_by_year(request):
     try:
@@ -539,23 +902,36 @@ def save_health_record(request):
 
     
     
-@csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
+@require_POST
 def delete_healthrecord(request):
-    if request.method == 'POST':
-        try:
-            health_record_id = request.POST.get('health_record_id')
+    try:
+        health_record_id = request.POST.get('health_record_id')
 
-            # Delete procedure record
-            health_record = get_object_or_404(HealthRecord, pk=health_record_id)
-            health_record.delete()
+        if not health_record_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'Missing health record ID.'
+            })
 
-            return JsonResponse({'success': True, 'message': f'health_record record for {health_record.name} deleted successfully.'})
-        except HealthRecord.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Invalid health_record ID.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
+        # Fetch the record
+        health_record = get_object_or_404(HealthRecord, pk=health_record_id)
 
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+        # Store name before deletion
+        record_name = health_record.name
+
+        # Delete the record
+        health_record.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Health record "{record_name}" deleted successfully.'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {e}'
+        })
 
 logger = logging.getLogger(__name__)
 
@@ -613,58 +989,48 @@ def save_staff_view(request):
     # Return an error response if the request is not POST
     return JsonResponse({'error': 'Invalid request method'}, status=405)
  
+
 @login_required
+@require_POST
 def update_staff_status(request):
     try:
-        if request.method == 'POST':
-            # Get the user_id and is_active values from POST data
-            user_id = request.POST.get('user_id')
-            is_active = request.POST.get('is_active')
+        user_id = request.POST.get('user_id')
+        is_active = request.POST.get('is_active')
 
-            # Retrieve the staff object or return a 404 response if not found
-            staff = get_object_or_404(CustomUser, id=user_id)
+        if not user_id or is_active is None:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid request data.'
+            })
 
-            # Toggle the is_active status based on the received value
-            if is_active == '1':
-                staff.is_active = False
-                messages.success(request, f'{staff.username} has been deactivated.')
-            elif is_active == '0':
-                staff.is_active = True
-                messages.success(request, f'{staff.username} has been activated.')
-
-                # Send activation email to the user
-                login_url = request.build_absolute_uri(reverse('clinic:login'))
-                email_content = (
-                    f"Dear {staff.first_name} {staff.last_name},\n\n"
-                    f"MRISHO HAMISI is pleased to inform you that your account has been activated successfully. "
-                    f"You can now log in to your account using the following link:\n\n"
-                    f"{login_url}\n\n"
-                    f"Your login details are as follows:\n"
-                    f"Email: {staff.email}\n"                   
-                    f"If you have any questions or need further assistance, please do not hesitate to contact the administrator.\n\n"
-                    f"Best regards,\n"
-                    f"RESA Team"
-                )
-                send_mail(
-                    'Account Activation Notice',
-                    email_content,
-                    'admin@example.com',
-                    [staff.email],
-                    fail_silently=False,
-                )
-            else:
-                messages.error(request, 'Invalid request')
-                return redirect('admin_manage_staff')  
-
+        staff = get_object_or_404(CustomUser, id=user_id)
+        
+        # Convert the string value to boolean
+        is_active_bool = (is_active == '1')
+        
+        # Only update if the status is actually changing
+        if staff.is_active != is_active_bool:
+            staff.is_active = is_active_bool
             staff.save()
+            
+            message_text = f'{staff.username} has been {"activated" if is_active_bool else "deactivated"}.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': message_text
+            })
         else:
-            messages.error(request, 'Invalid request method')
+            return JsonResponse({
+                'success': True,
+                'message': 'No change needed - status is already set correctly.'
+            })
+
     except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-
-    # Redirect back to the staff list page
-    return redirect('admin_manage_staff') 
-
+        return JsonResponse({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        })
+    
 
 @login_required
 def update_vehicle_status(request):
@@ -696,34 +1062,40 @@ def update_vehicle_status(request):
     return redirect('clinic:hospital_vehicle_list')  # Make sure 'hospital_vehicle_lists' is the name of your staff list URL
 
 @login_required
+@require_POST
 def update_equipment_status(request):
     try:
-        if request.method == 'POST':
-            # Get the user_id and is_active values from POST data
-            equipment_id = request.POST.get('equipment_id')
-            is_active = request.POST.get('is_active')
+        equipment_id = request.POST.get('equipment_id')
+        is_active = request.POST.get('is_active')
 
-            # Retrieve the staff object or return a 404 response if not found
-            equipment = get_object_or_404(Equipment, id=equipment_id)
+        # Validate input
+        if equipment_id is None or is_active is None:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid request data'
+            })
 
-            # Toggle the is_active status based on the received value
-            if is_active == '1':
-                equipment.is_active = False
-            elif is_active == '0':
-                equipment.is_active = True
-            else:
-                messages.error(request, 'Invalid request')
-                return redirect('admin_equipment_list')  
+        # Convert is_active to boolean
+        is_active_bool = True if str(is_active) == '1' else False
 
-            equipment.save()
-            messages.success(request, 'equipment updated successfully')
-        else:
-            messages.error(request, 'Invalid request method')
+        # Get equipment object
+        equipment = get_object_or_404(Equipment, id=equipment_id)
+
+        # Update status
+        equipment.is_active = is_active_bool
+        equipment.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Equipment status updated successfully'
+        })
+
     except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
 
-    # Redirect back to the staff list page
-    return redirect('admin_equipment_list') 
 
 @login_required
 def edit_staff(request, staff_id):
@@ -742,14 +1114,14 @@ def edit_staff_save(request):
             staff_id = request.session.get('staff_id')
             if staff_id is None:
                 messages.error(request, "Staff ID not found")
-                return redirect("admin_edit_staff")
+                return redirect("resa_admin_edit_staff")
 
             # Retrieve the staff instance from the database
             try:
                 staff = Staffs.objects.get(id=staff_id)
             except ObjectDoesNotExist:
                 messages.error(request, "Staff not found")
-                return redirect("admin_edit_staff")
+                return redirect("resa_admin_edit_staff")
 
             # Extract form data
             first_name = request.POST.get('firstName', '').capitalize()
@@ -770,20 +1142,20 @@ def edit_staff_save(request):
             # Ensure unique email and username
             if CustomUser.objects.filter(email=email).exclude(id=staff.admin.id).exists():
                 messages.error(request, "Email already exists. Try another email.")
-                return redirect("admin_edit_staff", staff_id=staff_id)
+                return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
             if CustomUser.objects.filter(username=username).exclude(id=staff.admin.id).exists():
                 messages.error(request, "Username already exists. Try another username.")
-                return redirect("admin_edit_staff", staff_id=staff_id)
+                return redirect("resa_admin_edit_staff", staff_id=staff_id)
             
             if Staffs.objects.filter(admin__first_name=first_name, middle_name=middle_name, admin__last_name=last_name).exclude(id=staff_id).exists():
                 messages.error(request, "A staff member with this full name already exists. Try another name or contact the administrator for support.")
-                return redirect("admin_edit_staff", staff_id=staff_id)
+                return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
             # Ensure unique MCT number if provided
             if mct_number and Staffs.objects.filter(mct_number=mct_number).exclude(id=staff_id).exists():
                 messages.error(request, "MCT number already exists. Provide a unique MCT number.")
-                return redirect("admin_edit_staff", staff_id=staff_id)
+                return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
             # Ensure staff is above 18 years
             if dob:
@@ -792,14 +1164,14 @@ def edit_staff_save(request):
                 age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
                 if age < 18:
                     messages.error(request, "Staff must be at least 18 years old.")
-                    return redirect("admin_edit_staff", staff_id=staff_id)
+                    return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
             # Ensure joining date is not in the future
             if joining_date:
                 joining_date_obj = datetime.strptime(joining_date, "%Y-%m-%d").date()
                 if joining_date_obj > datetime.today().date():
                     messages.error(request, "Joining date cannot be in the future.")
-                    return redirect("admin_edit_staff", staff_id=staff_id)
+                    return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
             # Save the staff details
             staff.admin.first_name = first_name
@@ -820,121 +1192,472 @@ def edit_staff_save(request):
             staff.save()
 
             messages.success(request, "Staff details updated successfully.")
-            return redirect("admin_manage_staff")
+            return redirect("resa_admin_manage_staff")
 
         except Exception as e:
             messages.error(request, f"Error updating staff details: {str(e)}")
-            return redirect("admin_edit_staff", staff_id=staff_id)
+            return redirect("resa_admin_edit_staff", staff_id=staff_id)
 
-    return redirect("admin_manage_staff")
+    return redirect("resa_admin_manage_staff")
 
+
+@login_required
+def medicine_types_management(request):
+    """
+    View for displaying all medicine types
+    """
+    # Get all medicine types ordered by name
+    medicine_types = MedicineType.objects.all().order_by('name')
+    
+    # Pass the medicine types to the template
+    context = {
+        'medicine_types': medicine_types,
+    }
+    
+    return render(request, 'hod_template/manage_medicine_types.html', context)
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def add_medicine_type(request):
+    """
+    View for adding a new medicine type via AJAX
+    """
+    response_data = {}
+    
+    try:
+        # Get the current user's staff record
+        staff = Staffs.objects.get(admin=request.user)
+        
+        # Get form data
+        name = request.POST.get('name')
+        explanation = request.POST.get('explanation', '').strip()
+        
+        # Validate required fields
+        if not name:
+            response_data['success'] = False
+            response_data['message'] = 'Medicine type name is required.'
+            return JsonResponse(response_data)
+        
+        # Create new medicine type
+        medicine_type = MedicineType(
+            name=name,
+            explanation=explanation if explanation else None,
+            data_recorder=staff
+        )
+        
+        # Validate and save
+        medicine_type.full_clean()
+        medicine_type.save()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Medicine type added successfully.'
+        
+    except IntegrityError:
+        response_data['success'] = False
+        response_data['message'] = 'A medicine type with this name already exists.'
+    
+    except ValidationError as e:
+        response_data['success'] = False
+        response_data['message'] = 'Validation error: ' + ', '.join(e.messages)
+    
+    except Staffs.DoesNotExist:
+        response_data['success'] = False
+        response_data['message'] = 'Staff record not found for the current user.'
+    
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+@csrf_exempt
+@require_POST
+@login_required
+def edit_medicine_type(request):
+    """
+    View for editing an existing medicine type via AJAX
+    """
+    response_data = {}
+    
+    try:
+        # Get the current user's staff record
+        staff = Staffs.objects.get(admin=request.user)
+        
+        # Get form data
+        medicine_type_id = request.POST.get('medicine_type_id')
+        name = request.POST.get('name')
+        explanation = request.POST.get('explanation', '').strip()
+        
+        # Validate required fields
+        if not medicine_type_id or not name:
+            response_data['success'] = False
+            response_data['message'] = 'Medicine type ID and name are required.'
+            return JsonResponse(response_data)
+        
+        # Get the medicine type to edit
+        medicine_type = get_object_or_404(MedicineType, id=medicine_type_id)
+        
+        # Update fields
+        medicine_type.name = name
+        medicine_type.explanation = explanation if explanation else None
+        medicine_type.data_recorder = staff
+        
+        # Validate and save
+        medicine_type.full_clean()
+        medicine_type.save()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Medicine type updated successfully.'
+        
+    except IntegrityError:
+        response_data['success'] = False
+        response_data['message'] = 'A medicine type with this name already exists.'
+    
+    except ValidationError as e:
+        response_data['success'] = False
+        response_data['message'] = 'Validation error: ' + ', '.join(e.messages)
+    
+    except Staffs.DoesNotExist:
+        response_data['success'] = False
+        response_data['message'] = 'Staff record not found for the current user.'
+    
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+@csrf_exempt
+@require_POST
+@login_required
+def delete_medicine_type(request):
+    """
+    View for deleting a medicine type via AJAX
+    """
+    response_data = {}
+    
+    try:
+        # Get medicine type ID
+        medicine_type_id = request.POST.get('medicine_type_id')
+        
+        if not medicine_type_id:
+            response_data['success'] = False
+            response_data['message'] = 'Medicine type ID is required.'
+            return JsonResponse(response_data)
+        
+        # Get the medicine type to delete
+        medicine_type = get_object_or_404(MedicineType, id=medicine_type_id)
+        
+        # Delete the medicine type
+        medicine_type.delete()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Medicine type deleted successfully.'
+        
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
 
 
 @login_required
 def medicine_list(request):
-    # Retrieve medicines and check for expired ones
-    medicines = Medicine.objects.all()
+    # Prefetch related data to avoid N+1 queries
+    medicine_units = MedicineUnitMeasure.objects.all().only('id', 'name', 'short_name')
+    medicine_types = MedicineType.objects.all().only('id', 'name')
+    medicine_routes = MedicineRoute.objects.all().only('id', 'name')
+    
+    # Optimize medicine query with select_related and only necessary fields
+    medicines = Medicine.objects.select_related(
+        'drug_type', 'formulation_unit', 'route', 'data_recorder'
+    ).only(
+        'id', 'drug_name', 'formulation_value', 'manufacturer', 
+        'quantity', 'remain_quantity', 'is_dividable', 'batch_number',
+        'expiration_date', 'cash_cost', 'insurance_cost', 'nhif_cost',
+        'buying_price', 'total_buying_price', 'created_at', 'updated_at',
+        'drug_type__name', 'formulation_unit__short_name', 'route__name',
+        'data_recorder__admin__username'
+    ).order_by('drug_name')
+    
+    # Calculate total investment (sum of all total_buying_price values)
+    total_investment = medicines.aggregate(
+        total=Sum('total_buying_price')
+    )['total'] or 0
+    
+    # Check for expired and expiring soon medicines
+    today = timezone.now().date()
+    soon_threshold = today + timedelta(days=30)
+    
+    # Annotate medicines with status information
+    for medicine in medicines:
+        # Check if expired
+        medicine.is_expired = medicine.expiration_date < today
+        
+        # Check if expiring soon (within 30 days but not expired)
+        medicine.expiring_soon = (
+            not medicine.is_expired and 
+            medicine.expiration_date <= soon_threshold
+        )
+        
+        # Calculate days until expiration
+        if medicine.is_expired:
+            medicine.days_until_expire = 0
+        else:
+            medicine.days_until_expire = (medicine.expiration_date - today).days
+    
     # Render the template with medicine data and notifications
-    return render(request, 'hod_template/manage_medicine.html', {'medicines': medicines})
+    return render(
+        request,
+        'hod_template/manage_medicine.html',
+        {
+            'medicines': medicines,
+            'medicine_units': medicine_units,
+            'medicine_types': medicine_types,
+            'medicine_routes': medicine_routes,
+            'total_investment': total_investment,
+        }
+    )
 
 
 @csrf_exempt
 @login_required
 def add_medicine(request):
-    if request.method == 'POST':
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Invalid request method"})
+
+    try:
+        # Get all form data
+        medicine_id = request.POST.get("medicine_id")
+        drug_name = request.POST.get("drug_name", "").strip()
+        drug_type_id = request.POST.get("drug_type")
+        formulation_value = request.POST.get("formulation_value")
+        formulation_unit_id = request.POST.get("formulation_unit")
+        route_id = request.POST.get("route")
+        manufacturer = request.POST.get("manufacturer", "").strip()
+        quantity = request.POST.get("quantity")
+        remain_quantity = request.POST.get("remain_quantity")
+        is_dividable = request.POST.get("is_dividable", "False").lower() == "true"
+        batch_number = request.POST.get("batch_number", "").strip()
+        expiration_date = request.POST.get("expiration_date")
+        cash_cost = request.POST.get("cash_cost")
+        insurance_cost = request.POST.get("insurance_cost")
+        nhif_cost = request.POST.get("nhif_cost")
+        buying_price = request.POST.get("buying_price")
+
+        # --- VALIDATIONS ---
+
+        # Required fields
+        required_fields = {
+            "drug_name": drug_name,
+            "formulation_value": formulation_value,
+            "formulation_unit": formulation_unit_id,
+            "quantity": quantity,
+            "batch_number": batch_number,
+            "expiration_date": expiration_date,
+            "buying_price": buying_price
+        }
+        
+        missing_fields = [field for field, value in required_fields.items() if not value]
+        if missing_fields:
+            return JsonResponse({"success": False, "message": f"Missing required fields: {', '.join(missing_fields)}"})
+
+        # Parse and validate numeric fields
         try:
-            # Extract data from request
-            medicine_id = request.POST.get('medicine_id')
-            drug_name = request.POST.get('drug_name').strip()
-            drug_type = request.POST.get('drug_type')
-            dividing_unit = int(request.POST.get('dividing_unit') or 125)
-            formulation_unit = request.POST.get('formulation_unit')
-            manufacturer = request.POST.get('manufacturer').strip()
-            quantity = request.POST.get('quantity')
-            is_dividable = request.POST.get('is_dividable')
-            batch_number = request.POST.get('batch_number').strip()
-            expiration_date = request.POST.get('expiration_date')
-            cash_cost = request.POST.get('cash_cost')
-            insurance_cost = request.POST.get('insurance_cost')
-            nhif_cost = request.POST.get('nhif_cost')
-            buying_price = request.POST.get('buying_price')
+            formulation_value = float(formulation_value)
+            quantity = int(quantity)
+            remain_quantity = int(remain_quantity) if remain_quantity else quantity
+            buying_price = float(buying_price)
+            cash_cost = float(cash_cost) if cash_cost else buying_price * 1.2  # Default markup
+            insurance_cost = float(insurance_cost) if insurance_cost else buying_price * 1.15
+            nhif_cost = float(nhif_cost) if nhif_cost else buying_price * 1.1
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid numeric values provided."})
 
-            # Validate expiration_date
-            if expiration_date:
-                expiration_date_obj = datetime.strptime(expiration_date, '%Y-%m-%d').date()
-                if expiration_date_obj <= datetime.now().date():
-                    return JsonResponse({'success': False, 'message':  'Expiration date must be in the future.'})
+        # Expiration date validation
+        try:
+            expiration_date_obj = datetime.strptime(expiration_date, "%Y-%m-%d").date()
+            if expiration_date_obj <= timezone.now().date():
+                return JsonResponse({"success": False, "message": "Expiration date must be in the future."})
+        except ValueError:
+            return JsonResponse({"success": False, "message": "Invalid expiration date format. Use YYYY-MM-DD."})
 
-             # Check if required fields are provided
-            if not (drug_name and quantity and buying_price):
-                return JsonResponse({'success': False, 'message': 'Missing required fields'})
-
-            # Convert quantity and buying_price to integers .exclude(pk=disease_id)
+        # Get related objects
+        try:
+            formulation_unit = MedicineUnitMeasure.objects.get(pk=formulation_unit_id)
+        except ObjectDoesNotExist:
+            return JsonResponse({"success": False, "message": "Invalid formulation unit."})
+            
+        # Get drug type if provided
+        drug_type = None
+        if drug_type_id:
             try:
-                quantity = int(quantity)
-                buying_price = float(buying_price)
-            except ValueError:
-                return JsonResponse({'success': False, 'message': 'Invalid quantity or buying price'})
-            # Check if this is an edit operation
-            if medicine_id:
-                if Medicine.objects.exclude(pk=medicine_id).filter(drug_name=drug_name).exists():
-                    return JsonResponse({'success': False, 'message':  'The medicine drug with the same name  already exists.'})
-                if Medicine.objects.exclude(pk=medicine_id).filter(batch_number=batch_number).exists():
-                    return JsonResponse({'success': False, 'message': 'The  medicine drug with the same bath number  already exists.'})
+                drug_type = MedicineType.objects.get(pk=drug_type_id)
+            except ObjectDoesNotExist:
+                return JsonResponse({"success": False, "message": "Invalid drug type."})
                 
+        # Get route if provided
+        route = None
+        if route_id:
+            try:
+                route = MedicineRoute.objects.get(pk=route_id)
+            except ObjectDoesNotExist:
+                return JsonResponse({"success": False, "message": "Invalid route of administration."})
+
+        # Recorder (current staff)
+        staff_member = getattr(request.user, "staff", None)
+
+        # --- CREATE OR UPDATE ---
+
+        if medicine_id:  # Update
+            try:
                 medicine = Medicine.objects.get(pk=medicine_id)
+
+                # Check for duplicates (excluding current medicine)
+                if Medicine.objects.exclude(pk=medicine_id).filter(
+                    drug_name=drug_name, 
+                    formulation_value=formulation_value,
+                    formulation_unit=formulation_unit
+                ).exists():
+                    return JsonResponse({"success": False, "message": "A medicine with this name and formulation already exists."})
+                    
+                if Medicine.objects.exclude(pk=medicine_id).filter(batch_number=batch_number).exists():
+                    return JsonResponse({"success": False, "message": "A medicine with this batch number already exists."})
+
+                # Update medicine fields
                 medicine.drug_name = drug_name
                 medicine.drug_type = drug_type
+                medicine.formulation_value = formulation_value
                 medicine.formulation_unit = formulation_unit
+                medicine.route = route
                 medicine.manufacturer = manufacturer
                 medicine.quantity = quantity
-                medicine.dividing_unit = dividing_unit
                 medicine.remain_quantity = quantity
                 medicine.is_dividable = is_dividable
                 medicine.batch_number = batch_number
-                medicine.expiration_date = expiration_date
+                medicine.expiration_date = expiration_date_obj
                 medicine.cash_cost = cash_cost
                 medicine.insurance_cost = insurance_cost
                 medicine.nhif_cost = nhif_cost
                 medicine.buying_price = buying_price
+                
+                if staff_member:
+                    medicine.data_recorder = staff_member
+
                 medicine.save()
-                return JsonResponse({'success': True, 'message': 'medicine drug is updated successfully'})
-            else:
-                # Check for uniqueness
-                if Medicine.objects.filter(drug_name=drug_name).exists():
-                    return JsonResponse({'success': False, 'message': 'The  medicine drug with the same name  already exists.'})
-                if Medicine.objects.filter(batch_number=batch_number).exists():
-                    return JsonResponse({'success': False, 'message':  'The  medicine drug with the same bath number  already exists.'})
+                return JsonResponse({"success": True, "message": "Medicine updated successfully."})
+                
+            except Medicine.DoesNotExist:
+                return JsonResponse({"success": False, "message": "Medicine not found."})
 
-                # Create a new Medicine instance
-                medicine = Medicine(
-                    drug_name=drug_name,
-                    drug_type=drug_type,
-                    formulation_unit=formulation_unit,
-                    manufacturer=manufacturer,
-                    quantity=quantity,
-                    remain_quantity=quantity,
-                    is_dividable=is_dividable,
-                    dividing_unit=dividing_unit,
-                    batch_number=batch_number,
-                    expiration_date=expiration_date,
-                    cash_cost=cash_cost,
-                    insurance_cost=insurance_cost,
-                    nhif_cost=nhif_cost,
-                    buying_price=buying_price,
-                )
+        else:  # Create
+            # Check for duplicates
+            if Medicine.objects.filter(
+                drug_name=drug_name, 
+                formulation_value=formulation_value,
+                formulation_unit=formulation_unit
+            ).exists():
+                return JsonResponse({"success": False, "message": "A medicine with this name and formulation already exists."})
+                
+            if Medicine.objects.filter(batch_number=batch_number).exists():
+                return JsonResponse({"success": False, "message": "A medicine with this batch number already exists."})
 
-            # Save the medicine instance
+            # Create new medicine
+            medicine = Medicine(
+                drug_name=drug_name,
+                drug_type=drug_type,
+                formulation_value=formulation_value,
+                formulation_unit=formulation_unit,
+                route=route,
+                manufacturer=manufacturer,
+                quantity=quantity,
+                remain_quantity=quantity,
+                is_dividable=is_dividable,
+                batch_number=batch_number,
+                expiration_date=expiration_date_obj,
+                cash_cost=cash_cost,
+                insurance_cost=insurance_cost,
+                nhif_cost=nhif_cost,
+                buying_price=buying_price,
+                data_recorder=staff_member,
+            )
             medicine.save()
-            return JsonResponse({'success': True, 'message': 'medicine drug is added successfully'})
-        except ObjectDoesNotExist:
-            return JsonResponse({'success': False, 'message':  'Medicine not found.'})
-        except ValidationError as ve:
-            return JsonResponse({'success': False, 'message':  ve.message})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message':  str(e)})
-    return JsonResponse({'success': False, 'message':  'Invalid request method'})
+            return JsonResponse({"success": True, "message": "Medicine added successfully."})
 
+    except ValidationError as ve:
+        return JsonResponse({"success": False, "message": f"Validation error: {str(ve)}"})
+    except Exception as e:
+        logger.error(f"Error in add_medicine view: {str(e)}")
+        return JsonResponse({"success": False, "message": "An unexpected error occurred. Please try again."})
+
+
+@csrf_exempt
+@require_POST
+def restock_medicine(request):
+    try:
+        # Get form data
+        medicine_id = request.POST.get('medicine_id')
+        add_quantity = int(request.POST.get('add_quantity'))
+        batch_number = request.POST.get('batch_number')
+        expiration_date = request.POST.get('expiration_date')
+        buying_price = request.POST.get('buying_price', None)
+
+        # Validate required fields
+        if not all([medicine_id, add_quantity, batch_number, expiration_date]):
+            return JsonResponse({
+                'success': False, 
+                'message': 'All required fields must be provided.'
+            })
+
+        # Get the medicine object
+        try:
+            medicine = Medicine.objects.get(id=medicine_id)
+        except Medicine.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Medicine not found.'
+            })
+
+        # Create or update batch
+        batch, created = MedicineBatch.objects.get_or_create(
+            medicine=medicine,
+            batch_number=batch_number,
+            defaults={
+                'expiration_date': expiration_date,
+                'quantity': add_quantity,
+                'remain_quantity': add_quantity,
+                'buying_price': buying_price
+            }
+        )
+
+        if not created:
+            # Update existing batch
+            batch.quantity += add_quantity
+            batch.remain_quantity += add_quantity
+            batch.expiration_date = expiration_date  # optional: maybe warn if different
+            if buying_price:
+                batch.buying_price = buying_price
+            batch.save()
+
+        # Update totals in the main medicine record
+        total_quantity = medicine.batches.aggregate(total=models.Sum('quantity'))['total'] or 0
+        total_remain = medicine.batches.aggregate(total=models.Sum('remain_quantity'))['total'] or 0
+        medicine.quantity = total_quantity
+        medicine.remain_quantity = total_remain
+        medicine.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully restocked {add_quantity} units of {medicine.drug_name} (Batch: {batch_number}).'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'message': f'An error occurred: {str(e)}'
+        })
 
 
 def medicine_expired_list(request):
@@ -947,7 +1670,7 @@ def medicine_expired_list(request):
         days_remaining = (medicine.expiration_date - timezone.now().date()).days
         if days_remaining <= 10:
             medicines.append({
-                'name': medicine.name,
+                'name': medicine.drug_name,
                 'expiration_date': medicine.expiration_date,
                 'days_remaining': days_remaining,
             })
@@ -1057,8 +1780,8 @@ def add_disease(request):
         try:
             # Extract data from the request
             disease_id = request.POST.get('disease_id')
-            disease_name = request.POST.get('Disease').strip()
-            code = request.POST.get('Code').strip()
+            disease_name = request.POST.get('name').strip()
+            code = request.POST.get('code').strip()
 
             # If disease ID is provided, it's an edit operation
             if disease_id:
@@ -1193,13 +1916,13 @@ def equipment_list(request):
 def add_equipment(request):
     try:
         equipment_id = request.POST.get('equipment_id')
-        manufacturer = request.POST.get('Manufacturer').strip()
-        serial_number = request.POST.get('SerialNumber').strip()
-        acquisition_date = request.POST.get('AcquisitionDate') or None
-        warranty_expiry_date = request.POST.get('warrantyExpiryDate') or None
-        location = request.POST.get('Location')
+        manufacturer = request.POST.get('manufacturer').strip()
+        serial_number = request.POST.get('serial_number').strip()
+        acquisition_date = request.POST.get('acquisition_date') or None
+        warranty_expiry_date = request.POST.get('warranty_expiry_date') or None
+        location = request.POST.get('location')
         description = request.POST.get('description')
-        name = request.POST.get('Name').strip()
+        name = request.POST.get('name').strip()
 
        
 
@@ -1302,6 +2025,7 @@ def add_reagent(request):
 
 @login_required
 def prescription_list(request):
+    """View for prescription list"""
     # Step 1: Fetch prescriptions grouped by visit
     grouped_visits = (
         Prescription.objects
@@ -1325,25 +2049,367 @@ def prescription_list(request):
         .order_by('-visit__created_at')
     )
 
-    # Step 2: Attach related prescriptions to each grouped visit
+    # Step 2: Attach related prescriptions to each grouped visit and get status
+    visit_list = []
     for visit in grouped_visits:
-        prescriptions = Prescription.objects.filter(visit__id=visit['visit__id']).select_related('medicine')
-        visit['prescriptions'] = prescriptions
-
-        # Optional: Derive consistent status, issued, verified if all match
-        statuses = prescriptions.values_list('status', flat=True).distinct()
-        issued = prescriptions.values_list('issued', flat=True).distinct()
-        verified = prescriptions.values_list('verified', flat=True).distinct()
-
-        visit['status'] = statuses[0] if len(statuses) == 1 else "Mixed"
-        visit['issued'] = issued[0] if len(issued) == 1 else "Mixed"
-        visit['verified'] = verified[0] if len(verified) == 1 else "Mixed"
+        visit_id = visit['visit__id']
+        visit_instance = PatientVisits.objects.get(id=visit_id)
+        
+        # Get the status using the model method
+        status = Prescription.get_visit_status(visit_instance)
+        
+        # Get all prescriptions for this visit
+        prescriptions = Prescription.objects.filter(visit_id=visit_id).select_related('medicine', 'frequency')
+        
+        # Create a new dictionary with all the data
+        visit_data = {
+            **visit,
+            'prescriptions': prescriptions,
+            'verified_status': status['verified'],
+            'issued_status': status['issued'],
+            'payment_status': status['status']
+        }
+        
+        visit_list.append(visit_data)
 
     return render(request, 'hod_template/manage_prescription_list.html', {
-        'visit_total_prices': grouped_visits,
+        'visit_total_prices': visit_list,
     })
 
 
+@login_required
+def walkin_prescription_list(request):
+    """View for walk-in prescription list grouped by visit, including visit status."""
+    try:
+        # Step 1: Fetch grouped visits with aggregated total price
+        grouped_visits = (
+            WalkInPrescription.objects
+            .values(
+                'visit__id',
+                'visit__visit_number',
+                'visit__visit_date',
+                'visit__customer__id',
+                'visit__customer__first_name',
+                'visit__customer__middle_name',
+                'visit__customer__last_name',
+                'visit__customer__gender',
+                'visit__customer__age',
+                'visit__customer__pharmacy_number',
+                'visit__customer__address',
+                'visit__customer__phone_number',
+                'visit__customer__payment_form',
+            )
+            .annotate(total_price=Sum('total_price'))
+            .order_by('-visit__visit_date')
+        )
+
+        # Step 2: Fetch prescriptions for those visits
+        visit_ids = [v['visit__id'] for v in grouped_visits]
+        prescriptions = (
+            WalkInPrescription.objects
+            .filter(visit_id__in=visit_ids)
+            .select_related('medicine', 'frequency', 'entered_by')
+        )
+
+        # Step 3: Group prescriptions by visit ID
+        prescriptions_by_visit = defaultdict(list)
+        for p in prescriptions:
+            prescriptions_by_visit[p.visit_id].append(p)
+
+        # Step 4: Attach prescriptions + visit status to each grouped visit
+        for visit in grouped_visits:
+            visit_id = visit['visit__id']
+            related_prescriptions = prescriptions_by_visit.get(visit_id, [])
+            visit['prescriptions'] = related_prescriptions
+
+            # Get visit object to compute status
+            try:
+                visit_obj = WalkInVisit.objects.get(id=visit_id)
+                visit['visit_status'] = WalkInPrescription.get_visit_status(visit_obj)
+            except WalkInVisit.DoesNotExist:
+                visit['visit_status'] = {
+                    "verified": "visit_not_found",
+                    "issued": "visit_not_found",
+                    "status": "visit_not_found"
+                }
+
+        return render(request, 'hod_template/manage_walkin_prescription_list.html', {
+            'visit_total_prices': grouped_visits,
+        })
+
+    except Exception as e:
+        return render(request, '404.html', {
+            'error_message': f"An error occurred: {str(e)}"
+        })
+
+
+@login_required
+def generate_walkin_receipt_pdf(request, visit_id):
+    """Generate PDF receipt for a walk-in visit"""
+    try:
+        # --- 1. Get visit and prescriptions ---
+        visit = WalkInVisit.objects.get(id=visit_id)
+        prescriptions = WalkInPrescription.objects.filter(visit=visit)
+
+        # --- 2. Check if visit is paid and needs receipt number ---
+        has_paid = prescriptions.filter(status="paid").exists()
+        if has_paid and not visit.receipt_number:
+            visit.generate_receipt_number()  # auto-generate receipt
+
+        # --- 3. Calculate totals ---
+        total_price = sum(p.total_price for p in prescriptions if p.total_price)
+        tax_rate = Decimal("0.10")  # 10% tax
+        tax = total_price * tax_rate
+        grand_total = total_price + tax
+
+        context = {
+            "visit": visit,
+            "prescriptions": prescriptions,
+            "total_price": total_price,
+            "tax": tax,
+            "grand_total": grand_total,
+            'pharmacist': request.user.staff if hasattr(request.user, 'staff') else None,
+        }
+
+        # --- 4. Render HTML template ---
+        html_string = render_to_string(
+            "hod_template/walkin_receipt_pdf.html", context
+        )
+
+        # --- 5. Generate PDF with WeasyPrint ---
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        result = html.write_pdf()
+
+        # --- 6. Create response ---
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="receipt_{visit.visit_number}.pdf"'
+        )
+        response.write(result)
+        return response
+
+    except WalkInVisit.DoesNotExist:
+        return HttpResponse("Visit not found", status=404)
+    except Exception as e:
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+@login_required
+def download_prescription_notes(request, visit_id):
+    """
+    Generate or download prescription notes PDF for a visit.
+    Auto-generates prescription_notes_id if it doesn't exist.
+    """
+    # 1. Get the visit
+    visit = get_object_or_404(WalkInVisit, id=visit_id)
+
+    # 2. Generate prescription_notes_id if missing
+    if not visit.prescription_notes_id:
+        visit.generate_prescription_notes_id()  # This will save the ID in DB
+
+    # 3. Get prescriptions for this visit
+    prescriptions = WalkInPrescription.objects.filter(visit=visit)
+
+    # 4. Prepare context for template
+    context = {
+        'visit': visit,
+        'prescriptions': prescriptions,
+         'pharmacist': request.user.staff if hasattr(request.user, 'staff') else None,
+    }
+
+    # 5. Render HTML template
+    html_string = render_to_string('hod_template/prescription_notes_pdf.html', context)
+
+    # 6. Create PDF in memory
+    buffer = BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(buffer)
+    pdf_content = buffer.getvalue()
+    buffer.close()
+
+    # 7. Create HTTP response
+    response = HttpResponse(pdf_content, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="prescription_notes_{visit.prescription_notes_id}.pdf"'
+
+    return response 
+
+def financial_analytics(request):
+    # Get date range from request or default to last 30 days
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    report_type = request.GET.get('report_type', 'daily')
+    
+    if not start_date or not end_date:
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=30)
+    else:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    
+    # Base queryset
+    orders = Order.objects.filter(
+        order_date__range=[start_date, end_date]
+    ).select_related('patient', 'visit')
+    
+    # Calculate metrics
+    metrics = orders.aggregate(
+        total_revenue=Sum('cost', filter=Q(status='Paid')),
+        paid_orders_count=Count('id', filter=Q(status='Paid')),
+        pending_orders_count=Count('id', filter=Q(status='Unpaid')),
+        total_orders_count=Count('id')
+    )
+    
+    total_revenue = metrics['total_revenue'] or 0
+    paid_orders_count = metrics['paid_orders_count'] or 0
+    pending_orders_count = metrics['pending_orders_count'] or 0
+    total_orders_count = metrics['total_orders_count'] or 0
+    
+    average_order_value = total_revenue / paid_orders_count if paid_orders_count > 0 else 0
+    conversion_rate = (paid_orders_count / total_orders_count * 100) if total_orders_count > 0 else 0
+    
+    # Group orders by patient and visit
+    grouped_orders = orders.values(
+        'patient__id', 'visit__id', 'patient__mrn', 'patient__dob', 
+        'patient__gender', 'patient__payment_form', 'patient__insurance_name', 
+        'visit__vst'
+    ).annotate(
+        full_name=Concat(
+            F('patient__first_name'), Value(' '), 
+            F('patient__middle_name'), Value(' '), 
+            F('patient__last_name')
+        ),
+        total_cost=Sum('cost'),
+        statuses=GroupConcat('status', distinct=True, separator=',')
+    ).order_by('-visit__vst')
+    
+    # Add orders list to each group
+    grouped_orders_list = []
+    for group in grouped_orders:
+        group_orders = orders.filter(
+            patient__id=group['patient__id'], 
+            visit__id=group['visit__id']
+        ).values('order_type', 'type_of_order', 'order_date', 'cost', 'order_number')
+        
+        group_dict = dict(group)
+        group_dict['orders'] = list(group_orders)
+        # Optional: turn "Paid,Unpaid" string into list
+        group_dict['statuses'] = group_dict['statuses'].split(',') if group_dict['statuses'] else []
+        grouped_orders_list.append(group_dict)
+    
+    # Prepare data for charts
+    revenue_data = get_revenue_trend_data(start_date, end_date, report_type)
+    payment_methods_data = get_payment_methods_data(orders)
+    
+    context = {
+        'grouped_orders': grouped_orders_list,
+        'total_revenue': total_revenue,
+        'paid_orders_count': paid_orders_count,
+        'pending_orders_count': pending_orders_count,
+        'total_orders_count': total_orders_count,
+        'average_order_value': average_order_value,
+        'conversion_rate': conversion_rate,
+        'start_date': start_date,
+        'end_date': end_date,
+        'report_type': report_type,
+        'revenue_data_json': json.dumps(revenue_data),
+        'payment_methods_json': json.dumps(payment_methods_data),
+    }
+    
+    return render(request, 'hod_template/financial_analytics.html', context)
+
+def get_revenue_trend_data(start_date, end_date, report_type):
+    # Aggregate revenue by time period
+    if report_type == 'daily':
+        trunc_func = TruncDate('order_date')
+    elif report_type == 'weekly':
+        trunc_func = TruncWeek('order_date')
+    else:  # monthly
+        trunc_func = TruncMonth('order_date')
+    
+    revenue_data = Order.objects.filter(
+        order_date__range=[start_date, end_date],
+        status='Paid'
+    ).annotate(
+        period=trunc_func
+    ).values('period').annotate(
+        revenue=Sum('cost')
+    ).order_by('period')
+    
+    # Format for chart
+    labels = []
+    data = []
+    
+    for item in revenue_data:
+        if report_type == 'daily':
+            labels.append(item['period'].strftime('%b %d'))
+        elif report_type == 'weekly':
+            labels.append(f"Week {item['period'].isocalendar()[1]}")
+        else:
+            labels.append(item['period'].strftime('%b %Y'))
+        
+        data.append(float(item['revenue'] or 0))
+    
+    return {
+        'labels': labels,
+        'data': data
+    }
+
+def get_payment_methods_data(orders):
+    # Count orders by payment method
+    payment_data = orders.values('patient__payment_form').annotate(
+        count=Count('id')
+    ).order_by('patient__payment_form')
+    
+    labels = []
+    data = []
+    
+    for item in payment_data:
+        labels.append(item['patient__payment_form'])
+        data.append(item['count'])
+    
+    return {
+        'labels': labels,
+        'data': data
+    }
+
+def export_financial_report(request):
+    if request.method == 'POST':
+        # Get filter parameters
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        report_type = request.POST.get('report_type')
+        
+        # Create response object with Excel MIME type
+        response = HttpResponse(content_type='application/ms-excel')
+        response['Content-Disposition'] = f'attachment; filename="financial_report_{start_date}_to_{end_date}.xls"'
+        
+        # Create Excel workbook
+        wb = xlwt.Workbook(encoding='utf-8')
+        ws = wb.add_sheet('Financial Report')
+        
+        # Add headers
+        row_num = 0
+        columns = ['Order Number', 'Patient', 'Visit Number', 'Total Cost', 'Payment Method', 'Status', 'Order Date']
+        
+        for col_num, column_title in enumerate(columns):
+            ws.write(row_num, col_num, column_title)
+        
+        # Get data
+        orders = Order.objects.filter(
+            order_date__range=[start_date, end_date]
+        ).select_related('patient', 'visit')
+        
+        # Add data rows
+        for order in orders:
+            row_num += 1
+            ws.write(row_num, 0, order.order_number)
+            ws.write(row_num, 1, f"{order.patient.first_name} {order.patient.last_name}")
+            ws.write(row_num, 2, order.visit.vst if order.visit else 'N/A')
+            ws.write(row_num, 3, str(order.cost))
+            ws.write(row_num, 4, order.patient.payment_form)
+            ws.write(row_num, 5, order.status)
+            ws.write(row_num, 6, order.order_date.strftime('%Y-%m-%d'))
+        
+        wb.save(response)
+        return response
 
 @login_required
 def all_orders_view(request):
@@ -1924,44 +2990,512 @@ def add_service(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
+
+
+@login_required
+def medicine_dosage_managements(request):
+    """
+    View for managing medicine dosages
+    """
+    # Prefetch related data
+    medicine_units = MedicineUnitMeasure.objects.all().only('id', 'name', 'short_name')
+    
+    # Get medicines that have dosages
+    medicines_with_dosages = Medicine.objects.prefetch_related(
+        Prefetch('dosages', queryset=MedicineDosage.objects.select_related('unit'))
+    ).annotate(dosage_count=Count('dosages')).filter(dosage_count__gt=0)
+    
+    # Get all medicines for the dropdown
+    all_medicines = Medicine.objects.all().select_related('formulation_unit')
+    
+    # Calculate statistics
+    total_dosages = MedicineDosage.objects.count()
+    default_dosages = MedicineDosage.objects.filter(is_default=True).count()
+    
+    context = {
+        'medicines_with_dosages': medicines_with_dosages,
+        'all_medicines': all_medicines,
+        'medicine_units': medicine_units,
+        'total_dosages': total_dosages,
+        'default_dosages': default_dosages,
+    }
+    
+    return render(request, 'hod_template/manage_medicine_dosages.html', context)
+
+@csrf_exempt
+@require_POST
+@login_required
+def add_medicine_dosage(request):
+    """
+    View for adding a new medicine dosage via AJAX
+    """
+    response_data = {}
+    
+    try:
+        # Get form data
+        medicine_id = request.POST.get('medicine_id')
+        dosage_value = request.POST.get('dosage_value')
+        unit_id = request.POST.get('unit')
+        is_default = request.POST.get('is_default') == 'on'
+        
+        # Validate required fields
+        if not all([medicine_id, dosage_value, unit_id]):
+            response_data['success'] = False
+            response_data['message'] = 'All fields are required.'
+            return JsonResponse(response_data)
+        
+        # Get related objects
+        try:
+            medicine = Medicine.objects.get(pk=medicine_id)
+            unit = MedicineUnitMeasure.objects.get(pk=unit_id)
+        except (Medicine.DoesNotExist, MedicineUnitMeasure.DoesNotExist):
+            response_data['success'] = False
+            response_data['message'] = 'Invalid medicine or unit.'
+            return JsonResponse(response_data)
+        
+        # Check if dosage already exists
+        if MedicineDosage.objects.filter(medicine=medicine, dosage_value=dosage_value, unit=unit).exists():
+            response_data['success'] = False
+            response_data['message'] = 'This dosage already exists for this medicine.'
+            return JsonResponse(response_data)
+        
+        # If setting as default, remove default from other dosages for this medicine
+        if is_default:
+            MedicineDosage.objects.filter(medicine=medicine, is_default=True).update(is_default=False)
+        
+        # Create new dosage
+        dosage = MedicineDosage(
+            medicine=medicine,
+            dosage_value=dosage_value,
+            unit=unit,
+            is_default=is_default
+        )
+        dosage.save()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Dosage added successfully.'
+        
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+@csrf_exempt
+@require_POST
+@login_required
+def update_medicine_dosage(request):
+    """
+    View for updating a medicine dosage via AJAX
+    """
+    response_data = {}
+    
+    try:
+        # Get form data
+        dosage_id = request.POST.get('dosage_id')
+        dosage_value = request.POST.get('dosage_value')
+        unit_id = request.POST.get('unit')
+        is_default = request.POST.get('is_default') == 'on'
+        
+        # Validate required fields
+        if not all([dosage_id, dosage_value, unit_id]):
+            response_data['success'] = False
+            response_data['message'] = 'All fields are required.'
+            return JsonResponse(response_data)
+        
+        # Get the dosage to update
+        try:
+            dosage = MedicineDosage.objects.get(pk=dosage_id)
+            unit = MedicineUnitMeasure.objects.get(pk=unit_id)
+        except (MedicineDosage.DoesNotExist, MedicineUnitMeasure.DoesNotExist):
+            response_data['success'] = False
+            response_data['message'] = 'Invalid dosage or unit.'
+            return JsonResponse(response_data)
+        
+        # Check if dosage already exists (excluding current dosage)
+        if MedicineDosage.objects.exclude(pk=dosage_id).filter(
+            medicine=dosage.medicine, 
+            dosage_value=dosage_value, 
+            unit=unit
+        ).exists():
+            response_data['success'] = False
+            response_data['message'] = 'This dosage already exists for this medicine.'
+            return JsonResponse(response_data)
+        
+        # If setting as default, remove default from other dosages for this medicine
+        if is_default:
+            MedicineDosage.objects.filter(medicine=dosage.medicine, is_default=True).update(is_default=False)
+        
+        # Update dosage
+        dosage.dosage_value = dosage_value
+        dosage.unit = unit
+        dosage.is_default = is_default
+        dosage.save()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Dosage updated successfully.'
+        
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+@csrf_exempt
+@require_POST
+@login_required
+def set_default_dosages(request):
+    """
+    View for setting a dosage as default via AJAX
+    """
+    response_data = {}
+    
+    try:
+        dosage_id = request.POST.get('dosage_id')
+        
+        if not dosage_id:
+            response_data['success'] = False
+            response_data['message'] = 'Dosage ID is required.'
+            return JsonResponse(response_data)
+        
+        # Get the dosage
+        try:
+            dosage = MedicineDosage.objects.get(pk=dosage_id)
+        except MedicineDosage.DoesNotExist:
+            response_data['success'] = False
+            response_data['message'] = 'Dosage not found.'
+            return JsonResponse(response_data)
+        
+        # Remove default from other dosages for this medicine
+        MedicineDosage.objects.filter(medicine=dosage.medicine, is_default=True).update(is_default=False)
+        
+        # Set this dosage as default
+        dosage.is_default = True
+        dosage.save()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Default dosage set successfully.'
+        
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+@csrf_exempt
+@require_POST
+@login_required
+def delete_medicine_dosage(request):
+    """
+    View for deleting a medicine dosage via AJAX
+    """
+    response_data = {}
+    
+    try:
+        dosage_id = request.POST.get('dosage_id')
+        
+        if not dosage_id:
+            response_data['success'] = False
+            response_data['message'] = 'Dosage ID is required.'
+            return JsonResponse(response_data)
+        
+        # Get the dosage to delete
+        try:
+            dosage = MedicineDosage.objects.get(pk=dosage_id)
+        except MedicineDosage.DoesNotExist:
+            response_data['success'] = False
+            response_data['message'] = 'Dosage not found.'
+            return JsonResponse(response_data)
+        
+        # Check if this is the default dosage
+        if dosage.is_default:
+            response_data['success'] = False
+            response_data['message'] = 'Cannot delete the default dosage. Set another dosage as default first.'
+            return JsonResponse(response_data)
+        
+        # Delete the dosage
+        dosage.delete()
+        
+        response_data['success'] = True
+        response_data['message'] = 'Dosage deleted successfully.'
+        
+    except Exception as e:
+        response_data['success'] = False
+        response_data['message'] = f'An error occurred: {str(e)}'
+    
+    return JsonResponse(response_data)
+
+
+@login_required
+def medicine_dosage_management(request, medicine_id):
+    """
+    View to display dosage management page for a specific medicine
+    """
+    units=MedicineUnitMeasure.objects.all()
+    medicine = get_object_or_404(Medicine, id=medicine_id)
+    dosages = MedicineDosage.objects.filter(medicine=medicine).order_by('dosage_value')
+    
+    context = {
+        'medicine': medicine,
+        'dosages': dosages,
+        'units': units,
+    }
+    
+    return render(request, 'hod_template/manage_dosage.html', context)
+
+@csrf_exempt
+@require_POST
+def add_dosage(request):
+    """
+    AJAX view to add multiple dosage options at once,
+    ensuring no duplicates are created.
+    """
+    try:
+        medicine_id = request.POST.get('medicine_id')
+        dosage_values = request.POST.getlist('dosage_value[]')
+        units = request.POST.getlist('unit[]')
+        is_defaults = [val == 'True' for val in request.POST.getlist('is_default[]')]
+        
+        medicine = get_object_or_404(Medicine, id=medicine_id)
+
+        # --- Normalize inputs ---
+        # Convert pairs to tuples: (value, unit)
+        new_dosages = list(zip(dosage_values, units, is_defaults))
+
+        # --- Step 1: Check duplicates within the request itself ---
+        seen = set()
+        duplicates = []
+        for value, unit, _ in new_dosages:
+            key = (value.strip(), unit)
+            if key in seen:
+                duplicates.append(key)
+            seen.add(key)
+
+        if duplicates:
+            return JsonResponse({
+                'success': False,
+                'message': f'Duplicate entries found in request: {duplicates}'
+            })
+
+        # --- Step 2: Check against existing records in DB ---
+        existing = MedicineDosage.objects.filter(
+            medicine=medicine,
+            dosage_value__in=dosage_values,
+            unit_id__in=units
+        ).values_list("dosage_value", "unit_id")
+
+        existing_set = {(val, str(unit)) for val, unit in existing}
+
+        conflicts = [
+            (val, unit) for val, unit, _ in new_dosages
+            if (val, unit) in existing_set
+        ]
+        if conflicts:
+            return JsonResponse({
+                'success': False,
+                'message': f'These dosages already exist: {conflicts}'
+            })
+
+        # --- Step 3: Handle default flag ---
+        has_default = any(is_defaults)
+        if has_default:
+            MedicineDosage.objects.filter(medicine=medicine, is_default=True).update(is_default=False)
+
+        # --- Step 4: Insert records safely ---
+        with transaction.atomic():
+            dosages = []
+            default_set = False
+            for value, unit, default_flag in new_dosages:
+                # Only one default allowed
+                is_default = default_flag and not default_set
+                if is_default:
+                    default_set = True
+
+                dosages.append(MedicineDosage(
+                    medicine=medicine,
+                    dosage_value=value.strip(),
+                    unit_id=unit,
+                    is_default=is_default
+                ))
+
+            MedicineDosage.objects.bulk_create(dosages)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'{len(dosages)} dosage options added successfully!'
+        })
+
+    except IntegrityError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Integrity error: duplicate or invalid dosage detected.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error adding dosages: {str(e)}'
+        })
+
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def edit_dosage(request):
+    """
+    AJAX view to edit an existing dosage
+    """
+    try:
+        dosage_id = request.POST.get('dosage_id')
+        dosage_value = request.POST.get('dosage_value')
+        unit_id = request.POST.get('unit')  # This is the ID, not the instance
+        is_default = request.POST.get('is_default') == 'True'
+        
+        dosage = get_object_or_404(MedicineDosage, id=dosage_id)
+        medicine = dosage.medicine
+        
+        # Get the MedicineUnitMeasure instance
+        unit_instance = get_object_or_404(MedicineUnitMeasure, id=unit_id)
+        
+        # If setting as default, remove default status from other dosages
+        if is_default and not dosage.is_default:
+            MedicineDosage.objects.filter(medicine=medicine, is_default=True).update(is_default=False)
+        
+        # Update dosage
+        dosage.dosage_value = dosage_value
+        dosage.unit = unit_instance  # Assign the instance, not the ID
+        dosage.is_default = is_default
+        dosage.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Dosage updated successfully!'
+        })
+        
+    except IntegrityError:
+        return JsonResponse({
+            'success': False,
+            'message': 'A dosage with these values already exists for this medicine.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error updating dosage: {str(e)}'
+        })
+
+@csrf_exempt
+@require_POST
+@login_required
+def delete_dosage(request):
+    """
+    AJAX view to delete a dosage
+    """
+    try:
+        dosage_id = request.POST.get('dosage_id')
+        dosage = get_object_or_404(MedicineDosage, id=dosage_id)
+        
+        # Don't allow deletion of default dosage
+        if dosage.is_default:
+            return JsonResponse({
+                'success': False,
+                'message': 'Cannot delete the default dosage. Set another dosage as default first.'
+            })
+            
+        dosage.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Dosage deleted successfully!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error deleting dosage: {str(e)}'
+        })
+
+@csrf_exempt
+@require_POST
+@login_required
+def set_default_dosage(request):
+    """
+    AJAX view to set a dosage as default
+    """
+    try:
+        dosage_id = request.POST.get('dosage_id')
+        dosage = get_object_or_404(MedicineDosage, id=dosage_id)
+        
+        # Remove default status from other dosages
+        MedicineDosage.objects.filter(
+            medicine=dosage.medicine, 
+            is_default=True
+        ).update(is_default=False)
+        
+        # Set this dosage as default
+        dosage.is_default = True
+        dosage.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Default dosage updated successfully!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error setting default dosage: {str(e)}'
+        })        
+
 @login_required    
 def medicine_routes(request):
     routes = MedicineRoute.objects.all()
     return render(request, 'hod_template/medicine_routes.html', {'routes': routes}) 
 
+@csrf_exempt
+@require_POST
+@login_required
 def add_medicine_route(request):
     try:
-        if request.method == 'POST':
-            # Get form data
-            name = request.POST.get('names').strip()
-            explanation = request.POST.get('explanation')
-            medicine_route_id = request.POST.get('route_id')  # Check for the ID
+        # Get form data
+        name = request.POST.get('name', '').strip()
+        explanation = request.POST.get('explanation')
+        medicine_route_id = request.POST.get('route_id')  # For editing existing route
+
+        if not name:
+            return JsonResponse({'success': False, 'message': 'Name is required'})
+
+        # Track the staff member
+        staff_member = request.user.staff 
+        
+        if not staff_member:
+            return JsonResponse({'success': False, 'message': 'Staff member not found for this user'})
+
+        # If editing an existing record
+        if medicine_route_id:
+            if MedicineRoute.objects.filter(name=name).exclude(id=medicine_route_id).exists():
+                return JsonResponse({'success': False, 'message': 'Medicine route with this name already exists'})
             
-            # If ID is provided, check if it's an existing medicine route
-            if medicine_route_id:
-                if MedicineRoute.objects.filter(name=name).exclude(id=medicine_route_id).exists():
-                    return JsonResponse({'success': False, 'message': 'Medicine route with this name already exists'})
-                try:
-                    medicine_route = MedicineRoute.objects.get(pk=medicine_route_id)
-                    # Update existing medicine route
-                    medicine_route.name = name
-                    medicine_route.explanation = explanation
-                    medicine_route.save()
-                    return JsonResponse({'success': True, 'message': 'Medicine route updated successfully'})
-                except MedicineRoute.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': 'Medicine route does not exist'})
-            else:
-                # Check if the name already exists
-                if MedicineRoute.objects.filter(name=name).exists():
-                    return JsonResponse({'success': False, 'message': 'Medicine route with this name already exists'})
-                
-                # Create new MedicineRoute
-                MedicineRoute.objects.create(name=name, explanation=explanation)
-                return JsonResponse({'success': True, 'message': 'Medicine route added successfully'})
-        else:
-            return JsonResponse({'success': False, 'message': 'Invalid request method'})
+            medicine_route = get_object_or_404(MedicineRoute, pk=medicine_route_id)
+            medicine_route.name = name
+            medicine_route.explanation = explanation
+            medicine_route.data_recorder = staff_member  # Track who last modified
+            medicine_route.save()
+            return JsonResponse({'success': True, 'message': 'Medicine route updated successfully'})
+        
+        # Creating a new record
+        if MedicineRoute.objects.filter(name=name).exists():
+            return JsonResponse({'success': False, 'message': 'Medicine route with this name already exists'})
+        
+        MedicineRoute.objects.create(
+            name=name,
+            explanation=explanation,
+            data_recorder=staff_member
+        )
+        return JsonResponse({'success': True, 'message': 'Medicine route added successfully'})
+    
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+
     
 def delete_medicine_route(request):
     try:
@@ -1987,50 +3521,81 @@ def medicine_unit_measures(request):
     measures = MedicineUnitMeasure.objects.all()
     return render(request, 'hod_template/medicine_unit_measures.html', {'measures': measures}) 
 
+
 @csrf_exempt
 @require_POST
+@login_required
 def add_medicine_unit_measure(request):
+    """
+    Create or update a MedicineUnitMeasure entry.
+    Tracks the staff/HOD who recorded or updated the entry.
+    """
     try:
-        # Get form data
+        # =======================
+        # 1. Get form data
+        # =======================
         name = request.POST.get('name')
         short_name = request.POST.get('short_name')
-        application_user = request.POST.get('application_user')
-        
-        if not name or not short_name or not application_user:
-            return JsonResponse({'success': False, 'message': 'All fields are required'})
+        unit_measure_id = request.POST.get('unit_measure_id')  # for updates
 
-        # Check if the medicine unit measure ID is provided (for editing existing record)
-        unit_measure_id = request.POST.get('unit_measure_id')
+        if not name or not short_name:
+            return JsonResponse({
+                'success': False,
+                'message': 'Both name and short name are required.'
+            })
 
+        # =======================
+        # 2. Identify staff member
+        # =======================
+        staff_member = request.user.staff 
+
+        if not staff_member:
+            return JsonResponse({
+                'success': False,
+                'message': 'Unable to determine staff member for this user.'
+            })
+
+        # =======================
+        # 3. Update existing record
+        # =======================
         if unit_measure_id:
-            # Get the existing medicine unit measure instance
             unit_measure = get_object_or_404(MedicineUnitMeasure, pk=unit_measure_id)
-            
-            # Check if the name or short_name already exists for another instance
+
+            # Check duplicates excluding current record
             if MedicineUnitMeasure.objects.filter(name=name).exclude(pk=unit_measure_id).exists():
-                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this name already exists'})
+                return JsonResponse({'success': False, 'message': 'A unit with this name already exists.'})
             if MedicineUnitMeasure.objects.filter(short_name=short_name).exclude(pk=unit_measure_id).exists():
-                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this short name already exists'})
-            
-            # Update the existing instance
+                return JsonResponse({'success': False, 'message': 'A unit with this short name already exists.'})
+
+            # Update fields
             unit_measure.name = name
             unit_measure.short_name = short_name
-            unit_measure.application_user = application_user
+            unit_measure.data_recorder = staff_member  # track who updated
             unit_measure.save()
-            return JsonResponse({'success': True, 'message': 'Medicine unit measure updated successfully'})
+
+            return JsonResponse({'success': True, 'message': 'Medicine unit measure updated successfully.'})
+
+        # =======================
+        # 4. Create new record
+        # =======================
         else:
-            # Check if the name or short_name already exists
+            # Check duplicates
             if MedicineUnitMeasure.objects.filter(name=name).exists():
-                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this name already exists'})
+                return JsonResponse({'success': False, 'message': 'A unit with this name already exists.'})
             if MedicineUnitMeasure.objects.filter(short_name=short_name).exists():
-                return JsonResponse({'success': False, 'message': 'Medicine unit measure with this short name already exists'})
-            
-            # Create new MedicineUnitMeasure
-            MedicineUnitMeasure.objects.create(name=name, short_name=short_name, application_user=application_user)
-            return JsonResponse({'success': True, 'message': 'Medicine unit measure added successfully'})
+                return JsonResponse({'success': False, 'message': 'A unit with this short name already exists.'})
+
+            # Create new entry
+            MedicineUnitMeasure.objects.create(
+                name=name,
+                short_name=short_name,
+                data_recorder=staff_member
+            )
+
+            return JsonResponse({'success': True, 'message': 'Medicine unit measure added successfully.'})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}) 
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
     
 
       
@@ -2412,7 +3977,7 @@ def download_all_procedures_pdf(request, patient_mrn, visit_vst):
 def download_lab_result_pdf(request, lab_id):
     # Fetch the lab order or return 404 if not found
     lab = get_object_or_404(
-        LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+                    LaboratoryOrder.objects.select_related('patient', 'visit', 'data_recorder', 'lab_test'),
         id=lab_id
     )
 
@@ -2457,7 +4022,7 @@ def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
 
     # Fetch all laboratory orders for this patient and visit
     lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related(
-        'name', 'data_recorder'
+        'lab_test', 'data_recorder'
     )
 
     if not lab_tests.exists():
@@ -2606,7 +4171,7 @@ def download_consultation_summary_pdf(request, patient_id, visit_id):
     imaging_records = ImagingRecord.objects.filter(patient=patient, visit=visit).select_related('imaging', 'data_recorder')
 
     # NEW: Add Laboratory Orders
-    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+    lab_tests = LaboratoryOrder.objects.filter(patient=patient, visit=visit).select_related('lab_test', 'data_recorder')
 
     # Prepare context
     context = {

@@ -1,0 +1,638 @@
+{% extends 'hod_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+System Activity Log
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "hod_template/modal_form.html" %}
+<a class="btn btn-gradient float-right" type="button" href="#">
+    <i class="fas fa-file-export mr-2"></i> Export Activities
+</a>
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    .card-gradient {
+        background: linear-gradient(120deg, #4a148c, #7b1fa2);
+        color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .card-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .activity-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .activity-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .filter-btn {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .filter-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .activity-table th {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        color: #4a148c;
+        font-weight: 600;
+    }
+    .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+    }
+    .fa-history {
+        font-size: 1.5rem;
+        color: #4a148c;
+    }
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 1.2rem;
+    }
+    .activity-type-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: white;
+    }
+    .badge-login {
+        background: linear-gradient(120deg, #43a047, #1b5e20);
+    }
+    .badge-logout {
+        background: linear-gradient(120deg, #e53935, #b71c1c);
+    }
+    .badge-create {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+    }
+    .badge-update {
+        background: linear-gradient(120deg, #f57c00, #e65100);
+    }
+    .badge-delete {
+        background: linear-gradient(120deg, #5e35b1, #4527a0);
+    }
+    .date-badge {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        background: #f5f5f5;
+        color: #666;
+    }
+    .detail-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .detail-card-header {
+        background: linear-gradient(120deg, #7e57c2, #5e35b1);
+        color: white;
+        padding: 10px 15px;
+        font-weight: 600;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        padding: 15px;
+    }
+    .info-item {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    .info-label {
+        font-weight: 600;
+        color: #555;
+        min-width: 120px;
+        display: inline-block;
+    }
+    .info-value {
+        color: #333;
+        word-break: break-word;
+    }
+    .object-link {
+        color: #5e35b1;
+        font-weight: 500;
+        text-decoration: none;
+    }
+    .object-link:hover {
+        text-decoration: underline;
+    }
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+    .icon-login { background: #43a047; }
+    .icon-logout { background: #e53935; }
+    .icon-create { background: #1e88e5; }
+    .icon-update { background: #f57c00; }
+    .icon-delete { background: #5e35b1; }
+</style>
+
+<!-- Global alert container -->
+<div class="alert-container" id="globalAlertContainer"></div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card card-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-history mr-2"></i>System Activity Log</h5>
+                        <div class="d-flex">
+                            <button class="btn btn-light btn-sm mr-2" onclick="location.reload()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="filterDropdown">
+                                    <a class="dropdown-item filter-option" href="#" data-filter="all">All Activities</a>
+                                    <a class="dropdown-item filter-option" href="#" data-filter="login">Logins</a>
+                                    <a class="dropdown-item filter-option" href="#" data-filter="logout">Logouts</a>
+                                    <a class="dropdown-item filter-option" href="#" data-filter="create">Creations</a>
+                                    <a class="dropdown-item filter-option" href="#" data-filter="update">Updates</a>
+                                    <a class="dropdown-item filter-option" href="#" data-filter="delete">Deletions</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filter Section -->
+                    <div class="filter-section">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <div class="form-group">
+                                    <label for="dateFrom">Date From</label>
+                                    <input type="date" class="form-control" id="dateFrom">
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-group">
+                                    <label for="dateTo">Date To</label>
+                                    <input type="date" class="form-control" id="dateTo">
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-group">
+                                    <label for="userFilter">User</label>
+                                    <select class="form-control" id="userFilter">
+                                        <option value="">All Users</option>
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-group">
+                                    <label for="typeFilter">Activity Type</label>
+                                    <select class="form-control" id="typeFilter">
+                                        <option value="">All Types</option>
+                                        <option value="login">Login</option>
+                                        <option value="logout">Logout</option>
+                                        <option value="create">Create</option>
+                                        <option value="update">Update</option>
+                                        <option value="delete">Delete</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-12 text-right">
+                                <button class="btn btn-primary filter-btn" id="applyFilters">
+                                    <i class="fas fa-filter mr-2"></i> Apply Filters
+                                </button>
+                                <button class="btn btn-secondary filter-btn" id="resetFilters">
+                                    <i class="fas fa-redo mr-2"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover activity-table" id="activityTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th><i class="fas fa-calendar-alt mr-2"></i>Timestamp</th>
+                                    <th><i class="fas fa-user mr-2"></i>User</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Activity Type</th>
+                                    <th><i class="fas fa-cube mr-2"></i>Object Type</th>
+                                    <th><i class="fas fa-signature mr-2"></i>Object</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th class="text-center"><i class="fas fa-info-circle mr-2"></i>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-table-body">
+                                {% for activity in activities %}
+                                <tr class="activity-card" data-type="{{ activity.activity_type }}">
+                                    <td>
+                                        <span class="date-badge">{{ activity.timestamp|date:'d M Y' }}</span>
+                                        <div class="small mt-1">
+                                            {{ activity.timestamp|time }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm mr-2 bg-light-primary rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ activity.user.get_full_name }}</strong>
+                                                <div class="small">{{ activity.user_role }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="activity-type-badge badge-{{ activity.activity_type }}">
+                                            {{ activity.get_activity_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if activity.content_type %}
+                                        <span class="badge badge-info">{{ activity.content_type.name }}</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if activity.safe_object_str %}
+                                        <a href="#" class="object-link" data-toggle="modal" data-target="#objectDetailModal{{ activity.id }}">
+                                            {{ activity.safe_object_str }}
+                                        </a>
+                                        {% else %}
+                                        <span>Object deleted</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if activity.patient %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm mr-2 bg-light-success rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user-injured text-success"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ activity.patient_name }}</strong>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-outline-info action-btn" 
+                                                data-toggle="modal" 
+                                                data-target="#activityDetailModal{{ activity.id }}">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for activity in activities %}
+<!-- Activity Detail Modal -->
+<div class="modal fade" id="activityDetailModal{{ activity.id }}" tabindex="-1" role="dialog" aria-labelledby="activityDetailModalLabel{{ activity.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header modal-header-secondary py-3">
+            <h5 class="modal-title text-white">
+                <i class="fas fa-history mr-2"></i>Activity Details
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-info-circle mr-2"></i>Basic Information
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Activity ID:</span>
+                        <span class="info-value">#{{ activity.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Timestamp:</span>
+                        <span class="info-value">{{ activity.timestamp }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Activity Type:</span>
+                        <span class="activity-type-badge badge-{{ activity.activity_type }}">
+                            {{ activity.get_activity_type_display }}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Performed By:</span>
+                        <span class="info-value">
+                            {{ activity.user.get_full_name }} ({{ activity.user.username }})
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Role:</span>
+                        <span class="info-value">{{ activity.user_role }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Workplace:</span>
+                        <span class="info-value">{{ activity.user_workplace }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-cube mr-2"></i>Object Information
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Object Type:</span>
+                        <span class="info-value">
+                            {% if activity.content_type %}
+                                {{ activity.content_type.name }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Object ID:</span>
+                        <span class="info-value">
+                            {% if activity.object_id %}
+                                {{ activity.object_id }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Object Representation:</span>
+                        <span class="info-value">
+                            {% if activity.safe_object_str %}
+                                {{ activity.safe_object_str }}
+                            {% else %}
+                                Object has been deleted
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Related Patient:</span>
+                        <span class="info-value">
+                            {% if activity.patient %}
+                                {{ activity.patient.full_name }} ({{ activity.patient.mrn }})
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if activity.details %}
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-file-alt mr-2"></i>Activity Details
+                </div>
+                <div class="info-grid">
+                    {% if activity.activity_type == 'login' or activity.activity_type == 'logout' %}
+                    <div class="info-item">
+                        <span class="info-label">IP Address:</span>
+                        <span class="info-value">{{ activity.details.ip }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">User Agent:</span>
+                        <span class="info-value">{{ activity.details.user_agent }}</span>
+                    </div>
+                    {% else %}
+                        {% if activity.activity_type == 'update' and activity.details.changed_fields %}
+                        <div class="info-item">
+                            <span class="info-label">Changed Fields:</span>
+                            <span class="info-value">
+                                <ul>
+                                    {% for field in activity.details.changed_fields %}
+                                    <li>{{ field.field }}:
+                                        <span class="text-danger">"{{ field.old }}"</span> → 
+                                        <span class="text-success">"{{ field.new }}"</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </span>
+                        </div>
+                        {% elif activity.activity_type == 'delete' %}
+                        <div class="info-item">
+                            <span class="info-label">Deleted Object:</span>
+                            <span class="info-value">{{ activity.details.deleted_object }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Model:</span>
+                            <span class="info-value">{{ activity.details.model }}</span>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Object Detail Modal -->
+{% if activity.safe_object_str %}
+<div class="modal fade" id="objectDetailModal{{ activity.id }}" tabindex="-1" role="dialog" aria-labelledby="objectDetailModalLabel{{ activity.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header modal-header-secondary py-3">
+            <h5 class="modal-title text-white">
+                <i class="fas fa-cube mr-2"></i>Object Details: {{ activity.content_type.name }}
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-info-circle mr-2"></i>Object Information
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Type:</span>
+                        <span class="info-value">{{ activity.content_type.name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">ID:</span>
+                        <span class="info-value">{{ activity.object_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Representation:</span>
+                        <span class="info-value">{{ activity.safe_object_str }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-list mr-2"></i>Object Details
+                </div>
+                <div class="info-grid">
+                    {% for field, value in activity.safe_object_str.get_fields_dict.items %}
+                    <div class="info-item">
+                        <span class="info-label">{{ field|title }}:</span>
+                        <span class="info-value">
+                            {% if value %}
+                                {{ value }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <a href="#" class="btn btn-primary">
+                <i class="fas fa-edit mr-2"></i> Edit Object
+            </a>
+        </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<script>
+    $(document).ready(function() {      
+        // Add hover effect to table rows
+        $('#activityTable tbody tr').hover(
+            function() {
+                $(this).css('transform', 'translateY(-2px)');
+                $(this).css('box-shadow', '0 8px 25px rgba(0,0,0,0.15)');
+            },
+            function() {
+                $(this).css('transform', '');
+                $(this).css('box-shadow', '0 4px 15px rgba(0,0,0,0.08)');
+            }
+        );
+        
+        // Function to show alert in the global container
+        function showAlert(message, type) {
+            var alertClass = 'alert-' + type;
+            var alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            $('#globalAlertContainer').html(alertHtml);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+        
+        // Apply filters
+        $('#applyFilters').click(function() {
+            const dateFrom = $('#dateFrom').val();
+            const dateTo = $('#dateTo').val();
+            const userId = $('#userFilter').val();
+            const activityType = $('#typeFilter').val();
+            
+            // Filter logic would be implemented here
+            // This would typically be an AJAX call to the server
+            showAlert('Filters applied successfully!', 'success');
+        });
+        
+        // Reset filters
+        $('#resetFilters').click(function() {
+            $('#dateFrom').val('');
+            $('#dateTo').val('');
+            $('#userFilter').val('');
+            $('#typeFilter').val('');
+            showAlert('Filters reset successfully!', 'info');
+        });
+        
+        // Filter by activity type in dropdown
+        $('.filter-option').click(function(e) {
+            e.preventDefault();
+            const filterType = $(this).data('filter');
+            
+            if (filterType === 'all') {
+                $('.activity-card').show();
+            } else {
+                $('.activity-card').hide();
+                $(`.activity-card[data-type="${filterType}"]`).show();
+            }
+            
+            showAlert(`Showing ${filterType === 'all' ? 'all' : filterType} activities`, 'info');
+        });
+    });
+</script>
+{% include 'hod_template/datatable.html' %}
+<script>
+    new DataTable('#activityTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        order: [[0, 'desc']],
+        pageLength: 25,
+        responsive: true,
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search activities...",
+            paginate: {
+                previous: '<i class="fas fa-chevron-left"></i>',
+                next: '<i class="fas fa-chevron-right"></i>'
+            }
+        }
+    });
+</script>
+{% endblock main_content %}

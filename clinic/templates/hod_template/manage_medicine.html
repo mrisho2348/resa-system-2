@@ -1,133 +1,653 @@
 {% extends 'hod_template/base_template.html' %}
-
+{% load customfilter %}
 {% block title %}
-   All medicine
+   Premium Medicine Inventory
 {% endblock title %}
 
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
-
-<a class="btn btn-success float-right mr-2" href="{% url 'admin_download_medicine_excel_template' %}">
-    <i class="fas fa-download"></i> download template
-  </a>
-<a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addMedicineModal">
-    <i class="fas fa-plus"></i> New medicine
-</a>
-<!-- Add Import insurance link and modal trigger -->
-<a class="btn btn-success float-right mr-2" href="{% url 'admin_import_medicine_records' %}">
-  <i class="fas fa-file-import"></i> Import medicine
-</a>
 {% endblock breadcrumb %}
-
 
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Medicine Inventory Styling */
+    .med-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .med-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .med-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .med-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .med-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .med-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .med-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .med-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .med-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .med-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .med-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .med-prem-input-group label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .med-prem-input-group .form-control {
+        border: 1px solid #BBDEFB;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .med-prem-input-group .form-control:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.25);
+    }
+    
+    .med-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .med-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .med-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .med-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .med-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .med-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .med-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .med-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .med-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .med-prem-badge-primary {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .med-prem-badge-high {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .med-prem-badge-medium {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+    }
+    
+    .med-prem-badge-low {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .med-prem-badge-valid {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .med-prem-badge-warning {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+    }
+    
+    .med-prem-badge-danger {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .med-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .med-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .med-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .med-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .med-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .med-prem-status-btn[data-status="high"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .med-prem-status-btn[data-status="medium"] {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+    }
+    
+    .med-prem-status-btn[data-status="low"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    /* Floating Action Button */
+    .med-prem-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 6px 20px rgba(26, 42, 108, 0.4);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .med-prem-fab:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 10px 25px rgba(26, 42, 108, 0.6);
+    }
+    
+    /* Flip card effect for action buttons */
+    .med-prem-flip-btn {
+        perspective: 1000px;
+        width: 40px;
+        height: 40px;
+        margin: 0 5px;
+    }
+    
+    .med-prem-flip-btn-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    
+    .med-prem-flip-btn:hover .med-prem-flip-btn-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .med-prem-flip-btn-front, .med-prem-flip-btn-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .med-prem-flip-btn-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .med-prem-flip-btn-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    /* Animation for view switching */
+    @keyframes medPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .med-prem-animated {
+        animation: medPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Enhanced modal styles */
+    .med-prem-modal-body {
+        padding: 2rem;
+    }
+    
+    .med-prem-modal-section {
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .med-prem-modal-section-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .med-prem-modal-section-body {
+        padding: 1.5rem;
+        background: white;
+    }
+    
+    .med-prem-stock-indicator {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+    
+    .med-prem-stock-progress {
+        height: 100%;
+        border-radius: 4px;
+    }
+    
+    /* Premium progress bars */
+    .med-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .med-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        transition: width 0.6s ease;
+    }
+    
+    /* Premium chart container */
+    .med-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    /* Route badge styling */
+    .med-prem-route-badge {
+        background: linear-gradient(120deg, #5D4037, #8D6E63);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        margin-top: 4px;
+        display: inline-block;
+    }
+</style>
+
+<!-- Floating Action Button -->
+<div class="med-prem-fab" data-toggle="modal" data-target="#addMedicineModal">
+    <i class="fas fa-plus"></i>
+</div>
+
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> All medicine </h6>
+        <div class="col-md-12">
+            <div class="card med-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-pills mr-2"></i>Premium Medicine Inventory Management</h5>                        
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card med-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Medicines</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="med-prem-summary-value" id="total-medicines">{{ medicines|length }}</div>
+                                    <div class="med-prem-summary-label">All Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card med-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-boxes mr-2"></i>High Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="med-prem-summary-value" id="high-stock">0</div>
+                                    <div class="med-prem-summary-label">Well Stocked</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card med-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Low Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="med-prem-summary-value" id="low-stock">0</div>
+                                    <div class="med-prem-summary-label">Need Reorder</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card med-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Total Investment</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="med-prem-summary-value">TSh {{ total_investment|floatformat:2 }}</div>
+                                    <div class="med-prem-summary-label">Inventory Value</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stock Chart (Mini) -->
+                    <div class="med-prem-chart-container mb-4">
+                        <h6 class="mb-3"><i class="fas fa-chart-pie mr-2"></i>Stock Overview</h6>
+                        <div class="med-prem-progress mb-2">
+                            <div class="med-prem-progress-bar" style="width: 65%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>High Stock: <span id="chart-high">0</span></small>
+                            <small>Medium Stock: <span id="chart-medium">0</span></small>
+                            <small>Low Stock: <span id="chart-low">0</span></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="med-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="med-prem-status-filter">
+                                <button class="med-prem-status-btn active" data-status="all">All Medicines</button>
+                                <button class="med-prem-status-btn" data-status="high">High Stock</button>
+                                <button class="med-prem-status-btn" data-status="medium">Medium Stock</button>
+                                <button class="med-prem-status-btn" data-status="low">Low Stock</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search medicines..." id="medPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn med-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive med-prem-table-container">
+                        <table class="table table-hover text-nowrap med-prem-table" id="medicineTable">
                             <thead>
                                 <tr>
-                                    <th>Drug Name</th>
-                                    <th>Drug Type</th>
-                                    <th>Formulation Unit</th>
-                                    <th>Manufacturer</th>
-                                    <th>Remaining Quantity</th>
-                                    <th>Quantity</th>
-                                    <th>Dividable</th>
-                                    <th>Dividing unit</th>
-                                    <th>Batch Number</th>
-                                    <th>Expiration Date</th>
-                                    <th>Cash Cost</th>
-                                    <th>Insurance Cost</th>
-                                    <th>NHIF Cost</th>
-                                    <th>Buying Price</th>
-                                    <th>Total Buying Price</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>                           
-                                    <th>Action</th>              
+                                    <th><i class="fas fa-pills mr-2"></i>Drug Name</th>
+                                    <th><i class="fas fa-capsules mr-2"></i>Drug Type</th>
+                                    <th><i class="fas fa-industry mr-2"></i>Manufacturer</th>
+                                    <th><i class="fas fa-weight mr-2"></i>Formulation</th>
+                                    <th><i class="fas fa-route mr-2"></i>Route</th>                          
+                                    <th><i class="fas fa-boxes mr-2"></i>Quantity</th>
+                                    <th><i class="fas fa-cut mr-2"></i>Dividable</th>                        
+                                    <th><i class="fas fa-calendar-times mr-2"></i>Expiration Date</th>
+                                    <th><i class="fas fa-money-bill-wave mr-2"></i>Buying Price</th>
+                                    <th><i class="fas fa-money-bill mr-2"></i>Cash Cost</th>
+                                    <th><i class="fas fa-file-invoice-dollar mr-2"></i>Insurance Cost</th>
+                                    <th><i class="fas fa-hand-holding-usd mr-2"></i>NHIF Cost</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>              
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for medicine in medicines %}
-                                    <tr>
-                                        <td>{{ medicine.drug_name }}</td>
-                                        <td>{{ medicine.drug_type }}</td>
-                                        <td>{{ medicine.formulation_unit }}</td>
-                                        <td>{{ medicine.manufacturer }}</td>
-                                        <td>{{ medicine.remain_quantity }}</td>
-                                        <td>{{ medicine.quantity }}</td>
-                                        <td>{{ medicine.is_dividable }}</td>
-                                        <td>{{ medicine.dividing_unit }}</td>
-                                        <td>{{ medicine.batch_number }}</td>
-                                        <td>{{ medicine.expiration_date|date:"d/m/Y" }}</td>
-                                        <td>{{ medicine.cash_cost }}</td>
-                                        <td>{{ medicine.insurance_cost }}</td>
-                                        <td>{{ medicine.nhif_cost }}</td>
-                                        <td>{{ medicine.buying_price }}</td>
-                                        <td>{{ medicine.total_buying_price }}</td>
-                                        <td>{{ medicine.created_at|date:"d/m/Y" }}</td>
-                                        <td>{{ medicine.updated_at|date:"d/m/Y" }}</td>
+                                    <tr data-stock="{% if medicine.remain_quantity <= medicine.quantity|add:'0'|multiply:0.2 %}low{% elif medicine.remain_quantity <= medicine.quantity|add:'0'|multiply:0.5 %}medium{% else %}high{% endif %}">
                                         <td>
-                                          <button class="btn btn-dark btn-sm" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Edit">
-                                            <i class="fa fa-edit text-white"></i>
-                                        </button>
-                                          <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteMedicineModal{{ medicine.id }}"  data-toggle="tooltip" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                     
-                                                      
+                                            <div class="d-flex align-items-center">
+                                                <div class="med-prem-avatar">
+                                                    <i class="fas fa-pills"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ medicine.drug_name }}</strong>
+                                                    <div class="text-muted small">Batch: {{ medicine.batch_number }}</div>
+                                                </div>
+                                            </div>
                                         </td>
-                                    </tr>                                      
-                                   <!-- Delete Medicine Modal -->
-                                        <div class="modal fade" id="deleteMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
-                                            <div class="modal-dialog" role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="deleteMedicineModalLabel{{ medicine.id }}">Delete Medicine</h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <p>Are you sure you want to delete {{ medicine.drug_name }}?</p>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                                        <a href="#" onclick="deleteMedicine({{ medicine.id }})" class="btn btn-danger">Delete</a>
+                                        <td>{{ medicine.drug_type.name|default:"N/A" }}</td>
+                                        <td>{{ medicine.manufacturer }}</td>
+                                        <td>{{ medicine.formulation_value }} {{ medicine.formulation_unit.short_name }}</td>
+                                        <td>
+                                            {% if medicine.route %}
+                                                <span class="med-prem-route-badge">{{ medicine.route.name }}</span>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>                                
+                                        <td>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Total:</span>
+                                                <span>{{ medicine.quantity }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Remaining:</span>
+                                                <span class="font-weight-bold">{{ medicine.remain_quantity }}</span>
+                                            </div>
+                                            <div class="med-prem-stock-indicator">
+                                                <div class="med-prem-stock-progress bg-success" style="width: {% widthratio medicine.remain_quantity medicine.quantity 100 %}%"></div>
+                                            </div>
+                                            {% if medicine.remain_quantity <= medicine.quantity|add:"0"|multiply:0.2 %}
+                                                <span class="med-prem-badge med-prem-badge-low mt-1">Low Stock</span>
+                                            {% elif medicine.remain_quantity <= medicine.quantity|add:"0"|multiply:0.5 %}
+                                                <span class="med-prem-badge med-prem-badge-medium mt-1">Medium Stock</span>
+                                            {% else %}
+                                                <span class="med-prem-badge med-prem-badge-high mt-1">High Stock</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if medicine.is_dividable %}
+                                                <span class="badge badge-success">Yes</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">No</span>
+                                            {% endif %}
+                                        </td>                                     
+                                        <td>
+                                            {{ medicine.expiration_date|date:"d/m/Y" }}
+                                            {% if medicine.is_expired %}
+                                                <span class="med-prem-badge med-prem-badge-danger d-block mt-1">Expired</span>
+                                            {% else %}
+                                                {% now "Y-m-d" as today %}
+                                                {% with expiration=medicine.expiration_date|date:"Y-m-d" %}
+                                                    {% if today > expiration %}
+                                                        <span class="med-prem-badge med-prem-badge-danger d-block mt-1">Expired</span>
+                                                    {% else %}
+                                                        {% with days_until_expire=medicine.days_until_expire %}
+                                                            {% if days_until_expire <= 30 %}
+                                                                <span class="med-prem-badge med-prem-badge-warning d-block mt-1">Expiring Soon</span>
+                                                            {% else %}
+                                                                <span class="med-prem-badge med-prem-badge-valid d-block mt-1">Valid</span>
+                                                            {% endif %}
+                                                        {% endwith %}
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% endif %}
+                                        </td>
+                                        <td>TSh {{ medicine.buying_price|floatformat:2 }}</td>
+                                        <td>TSh {{ medicine.cash_cost|floatformat:2 }}</td>
+                                        <td>TSh {{ medicine.insurance_cost|floatformat:2 }}</td>
+                                        <td>TSh {{ medicine.nhif_cost|floatformat:2 }}</td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center">
+                                                <!-- Flip-style action buttons -->
+                                                <div class="med-prem-flip-btn" title="Manage Dosages">
+                                                    <div class="med-prem-flip-btn-inner">
+                                                        <div class="med-prem-flip-btn-front">
+                                                            <i class="fa fa-capsules"></i>
+                                                        </div>
+                                                        <div class="med-prem-flip-btn-back">
+                                                            <a href="{% url 'resa_admin_medicine_dosage_management' medicine.id %}" class="text-white">
+                                                                <i class="fa fa-plus"></i>
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <script>
-                                                    function deleteMedicine(medicineId) {
-                                                        $.ajax({
-                                                            url: '{% url "admin_delete_medicine" %}',  // Update the URL as per your project structure
-                                                            method: 'POST',
-                                                            data: {
-                                                                'medicine_id': medicineId
-                                                            },
-                                                            success: function (response) {
-                                                                if (response.success) {
-                                                                    $('#deleteMedicineModal' + medicineId).modal('hide');
-                                                                    location.reload(true);  // Reload the page from the server
-                                                                } else {
-                                                                    console.error('Error:', response.message);
-                                                                }
-                                                            },
-                                                            error: function (xhr, status, error) {
-                                                                console.error('Error deleting medicine:', error);
-                                                            }
-                                                        });
-                                                    }
-                                                </script>                                                
+                                                
+                                                <div class="med-prem-flip-btn" title="Edit Medicine" data-toggle="modal" data-target="#editMedicineModal{{ medicine.id }}">
+                                                    <div class="med-prem-flip-btn-inner">
+                                                        <div class="med-prem-flip-btn-front">
+                                                            <i class="fa fa-edit"></i>
+                                                        </div>
+                                                        <div class="med-prem-flip-btn-back">
+                                                            <i class="fa fa-pencil-alt"></i>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="med-prem-flip-btn" title="Delete Medicine" data-toggle="modal" data-target="#deleteMedicineModal{{ medicine.id }}">
+                                                    <div class="med-prem-flip-btn-inner">
+                                                        <div class="med-prem-flip-btn-front">
+                                                            <i class="fas fa-trash"></i>
+                                                        </div>
+                                                        <div class="med-prem-flip-btn-back">
+                                                            <i class="fas fa-times"></i>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-
+                                        </td>
+                                    </tr>                                     
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -138,342 +658,735 @@
     </div>
 </div>
 
-
-{% for medicine in medicines %}
-<div class="modal fade" id="editMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="editMedicineModalLabel{{ medicine.id }}" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMedicineModalLabel{{ medicine.id }}">Edit Medicine</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+<!-- Add Medicine Modal -->
+<div class="modal fade" id="addMedicineModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content med-prem-modal-content">
+            <div class="modal-header med-prem-modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-pills mr-2"></i>Add New Medicine</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div id="editMedicineContainers{{ medicine.id }}" class="alert" role="alert"></div>
-                <form id="editMedicineForm{{ medicine.id }}" method="POST">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="drug_name{{ medicine.id }}">Drug Name</label>
-                                <input type="text" class="form-control" id="drug_name{{ medicine.id }}" name="drug_name" value="{{ medicine.drug_name }}" required>
-                                <input type="hidden"  id="medicine_id{{ medicine.id }}" name="medicine_id" value="{{ medicine.id }}">
-                            </div>
+            <div class="modal-body med-prem-modal-body">
+                <div id="addMedicineContainers" class="alert" role="alert"></div>
+                
+                <form id="addMedicineForm" method="post">
+                    {% csrf_token %}
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-info-circle mr-2"></i>Basic Information</h6>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="drug_type{{ medicine.id }}">Drug Type</label>
-                                <select  class="form-control select2bs4" style="width: 100%;" id="drug_type{{ medicine.id }}" name="drug_type" required>
-                                    <option value="Tablet" {% if medicine.drug_type == 'Tablet' %}selected{% endif %}>Tablet</option>
-                                    <option value="Capsule" {% if medicine.drug_type == 'Capsule' %}selected{% endif %}>Capsule</option>
-                                    <option value="Injection" {% if medicine.drug_type == 'Injection' %}selected{% endif %}>Injection</option>
-                                    <option value="Ointment" {% if medicine.drug_type == 'Ointment' %}selected{% endif %}>Ointment</option>
-                                    <option value="Drops" {% if medicine.drug_type == 'Drops' %}selected{% endif %}>Drops</option>
-                                    <option value="Inhaler" {% if medicine.drug_type == 'Inhaler' %}selected{% endif %}>Inhaler</option>
-                                    <option value="Patch" {% if medicine.drug_type == 'Patch' %}selected{% endif %}>Patch</option>
-                                    <option value="Liquid" {% if medicine.drug_type == 'Liquid' %}selected{% endif %}>Liquid</option>
-                                    <option value="Cream" {% if medicine.drug_type == 'Cream' %}selected{% endif %}>Cream</option>
-                                    <option value="Gel" {% if medicine.drug_type == 'Gel' %}selected{% endif %}>Gel</option>
-                                    <option value="Suppository" {% if medicine.drug_type == 'Suppository' %}selected{% endif %}>Suppository</option>
-                                    <option value="Powder" {% if medicine.drug_type == 'Powder' %}selected{% endif %}>Powder</option>
-                                    <option value="Suspension" {% if medicine.drug_type == 'Suspension' %}selected{% endif %}>Suspension</option>
-                                    <option value="Lozenge" {% if medicine.drug_type == 'Lozenge' %}selected{% endif %}>Lozenge</option>                      
-                                    <!-- Add more options as needed -->
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="formulation_unit{{ medicine.id }}">Formulation Unit</label>
-                                <input type="text" class="form-control" id="formulation_unit{{ medicine.id }}" name="formulation_unit" value="{{ medicine.formulation_unit }}" required>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="drug_name">Drug Name</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-prescription"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="drug_name" name="drug_name" required placeholder="Enter drug name">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="drug_type">Drug Type</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-capsules"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="drug_type" name="drug_type">
+                                                <option value="">Select drug type</option>
+                                                {% for medicine_type in medicine_types %}
+                                                    <option value="{{ medicine_type.id }}">{{ medicine_type.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="formulation_value">Formulation Value</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-weight"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="formulation_value" name="formulation_value" required placeholder="e.g., 500">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="formulation_unit">Formulation Unit</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-weight"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="formulation_unit" name="formulation_unit" required>
+                                                <option value="">Select unit</option>
+                                                {% for unit in medicine_units %}
+                                                    <option value="{{ unit.id }}">{{ unit.name }} ({{ unit.short_name }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="route">Route of Administration</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-route"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="route" name="route">
+                                                <option value="">Select route</option>
+                                                {% for route in medicine_routes %}
+                                                    <option value="{{ route.id }}">{{ route.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="manufacturer">Manufacturer/Brand</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-industry"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="manufacturer" name="manufacturer" placeholder="Manufacturer name">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="is_dividable">Dividable</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-cut"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="is_dividable" name="is_dividable" required>
+                                                <option value="">Select option</option>
+                                                <option value="True">Yes</option>
+                                                <option value="False">No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="manufacturer{{ medicine.id }}">Manufacturer</label>
-                                <input type="text" class="form-control" id="manufacturer{{ medicine.id }}" name="manufacturer" value="{{ medicine.manufacturer }}" required>
-                            </div>
+                    
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-boxes mr-2"></i>Inventory Details</h6>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="quantity{{ medicine.id }}">Quantity</label>
-                                <input type="number" class="form-control" id="quantity{{ medicine.id }}" name="quantity" value="{{ medicine.quantity }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="dividable{{ medicine.id }}">Dividable</label>
-                                 <select class="form-control select2bs4 dividable-selector" style="width: 100%;"  name="is_dividable" data-id="{{ medicine.id }}" required>
-                                    <option value="True" {% if medicine.is_dividable == 'True' %}selected{% endif %}>True</option>
-                                    <option value="False" {% if medicine.is_dividable == 'False' %}selected{% endif %}>False</option>
-                                </select>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="quantity">Quantity</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-cubes"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" class="form-control" id="quantity" name="quantity" required placeholder="Total units">
+                                        </div>
+                                    </div>
+                                </div>                             
+  
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="batch_number">Batch Number</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-barcode"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="batch_number" name="batch_number" required placeholder="Batch number">
+                                        </div>
+                                    </div>
+                                </div>                                
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="expiration_date">Expiration Date</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-calendar-times"></i>
+                                                </span>
+                                            </div>
+                                            <input type="date" class="form-control" id="expiration_date" name="expiration_date" required>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                         <div class="col-md-4">
-                            <label>Dividing Unit</label>
-                            <input type="number" class="form-control" name="dividing_unit" id="dividing_unit{{ medicine.id }}" value="{{ medicine.dividing_unit }}">
+                    
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-money-bill-wave mr-2"></i>Pricing Information</h6>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="batch_number{{ medicine.id }}">Batch Number</label>
-                                <input type="text" class="form-control" id="batch_number{{ medicine.id }}" name="batch_number" value="{{ medicine.batch_number }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="expiration_date{{ medicine.id }}">Expiration Date</label>
-                                <input type="date" class="form-control" id="expiration_date{{ medicine.id }}" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="buying_price{{ medicine.id }}">Buying Price</label>
-                                <input type="number" step="0.01" class="form-control" id="buying_price{{ medicine.id }}" name="buying_price" value="{{ medicine.buying_price }}" required>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="buying_price">Buying Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="buying_price" name="buying_price" required placeholder="Cost price">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="cash_cost">Cash Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-money-bill"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="cash_cost" name="cash_cost" required placeholder="Selling price">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="insurance_cost">Insurance Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-file-invoice-dollar"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="insurance_cost" name="insurance_cost" required placeholder="Insurance price">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="nhif_cost">NHIF Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-hand-holding-usd"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="nhif_cost" name="nhif_cost" required placeholder="NHIF price">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="cash_cost{{ medicine.id }}">Cash Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="cash_cost{{ medicine.id }}" name="cash_cost" value="{{ medicine.cash_cost }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="insurance_cost{{ medicine.id }}">Insurance Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="insurance_cost{{ medicine.id }}" name="insurance_cost" value="{{ medicine.insurance_cost }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="nhif_cost{{ medicine.id }}">NHIF Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="nhif_cost{{ medicine.id }}" name="nhif_cost" value="{{ medicine.nhif_cost }}" required>
-                            </div>
-                        </div>
-                    </div>               
-                    <div class="row">                      
+                    
+                    <div class="row mt-4">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="editMedicine{{ medicine.id }}">Update Medicine</button>
+                            <button type="button" class="btn med-prem-btn-action btn-block py-3" id="addMedicine">
+                                <i class="fas fa-save mr-2"></i>Add Medicine
+                            </button>
                         </div>
-                    </div>                    
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-<script>
-    $(document).ready(function () {
-        $('#editMedicine{{ medicine.id }}').click(function (event) {
-            var form = document.getElementById('editMedicineForm{{ medicine.id }}');
-            var dividable = $('#editMedicineForm{{ medicine.id }} select[name="dividable"]').val();
-            var dividingUnitField = $('#dividing_unit{{ medicine.id }}');
 
-            // Conditionally enforce dividing unit field requirement
-            if (dividable === "True") {
-                dividingUnitField.attr('required', true);
-                if (!dividingUnitField.val().trim()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    $('#editMedicineContainers{{ medicine.id }}').html(
-                        '<div class="alert alert-danger">Please enter a dividing unit since this medicine is dividable.</div>'
-                    );
-                    dividingUnitField.focus();
-                    return;
-                }
-            } else {
-                dividingUnitField.removeAttr('required');
-            }
+{% for medicine in medicines %}
+<!-- Edit Medicine Modal -->
+<div class="modal fade" id="editMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content med-prem-modal-content">
+            <div class="modal-header med-prem-modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-edit mr-2"></i>Edit Medicine</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body med-prem-modal-body">
+                <div id="editMedicineContainers{{ medicine.id }}" class="alert" role="alert"></div>
+                
+                <form id="editMedicineForm{{ medicine.id }}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" id="medicine_id{{ medicine.id }}" name="medicine_id" value="{{ medicine.id }}">
+                    
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-info-circle mr-2"></i>Basic Information</h6>
+                        </div>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="drug_name{{ medicine.id }}">Drug Name</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-prescription"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="drug_name{{ medicine.id }}" name="drug_name" value="{{ medicine.drug_name }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="drug_type{{ medicine.id }}">Drug Type</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-capsules"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="drug_type{{ medicine.id }}" name="drug_type">
+                                                <option value="">Select drug type</option>
+                                                {% for medicine_type in medicine_types %}
+                                                    <option value="{{ medicine_type.id }}" {% if medicine.drug_type.id == medicine_type.id %}selected{% endif %}>{{ medicine_type.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="formulation_value{{ medicine.id }}">Formulation Value</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-weight"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="formulation_value{{ medicine.id }}" name="formulation_value" value="{{ medicine.formulation_value }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="formulation_unit{{ medicine.id }}">Formulation Unit</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-weight"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="formulation_unit{{ medicine.id }}" name="formulation_unit" required>
+                                                <option value="">Select unit</option>
+                                                {% for unit in medicine_units %}
+                                                    <option value="{{ unit.id }}" {% if medicine.formulation_unit.id == unit.id %}selected{% endif %}>{{ unit.name }} ({{ unit.short_name }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="route{{ medicine.id }}">Route of Administration</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-route"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="route{{ medicine.id }}" name="route">
+                                                <option value="">Select route</option>
+                                                {% for route in medicine_routes %}
+                                                    <option value="{{ route.id }}" {% if medicine.route.id == route.id %}selected{% endif %}>{{ route.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="manufacturer{{ medicine.id }}">Manufacturer</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-industry"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="manufacturer{{ medicine.id }}" name="manufacturer" value="{{ medicine.manufacturer }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="med-prem-input-group">
+                                        <label for="is_dividable{{ medicine.id }}">Dividable</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-cut"></i>
+                                                </span>
+                                            </div>
+                                            <select class="form-control select2bs4" id="is_dividable{{ medicine.id }}" name="is_dividable" required>
+                                                <option value="True" {% if medicine.is_dividable %}selected{% endif %}>Yes</option>
+                                                <option value="False" {% if not medicine.is_dividable %}selected{% endif %}>No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-boxes mr-2"></i>Inventory Details</h6>
+                        </div>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="quantity{{ medicine.id }}">Quantity</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-cubes"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" class="form-control" id="quantity{{ medicine.id }}" name="quantity" value="{{ medicine.quantity }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="batch_number{{ medicine.id }}">Batch Number</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-barcode"></i>
+                                                </span>
+                                            </div>
+                                            <input type="text" class="form-control" id="batch_number{{ medicine.id }}" name="batch_number" value="{{ medicine.batch_number }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="med-prem-input-group">
+                                        <label for="expiration_date{{ medicine.id }}">Expiration Date</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-calendar-times"></i>
+                                                </span>
+                                            </div>
+                                            <input type="date" class="form-control" id="expiration_date{{ medicine.id }}" name="expiration_date" value="{{ medicine.expiration_date|date:'Y-m-d' }}" required>
+                                        </div>
+                                        {% if medicine.is_expired %}
+                                            <span class="med-prem-badge med-prem-badge-danger mt-1">Expired</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="med-prem-modal-section mb-4">
+                        <div class="med-prem-modal-section-header">
+                            <h6 class="mb-0 text-uppercase"><i class="fas fa-money-bill-wave mr-2"></i>Pricing Information</h6>
+                        </div>
+                        <div class="med-prem-modal-section-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="buying_price{{ medicine.id }}">Buying Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="buying_price{{ medicine.id }}" name="buying_price" value="{{ medicine.buying_price }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="cash_cost{{ medicine.id }}">Cash Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-money-bill"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="cash_cost{{ medicine.id }}" name="cash_cost" value="{{ medicine.cash_cost }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="insurance_cost{{ medicine.id }}">Insurance Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-file-invoice-dollar"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="insurance_cost{{ medicine.id }}" name="insurance_cost" value="{{ medicine.insurance_cost }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="med-prem-input-group">
+                                        <label for="nhif_cost{{ medicine.id }}">NHIF Price</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-hand-holding-usd"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" step="0.01" class="form-control" id="nhif_cost{{ medicine.id }}" name="nhif_cost" value="{{ medicine.nhif_cost }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <button type="button" class="btn med-prem-btn-action btn-block py-3" id="editMedicine{{ medicine.id }}">
+                                <i class="fas fa-save mr-2"></i>Update Medicine
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-            // Validate the entire form
-            if (form.checkValidity() === false) {
-                event.preventDefault();
-                event.stopPropagation();
-            } else {
-                var formData = $('#editMedicineForm{{ medicine.id }}').serialize();
-
-                $.ajax({
-                    url: '{% url "admin_add_medicine" %}', // Make sure this is your actual update URL
-                    type: 'POST',
-                    data: formData,
-                    success: function (response) {
-                        if (response.success) {
-                            $('#editMedicineContainers{{ medicine.id }}').html(
-                                '<div class="alert alert-success">' + response.message + '</div>'
-                            );
-                            location.reload(true);
-                        } else {
-                            $('#editMedicineContainers{{ medicine.id }}').html(
-                                '<div class="alert alert-danger">' + response.message + '</div>'
-                            );
-                        }
-                    },
-                    error: function () {
-                        console.error('AJAX request failed');
-                        $('#editMedicineContainers{{ medicine.id }}').html(
-                            '<div class="alert alert-danger">AJAX request failed</div>'
-                        );
-                    }
-                });
-            }
-
-            form.classList.add('was-validated');
-        });
-    });
-</script>
+<!-- Delete Medicine Modal -->
+<div class="modal fade" id="deleteMedicineModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content med-prem-modal-content">
+            <div class="modal-header med-prem-modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-trash-alt mr-2"></i>Delete Medicine</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body med-prem-modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <h5 class="text-center">Confirm Deletion</h5>
+                <p class="text-center">Are you sure you want to delete <strong>{{ medicine.drug_name }}</strong>?</p>
+                <div class="text-center mb-3">
+                    <span class="med-prem-badge med-prem-badge-primary">Batch: {{ medicine.batch_number }}</span>
+                    <span class="med-prem-badge med-prem-badge-primary ml-2">Exp: {{ medicine.expiration_date|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <a href="#" onclick="deleteMedicine({{ medicine.id }})" class="btn med-prem-btn-action">
+                    <i class="fas fa-trash mr-1"></i> Delete
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endfor %}
 
-<!-- Add Medicine Modal -->
-<div class="modal fade" id="addMedicineModal" tabindex="-1" role="dialog" aria-labelledby="addMedicineModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addMedicineModalLabel">Add Medicine</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="addMedicineContainers" class="alert" role="alert"></div>
-                <form id="addMedicineForm" method="post">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="drug_name">Drug Name</label>
-                                <input type="text" class="form-control" id="drug_name" name="drug_name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="edit_drug_type">Drug Type</label>
-                                <select class="form-control select2bs4"  style="width: 100%;"  id="edit_drug_type" name="drug_type" required>
-                                    <option value=""></option>
-                                    <option value="Tablet">Tablet</option>
-                                    <option value="Capsule">Capsule</option>
-                                    <option value="Injection">Injection</option>
-                                    <option value="Ointment">Ointment</option>
-                                    <option value="Drops">Drops</option>
-                                    <option value="Inhaler">Inhaler</option>
-                                    <option value="Patch">Patch</option>
-                                    <option value="Liquid">Liquid</option>
-                                    <option value="Cream">Cream</option>
-                                    <option value="Gel">Gel</option>
-                                    <option value="Suppository">Suppository</option>
-                                    <option value="Powder">Powder</option>
-                                    <option value="Suspension">Suspension</option>
-                                    <option value="Lozenge">Lozenge</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="formulation_unit">Formulation Unit</label>
-                                <input type="text" class="form-control" id="formulation_unit" name="formulation_unit" required>
-                            </div>
-                        </div>
-                    </div>
+{% include 'hod_template/datatable.html' %}   
+{% endblock main_content %}
 
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="manufacturer">Manufacturer</label>
-                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="quantity">Quantity</label>
-                                <input type="number" class="form-control" id="quantity" name="quantity" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="is_dividable">Is Dividable</label>
-                                <select class="form-control select2bs4" style="width: 100%;"  id="is_dividable" name="is_dividable" required>
-                                    <option value="">Select</option>
-                                    <option value="True">True</option>
-                                    <option value="False">False</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="dividing_unit">Dividing Unit (mg/ml)</label>
-                                <input type="number" class="form-control" id="dividing_unit" name="dividing_unit" placeholder="e.g. 125">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="batch_number">Batch Number</label>
-                                <input type="text" class="form-control" id="batch_number" name="batch_number" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="expiration_date">Expiration Date</label>
-                                <input type="date" class="form-control" id="expiration_date" name="expiration_date" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="buying_price">Buying Price</label>
-                                <input type="number" step="0.01" class="form-control" id="buying_price" name="buying_price" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="cash_cost">Cash Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="cash_cost" name="cash_cost" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="insurance_cost">Insurance Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="insurance_cost" name="insurance_cost" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="nhif_cost">NHIF Cost</label>
-                                <input type="number" step="0.01" class="form-control" id="nhif_cost" name="nhif_cost" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Submit -->
-                    <div class="row">
-                        <div class="col-md-12">
-                            <button type="button" class="btn btn-primary btn-block" id="addMedicine">Add Medicine</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-
+{% block customer_js %}
 <script>
+    // Initialize DataTable
+    new DataTable('#medicineTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']]
+    });
+    
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
+        
+        document.querySelectorAll('#medicineTable tbody tr').forEach(row => {
+            const stockLevel = row.getAttribute('data-stock');
+            
+            if (stockLevel === 'high') {
+                highCount++;
+            } else if (stockLevel === 'medium') {
+                mediumCount++;
+            } else {
+                lowCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('high-stock').textContent = highCount;
+        document.getElementById('low-stock').textContent = lowCount;
+        
+        // Update chart values
+        document.getElementById('chart-high').textContent = highCount;
+        document.getElementById('chart-medium').textContent = mediumCount;
+        document.getElementById('chart-low').textContent = lowCount;
+        
+        // Update progress bar
+        const totalMedicines = highCount + mediumCount + lowCount;
+        const highPercentage = totalMedicines > 0 ? (highCount / totalMedicines) * 100 : 0;
+        document.querySelector('.med-prem-progress-bar').style.width = `${highPercentage}%`;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.med-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.med-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterMedicines(status);
+        });
+    });
+
+    // Filter medicines by status
+    function filterMedicines(status) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-stock');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('medPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.med-prem-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.med-prem-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+
+    // Filter medicines by both status and search text
+    function filterMedicinesWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-stock');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Delete Medicine function
+    function deleteMedicine(medicineId) {
+        $.ajax({
+            url: '{% url "resa_admin_delete_medicine" %}',
+            method: 'POST',
+            data: {
+                'medicine_id': medicineId,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function (response) {
+                if (response.success) {
+                    $('#deleteMedicineModal' + medicineId).modal('hide');
+                    location.reload(true);
+                } else {
+                    console.error('Error:', response.message);
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error deleting medicine:', error);
+                alert('Error deleting medicine. Please try again.');
+            }
+        });
+    }
+    
     $(document).ready(function () {
+        // Add Medicine form handling
         $('#addMedicine').click(function (event) {
             var form = document.getElementById('addMedicineForm');
             var isValid = true;
-            var isDividable = $('#is_dividable').val();
-            var dividingUnit = $('#dividing_unit').val();
 
             // Reset previous messages
             $('#addMedicineContainers').html('');
@@ -481,20 +1394,6 @@
             // Basic form validation
             if (form.checkValidity() === false) {
                 isValid = false;
-            }
-
-            // Custom validation: check if is_dividable selected
-            if (!isDividable) {
-                isValid = false;
-                $('#addMedicineContainers').append('<div class="alert alert-warning">Please select whether the drug is dividable.</div>');
-            }
-
-            // If dividable is True, dividing_unit must be a positive number
-            if (isDividable === 'True') {
-                if (!dividingUnit || isNaN(dividingUnit) || parseInt(dividingUnit) <= 0) {
-                    isValid = false;
-                    $('#addMedicineContainers').append('<div class="alert alert-warning">Please enter a valid dividing unit greater than zero.</div>');
-                }
             }
 
             if (!isValid) {
@@ -508,28 +1407,64 @@
             var formData = $('#addMedicineForm').serialize();
 
             $.ajax({
-                url: '{% url "admin_add_medicine" %}',  // Update to your URL
+                url: '{% url "resa_admin_add_medicine" %}',
                 type: 'POST',
                 data: formData,
                 success: function (response) {
                     if (response.success) {
                         $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                        location.reload(true);
+                        setTimeout(function() {
+                            location.reload(true);
+                        }, 1500);
                     } else {
                         $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
                     }
                 },
-                error: function () {
-                    console.error('AJAX request failed');
-                    $('#addMedicineContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
+                error: function (xhr, status, error) {
+                    console.error('AJAX request failed:', error);
+                    $('#addMedicineContainers').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
                 }
             });
 
             form.classList.add('was-validated');
         });
+
+        // Edit Medicine form handling
+        {% for medicine in medicines %}
+        $('#editMedicine{{ medicine.id }}').click(function (event) {
+            var form = document.getElementById('editMedicineForm{{ medicine.id }}');
+
+            // Validate the entire form
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editMedicineForm{{ medicine.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "resa_admin_add_medicine" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            setTimeout(function() {
+                                location.reload(true);
+                            }, 1500);
+                        } else {
+                            $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('AJAX request failed:', error);
+                        $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">Error: ' + xhr.responseText + '</div>');
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+        {% endfor %}        
     });
 </script>
-
-
-{% include 'hod_template/datatable.html' %}
-{% endblock main_content %}
+{% endblock %}

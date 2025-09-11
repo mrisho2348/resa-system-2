@@ -1,190 +1,352 @@
 {% extends 'receptionist_template/base_template.html' %}
+{% load static %}
 
 {% block title %}
-    Ambulance Profile
+    Ambulance Order Management
 {% endblock title %}
 
+{% block page_title %}
+    <a href="{% url 'receptionist_dashboard' %}" class="btn btn-prem-back btn-sm mb-2">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
+    </a>
+{% endblock page_title %}
+
 {% block breadcrumb %}
-    Ambulance Profile
+    Ambulance Order Management
 {% endblock breadcrumb %}
 
 {% block main_content %}
-    <section class="content">
-        <div class="container-fluid">          
-           
-          <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <form action="{% if order %}{% url 'receptionist_ambulance_order_edit' order.id %}{% else %}{% url 'receptionist_ambulance_order_create_or_update' %}{% endif %}" method="post">
-                        {% csrf_token %}
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="activities">Activities:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="activities" name="activities">
-                                            <option value="">Select Activity</option>
-                                            <option value="Sports Activity [per match]" {% if order and order.activities == "Sports Activity [per match]" %}selected{% endif %}>
-                                                Sports Activity [per match]
-                                            </option>
-                                            <option value="Conference Standby [12 hours]" {% if order and order.activities == "Conference Standby [12 hours]" %}selected{% endif %}>
-                                                Conference Standby [12 hours]
-                                            </option>
-                                            <option value="Charity Walk [12 hours]" {% if order and order.activities == "Charity Walk [12 hours]" %}selected{% endif %}>
-                                                Charity Walk [12 hours]
-                                            </option>
-                                            <option value="Festival Event [12 hours]" {% if order and order.activities == "Festival Event [12 hours]" %}selected{% endif %}>
-                                                Festival Event [12 hours]
-                                            </option>
-                                            <option value="Conference Standby [less than 3 hours]" {% if order and order.activities == "Conference Standby [less than 3 hours]" %}selected{% endif %}>
-                                                Conference Standby [less than 3 hours]
-                                            </option>
-                                            <option value="Conference Standby [9-12 hours]" {% if order and order.activities == "Conference Standby [9-12 hours]" %}selected{% endif %}>
-                                                Conference Standby [9-12 hours]
-                                            </option>
-                                            <option value="Conference standby Ambulance [24 hours]" {% if order and order.activities == "Conference standby Ambulance [24 hours]" %}selected{% endif %}>
-                                                Conference standby Ambulance [24 hours]
-                                            </option>
-                                            <option value="Festival Event [24 hours]" {% if order and order.activities == "Festival Event [24 hours]" %}selected{% endif %}>
-                                                Festival Event [24 hours]
-                                            </option>
-                                            <option value="Conference Standby [6-9 hours]" {% if order and order.activities == "Conference Standby [6-9 hours]" %}selected{% endif %}>
-                                                Conference Standby [6-9 hours]
-                                            </option>
-                                            <option value="Conference Standby [3-6 hours]" {% if order and order.activities == "Conference Standby [3-6 hours]" %}selected{% endif %}>
-                                                Conference Standby [3-6 hours]
-                                            </option>            
-                                        </select>                                        
-                                    </div>
+<style>
+    /* Premium Ambulance Order Styles */
+    .prem-ambulance-gradient {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+    }
+    
+    .prem-ambulance-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .prem-form-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .prem-form-card .card-header {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .prem-form-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .prem-form-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #5c6bc0, #7986cb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(92, 107, 192, 0.2);
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(92, 107, 192, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-action {
+        background: linear-gradient(120deg, #3949ab, #3f51b5);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(57, 73, 171, 0.2);
+    }
+    
+    .btn-prem-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(57, 73, 171, 0.3);
+        color: white;
+    }
+    
+    .prem-modal-header {
+        background: linear-gradient(120deg, #1a237e, #283593);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .form-section-title {
+        color: #283593;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #c5cae9;
+    }
+    
+    .prem-form-control {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .prem-form-control:focus {
+        border-color: #3949ab;
+        box-shadow: 0 0 0 0.2rem rgba(57, 73, 171, 0.25);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card prem-ambulance-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-ambulance mr-2"></i>
+                            {% if order %}Edit{% else %}Create New{% endif %} Ambulance Order
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card prem-form-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Order Information</h6>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="cost">Cost:</label>
-                                        <input type="number" class="form-control" id="cost" name="cost" value="{{ order.cost }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="ambulance_type">Ambulance Type:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="ambulance_type" name="ambulance_type">
-                                            <option value="Type A" {% if order and order.ambulance_type == "Type A" %}selected{% endif %}>Type A</option>
-                                            <option value="Type B" {% if order and order.ambulance_type == "Type B" %}selected{% endif %}>Type B</option>
-                                            <option value="Type C" {% if order and order.ambulance_type == "Type C" %}selected{% endif %}>Type C</option>
-                                            <option value="Type D" {% if order and order.ambulance_type == "Type D" %}selected{% endif %}>Type D</option>
-                                            <!-- Add more options as needed -->
-                                        </select>                                        
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="organization">Organization:</label>
-                                        <input type="text" class="form-control" id="organization" name="organization" value="{{ order.organization }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="contact_person">Contact Person:</label>
-                                        <input type="text" class="form-control" id="contact_person" name="contact_person"  value="{{ order.contact_person }}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="contact_phone">Contact Phone:</label>
-                                        <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ order.contact_phone }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="location">Location:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="location" name="location">
-                                            <option value="Within Dar es Saalam" {% if order and order.location == "Within Dar es Saalam" %}selected{% endif %}>within Dar es Saalam</option>
-                                            <option value="Outside Dar es Saalam" {% if order and order.location == "Outside Dar es Saalam" %}selected{% endif %}>Outside Dar es Saalam</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="duration">Duration (Hours):</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="duration_hours" name="duration_hours">
-                                            {% for rate in duration_hours %}
-                                            <option value="{{ rate }}" {% if order and order.duration == rate %}selected{% endif %}>{{ rate }} hrs</option>
-                                           {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="duration_days">Duration (Days):</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="duration_days" name="duration_days">
-                                            {% for rate in days %}
-                                            <option value="{{ rate }}" {% if order and order.days == rate %}selected{% endif %}>{{ rate }} days</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="payment_mode">Payment Mode:</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="payment_mode" name="payment_mode">
-                                            <option value="Insurance" {% if order and order.payment_mode == "Insurance" %}selected{% endif %}>Insurance</option>
-                                            <option value="Cash" {% if order and order.payment_mode == "Cash" %}selected{% endif %}>Cash</option>
-                                            <option value="Mpesa" {% if order and order.payment_mode == "Mpesa" %}selected{% endif %}>Mpesa</option>
-                                            <option value="Tigo Pesa" {% if order and order.payment_mode == "Tigo Pesa" %}selected{% endif %}>Tigo Pesa</option>
-                                            <option value="Bank" {% if order and order.payment_mode == "Bank" %}selected{% endif %}>Bank</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="order_date">Order Date:</label>
-                                        <input type="date" class="form-control" id="order_date" name="order_date" value="{% if order %}{{ order.order_date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="ambulance_number">Ambulance Number :</label>
-                                        <select class="form-control select2bs4" style="width: 100%;" id="ambulance_number" name="ambulance_number">
-                                            {% for ambulance_number in ambulance_numbers %}
-                                            <option value="{{ ambulance_number }}" {% if order and order.ambulance_number == ambulance_number %}selected{% endif %}>{{ ambulance_number }}</option>
-                                           {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Add more rows of form fields as needed -->
-                            </div>
-                            <div class="card-footer">
-                                {% if messages %}
-                                <div class="row">
-                                    <div class="col-12">
-                                        {% for message in messages %}
-                                        {% if message.tags == 'error' %}
-                                        <div class="alert alert-danger">{{ message }}</div>
-                                        {% elif message.tags == 'success' %}
-                                        <div class="alert alert-primary">{{ message }}</div>
+                                <div class="card-body">
+                                    <form action="{% if order %}{% url 'receptionist_ambulance_order_edit' order.id %}{% else %}{% url 'receptionist_ambulance_order_create_or_update' %}{% endif %}" method="post">
+                                        {% csrf_token %}
+                                        
+                                        <!-- Activity and Cost Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-tasks mr-2"></i>Service Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="activities" class="prem-form-label">Activity Type</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="activities" name="activities" required>
+                                                        <option value="">Select Activity</option>
+                                                        <option value="Sports Activity [per match]" {% if order and order.activities == "Sports Activity [per match]" %}selected{% endif %}>
+                                                            Sports Activity [per match]
+                                                        </option>
+                                                        <option value="Conference Standby [12 hours]" {% if order and order.activities == "Conference Standby [12 hours]" %}selected{% endif %}>
+                                                            Conference Standby [12 hours]
+                                                        </option>
+                                                        <option value="Charity Walk [12 hours]" {% if order and order.activities == "Charity Walk [12 hours]" %}selected{% endif %}>
+                                                            Charity Walk [12 hours]
+                                                        </option>
+                                                        <option value="Festival Event [12 hours]" {% if order and order.activities == "Festival Event [12 hours]" %}selected{% endif %}>
+                                                            Festival Event [12 hours]
+                                                        </option>
+                                                        <option value="Conference Standby [less than 3 hours]" {% if order and order.activities == "Conference Standby [less than 3 hours]" %}selected{% endif %}>
+                                                            Conference Standby [less than 3 hours]
+                                                        </option>
+                                                        <option value="Conference Standby [9-12 hours]" {% if order and order.activities == "Conference Standby [9-12 hours]" %}selected{% endif %}>
+                                                            Conference Standby [9-12 hours]
+                                                        </option>
+                                                        <option value="Conference standby Ambulance [24 hours]" {% if order and order.activities == "Conference standby Ambulance [24 hours]" %}selected{% endif %}>
+                                                            Conference standby Ambulance [24 hours]
+                                                        </option>
+                                                        <option value="Festival Event [24 hours]" {% if order and order.activities == "Festival Event [24 hours]" %}selected{% endif %}>
+                                                            Festival Event [24 hours]
+                                                        </option>
+                                                        <option value="Conference Standby [6-9 hours]" {% if order and order.activities == "Conference Standby [6-9 hours]" %}selected{% endif %}>
+                                                            Conference Standby [6-9 hours]
+                                                        </option>
+                                                        <option value="Conference Standby [3-6 hours]" {% if order and order.activities == "Conference Standby [3-6 hours]" %}selected{% endif %}>
+                                                            Conference Standby [3-6 hours]
+                                                        </option>            
+                                                    </select>                                        
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="cost" class="prem-form-label">Cost (TZS)</label>
+                                                    <input type="number" class="form-control prem-form-control" id="cost" name="cost" value="{{ order.cost }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="ambulance_type" class="prem-form-label">Ambulance Type</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="ambulance_type" name="ambulance_type" required>
+                                                        <option value="Type A" {% if order and order.ambulance_type == "Type A" %}selected{% endif %}>Type A</option>
+                                                        <option value="Type B" {% if order and order.ambulance_type == "Type B" %}selected{% endif %}>Type B</option>
+                                                        <option value="Type C" {% if order and order.ambulance_type == "Type C" %}selected{% endif %}>Type C</option>
+                                                        <option value="Type D" {% if order and order.ambulance_type == "Type D" %}selected{% endif %}>Type D</option>
+                                                    </select>                                        
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Organization Details Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-building mr-2"></i>Organization Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="organization" class="prem-form-label">Organization Name</label>
+                                                    <input type="text" class="form-control prem-form-control" id="organization" name="organization" value="{{ order.organization }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="contact_person" class="prem-form-label">Contact Person</label>
+                                                    <input type="text" class="form-control prem-form-control" id="contact_person" name="contact_person" value="{{ order.contact_person }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="contact_phone" class="prem-form-label">Contact Phone</label>
+                                                    <input type="text" class="form-control prem-form-control" id="contact_phone" name="contact_phone" value="{{ order.contact_phone }}" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Service Details Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-map-marker-alt mr-2"></i>Service Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="location" class="prem-form-label">Service Location</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="location" name="location" required>
+                                                        <option value="Within Dar es Saalam" {% if order and order.location == "Within Dar es Saalam" %}selected{% endif %}>Within Dar es Saalam</option>
+                                                        <option value="Outside Dar es Saalam" {% if order and order.location == "Outside Dar es Saalam" %}selected{% endif %}>Outside Dar es Saalam</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="duration_hours" class="prem-form-label">Duration (Hours)</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="duration_hours" name="duration_hours" required>
+                                                        {% for rate in duration_hours %}
+                                                        <option value="{{ rate }}" {% if order and order.duration == rate %}selected{% endif %}>{{ rate }} hrs</option>
+                                                       {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="duration_days" class="prem-form-label">Duration (Days)</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="duration_days" name="duration_days" required>
+                                                        {% for rate in days %}
+                                                        <option value="{{ rate }}" {% if order and order.days == rate %}selected{% endif %}>{{ rate }} days</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Payment & Order Details Section -->
+                                        <h5 class="form-section-title"><i class="fas fa-credit-card mr-2"></i>Payment & Order Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="payment_mode" class="prem-form-label">Payment Mode</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="payment_mode" name="payment_mode" required>
+                                                        <option value="Insurance" {% if order and order.payment_mode == "Insurance" %}selected{% endif %}>Insurance</option>
+                                                        <option value="Cash" {% if order and order.payment_mode == "Cash" %}selected{% endif %}>Cash</option>
+                                                        <option value="Mpesa" {% if order and order.payment_mode == "Mpesa" %}selected{% endif %}>Mpesa</option>
+                                                        <option value="Tigo Pesa" {% if order and order.payment_mode == "Tigo Pesa" %}selected{% endif %}>Tigo Pesa</option>
+                                                        <option value="Bank" {% if order and order.payment_mode == "Bank" %}selected{% endif %}>Bank</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="order_date" class="prem-form-label">Order Date</label>
+                                                    <input type="date" class="form-control prem-form-control" id="order_date" name="order_date" value="{% if order %}{{ order.order_date|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="ambulance_number" class="prem-form-label">Ambulance Number</label>
+                                                    <select class="form-control select2bs4 prem-form-control" style="width: 100%;" id="ambulance_number" name="ambulance_number" required>
+                                                        {% for ambulance_number in ambulance_numbers %}
+                                                        <option value="{{ ambulance_number }}" {% if order and order.ambulance_number == ambulance_number %}selected{% endif %}>{{ ambulance_number }}</option>
+                                                       {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Messages -->
+                                        {% if messages %}
+                                        <div class="row mt-4">
+                                            <div class="col-12">
+                                                {% for message in messages %}
+                                                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-primary{% endif %}">
+                                                    {{ message }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                         {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-md btn-primary btn-block" id="submitBtn">Save and Continue <i class="mdi mdi-forward"></i></button>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-12">
+                                                <button type="submit" class="btn btn-prem-action btn-block" id="submitBtn">
+                                                    <i class="fas fa-save mr-2"></i> Save and Continue
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
-                
             </div>
-          </div>
-        </div><!-- /.container-fluid -->
-    </section>
-{% endblock main_content %}
+        </div>
+    </div>
+</div>
 
+<script>
+    $(document).ready(function() {
+        // Initialize Select2
+        $('.select2bs4').select2({
+            theme: 'bootstrap4'
+        });
+        
+        // Set today's date as default if not editing
+        {% if not order %}
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById("order_date").value = today;
+        {% endif %}
+    });
+</script>
+{% endblock main_content %}

@@ -1,6 +1,6 @@
 {% extends 'divine_admin_template/base_template.html' %}
 {% block title %}
-Pathology
+Premium Pathology Management
 {% endblock title %}
 
 {% block page_title %}
@@ -9,39 +9,389 @@ Pathology
 
 {% block breadcrumb %}
 {% include "divine_admin_template/modal_form.html" %}
-    <a class="btn btn-primary float-right mr-2" type="button" data-toggle="modal" data-target="#addPathologyModal">
-        <i class="fas fa-plus"></i>Add pathology
+    <a class="btn btn-prem-pathology-add float-right mr-2" type="button" data-toggle="modal" data-target="#addPathologyModal">
+        <i class="fas fa-plus"></i>Add Pathology
     </a>
     {% load static %}
 {% endblock breadcrumb %}
 {% block main_content %}
+<style>
+    /* Premium Pathology Management Styles - Unique to this template */
+    .pathology-prem-gradient {
+        background: linear-gradient(120deg, #1A237E, #283593);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 35, 126, 0.15);
+        border: none;
+    }
+    
+    .pathology-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pathology-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pathology-prem-table th {
+        background: linear-gradient(120deg, #e8eaf6, #c5cae9);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pathology-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .pathology-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pathology-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 53, 147, 0.1);
+        background: #f5f6ff;
+    }
+    
+    .btn-prem-pathology {
+        background: linear-gradient(120deg, #1A237E, #283593);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 35, 126, 0.2);
+    }
+    
+    .btn-prem-pathology:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 35, 126, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-pathology-add {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-pathology-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-pathology-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-pathology-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-pathology-delete {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+    }
+    
+    .btn-prem-pathology-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(244, 67, 54, 0.3);
+        color: white;
+    }
+    
+    .pathology-prem-modal-header {
+        background: linear-gradient(120deg, #1A237E, #283593);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pathology-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .pathology-prem-input-group label {
+        font-weight: 600;
+        color: #283593;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .pathology-prem-input-group .form-control {
+        border: 1px solid #c5cae9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pathology-prem-input-group .form-control:focus {
+        border-color: #283593;
+        box-shadow: 0 0 0 0.2rem rgba(40, 53, 147, 0.25);
+    }
+    
+    .pathology-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pathology-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pathology-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        color: #283593;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .pathology-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pathology-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #283593;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pathology-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pathology-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pathology-prem-filter-bar {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Animation for view switching */
+    @keyframes pathologyPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pathology-prem-animated {
+        animation: pathologyPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pathology-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pathology-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pathology-prem-flip-card:hover .pathology-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pathology-prem-flip-card-front, .pathology-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pathology-prem-flip-card-front {
+        background: linear-gradient(120deg, #1A237E, #283593);
+        color: white;
+    }
+    
+    .pathology-prem-flip-card-back {
+        background: linear-gradient(120deg, #283593, #1A237E);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pathology-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .pathology-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1A237E, #283593);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> List of all pathology </h6>
+            <div class="card pathology-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-microscope mr-2"></i>Premium Pathology Management</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card pathology-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-microscope mr-2"></i>Total Pathology Records</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pathology-prem-summary-value" id="total-pathology">{{ pathodology_records|length }}</div>
+                                    <div class="pathology-prem-summary-label">All Records</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card pathology-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-dna mr-2"></i>Common Conditions</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pathology-prem-summary-value">{{ pathodology_records|length|add:"5" }}</div>
+                                    <div class="pathology-prem-summary-label">Tracked</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="pathology-prem-flip-card">
+                                <div class="pathology-prem-flip-card-inner">
+                                    <div class="pathology-prem-flip-card-front">
+                                        <div class="pathology-prem-flip-icon">
+                                            <i class="fas fa-flask"></i>
+                                        </div>
+                                        <h4>Premium Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pathology-prem-flip-card-back">
+                                        <div class="pathology-prem-flip-icon">
+                                            <i class="fas fa-chart-bar"></i>
+                                        </div>
+                                        <h4>Pathology Insights</h4>
+                                        <p>Advanced diagnostics tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pathology-prem-filter-bar">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search pathology records..." id="pathologyPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-pathology" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pathology-prem-table-container">
+                        <table class="table table-hover text-nowrap pathology-prem-table" id="pathologyTable">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>        
-                                    <th>Actions</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Name</th>
+                                    <th><i class="fas fa-align-left mr-2"></i>Description</th>        
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="">
                                 {% for pathodology in pathodology_records %}
                                     <tr>
-                                        <td>{{ pathodology.name }}</td>
-                                        <td>{{ pathodology.description }}</td>                    
                                         <td>
-                                            <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deletePathologyModal{{ pathodology.id }}"  data-toggle="tooltip" title="Delete">
+                                            <div class="d-flex align-items-center">
+                                                <div class="pathology-prem-avatar">
+                                                    {{ pathodology.name|first }}
+                                                </div>
+                                                <div>
+                                                    <strong>{{ pathodology.name }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ pathodology.description }}</td>                    
+                                        <td class="text-center">
+                                            <button class="btn btn-prem-pathology-delete" data-toggle="modal" data-target="#deletePathologyModal{{ pathodology.id }}" data-toggle="tooltip" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                            <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#pathodologyModal{{ pathodology.id }}"  data-toggle="tooltip" title="Delete">
+                                            <button class="btn btn-prem-pathology-edit" data-toggle="modal" data-target="#pathodologyModal{{ pathodology.id }}" data-toggle="tooltip" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                         </td>
@@ -59,11 +409,11 @@ Pathology
 {% for pathodology in pathodology_records %}
     <!-- Delete Pathology Modal -->
     <div class="modal fade" id="deletePathologyModal{{ pathodology.id }}" tabindex="-1" role="dialog" aria-labelledby="deletePathologyModal{{ pathodology.id }}Label" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Delete Pathology Record: {{ pathodology.name }}</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content pathology-prem-modal-content">
+                <div class="modal-header pathology-prem-modal-header">
+                    <h5 class="modal-title text-white" id="deletePathologyModal{{ pathodology.id }}Label"><i class="fas fa-trash mr-2"></i>Delete Pathology Record</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -72,19 +422,102 @@ Pathology
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete{{ pathodology.id }}">Delete</button>
+                    <button type="button" class="btn btn-prem-pathology-delete" id="confirmDelete{{ pathodology.id }}">Delete</button>
                 </div>
             </div>
         </div>
     </div>
-    
+   
+{% endfor %}
+
+{% for pathodology in pathodology_records %}    
+<div class="modal fade" id="pathodologyModal{{ pathodology.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content pathology-prem-modal-content">
+            <div class="modal-header pathology-prem-modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-edit mr-2"></i>Edit Pathology Record</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div id="pathologyMessageContainer{{ pathodology.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
+                    <form method="post" id="pathodologyForm{{ pathodology.id }}">
+                        {% csrf_token %}
+                        <div class="pathology-prem-input-group">
+                            <label for="Name{{ pathodology.id }}">Name</label>
+                            <input type="text" class="form-control" name="Name" id="Name{{ pathodology.id }}" value="{{ pathodology.name }}" required>
+                            <input type="hidden" name="pathology_record_id" id="pathology_record_id{{ pathodology.id }}" value="{{ pathodology.id }}">
+                            <div class="invalid-feedback">Name is required</div> <!-- Error message placeholder -->
+                        </div>
+                        <div class="pathology-prem-input-group">
+                            <label for="Description{{ pathodology.id }}">Description</label>
+                            <textarea class="form-control" name="Description" id="Description{{ pathodology.id }}" rows="3">{{ pathodology.description }}</textarea>
+                        </div>                        
+                        <div class="text-right">
+                            <button type="button" class="btn btn-prem-pathology" id="saveRecord{{ pathodology.id }}">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ======================= ADD PATHOLOGY MODAL ======================= -->
+<div class="modal fade" id="addPathologyModal" tabindex="-1" role="dialog" aria-labelledby="addPathologyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content pathology-prem-modal-content">
+
+      <div class="modal-header pathology-prem-modal-header">
+        <h5 class="modal-title text-white"><i class="fas fa-plus-circle mr-2"></i>Add New Pathology Record</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+          <div id="addPathologyMessageContainer" class="alert" role="alert" style="display: none;"></div>
+          <form method="post" id="addPathologyForm" novalidate>
+            {% csrf_token %}
+            <div class="pathology-prem-input-group">
+              <label for="newPathologyName">Name</label>
+              <input type="text" class="form-control" name="Name" id="newPathologyName" required>
+              <div class="invalid-feedback">Name is required</div>
+            </div>
+            <div class="pathology-prem-input-group">
+              <label for="newPathologyDescription">Description</label>
+              <textarea class="form-control" name="Description" id="newPathologyDescription" rows="3"></textarea>
+            </div>
+            <div class="text-right">
+              <button type="button" class="btn btn-prem-pathology-add" id="submitAddPathology">Add Record</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% include 'divine_admin_template/datatable.html' %}
+
+{% endblock main_content %}
+
+{% block customer_js %}
+
+ 
     <script>
+          {% for pathodology in pathodology_records %} 
         $(document).ready(function() {
             // Event listener for delete button click
             $('#confirmDelete{{ pathodology.id }}').click(function() {
                 // Send AJAX request to delete pathology record
                 $.ajax({
-                    url: '{% url "divine_delete_pathology_record" %}', // Update with the actual URL
+                    url: '{% url "kahama_admin_delete_pathology_record" %}',
                     type: 'POST',
                     data: {
                         pathology_record_id: '{{ pathodology.id }}',
@@ -93,7 +526,6 @@ Pathology
                     success: function(response) {
                         if (response.success) {
                             $('#deletePathologyModal{{ pathodology.id }}').modal('hide');
-                        
                             location.reload(true);
                         } else {
                             // Handle deletion failure
@@ -106,49 +538,47 @@ Pathology
                 });
             });
         });
+          {% endfor %} 
     </script>
-{% endfor %}
-
-{% for pathodology in pathodology_records %}    
-<div class="modal fade" id="pathodologyModal{{ pathodology.id }}" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Pathology Record</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="container-fluid">
-                    <div id="pathologyMessageContainer{{ pathodology.id }}" class="alert" role="alert"></div> <!-- Added for messages -->
-                    <form method="post" id="pathodologyForm{{ pathodology.id }}">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="form-group col-sm-5">
-                                <label for="Name" class="col-sm-1-12 col-form-label">Name</label>
-                                <input type="text" class="form-control" name="Name" id="Name{{ pathodology.id }}" value="{{ pathodology.name }}" required>
-                                <input type="hidden" name="pathology_record_id" id="pathology_record_id{{ pathodology.id }}" value="{{ pathodology.id }}">
-                                <div class="invalid-feedback">Name is required</div> <!-- Error message placeholder -->
-                            </div>
-                            <div class="form-group col-sm-6">
-                                <label for="Description" class="col-sm-1-12 col-form-label">Description</label>
-                                <input type="text" class="form-control" name="Description" id="Description{{ pathodology.id }}" value="{{ pathodology.description }}">
-                            </div>                        
-                        </div>
-                        <div class="form-group row">
-                            <div class="offset-md-6 col-md-6 text-right">
-                                <button type="button" class="btn btn-primary" id="saveRecord{{ pathodology.id }}">Save and Continue</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
+    // Initialize DataTable
+    new DataTable('#pathologyTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search pathology records...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Search functionality
+    document.getElementById('pathologyPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#pathologyTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-pathology').textContent = visibleCount;
+    });
+
+    
+
+    {% for pathodology in pathodology_records %} 
     $(document).ready(function () {
         $('#saveRecord{{ pathodology.id }}').click(function () {
             // Validate form fields
@@ -163,14 +593,14 @@ Pathology
 
             // Send AJAX request
             $.ajax({
-                url: '{% url "divine_add_pathodology_record" %}',  // Update with your actual URL
+                url: '{% url "kahama_admin_add_pathodology_record" %}',
                 type: 'POST',
                 data: formData,
                 success: function (response) {
                     // If the request is successful, display a success message
                     if (response.success) {
                         $('#pathologyMessageContainer{{ pathodology.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                        location.reload(true)
+                        setTimeout(() => location.reload(true), 1000);
                     } else {
                         // If the request fails, display an error message
                         $('#pathologyMessageContainer{{ pathodology.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
@@ -183,128 +613,48 @@ Pathology
             });
         });
     });
-</script>
-{% endfor %}
+    {% endfor %}
 
+    $(document).ready(function () {
+        $('#submitAddPathology').click(function () {
+            var form = document.getElementById('addPathologyForm');
+            if (form.checkValidity() === false) {
+                form.classList.add('was-validated');
+                return;
+            }
 
+            var formData = $('#addPathologyForm').serialize();
 
-<!-- ======================= ADD PATHOLOGY MODAL ======================= -->
-<div class="modal fade" id="addPathologyModal" tabindex="-1" role="dialog" aria-labelledby="addPathologyModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title">Add New Pathology Record</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="container-fluid">
-          <div id="addPathologyMessageContainer" class="alert" role="alert" style="display: none;"></div>
-          <form method="post" id="addPathologyForm" novalidate>
-            {% csrf_token %}
-            <div class="row">
-              <div class="form-group col-sm-5">
-                <label for="newPathologyName">Name</label>
-                <input type="text" class="form-control" name="Name" id="newPathologyName" required>
-                <div class="invalid-feedback">Name is required</div>
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="newPathologyDescription">Description</label>
-                <input type="text" class="form-control" name="Description" id="newPathologyDescription">
-              </div>
-            </div>
-            <div class="form-group row">
-              <div class="offset-md-6 col-md-6 text-right">
-                <button type="button" class="btn btn-success" id="submitAddPathology">Add Record</button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<script>
-  $(document).ready(function () {
-    $('#submitAddPathology').click(function () {
-      var form = document.getElementById('addPathologyForm');
-      if (form.checkValidity() === false) {
-        form.classList.add('was-validated');
-        return;
-      }
-
-      var formData = $('#addPathologyForm').serialize();
-
-      $.ajax({
-        url: '{% url "divine_add_pathodology_record" %}',  // Ensure this view handles new records
-        type: 'POST',
-        data: formData,
-        success: function (response) {
-          let container = $('#addPathologyMessageContainer');
-          if (response.success) {
-            container
-              .removeClass('alert-danger')
-              .addClass('alert-success')
-              .text(response.message)
-              .show();
-            setTimeout(() => location.reload(true), 1000);
-          } else {
-            container
-              .removeClass('alert-success')
-              .addClass('alert-danger')
-              .text(response.message)
-              .show();
-          }
-        },
-        error: function (xhr) {
-          $('#addPathologyMessageContainer')
-            .removeClass('alert-success')
-            .addClass('alert-danger')
-            .text('Error: ' + xhr.responseText)
-            .show();
-        }
-      });
+            $.ajax({
+                url: '{% url "kahama_admin_add_pathodology_record" %}',
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    let container = $('#addPathologyMessageContainer');
+                    if (response.success) {
+                        container
+                        .removeClass('alert-danger')
+                        .addClass('alert-success')
+                        .text(response.message)
+                        .show();
+                        setTimeout(() => location.reload(true), 1000);
+                    } else {
+                        container
+                        .removeClass('alert-success')
+                        .addClass('alert-danger')
+                        .text(response.message)
+                        .show();
+                    }
+                },
+                error: function (xhr) {
+                    $('#addPathologyMessageContainer')
+                    .removeClass('alert-success')
+                    .addClass('alert-danger')
+                    .text('Error: ' + xhr.responseText)
+                    .show();
+                }
+            });
+        });
     });
-  });
 </script>
-
-<style>
-    .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-    }
-
-    .float-right {
-        float: right;
-    }
-
-    .table {
-        margin-top: 20px;
-    }
-
-   
-
-    th {
-        background-color: #007bff;
-        color: #fff;
-    }
-
-    tbody tr:hover {
-        background-color: #f5f5f5;
-    }
-</style>
-
-
-{% include 'divine_admin_template/datatable.html' %}
-
-{% endblock main_content %}
+{% endblock customer_js %}

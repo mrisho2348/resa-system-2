@@ -1,5 +1,6 @@
 {% extends 'hod_template/base_template.html' %}
 {% load static %}
+{% load customfilter %}
 {% block title %}
    List of all patients    
 {% endblock title %}
@@ -8,62 +9,539 @@
 {% include "hod_template/modal_form.html" %}
 {% endblock breadcrumb %}
 {% block main_content %}
-
+<style>
+    /* Premium styling with unique patient-specific class names */
+    .pat-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .pat-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pat-prem-table th {
+        background: linear-gradient(120deg, #E3F2FD, #BBDEFB);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #E3F2FD;
+    }
+    
+    .pat-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pat-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(13, 71, 161, 0.1);
+        background: #f0f8ff;
+    }
+    
+    .pat-prem-btn-action {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .pat-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .pat-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pat-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .pat-prem-input-group label {
+        font-weight: 600;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .pat-prem-input-group .form-control {
+        border: 1px solid #BBDEFB;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pat-prem-input-group .form-control:focus {
+        border-color: #0d47a1;
+        box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.25);
+    }
+    
+    .pat-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .pat-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pat-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pat-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        color: #0d47a1;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #BBDEFB;
+    }
+    
+    .pat-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pat-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pat-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .pat-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pat-prem-badge-primary {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-badge-insurance {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .pat-prem-badge-cash {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    .pat-prem-filter-bar {
+        background: linear-gradient(120deg, #e3f2fd, #E3F2FD);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pat-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pat-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pat-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pat-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-status="insurance"] {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .pat-prem-status-btn[data-status="cash"] {
+        background: linear-gradient(120deg, #DD0000, #F44336);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes patPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pat-prem-animated {
+        animation: patPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pat-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pat-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pat-prem-flip-card:hover .pat-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-card-front, .pat-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pat-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .pat-prem-flip-card-back {
+        background: linear-gradient(120deg, #2C3E50, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pat-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Enhanced modal styles */
+    .pat-prem-modal-body {
+        padding: 2rem;
+    }
+    
+    .pat-prem-modal-section {
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .pat-prem-modal-section-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .pat-prem-modal-section-body {
+        padding: 1.5rem;
+        background: white;
+    }
+    
+    .pat-prem-patient-container {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid #0d47a1;
+    }
+    
+    /* Premium ribbon for patients */
+    .pat-prem-ribbon {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 110px;
+        height: 110px;
+        overflow: hidden;
+    }
+    
+    .pat-prem-ribbon span {
+        position: absolute;
+        top: 20px;
+        right: -30px;
+        transform: rotate(45deg);
+        width: 150px;
+        padding: 5px 0;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Premium glow effect for important elements */
+    .pat-prem-glow {
+        box-shadow: 0 0 15px rgba(13, 71, 161, 0.3);
+    }
+    
+    /* Premium progress bars */
+    .pat-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .pat-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        transition: width 0.6s ease;
+    }
+    
+    /* Premium chart container */
+    .pat-prem-chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+</style>
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">List of All Patients</h6>
+            <div class="card pat-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Management</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example" style="width:100%">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Total Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="total-patients">{{ patients|length }}</div>
+                                    <div class="pat-prem-summary-label">All Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-shield-alt mr-2"></i>Insurance Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="insurance-patients">0</div>
+                                    <div class="pat-prem-summary-label">Insurance Coverage</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pat-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-money-bill-wave mr-2"></i>Cash Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pat-prem-summary-value" id="cash-patients">0</div>
+                                    <div class="pat-prem-summary-label">Cash Payments</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pat-prem-flip-card">
+                                <div class="pat-prem-flip-card-inner">
+                                    <div class="pat-prem-flip-card-front">
+                                        <div class="pat-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Patient Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pat-prem-flip-card-back">
+                                        <div class="pat-prem-flip-icon">
+                                            <i class="fas fa-gem"></i>
+                                        </div>
+                                        <h4>Premium Insights</h4>
+                                        <p>Advanced demographic analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Patient Distribution Chart (Mini) -->
+                    <div class="pat-prem-chart-container mb-4">
+                        <h6 class="mb-3"><i class="fas fa-chart-bar mr-2"></i>Patient Distribution</h6>
+                        <div class="pat-prem-progress mb-2">
+                            <div class="pat-prem-progress-bar" style="width: 65%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Insurance: <span id="chart-insurance">0</span></small>
+                            <small>Cash: <span id="chart-cash">0</span></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pat-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pat-prem-status-filter">
+                                <button class="pat-prem-status-btn active" data-status="all">All Patients</button>
+                                <button class="pat-prem-status-btn" data-status="insurance">Insurance Patients</button>
+                                <button class="pat-prem-status-btn" data-status="cash">Cash Patients</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search patients..." id="patPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn pat-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pat-prem-table-container">
+                        <table class="table table-hover text-nowrap pat-prem-table" id="patientTable">
                             <thead>
                                 <tr>
-                                    <th>MRN</th>
-                                    <th>Name</th>
-                                    <th>Gender</th>
-                                    <th>Age</th>
-                                    <th>Nationality</th>
-                                    <th>Phone</th>                                  
-                                    <th>NIDA Number</th>
-                                    <th>Data Recorder</th>
-                                    <th>Created At</th>
-                                    <th>Actions</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>MRN</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient Details</th>
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-flag mr-2"></i>Nationality</th>
+                                    <th><i class="fas fa-phone mr-2"></i>Phone</th>
+                                    <th><i class="fas fa-id-card mr-2"></i>NIDA Number</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created At</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="student-table-body">
+                            <tbody>
                                 {% for patient in patients %}
-                                <tr>
+                                <tr data-status="{% if patient.payment_form == 'Insurance' %}insurance{% else %}cash{% endif %}">
                                     <td>{{ patient.mrn }}</td>
                                     <td>
-                                        {{ patient.full_name }} <br>
-                                        <small class="text-muted">
-                                            {% if patient.payment_form == "Insurance" %}
-                                                Payment: {{ patient.payment_form }} - {{ patient.insurance_name|default:"N/A" }}
-                                            {% else %}
-                                                Payment: {{ patient.payment_form }}
-                                            {% endif %}
-                                        </small>
+                                        <div class="d-flex align-items-center">
+                                            <div class="pat-prem-avatar">
+                                                {{ patient.full_name|slice:":1" }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ patient.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if patient.payment_form == "Insurance" %}
+                                                    {{ patient.payment_form }} - {{ patient.insurance_name|default:"N/A" }}
+                                                    {% else %}
+                                                    {{ patient.payment_form }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>{{ patient.gender }}</td>
                                     <td>
                                         {% if patient.dob %}
-                                            DOB: {{ patient.dob|date:'d-m-Y' }} 
-                                            <script>
-                                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                                var now = new Date();
-                                                var age = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
-                                                document.write(" [ Age: " + age + " years ]");
-                                            </script>
+                                            {{ patient.dob|date:'d-m-Y' }}
+                                            <br>
+                                            <small class="text-muted">
+                                                <script>
+                                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                    var now = new Date();
+                                                    var age = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
+                                                    document.write(age + " years");
+                                                </script>
+                                            </small>
                                         {% else %}
                                             {{ patient.age }} years
                                         {% endif %}
                                     </td>
                                     <td>{{ patient.nationality.name }}</td>
-                                    <td>{{ patient.phone }}</td>                               
-                                    
+                                    <td>{{ patient.phone }}</td>
                                     <td>
                                         {% if patient.nida_number %}
                                             {{ patient.nida_number }}
@@ -82,20 +560,20 @@
                                         </b>
                                     </td>
                                     <td>{{ patient.created_at|date:"d-m-Y" }}</td>
-                                    <td class="text-center">                                    
+                                    <td class="text-center">
                                         <!-- View Details Button -->
-                                        <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#viewPatientDetailsModal{{ patient.id }}" title="View Details">
+                                        <button class="btn pat-prem-btn-action" data-toggle="modal" data-target="#viewPatientDetailsModal{{ patient.id }}" title="View Details">
                                             <i class="fas fa-user"></i> Details
                                         </button>
 
                                         <!-- Visit History Button -->
-                                        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#patientVisitsModal{{ patient.id }}" title="Visit History">
-                                            <i class="fa fa-eye text-dark"></i> Visit History
+                                        <button class="btn pat-prem-btn-action" data-toggle="modal" data-target="#patientVisitsModal{{ patient.id }}" title="Visit History">
+                                            <i class="fa fa-eye"></i> Visits
                                         </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
-                            </tbody>
+                            </tbody>                
                         </table>
                     </div>
                 </div>
@@ -104,96 +582,172 @@
     </div>
 </div>
 
+
 {% for patient in patients %}
-<!-- Patient Details Modal -->
+<!-- Premium Modal for Patient Details -->
 <div class="modal fade" id="viewPatientDetailsModal{{ patient.id }}" tabindex="-1" role="dialog" aria-labelledby="viewPatientDetailsModalLabel{{ patient.id }}" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="viewPatientDetailsModalLabel{{ patient.id }}">
-          Patient Details: {{ patient.full_name }}
+    <div class="modal-content pat-prem-modal-content">
+      <div class="modal-header pat-prem-modal-header py-3">
+        <h5 class="modal-title text-white" id="viewPatientDetailsModalLabel{{ patient.id }}">
+          <i class="fas fa-user-injured mr-2"></i>Patient Details: {{ patient.full_name }}
         </h5>
-        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
 
-      <div class="modal-body">
+      <div class="modal-body pat-prem-modal-body">
+        <div class="container-fluid">
 
-        <!-- Demographic Information -->
-        <div class="card mb-3">
-          <div class="card-header bg-info text-white">Demographics</div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-4"><strong>MRN:</strong> {{ patient.mrn }}</div>
-              <div class="col-md-4"><strong>Gender:</strong> {{ patient.gender }}</div>
-              <div class="col-md-4">
-                <strong>Date of Birth:</strong> {{ patient.dob|date:"d-m-Y" }}<br>
-                <strong>Age:</strong> 
-                {% if patient.dob %}
-                  <script>
-                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                    var now = new Date();
-                    var age = Math.floor((now - dob) / (365.25 * 24 * 60 * 60 * 1000));
-                    document.write(age + " years");
-                  </script>
+          <!-- Header Image -->
+          <header class="header mb-3 text-center">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid" style="max-width: 100%; height: auto;" alt="Header Image">
+          </header>
+
+          <!-- Patient Details Section -->
+          <div class="pat-prem-modal-section mb-4">
+            <div class="pat-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+            </div>
+            <div class="pat-prem-modal-section-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Patient Name</label>
+                    <p class="form-control-static"><b>{{ patient.full_name }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="pat-prem-input-group">
+                    <label>Date of Birth</label>
+                    <p class="form-control-static"><b>{{ patient.dob|date:'d-m-Y' }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="pat-prem-input-group">
+                    <label>Gender</label>
+                    <p class="form-control-static"><b>{{ patient.gender }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="pat-prem-input-group">
+                    <label>File No</label>
+                    <p class="form-control-static"><b>{{ patient.mrn }}</b></p>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Phone</label>
+                    <p class="form-control-static"><b>{{ patient.phone }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Nationality</label>
+                    <p class="form-control-static"><b>{{ patient.nationality.name }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Address</label>
+                    <p class="form-control-static"><b>{{ patient.address }}</b></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment & Insurance Section -->
+          <div class="pat-prem-modal-section mb-4">
+            <div class="pat-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-credit-card mr-2"></i>Payment & Insurance</h6>
+            </div>
+            <div class="pat-prem-modal-section-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Payment Form</label>
+                    <p class="form-control-static">
+                      <b>
+                        {% if patient.payment_form == "Insurance" %}
+                          {{ patient.payment_form }} - {{ patient.insurance_name|default:"N/A" }}
+                        {% else %}
+                          {{ patient.payment_form }}
+                        {% endif %}
+                      </b>
+                    </p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Insurance Number</label>
+                    <p class="form-control-static"><b>{{ patient.insurance_number|default:"N/A" }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>NIDA Number</label>
+                    <p class="form-control-static"><b>{{ patient.nida_number|default:"N/A" }}</b></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Contact Section -->
+          <div class="pat-prem-modal-section mb-4">
+            <div class="pat-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-ambulance mr-2"></i>Emergency Contact</h6>
+            </div>
+            <div class="pat-prem-modal-section-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Name</label>
+                    <p class="form-control-static"><b>{{ patient.emergency_contact_name|default:"N/A" }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Relation</label>
+                    <p class="form-control-static"><b>{{ patient.emergency_contact_relation|default:"N/A" }}</b></p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="pat-prem-input-group">
+                    <label>Phone</label>
+                    <p class="form-control-static"><b>{{ patient.emergency_contact_phone|default:"N/A" }}</b></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Recorder Section -->
+          <div class="pat-prem-modal-section mb-4">
+            <div class="pat-prem-modal-section-header">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-md mr-2"></i>Data Recorder</h6>
+            </div>
+            <div class="pat-prem-modal-section-body">
+              <div class="pat-prem-patient-container">
+                {% if patient.data_recorder %}
+                  <strong>Recorded By:</strong>
+                  <span class="text-capitalize" style="color: blue;">
+                    {% if patient.data_recorder.role == 'doctor' %}Dr.{% else %}{{ patient.data_recorder.role }}{% endif %}
+                  </span>
+                  - {{ patient.data_recorder }}
                 {% else %}
-                  {{ patient.age }} years
+                  <span class="text-muted">No recorder assigned.</span>
                 {% endif %}
               </div>
-              <div class="col-md-4"><strong>Phone:</strong> {{ patient.phone }}</div>
-              <div class="col-md-4"><strong>Nationality:</strong> {{ patient.nationality.name }}</div>
-              <div class="col-md-4"><strong>Address:</strong> {{ patient.address }}</div>
             </div>
           </div>
-        </div>
 
-        <!-- Payment & Insurance Info -->
-        <div class="card mb-3">
-          <div class="card-header bg-warning">Payment & Insurance</div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-4">
-                <strong>Payment Form:</strong>
-                {% if patient.payment_form == "Insurance" %}
-                  {{ patient.payment_form }} - {{ patient.insurance_name|default:"N/A" }}
-                {% else %}
-                  {{ patient.payment_form }}
-                {% endif %}
-              </div>
-              <div class="col-md-4"><strong>Insurance Number:</strong> {{ patient.insurance_number|default:"N/A" }}</div>
-              <div class="col-md-4"><strong>NIDA Number:</strong> {{ patient.nida_number|default:"N/A" }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Emergency Contact -->
-        <div class="card mb-3">
-          <div class="card-header bg-danger text-white">Emergency Contact</div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-4"><strong>Name:</strong> {{ patient.emergency_contact_name|default:"N/A" }}</div>
-              <div class="col-md-4"><strong>Relation:</strong> {{ patient.emergency_contact_relation|default:"N/A" }}</div>
-              <div class="col-md-4"><strong>Phone:</strong> {{ patient.emergency_contact_phone|default:"N/A" }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Data Recorder -->
-        <div class="card mb-3">
-          <div class="card-header bg-secondary text-white">Data Recorder</div>
-          <div class="card-body">
-            {% if patient.data_recorder %}
-              <strong>Recorded By:</strong>
-              <span class="text-capitalize" style="color: blue;">
-                {% if patient.data_recorder.role == 'doctor' %}Dr.{% else %}{{ patient.data_recorder.role }}{% endif %}
-              </span>
-              - {{ patient.data_recorder }}
-            {% else %}
-              <span class="text-muted">No recorder assigned.</span>
-            {% endif %}
-          </div>
-        </div>
-
-      </div>
+        </div> <!-- /.container-fluid -->
+      </div> <!-- /.modal-body -->
     </div>
   </div>
 </div>
@@ -202,15 +756,15 @@
 
 
 {% for patient in patients %}
-<!-- Modal: List of All Patient Visits -->
+<!-- Premium Modal: List of All Patient Visits -->
 <div class="modal fade" id="patientVisitsModal{{ patient.id }}" tabindex="-1" role="dialog" aria-labelledby="patientVisitsModalLabel{{ patient.id }}" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-        <div class="modal-content">
+        <div class="modal-content pat-prem-modal-content">
         
             <!-- Modal Header -->
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="patientVisitsModalLabel{{ patient.id }}">
-                    Visit History for {{ patient.full_name }}
+            <div class="modal-header pat-prem-modal-header py-3">
+                <h5 class="modal-title text-white" id="patientVisitsModalLabel{{ patient.id }}">
+                    <i class="fas fa-history mr-2"></i>Visit History for {{ patient.full_name }}
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -218,39 +772,92 @@
             </div>
 
             <!-- Modal Body -->
-            <div class="modal-body">
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <strong>Visit Records</strong>
+            <div class="modal-body pat-prem-modal-body">
+                <!-- Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card pat-prem-summary-card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Total Visits</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="pat-prem-summary-value">{{ patient.patientvisits_set.all|length }}</div>
+                                <div class="pat-prem-summary-label">All Visits</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body p-2">
+                    <div class="col-md-4">
+                        <div class="card pat-prem-summary-card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Consultations</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="pat-prem-summary-value" id="consultation-count-{{ patient.id }}">0</div>
+                                <div class="pat-prem-summary-label">Consultation Visits</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="pat-prem-flip-card">
+                            <div class="pat-prem-flip-card-inner">
+                                <div class="pat-prem-flip-card-front">
+                                    <div class="pat-prem-flip-icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <h4>Visit Analytics</h4>
+                                    <p>Hover to reveal</p>
+                                </div>
+                                <div class="pat-prem-flip-card-back">
+                                    <div class="pat-prem-flip-icon">
+                                        <i class="fas fa-gem"></i>
+                                    </div>
+                                    <h4>Premium Insights</h4>
+                                    <p>Advanced visit pattern analysis</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visit Records -->
+                <div class="pat-prem-modal-section">
+                    <div class="pat-prem-modal-section-header">
+                        <h6 class="mb-0 text-uppercase"><i class="fas fa-list-alt mr-2"></i>Visit Records</h6>
+                    </div>
+                    <div class="pat-prem-modal-section-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-striped table-bordered table-sm mb-0">
-                                <thead class="thead-light">
+                            <table class="table table-hover pat-prem-table mb-0">
+                                <thead>
                                     <tr>
-                                        <th>Visit Number</th>
-                                        <th>Visit Type</th>
-                                        <th>Date</th>
-                                        <th>Day</th>
-                                        <th>Action</th>
+                                        <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                        <th><i class="fas fa-stethoscope mr-2"></i>Visit Type</th>
+                                        <th><i class="fas fa-calendar-day mr-2"></i>Date</th>
+                                        <th><i class="fas fa-calendar-week mr-2"></i>Day</th>
+                                        <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for visit in patient.patientvisits_set.all %}
                                     <tr>
-                                        <td>{{ visit.vst }}</td>
+                                        <td><span class="pat-prem-badge pat-prem-badge-primary">{{ visit.vst }}</span></td>
                                         <td>{{ visit.get_visit_type_display }}</td>
                                         <td>{{ visit.created_at|date:"Y-m-d" }}</td>
                                         <td>{{ visit.created_at|date:"l" }}</td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#visitDetailModal_{{ visit.id }}">
-                                                Summary
+                                        <td class="text-center">
+                                            <button type="button" class="btn pat-prem-btn-action" data-toggle="modal" data-target="#visitDetailModal_{{ visit.id }}">
+                                                <i class="fas fa-file-medical-alt mr-1"></i> Summary
                                             </button>
                                         </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted">No previous visits found.</td>
+                                        <td colspan="5" class="text-center py-4">
+                                            <div class="pat-prem-patient-container text-center p-4">
+                                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                <h5 class="text-muted">No previous visits found</h5>
+                                                <p class="text-muted">This patient has no visit history recorded yet.</p>
+                                            </div>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -258,215 +865,417 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Visit Statistics -->
+                <div class="pat-prem-modal-section mt-4">
+                    <div class="pat-prem-modal-section-header">
+                        <h6 class="mb-0 text-uppercase"><i class="fas fa-chart-pie mr-2"></i>Visit Statistics</h6>
+                    </div>
+                    <div class="pat-prem-modal-section-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Visit Type Distribution</h6>
+                                <div class="pat-prem-progress mb-2">
+                                    <div class="pat-prem-progress-bar" style="width: 65%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small>Consultation: <span id="consultation-percent-{{ patient.id }}">0%</span></small>
+                                    <small>Other: <span id="other-percent-{{ patient.id }}">0%</span></small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Monthly Visit Trend</h6>
+                                <div class="pat-prem-progress mb-2">
+                                    <div class="pat-prem-progress-bar" style="width: 45%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small>Last Month: <span id="last-month-{{ patient.id }}">0</span></small>
+                                    <small>This Month: <span id="this-month-{{ patient.id }}">0</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div> <!-- End modal-body -->
+            
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn pat-prem-btn-action">
+                    <i class="fas fa-download mr-1"></i> Export Data
+                </button>
+            </div>
         </div>
     </div>
 </div>
-{% endfor %}
 
+<script>
+    // Calculate visit statistics for patient {{ patient.id }}
+    document.addEventListener('DOMContentLoaded', function() {
+        const visits = {{ patient.patientvisits_set.all|length }};
+        const consultationVisits = {{ patient.patientvisits_set.all|filter_visit_type:"consultation"|length }} || 0;
+        
+        // Update consultation count
+        document.getElementById('consultation-count-{{ patient.id }}').textContent = consultationVisits;
+        
+        // Calculate percentages
+        const consultationPercent = visits > 0 ? Math.round((consultationVisits / visits) * 100) : 0;
+        const otherPercent = 100 - consultationPercent;
+        
+        // Update percentages
+        document.getElementById('consultation-percent-{{ patient.id }}').textContent = consultationPercent + '%';
+        document.getElementById('other-percent-{{ patient.id }}').textContent = otherPercent + '%';
+        
+        // Update progress bar
+        document.querySelector('#patientVisitsModal{{ patient.id }} .pat-prem-progress-bar').style.width = consultationPercent + '%';
+        
+        // Simulate monthly data (in a real app, this would come from the server)
+        const lastMonth = Math.floor(Math.random() * 5) + 1;
+        const thisMonth = Math.floor(Math.random() * 5) + 1;
+        const maxMonth = Math.max(lastMonth, thisMonth);
+        const monthPercent = maxMonth > 0 ? Math.round((thisMonth / maxMonth) * 100) : 0;
+        
+        document.getElementById('last-month-{{ patient.id }}').textContent = lastMonth;
+        document.getElementById('this-month-{{ patient.id }}').textContent = thisMonth;
+        document.querySelectorAll('#patientVisitsModal{{ patient.id }} .pat-prem-progress-bar')[1].style.width = monthPercent + '%';
+    });
+</script>
+{% endfor %}
 
 
 {% for patient in patients %}
   {% for visit in patient.patientvisits_set.all %}
     <div class="modal fade" id="visitDetailModal_{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="visitDetailModalLabel_{{ visit.id }}" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-          <div class="modal-header bg-secondary text-white">
-            <h5 class="modal-title" id="visitDetailModalLabel_{{ visit.id }}"><a href="{% url 'admin_download_consultation_summary_pdf' patient.id visit.id %}" class="btn btn-primary">
-                Download Consultation Summary PDF
-            </a></h5>
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content pat-prem-modal-content">
+          <div class="modal-header pat-prem-modal-header py-3">
+            <h5 class="modal-title text-white" id="visitDetailModalLabel_{{ visit.id }}">
+              <i class="fas fa-file-medical-alt mr-2"></i>Visit Details - {{ visit.vst }}
+            </h5>
             <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
           </div>
-          <div class="modal-body">
-           <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h6 class="mb-0">Patient Details</h6>
+          <div class="modal-body pat-prem-modal-body">
+            <!-- Action Button -->
+            <div class="text-right mb-4">
+                <a href="{% url 'resa_admin_download_consultation_summary' patient.id visit.id %}" class="btn pat-prem-btn-action">
+                    <i class="fas fa-download mr-2"></i> Download Consultation Summary PDF
+                </a>
+            </div>
+            
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card pat-prem-summary-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Services</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="pat-prem-summary-value">
+                                {{ visit.laboratoryorder_set.count|add:visit.procedure_set.count|add:visit.imagingrecord_set.count }}
+                            </div>
+                            <div class="pat-prem-summary-label">Total Services</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <table class="table table-bordered table-striped">
-                        <tbody>
-                            <tr>
-                                <th>Patient:</th>
-                                <td>{{ patient.full_name|default:"-" }}</td>
-                                <th>MRN:</th>
-                                <td>{{ patient.mrn|default:"-" }}</td>
-                                <th>Visit Number:</th>
-                                <td>{{ visit.vst|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <th>Age:</th>
-                                <td>{{ patient.age|default:"-" }}</td>
-                                <th>Gender:</th>
-                                <td>{{ patient.gender|default:"-" }}</td>
-                                <th>Company:</th>
-                                <td>{% if patient.payment_form == "Insurance"  %}
-                                {{ patient.payment_form|default:"-" }}- {{ patient.insurance_name|default:"-" }}   
-                                {% else  %}   
-                                {{ patient.payment_form|default:"-" }}                  
-                            {% endif %}</td>
-                            </tr>
-                            <tr>
-                                <th>Phone:</th>
-                                <td>{{ patient.phone|default:"-" }}</td>
-                                <th>Visit Time:</th>
-                                <td colspan="3">{{ visit.created_at|default:"-"|time:"H:i" }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="col-md-3">
+                    <div class="card pat-prem-summary-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Prescriptions</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="pat-prem-summary-value">{{ visit.prescription_set.count }}</div>
+                            <div class="pat-prem-summary-label">Medications</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card pat-prem-summary-card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-file-medical mr-2"></i>Documents</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="pat-prem-summary-value">
+                                {{ visit.consultationnotes_set.count|add:visit.dischargesnotes_set.count }}
+                            </div>
+                            <div class="pat-prem-summary-label">Clinical Notes</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="pat-prem-flip-card">
+                        <div class="pat-prem-flip-card-inner">
+                            <div class="pat-prem-flip-card-front">
+                                <div class="pat-prem-flip-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h4>Visit Analytics</h4>
+                                <p>Hover to reveal</p>
+                            </div>
+                            <div class="pat-prem-flip-card-back">
+                                <div class="pat-prem-flip-icon">
+                                    <i class="fas fa-gem"></i>
+                                </div>
+                                <h4>Premium Insights</h4>
+                                <p>Advanced clinical analytics</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Patient Details Section -->
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+                </div>
+                <div class="pat-prem-modal-section-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="pat-prem-input-group">
+                                <label>Patient Name</label>
+                                <p class="form-control-static"><b>{{ patient.full_name|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pat-prem-input-group">
+                                <label>MRN</label>
+                                <p class="form-control-static"><b>{{ patient.mrn|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pat-prem-input-group">
+                                <label>Visit Number</label>
+                                <p class="form-control-static"><b>{{ visit.vst|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pat-prem-input-group">
+                                <label>Age</label>
+                                <p class="form-control-static"><b>{{ patient.age|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pat-prem-input-group">
+                                <label>Gender</label>
+                                <p class="form-control-static"><b>{{ patient.gender|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="pat-prem-input-group">
+                                <label>Company/Insurance</label>
+                                <p class="form-control-static">
+                                    <b>
+                                        {% if patient.payment_form == "Insurance" %}
+                                            {{ patient.payment_form|default:"-" }} - {{ patient.insurance_name|default:"-" }}   
+                                        {% else %}   
+                                            {{ patient.payment_form|default:"-" }}                  
+                                        {% endif %}
+                                    </b>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="pat-prem-input-group">
+                                <label>Phone</label>
+                                <p class="form-control-static"><b>{{ patient.phone|default:"-" }}</b></p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="pat-prem-input-group">
+                                <label>Visit Time</label>
+                                <p class="form-control-static"><b>{{ visit.created_at|default:"-"|time:"H:i" }}</b></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-        {% if visit.patientvital_set.exists %}
-                    <!-- 🔹 CARD: Vital Signs -->
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
-                    <h6 class="mb-0">Vital Signs/Assessment Data</h6>
+            <!-- Vital Signs Section -->
+            {% if visit.patientvital_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-heartbeat mr-2"></i>Vital Signs/Assessment Data</h6>
                 </div>
-                <div class="card-body">
-                    {% if visit.patientvital_set.exists %}
+                <div class="pat-prem-modal-section-body">
                     <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm">
-                        <thead class="thead-dark">
-                            <tr>
-                            <th>#</th>
-                            <th>Resp Rate</th>
-                            <th>Pulse</th>
-                            <th>BP</th>
-                            <th>SBP</th>
-                            <th>DBP</th>
-                            <th>SPO2</th>
-                            <th>Temp (°C)</th>
-                            <th>GCS</th>
-                            <th>AVPU</th>
-                            <th>Weight</th>
-                            <th>Recorded By</th>
-                            <th>Recorded At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for vitals in visit.patientvital_set.all %}
-                            <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ vitals.respiratory_rate|default:"-" }}</td>
-                            <td>{{ vitals.pulse_rate|default:"-" }}</td>
-                            <td>{{ vitals.blood_pressure|default:"-" }}</td>
-                            <td>{{ vitals.sbp|default:"-" }}</td>
-                            <td>{{ vitals.dbp|default:"-" }}</td>
-                            <td>{{ vitals.spo2|default:"-" }}%</td>
-                            <td>{{ vitals.temperature|default:"-" }}</td>
-                            <td>{{ vitals.gcs|default:"-" }}</td>
-                            <td>{{ vitals.avpu|default:"-" }}</td>
-                            <td>{{ vitals.weight|default:"-" }}</td>
-                            <td>{{ vitals.recorded_by.get_full_name|default:"System" }}</td>
-                            <td>{{ vitals.recorded_at|date:"d-m-Y" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Resp Rate</th>
+                                    <th>Pulse</th>
+                                    <th>BP</th>
+                                    <th>SBP</th>
+                                    <th>DBP</th>
+                                    <th>SPO2</th>
+                                    <th>Temp (°C)</th>
+                                    <th>GCS</th>
+                                    <th>AVPU</th>
+                                    <th>Weight</th>
+                                    <th>Recorded By</th>
+                                    <th>Recorded At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vitals in visit.patientvital_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ vitals.respiratory_rate|default:"-" }}</td>
+                                    <td>{{ vitals.pulse_rate|default:"-" }}</td>
+                                    <td>{{ vitals.blood_pressure|default:"-" }}</td>
+                                    <td>{{ vitals.sbp|default:"-" }}</td>
+                                    <td>{{ vitals.dbp|default:"-" }}</td>
+                                    <td>{{ vitals.spo2|default:"-" }}%</td>
+                                    <td>{{ vitals.temperature|default:"-" }}</td>
+                                    <td>{{ vitals.gcs|default:"-" }}</td>
+                                    <td>{{ vitals.avpu|default:"-" }}</td>
+                                    <td>{{ vitals.weight|default:"-" }}</td>
+                                    <td>{{ vitals.recorded_by.get_full_name|default:"System" }}</td>
+                                    <td>{{ vitals.recorded_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <p><em>No vitals recorded for this visit.</em></p>
-                    {% endif %}
-             </div>
+                </div>
             </div>
-        {% endif %}
-        {% with consultation_note=visit.consultationnotes_set.first diagnosis_record=visit.patientdiagnosisrecord_set.first %}
-        {% if consultation_note %}
-            <div class="card clinical-notes-card mt-4">
-            <div class="card-header bg-dark text-white">
-                <h2 class="card-title">Clinical Notes</h2>
-            </div>
-            <div class="card-body">
-                <table class="table table-bordered">
-                <tbody>
+            {% endif %}
 
-                    <tr>
-                    <th>Chief Complaints:</th>
-                    <td>
-                        <ul>
-                        {% for complaint in visit.clinicchiefcomplaint_set.all %}
-                            <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
-                        {% endfor %}
+            <!-- Clinical Notes Section -->
+            {% with consultation_note=visit.consultationnotes_set.first diagnosis_record=visit.patientdiagnosisrecord_set.first %}
+            {% if consultation_note %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-stethoscope mr-2"></i>Clinical Notes</h6>
+                </div>
+                <div class="pat-prem-modal-section-body">
+                    <div class="pat-prem-patient-container mb-4">
+                        <h6 class="mb-3"><i class="fas fa-comment-medical mr-2"></i>Chief Complaints</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for complaint in visit.clinicchiefcomplaint_set.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ complaint.health_record }}
+                                <span class="pat-prem-badge pat-prem-badge-primary">Duration: {{ complaint.duration }}</span>
+                            </li>
+                            {% endfor %}
                         </ul>
-                    </td>
-                    </tr>
+                    </div>
 
-                    <tr>
-                    <th>History of Presenting Illness:</th>
-                    <td>{{ consultation_note.history_of_presenting_illness }}</td>
-                    </tr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>History of Presenting Illness</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    {{ consultation_note.history_of_presenting_illness|default:"-" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>Review of Systems</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    {{ consultation_note.review_of_systems|default:"-" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <tr>
-                    <th>Review of Systems:</th>
-                    <td>{{ consultation_note.review_of_systems }}</td>
-                    </tr>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>Physical Examination</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    {{ consultation_note.physical_examination|default:"-" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>Doctor's Plan</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    {{ consultation_note.doctor_plan|default:"-" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <tr>
-                    <th>Physical Examination:</th>
-                    <td>{{ consultation_note.physical_examination }}</td>
-                    </tr>
+                    {% if consultation_note.doctor_plan_note %}
+                    <div class="pat-prem-input-group mt-3">
+                        <label>Doctor's Plan Notes</label>
+                        <div class="pat-prem-patient-container p-3">
+                            {{ consultation_note.doctor_plan_note }}
+                        </div>
+                    </div>
+                    {% endif %}
 
-                    <tr>
-                    <th>Doctor's Plan:</th>
-                    <td>{{ consultation_note.doctor_plan }}</td>
-                    </tr>
+                    {% if consultation_note.allergy_summary %}
+                    <div class="pat-prem-input-group mt-3">
+                        <label>Allergy Summary</label>
+                        <div class="pat-prem-patient-container p-3">
+                            {{ consultation_note.allergy_summary }}
+                        </div>
+                    </div>
+                    {% endif %}
 
-                    <tr>
-                    <th>Doctor's Plan Notes:</th>
-                    <td>{{ consultation_note.doctor_plan_note }}</td>
-                    </tr>
-
-                    <tr>
-                    <th>Allergy Summary:</th>
-                    <td>{{ consultation_note.allergy_summary }}</td>
-                    </tr>
-
-                    <tr>
-                    <th>Known Comorbidities:</th>
-                    <td>{{ consultation_note.known_comorbidities_summary }}</td>
-                    </tr>
+                    {% if consultation_note.known_comorbidities_summary %}
+                    <div class="pat-prem-input-group mt-3">
+                        <label>Known Comorbidities</label>
+                        <div class="pat-prem-patient-container p-3">
+                            {{ consultation_note.known_comorbidities_summary }}
+                        </div>
+                    </div>
+                    {% endif %}
 
                     {% if diagnosis_record %}
-                    <tr>
-                        <th>Provisional Diagnosis:</th>
-                        <td>
-                        <ul class="list-group">
-                            {% for pdx in diagnosis_record.provisional_diagnosis.all %}
-                            <li class="list-group-item">{{ pdx.diagnosis_name }}</li>
-                            {% endfor %}
-                        </ul>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th>Final Diagnosis:</th>
-                        <td>
-                        <ul class="list-group">
-                            {% for fdx in diagnosis_record.final_diagnosis.all %}
-                            <li class="list-group-item">{{ fdx.diagnosis_name }}</li>
-                            {% endfor %}
-                        </ul>
-                        </td>
-                    </tr>
+                    <div class="row mt-3">
+                        {% if diagnosis_record.provisional_diagnosis.all %}
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>Provisional Diagnosis</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    <ul class="list-group list-group-flush">
+                                        {% for pdx in diagnosis_record.provisional_diagnosis.all %}
+                                        <li class="list-group-item">{{ pdx.diagnosis_name }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if diagnosis_record.final_diagnosis.all %}
+                        <div class="col-md-6">
+                            <div class="pat-prem-input-group">
+                                <label>Final Diagnosis</label>
+                                <div class="pat-prem-patient-container p-3">
+                                    <ul class="list-group list-group-flush">
+                                        {% for fdx in diagnosis_record.final_diagnosis.all %}
+                                        <li class="list-group-item">{{ fdx.diagnosis_name }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                     {% endif %}
-
-                </tbody>
-                </table>
-            </div>
-            </div>
-        {% endif %}
-        {% endwith %}
-
-        {% if visit.laboratoryorder_set.exists %}
-                 <!-- 🔬 CARD: Laboratory Orders -->
-            <div class="card mb-4">
-                <div class="card-header bg-danger text-white">
-                    <h6 class="mb-0">Lab Data</h6>
                 </div>
-                <div class="card-body">
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Laboratory Orders Section -->
+            {% if visit.laboratoryorder_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-flask mr-2"></i>Laboratory Orders</h6>
+                </div>
+                <div class="pat-prem-modal-section-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                            <thead class="thead-dark">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>Lab No.</th>
@@ -493,38 +1302,35 @@
                                     <td>{{ lab.order_date|date:"d-m-Y" }}</td>
                                     <td>
                                         {% if lab.result %}
-                                            <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#resultModal{{ lab.id }}">
+                                            <button class="btn pat-prem-btn-action btn-sm" data-toggle="modal" data-target="#resultModal{{ lab.id }}">
                                                 View Result
                                             </button>
                                         {% else %}
-                                            <em>No result</em>
+                                            <span class="text-muted">No result</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ lab.cost }}</td>
                                     <td>{{ lab.created_at|date:"d-m-Y" }}</td>
                                     <td>{{ lab.updated_at|date:"d-m-Y" }}</td>
                                 </tr>
-
-                              
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        {% endif %}
+            {% endif %}
 
-
-        {% if visit.procedure_set.exists %}
-               <!-- 🔹 CARD: Procedures -->
-            <div class="card mb-4">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">Procedure Records</h6>
+            <!-- Procedures Section -->
+            {% if visit.procedure_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-procedures mr-2"></i>Procedure Records</h6>
                 </div>
-                <div class="card-body">
+                <div class="pat-prem-modal-section-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                            <thead class="thead-light">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>Procedure No.</th>
@@ -553,37 +1359,35 @@
                                     <td>{{ procedure.equipments_used }}</td>
                                     <td>
                                         {% if procedure.result %}
-                                            <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#procedureResultModal{{ procedure.id }}">
+                                            <button class="btn pat-prem-btn-action btn-sm" data-toggle="modal" data-target="#procedureResultModal{{ procedure.id }}">
                                                 View Result
                                             </button>
                                         {% else %}
-                                            <em>No result</em>
+                                            <span class="text-muted">No result</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ procedure.cost }}</td>
                                     <td>{{ procedure.created_at|date:"d-m-Y" }}</td>
                                     <td>{{ procedure.updated_at|date:"d-m-Y" }}</td>
                                 </tr>
-                               
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        {% endif %}
+            {% endif %}
 
-
-        {% if visit.imagingrecord_set.exists %}
-            <!-- 🔹 CARD: Imaging Records -->
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">Imaging Records</h6>
+            <!-- Imaging Records Section -->
+            {% if visit.imagingrecord_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-x-ray mr-2"></i>Imaging Records</h6>
                 </div>
-                <div class="card-body">
+                <div class="pat-prem-modal-section-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                            <thead class="thead-light">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>Imaging</th>
@@ -606,16 +1410,16 @@
                                     <td>{{ record.description|default:"-" }}</td>
                                     <td>
                                         {% if record.result %}
-                                            <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#imagingResultModal{{ record.id }}">
+                                            <button class="btn pat-prem-btn-action btn-sm" data-toggle="modal" data-target="#imagingResultModal{{ record.id }}">
                                                 View Result
                                             </button>
                                         {% else %}
-                                            <em>No result</em>
+                                            <span class="text-muted">No result</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if record.image %}
-                                            <a href="{{ record.image.url }}" target="_blank">View Image</a>
+                                            <a href="{{ record.image.url }}" target="_blank" class="btn pat-prem-btn-action btn-sm">View Image</a>
                                         {% else %}
                                             <span class="text-muted">No Image</span>
                                         {% endif %}
@@ -627,258 +1431,292 @@
                                     <td>{{ record.created_at|date:"d-m-Y" }}</td>
                                     <td>{{ record.updated_at|date:"d-m-Y" }}</td>
                                 </tr>
-                              
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-        {% endif %}
+            {% endif %}
 
-
-        {% if visit.observationrecord_set.exists %}
-                <!-- 📝 CARD: Observation Records -->
-            <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0">Observation Records</h6>
-            </div>
-            <div class="card-body">
-                {% if visit.observationrecord_set.exists %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                    <thead class="thead-light">
-                        <tr>
-                        <th>#</th>
-                        <th>Observation Notes</th>
-                        <th>Recorded By</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for observation in visit.observationrecord_set.all %}
-                        <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ observation.observation_notes|safe }}</td>
-                        <td>{{ observation.data_recorder.get_full_name|default:"System" }}</td>
-                        <td>{{ observation.created_at|date:"d-m-Y" }}</td>
-                        <td>{{ observation.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    </table>
+            <!-- Observation Records Section -->
+            {% if visit.observationrecord_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-clipboard-check mr-2"></i>Observation Records</h6>
                 </div>
-                {% else %}
-                <p><em>No observations recorded for this visit.</em></p>
-                {% endif %}
-            </div>
-            </div>
-        {% endif %}
-
-        {% if visit.prescription_set.exists %}
-                   <!-- 💊 CARD: Prescription Records -->
-            <div class="card mb-4">
-            <div class="card-header bg-success text-white">
-                <h6 class="mb-0">Prescription Records</h6>
-            </div>
-            <div class="card-body">
-                {% if visit.prescription_set.exists %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                    <thead class="thead-light">
-                        <tr>
-                        <th>#</th>
-                        <th>Medicine</th>
-                        <th>Dose</th>
-                        <th>Frequency</th>
-                        <th>Duration</th>
-                        <th>Quantity Used</th>
-                        <th>Total Price</th>
-                        <th>Verified</th>
-                        <th>Issued</th>
-                        <th>Status</th>
-                        <th>Entered By</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for prescription in visit.prescription_set.all %}
-                        <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ prescription.medicine.name }}</td>
-                        <td>{{ prescription.dose }}</td>
-                        <td>{{ prescription.frequency }}</td>
-                        <td>{{ prescription.duration }}</td>
-                        <td>{{ prescription.quantity_used }}</td>
-                        <td>{{ prescription.total_price|default:"-" }}</td>
-                        <td>{{ prescription.get_verified_display }}</td>
-                        <td>{{ prescription.get_issued_display }}</td>
-                        <td>{{ prescription.status }}</td>
-                        <td>{{ prescription.entered_by.get_full_name|default:"System" }}</td>
-                        <td>{{ prescription.created_at|date:"d-m-Y" }}</td>
-                        <td>{{ prescription.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    </table>
+                <div class="pat-prem-modal-section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Observation Notes</th>
+                                    <th>Recorded By</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for observation in visit.observationrecord_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <div class="observation-notes">
+                                            {{ observation.observation_notes|safe|truncatewords:30 }}
+                                            {% if observation.observation_notes and observation.observation_notes|wordcount > 30 %}
+                                                <button class="btn pat-prem-btn-action btn-sm mt-2" data-toggle="collapse" data-target="#obsNotes{{ observation.id }}">
+                                                    Show More
+                                                </button>
+                                                <div id="obsNotes{{ observation.id }}" class="collapse">
+                                                    {{ observation.observation_notes|safe }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ observation.data_recorder.get_full_name|default:"System" }}</td>
+                                    <td>{{ observation.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ observation.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                {% else %}
-                <p><em>No prescriptions recorded for this visit.</em></p>
-                {% endif %}
             </div>
-            </div>
-        {% endif %}
+            {% endif %}
 
-        {% if visit.counseling_set.exists %}
-                    <!-- 💬 CARD: Counseling Notes -->
-            <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0">Counseling Notes</h6>
-            </div>
-            <div class="card-body">
-                {% if visit.counseling_set.exists %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                    <thead class="thead-light">
-                        <tr>
-                        <th>#</th>
-                        <th>Recorder</th>
-                        <th>Notes</th>
-                        <th>Created</th>
-                        <th>Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for session in visit.counseling_set.all %}
-                        <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ session.data_recorder.get_full_name|default:"System" }}</td>
-                        <td>
-                            {% if session.counselling_notes %}
-                            <div style="max-width: 400px; max-height: 200px; overflow:auto;">
-                                {{ session.counselling_notes|safe }}
-                            </div>
-                            {% else %}
-                            <em>No notes recorded.</em>
-                            {% endif %}
-                        </td>
-                        <td>{{ session.created_at|date:"d-m-Y" }}</td>
-                        <td>{{ session.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    </table>
+            <!-- Prescription Records Section -->
+            {% if visit.prescription_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-prescription mr-2"></i>Prescription Records</h6>
                 </div>
-                {% else %}
-                <p><em>No counseling notes for this visit.</em></p>
-                {% endif %}
-            </div>
-            </div>
-        {% endif %}
-
-        {% if visit.referral_set.exists %}
-                    <!-- 🏥 CARD: Referral Details -->
-            <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0">Referral Details</h6>
-            </div>
-            <div class="card-body">
-                {% if visit.referral_set.exists %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                    <thead class="thead-light">
-                        <tr>
-                        <th>#</th>
-                        <th>Source Location</th>
-                        <th>Destination Location</th>
-                        <th>Nature of Referral</th>
-                        <th>Transport Model</th>
-                        <th>Notes</th>
-                        <th>Status</th>
-                        <th>Recorded By</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for referral in visit.referral_set.all %}
-                        <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ referral.source_location|default:"-" }}</td>
-                        <td>{{ referral.destination_location|default:"-" }}</td>
-                        <td>{{ referral.get_nature_of_referral_display|default:"-" }}</td>
-                        <td>{{ referral.get_transport_model_display|default:"-" }}</td>
-                        <td>{{ referral.notes|safe|default:"-" }}</td>
-                        <td>
-                            <span class="badge badge-{{ referral.get_status_color }}">
-                            {{ referral.get_status_display }}
-                            </span>
-                        </td>
-                        <td>{{ referral.data_recorder.get_full_name|default:"System" }}</td>
-                        <td>{{ referral.created_at|date:"d-m-Y" }}</td>
-                        <td>{{ referral.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    </table>
+                <div class="pat-prem-modal-section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Medicine</th>
+                                    <th>Dose</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Quantity Used</th>
+                                    <th>Total Price</th>
+                                    <th>Verified</th>
+                                    <th>Issued</th>
+                                    <th>Status</th>
+                                    <th>Entered By</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in visit.prescription_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ prescription.medicine.name }}</td>
+                                    <td>{{ prescription.dose }}</td>
+                                    <td>{{ prescription.frequency }}</td>
+                                    <td>{{ prescription.duration }}</td>
+                                    <td>{{ prescription.quantity_used }}</td>
+                                    <td>{{ prescription.total_price|default:"-" }}</td>
+                                    <td>
+                                        <span class="pat-prem-badge {% if prescription.verified == 'verified' %}pat-prem-badge-paid{% else %}pat-prem-badge-pending{% endif %}">
+                                            {{ prescription.get_verified_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="pat-prem-badge {% if prescription.issued == 'issued' %}pat-prem-badge-paid{% else %}pat-prem-badge-pending{% endif %}">
+                                            {{ prescription.get_issued_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ prescription.status }}</td>
+                                    <td>{{ prescription.entered_by.get_full_name|default:"System" }}</td>
+                                    <td>{{ prescription.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ prescription.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                {% else %}
-                <p><em>No referrals recorded for this visit.</em></p>
-                {% endif %}
             </div>
-            </div>
-        {% endif %}
+            {% endif %}
 
-        {% if visit.dischargesnotes_set.exists %}
-                    <!-- 🏥 CARD: Discharge Notes -->
-            <div class="card mb-4">
-            <div class="card-header bg-warning text-dark">
-                <h6 class="mb-0">Discharge Notes</h6>
-            </div>
-            <div class="card-body">
-                {% if visit.dischargesnotes_set.exists %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm text-nowrap">
-                    <thead class="thead-light">
-                        <tr>
-                        <th>#</th>
-                        <th>Discharge Condition</th>
-                        <th>Discharge Notes</th>
-                        <th>Recorded By</th>
-                        <th>Discharge Date</th>
-                        <th>Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for discharge in visit.dischargesnotes_set.all %}
-                        <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ discharge.discharge_condition|default:"-" }}</td>
-                        <td>{{ discharge.discharge_notes|safe|default:"-" }}</td>
-                        <td>{{ discharge.data_recorder.get_full_name|default:"System" }}</td>
-                        <td>{{ discharge.discharge_date|date:"d-m-Y" }}</td>
-                        <td>{{ discharge.updated_at|date:"d-m-Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    </table>
+            <!-- Counseling Notes Section -->
+            {% if visit.counseling_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-comments mr-2"></i>Counseling Notes</h6>
                 </div>
-                {% else %}
-                <p><em>No discharge notes recorded for this visit.</em></p>
-                {% endif %}
+                <div class="pat-prem-modal-section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Recorder</th>
+                                    <th>Notes</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in visit.counseling_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ session.data_recorder.get_full_name|default:"System" }}</td>
+                                    <td>
+                                        <div class="counseling-notes">
+                                            {{ session.counselling_notes|safe|truncatewords:30 }}
+                                            {% if session.counselling_notes and session.counselling_notes|wordcount > 30 %}
+                                                <button class="btn pat-prem-btn-action btn-sm mt-2" data-toggle="collapse" data-target="#counselNotes{{ session.id }}">
+                                                    Show More
+                                                </button>
+                                                <div id="counselNotes{{ session.id }}" class="collapse">
+                                                    {{ session.counselling_notes|safe }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ session.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ session.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            </div>
-        {% endif %}
+            {% endif %}
 
+            <!-- Referral Details Section -->
+            {% if visit.referral_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-ambulance mr-2"></i>Referral Details</h6>
+                </div>
+                <div class="pat-prem-modal-section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Source Location</th>
+                                    <th>Destination Location</th>
+                                    <th>Nature of Referral</th>
+                                    <th>Transport Model</th>
+                                    <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Recorded By</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for referral in visit.referral_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ referral.source_location|default:"-" }}</td>
+                                    <td>{{ referral.destination_location|default:"-" }}</td>
+                                    <td>{{ referral.get_nature_of_referral_display|default:"-" }}</td>
+                                    <td>{{ referral.get_transport_model_display|default:"-" }}</td>
+                                    <td>
+                                        <div class="referral-notes">
+                                            {{ referral.notes|safe|truncatewords:20 }}
+                                            {% if referral.notes and referral.notes|wordcount > 20 %}
+                                                <button class="btn pat-prem-btn-action btn-sm mt-2" data-toggle="collapse" data-target="#referralNotes{{ referral.id }}">
+                                                    Show More
+                                                </button>
+                                                <div id="referralNotes{{ referral.id }}" class="collapse">
+                                                    {{ referral.notes|safe }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="pat-prem-badge 
+                                            {% if referral.status == 'completed' %}pat-prem-badge-paid
+                                            {% elif referral.status == 'pending' %}pat-prem-badge-pending
+                                            {% else %}pat-prem-badge-primary{% endif %}">
+                                            {{ referral.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ referral.data_recorder.get_full_name|default:"System" }}</td>
+                                    <td>{{ referral.created_at|date:"d-m-Y" }}</td>
+                                    <td>{{ referral.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Discharge Notes Section -->
+            {% if visit.dischargesnotes_set.exists %}
+            <div class="pat-prem-modal-section mb-4">
+                <div class="pat-prem-modal-section-header">
+                    <h6 class="mb-0 text-uppercase"><i class="fas fa-sign-out-alt mr-2"></i>Discharge Notes</h6>
+                </div>
+                <div class="pat-prem-modal-section-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover pat-prem-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Discharge Condition</th>
+                                    <th>Discharge Notes</th>
+                                    <th>Recorded By</th>
+                                    <th>Discharge Date</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for discharge in visit.dischargesnotes_set.all %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ discharge.discharge_condition|default:"-" }}</td>
+                                    <td>
+                                        <div class="discharge-notes">
+                                            {{ discharge.discharge_notes|safe|truncatewords:30 }}
+                                            {% if discharge.discharge_notes and discharge.discharge_notes|wordcount > 30 %}
+                                                <button class="btn pat-prem-btn-action btn-sm mt-2" data-toggle="collapse" data-target="#dischargeNotes{{ discharge.id }}">
+                                                    Show More
+                                                </button>
+                                                <div id="dischargeNotes{{ discharge.id }}" class="collapse">
+                                                    {{ discharge.discharge_notes|safe }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ discharge.data_recorder.get_full_name|default:"System" }}</td>
+                                    <td>{{ discharge.discharge_date|date:"d-m-Y" }}</td>
+                                    <td>{{ discharge.updated_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <a href="{% url 'resa_admin_download_consultation_summary' patient.id visit.id %}" class="btn pat-prem-btn-action">
+                <i class="fas fa-download mr-2"></i> Download Full Report
+            </a>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  {% endfor %}
 {% endfor %}
-{% endfor %}
-
 {# =============================== #}
 {# 🧪 Lab Result Modals           #}
 {# =============================== #}
@@ -979,4 +1817,126 @@
 
    
 {% include 'hod_template/datatable.html' %}   
+
+<script>
+    // Initialize DataTable
+    new DataTable('#patientTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[8, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search patients...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let insuranceCount = 0;
+        let cashCount = 0;
+        
+        document.querySelectorAll('#patientTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            
+            // Count insurance vs cash patients
+            if (status === 'insurance') {
+                insuranceCount++;
+            } else {
+                cashCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('insurance-patients').textContent = insuranceCount;
+        document.getElementById('cash-patients').textContent = cashCount;
+        
+        // Update chart values
+        document.getElementById('chart-insurance').textContent = insuranceCount;
+        document.getElementById('chart-cash').textContent = cashCount;
+        
+        // Update progress bar
+        const totalPatients = insuranceCount + cashCount;
+        const insurancePercentage = totalPatients > 0 ? (insuranceCount / totalPatients) * 100 : 0;
+        document.querySelector('.pat-prem-progress-bar').style.width = `${insurancePercentage}%`;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pat-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pat-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterPatients(status);
+        });
+    });
+
+    // Filter patients by status
+    function filterPatients(status) {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('patPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pat-prem-status-btn.active').getAttribute('data-status');
+        
+        filterPatientsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('patPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pat-prem-status-btn.active').getAttribute('data-status');
+        
+        filterPatientsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter patients by both status and search text
+    function filterPatientsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

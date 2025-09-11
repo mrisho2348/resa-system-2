@@ -1,0 +1,934 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+
+{% block title %}
+Premium Reagent Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembaadmin_template/modal_form.html" %}
+<a class="btn btn-prem-reagent-add float-right mr-2" type="button" data-toggle="modal" data-target="#addReagentModal">
+    <i class="fas fa-plus"></i> New Reagent
+</a>
+{% endblock breadcrumb %}
+
+{% load static %}
+{% block main_content %}
+<style>
+    /* Premium Reagent Management Styles - Unique to this template */
+    .reagent-prem-gradient {
+        background: linear-gradient(120deg, #00416A, #E4E5E6);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 65, 106, 0.15);
+        border: none;
+    }
+    
+    .reagent-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .reagent-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .reagent-prem-table th {
+        background: linear-gradient(120deg, #e0f7fa, #b2ebf2);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e0f7fa;
+    }
+    
+    .reagent-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .reagent-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 96, 100, 0.1);
+        background: #f1fcff;
+    }
+    
+    .btn-prem-reagent {
+        background: linear-gradient(120deg, #00416A, #E4E5E6);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 65, 106, 0.2);
+    }
+    
+    .btn-prem-reagent:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 65, 106, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-reagent-add {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-reagent-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-reagent-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-reagent-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-reagent-delete {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+    }
+    
+    .btn-prem-reagent-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(244, 67, 54, 0.3);
+        color: white;
+    }
+    
+    .reagent-prem-modal-header {
+        background: linear-gradient(120deg, #00416A, #E4E5E6);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .reagent-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .reagent-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .reagent-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .reagent-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 96, 100, 0.25);
+    }
+    
+    .reagent-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .reagent-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .reagent-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .reagent-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .reagent-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .reagent-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .reagent-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-badge-expiring {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    .reagent-prem-badge-expired {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .reagent-prem-badge-good {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .reagent-prem-filter-bar {
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .reagent-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .reagent-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .reagent-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .reagent-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #00416A, #E4E5E6);
+        color: white;
+    }
+    
+    .reagent-prem-status-btn[data-status="expiring"] {
+        background: linear-gradient(120deg, #FF9800, #FFCC80);
+        color: white;
+    }
+    
+    .reagent-prem-status-btn[data-status="expired"] {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .reagent-prem-status-btn[data-status="good"] {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes reagentPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .reagent-prem-animated {
+        animation: reagentPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .reagent-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .reagent-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .reagent-prem-flip-card:hover .reagent-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .reagent-prem-flip-card-front, .reagent-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .reagent-prem-flip-card-front {
+        background: linear-gradient(120deg, #00416A, #E4E5E6);
+        color: white;
+    }
+    
+    .reagent-prem-flip-card-back {
+        background: linear-gradient(120deg, #E4E5E6, #00416A);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .reagent-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Date styling */
+    .reagent-prem-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    /* Quantity styling */
+    .reagent-prem-quantity {
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background-color: #e8f5e9;
+    }
+    
+    .reagent-prem-quantity.low {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+    
+    /* Expiry status styling */
+    .reagent-prem-expiry-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card reagent-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-flask mr-2"></i>Premium Reagent Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card reagent-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-flask mr-2"></i>Total Reagents</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="reagent-prem-summary-value" id="total-reagents">{{ reagent_list|length }}</div>
+                                    <div class="reagent-prem-summary-label">All Reagents</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card reagent-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Expiring Soon</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="reagent-prem-summary-value" id="expiring-count">0</div>
+                                    <div class="reagent-prem-summary-label">Next 30 Days</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card reagent-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-times-circle mr-2"></i>Expired</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="reagent-prem-summary-value" id="expired-count">0</div>
+                                    <div class="reagent-prem-summary-label">Expired Reagents</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="reagent-prem-flip-card">
+                                <div class="reagent-prem-flip-card-inner">
+                                    <div class="reagent-prem-flip-card-front">
+                                        <div class="reagent-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Premium Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="reagent-prem-flip-card-back">
+                                        <div class="reagent-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Reagent Insights</h4>
+                                        <p>Advanced tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="reagent-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="reagent-prem-status-filter">
+                                <button class="reagent-prem-status-btn active" data-status="all">All Reagents</button>
+                                <button class="reagent-prem-status-btn" data-status="expiring">Expiring Soon</button>
+                                <button class="reagent-prem-status-btn" data-status="expired">Expired</button>
+                                <button class="reagent-prem-status-btn" data-status="good">Good Stock</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search reagents..." id="reagentPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-reagent" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive reagent-prem-table-container">
+                        <table class="table table-hover text-nowrap reagent-prem-table" id="reagentTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-tag mr-2"></i>Name</th>
+                                    <th><i class="fas fa-truck mr-2"></i>Supplier</th>
+                                    <th><i class="fas fa-boxes mr-2"></i>Quantity</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Expiry Date</th>
+                                    <th><i class="fas fa-temperature-low mr-2"></i>Storage Conditions</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagent_list %}
+                                <tr data-expiry="{{ reagent.expiry_date|date:'Y-m-d' }}" data-quantity="{{ reagent.quantity }}" data-name="{{ reagent.name|lower }}">
+                                    <td>{{ reagent.name }}</td>
+                                    <td>{{ reagent.supplier }}</td>
+                                    <td>
+                                        <span class="reagent-prem-quantity {% if reagent.quantity < 10 %}low{% endif %}">
+                                            {{ reagent.quantity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="reagent-prem-date">{{ reagent.expiry_date|date:"d-m-Y" }}</span>
+                                        {% now "Y-m-d" as current_date %}
+                                        {% if reagent.expiry_date|date:"Y-m-d" < current_date %}
+                                            <span class="reagent-prem-expiry-status reagent-prem-badge-expired ml-2">Expired</span>
+                                        {% elif reagent.expiry_date|date:"Y-m-d" <= current_date|add:"30 days" %}
+                                            <span class="reagent-prem-expiry-status reagent-prem-badge-expiring ml-2">Expiring Soon</span>
+                                        {% else %}
+                                            <span class="reagent-prem-expiry-status reagent-prem-badge-good ml-2">Good</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ reagent.storage_conditions|default:"N/A" }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-prem-reagent-edit" data-toggle="modal" data-target="#editReagentModal{{ reagent.id }}" data-toggle="tooltip" title="Edit">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-prem-reagent-delete" data-toggle="modal" data-target="#deleteReagentModal{{ reagent.id }}" data-toggle="tooltip" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Reagent Modal -->
+<div class="modal fade" id="addReagentModal" tabindex="-1" aria-labelledby="addReagentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content reagent-prem-modal-content">
+            <div class="modal-header reagent-prem-modal-header">
+                <h5 class="modal-title text-white" id="addReagentModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add New Reagent</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="addReagentContainers" class="alert" role="alert" style="display: none;"></div>
+                <form id="addReagentForm" method="post">
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="name">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="supplier">Supplier</label>
+                                <input type="text" class="form-control" id="supplier" name="supplier" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="expiry_date">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-8">
+                            <div class="reagent-prem-input-group">
+                                <label for="storage_conditions">Storage Conditions</label>
+                                <input type="text" class="form-control" id="storage_conditions" name="storage_conditions">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-prem-reagent-add btn-block" id="addReagent">Add New Reagent</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for reagent in reagent_list %}
+<!-- Edit Reagent Modal -->
+<div class="modal fade" id="editReagentModal{{ reagent.id }}" tabindex="-1" aria-labelledby="editReagentModalLabel{{ reagent.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content reagent-prem-modal-content">
+            <div class="modal-header reagent-prem-modal-header">
+                <h5 class="modal-title text-white" id="editReagentModalLabel{{ reagent.id }}"><i class="fas fa-edit mr-2"></i>Update Reagent</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="editReagentContainers{{ reagent.id }}" class="alert" role="alert" style="display: none;"></div>
+                <form id="editReagentForm{{ reagent.id }}" method="post">
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="name{{ reagent.id }}">Name</label>
+                                <input type="text" class="form-control" id="name{{ reagent.id }}" name="name" value="{{ reagent.name }}" required>
+                                <input type="hidden" name="reagent_id" value="{{ reagent.id }}">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="supplier{{ reagent.id }}">Supplier</label>
+                                <input type="text" class="form-control" id="supplier{{ reagent.id }}" name="supplier" value="{{ reagent.supplier }}">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="quantity{{ reagent.id }}">Quantity</label>
+                                <input type="number" class="form-control" id="quantity{{ reagent.id }}" name="quantity" value="{{ reagent.quantity }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <div class="reagent-prem-input-group">
+                                <label for="expiry_date{{ reagent.id }}">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiry_date{{ reagent.id }}" name="expiry_date" value="{{ reagent.expiry_date|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-8">
+                            <div class="reagent-prem-input-group">
+                                <label for="storage_conditions{{ reagent.id }}">Storage Conditions</label>
+                                <input type="text" class="form-control" id="storage_conditions{{ reagent.id }}" name="storage_conditions" value="{{ reagent.storage_conditions }}">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-prem-reagent-add btn-block" id="editReagent{{ reagent.id }}">Update Reagent</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% for reagent in reagent_list %}
+<!-- Delete Reagent Modal -->
+<div class="modal fade" id="deleteReagentModal{{ reagent.id }}" tabindex="-1" aria-labelledby="deleteReagentModalLabel{{ reagent.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content reagent-prem-modal-content">
+            <div class="modal-header reagent-prem-modal-header">
+                <h5 class="modal-title text-white" id="deleteReagentModalLabel{{ reagent.id }}"><i class="fas fa-trash mr-2"></i>Delete Reagent</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the reagent <strong>{{ reagent.name }}</strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-prem-reagent-delete" id="confirmDeleteReagent{{ reagent.id }}">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% include 'pembaadmin_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#reagentTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search reagents...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        
+        let expiringCount = 0;
+        let expiredCount = 0;
+        
+        document.querySelectorAll('#reagentTable tbody tr').forEach(row => {
+            const expiryDate = new Date(row.getAttribute('data-expiry'));
+            const quantity = parseInt(row.getAttribute('data-quantity'));
+            
+            // Count expiring reagents (within next 30 days)
+            if (expiryDate <= thirtyDaysFromNow && expiryDate >= today) {
+                expiringCount++;
+            }
+            
+            // Count expired reagents
+            if (expiryDate < today) {
+                expiredCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('expiring-count').textContent = expiringCount;
+        document.getElementById('expired-count').textContent = expiredCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Filter functionality
+    document.querySelectorAll('.reagent-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.reagent-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterReagents(status);
+        });
+    });
+
+    // Filter reagents
+    function filterReagents(status) {
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const expiryDate = new Date(row.getAttribute('data-expiry'));
+            const quantity = parseInt(row.getAttribute('data-quantity'));
+            
+            let showRow = false;
+            
+            if (status === 'all') {
+                showRow = true;
+            } else if (status === 'expiring' && expiryDate <= thirtyDaysFromNow && expiryDate >= today) {
+                showRow = true;
+            } else if (status === 'expired' && expiryDate < today) {
+                showRow = true;
+            } else if (status === 'good' && expiryDate > thirtyDaysFromNow) {
+                showRow = true;
+            }
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('reagentPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.reagent-prem-status-btn.active').getAttribute('data-status');
+        
+        filterReagentsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('reagentPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.reagent-prem-status-btn.active').getAttribute('data-status');
+        
+        filterReagentsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter reagents by both status and search text
+    function filterReagentsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#reagentTable tbody tr');
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const expiryDate = new Date(row.getAttribute('data-expiry'));
+            const name = row.getAttribute('data-name');
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'expiring' && expiryDate <= thirtyDaysFromNow && expiryDate >= today) {
+                statusMatch = true;
+            } else if (status === 'expired' && expiryDate < today) {
+                statusMatch = true;
+            } else if (status === 'good' && expiryDate > thirtyDaysFromNow) {
+                statusMatch = true;
+            }
+            
+            const searchMatch = searchText === '' || name.includes(searchText) || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-reagents').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+<script>
+    $(document).ready(function () {
+        $('#addReagent').click(function (event) {
+            var form = document.getElementById('addReagentForm');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#addReagentForm').serialize();
+
+                $.ajax({
+                    url: '{% url "pemba_admin_add_or_edit_kahama_reagent" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#addReagentContainers')
+                                .removeClass('alert-danger')
+                                .addClass('alert-success')
+                                .text(response.message)
+                                .show();
+                            setTimeout(() => location.reload(true), 1000);
+                        } else {
+                            $('#addReagentContainers')
+                                .removeClass('alert-success')
+                                .addClass('alert-danger')
+                                .text(response.message)
+                                .show();
+                        }
+                    },
+                    error: function () {
+                        $('#addReagentContainers')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .text('AJAX request failed')
+                            .show();
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+
+<script>
+    {% for reagent in reagent_list %}
+    $(document).ready(function () {
+        $('#editReagent{{ reagent.id }}').click(function (event) {
+            var form = document.getElementById('editReagentForm{{ reagent.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#editReagentForm{{ reagent.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "pemba_admin_add_or_edit_kahama_reagent" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editReagentContainers{{ reagent.id }}')
+                                .removeClass('alert-danger')
+                                .addClass('alert-success')
+                                .text(response.message)
+                                .show();
+                            setTimeout(() => location.reload(true), 1000);
+                        } else {
+                            $('#editReagentContainers{{ reagent.id }}')
+                                .removeClass('alert-success')
+                                .addClass('alert-danger')
+                                .text(response.message)
+                                .show();
+                        }
+                    },
+                    error: function () {
+                        $('#editReagentContainers{{ reagent.id }}')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .text('AJAX request failed')
+                            .show();
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+    {% endfor %}
+</script>
+
+<script>
+    $(document).ready(function() {
+        {% for reagent in reagent_list %}
+        // Attach click event listener to the delete button
+        $('#confirmDeleteReagent{{ reagent.id }}').on('click', function() {
+            var reagentId = '{{ reagent.id }}';
+            
+            // Send AJAX request to delete the reagent
+            $.ajax({
+                url: '{% url "pemba_admin_delete_kahama_reagent" %}',
+                type: 'POST',
+                data: {
+                    'id': reagentId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#deleteReagentModal{{ reagent.id }}').modal('hide');
+                        location.reload(true);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('An error occurred: ' + error);
+                }
+            });
+        });
+        {% endfor %}
+    });
+</script>
+{% endblock %}

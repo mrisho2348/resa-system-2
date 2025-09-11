@@ -1,537 +1,713 @@
-
-
-
-<div class="modal fade" id="diseaseModal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-        <div class="modal-header ">
-            <h5 class="modal-title">Add Disease</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+<!-- Improved Disease Modal -->
+<div class="modal fade" id="addDiseaseModal" tabindex="-1" role="dialog" aria-labelledby="addDiseaseModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white py-3">
+        <h5 class="modal-title font-weight-bold" id="addDiseaseModalTitle">
+          <i class="fas fa-disease mr-2"></i>Add Disease
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="container-fluid">
+          <div id="addDiseaseMessageContainer" class="alert alert-dismissible fade show" role="alert" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <span id="addDiseaseMessageContent"></span>
           </div>
-      <div class="modal-body">
-        <div class="container-fluid">  
-          <div id="messageContainers" class="alert" role="alert"></div>        
-            <form method="post" id="diseaseForm">
-                {% csrf_token %}
-                <div class="row">                  
-                    <div class="form-group col-sm-6">
-                        <label for="Disease" class="col-sm-1-12 col-form-label">Disease</label>
-                        <input type="text" class="form-control" name="Disease" id="Disease" placeholder="" required>
-                    </div>
-                    <div class="form-group col-sm-6">
-                        <label for="Code" class="col-sm-1-12 col-form-label">Code</label>
-                        <input type="text" class="form-control" name="Code" id="Code" placeholder="" required>
-                    </div>
-                </div> 
-                       
-                <div class="form-group row">
-                    <div class="col-md-12">
-                        <button type="button" class="btn btn-primary btn-block" id="saveDisease">Add disease</button>
-                    </div>
+          
+          <form id="addDiseaseForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="diseaseName" class="font-weight-bold text-primary">Disease Name</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-tag text-primary"></i></span>
+                  </div>
+                  <input type="text" class="form-control" name="name" id="diseaseName" placeholder="Enter disease name" required>
+                  <div class="invalid-feedback">Please provide a disease name</div>
                 </div>
-            </form>
-            <script>
-              $(document).ready(function () {
-                  $('#saveDisease').click(function (event) {
-                      var form = document.getElementById('diseaseForm');
-                      if (form.checkValidity() === false) {
-                          event.preventDefault();
-                          event.stopPropagation();
-                      } else {
-                          var formData = $('#diseaseForm').serialize();
-          
-                          $.ajax({
-                              url: '{% url "admin_add_disease" %}', // Update with your actual URL
-                              type: 'POST',
-                              data: formData,
-                              success: function (response) {
-                                  if (response.success) {
-                                      $('#messageContainers').html('<div class="alert alert-success">' + response.message + '</div>');
-                                      location.reload(true);
-                                  } else {
-                                      $('#messageContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                  }
-                              },
-                              error: function () {
-                                  console.error('AJAX request failed');
-                                  $('#messageContainers').html('<div class="alert alert-danger">AJAX request failed</div>');
-                              }
-                          });
-                      }
-          
-                      form.classList.add('was-validated');
-                  });
-              });
-          </script>             
+              </div>
               
+              <div class="form-group col-md-6">
+                <label for="diseaseCode" class="font-weight-bold text-primary">ICD Code</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-barcode text-primary"></i></span>
+                  </div>
+                  <input type="text" class="form-control" name="code" id="diseaseCode" placeholder="Enter ICD code" required>
+                  <div class="invalid-feedback">Please provide a valid code</div>
+                </div>
+              </div>
+            </div>           
+            
+            <div class="modal-footer bg-light p-3 border-top">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> Save Disease
+              </button>
+            </div>
+          </form>
         </div>
-      </div>   
+      </div>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="pathodologyModal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header ">
-                <h5 class="modal-title">Add New Record</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="container-fluid">
-                  <div id="pathologyMessageContainer" class="alert" role="alert"></div> <!-- Added for messages -->
-                    <form method="post" id="pathodologyForm">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="form-group col-sm-5">
-                                <label for="Name" class="col-sm-1-12 col-form-label">Name</label>
-                                <input type="text" class="form-control" name="Name" id="Name" placeholder="" required>                               
-                            </div>
-                            <div class="form-group col-sm-6">
-                                <label for="Description" class="col-sm-1-12 col-form-label">Description</label>
-                                <input type="text" class="form-control" name="Description" id="Description" placeholder="">
-                            </div>                        
-                        </div>
-                        <div class="form-group row">
-                            <div class="col-md-12">
-                                <button type="button" class="btn btn-primary btn-block" id="saveRecord">Add New Record</button>
-                            </div>
-                        </div>
-                    </form>
-                    <script>
-                      $(document).ready(function () {
-                          $('#saveRecord').click(function (event) {
-                              var form = document.getElementById('pathodologyForm');
-                              if (form.checkValidity() === false) {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                              } else {
-                                  var formData = $('#pathodologyForm').serialize();
-                  
-                                  $.ajax({
-                                      url: '{% url "admin_add_pathology_record" %}', // Update with your actual URL
-                                      type: 'POST',
-                                      data: formData,
-                                      success: function (response) {
-                                          if (response.success) {
-                                              $('#pathologyMessageContainer').html('<div class="alert alert-success">' + response.message + '</div>');
-                                              location.reload(true);
-                                          } else {
-                                              $('#pathologyMessageContainer').html('<div class="alert alert-danger">' + response.message + '</div>');
-                                          }
-                                      },
-                                      error: function () {
-                                          console.error('AJAX request failed');
-                                          $('#pathologyMessageContainer').html('<div class="alert alert-danger">AJAX request failed</div>');
-                                      }
-                                  });
-                              }
-                  
-                              form.classList.add('was-validated');
-                          });
-                      });
-                  </script>                    
+<script>
+$(document).ready(function() {
+  $('#addDiseaseForm').submit(function(e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      e.stopPropagation();
+      $(this).addClass('was-validated');
+      return;
+    }
+
+    $.ajax({
+      url: '{% url "resa_admin_add_disease" %}',
+      type: 'POST',
+      data: $(this).serialize(),
+      beforeSend: function() {
+        $('#addDiseaseSubmitBtn').html('<span class="spinner-border spinner-border-sm" role="status"></span> Saving...').prop('disabled', true);
+      },
+      success: function(response) {
+        if (response.success) {
+          showDiseaseMessage('success', response.message);
+          setTimeout(function() {
+            $('#addDiseaseModal').modal('hide');
+            location.reload();
+          }, 1500);
+        } else {
+          showDiseaseMessage('danger', response.message || 'Error saving disease');
+        }
+      },
+      error: function() {
+        showDiseaseMessage('danger', 'Server error occurred. Please try again.');
+      },
+      complete: function() {
+        $('#addDiseaseSubmitBtn').html('<i class="fas fa-save mr-1"></i> Save Disease').prop('disabled', false);
+      }
+    });
+  });
+
+  function showDiseaseMessage(type, message) {
+    const container = $('#addDiseaseMessageContainer');
+    container.removeClass('alert-success alert-danger')
+             .addClass(`alert-${type}`)
+             .show();
+    $('#addDiseaseMessageContent').text(message);
+  }
+});
+</script>
+
+<!-- Improved Pathodology Modal -->
+<div class="modal fade" id="pathodologyModal" tabindex="-1" role="dialog" aria-labelledby="pathodologyModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-info text-white py-3">
+        <h5 class="modal-title font-weight-bold" id="pathodologyModalTitle">
+          <i class="fas fa-file-medical mr-2"></i>Add Pathology Record
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="container-fluid">
+          <div id="pathologyMessageContainer" class="alert alert-dismissible fade show" role="alert" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <span id="pathologyMessageContent"></span>
+          </div>
+          
+          <form id="pathodologyForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="pathologyName" class="font-weight-bold text-info">Pathology Name</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-head-side-mask text-info"></i></span>
+                  </div>
+                  <input type="text" class="form-control" name="name" id="pathologyName" placeholder="Enter pathology name" required>
+                  <div class="invalid-feedback">Please provide a pathology name</div>
                 </div>
+              </div>
+              
+              <div class="form-group col-md-6">
+                <label for="pathologyCode" class="font-weight-bold text-info">Classification Code</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-code text-info"></i></span>
+                  </div>
+                  <input type="text" class="form-control" name="code" id="pathologyCode" placeholder="Enter classification code">
+                </div>
+              </div>
             </div>
+            
+            <div class="form-group">
+              <label for="pathologyDescription" class="font-weight-bold text-info">Description</label>
+              <textarea class="form-control" name="description" id="pathologyDescription" rows="3" placeholder="Detailed description of the pathology" required></textarea>
+              <div class="invalid-feedback">Please provide a description</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="pathologyCategory" class="font-weight-bold text-info">Category</label>
+              <select class="form-control select2" name="category" id="pathologyCategory">
+                <option value="">Select Category</option>
+                <option value="infectious">Infectious</option>
+                <option value="genetic">Genetic</option>
+                <option value="degenerative">Degenerative</option>
+                <option value="nutritional">Nutritional</option>
+                <option value="endocrine">Endocrine</option>
+              </select>
+            </div>
+            
+            <div class="modal-footer bg-light p-3 border-top">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-info text-white">
+                <i class="fas fa-plus-circle mr-1"></i> Add Record
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
     </div>
   </div>
+</div>
 
+<script>
+$(document).ready(function() {
+  $('#pathodologyForm').submit(function(e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      e.stopPropagation();
+      $(this).addClass('was-validated');
+      return;
+    }
 
+    $.ajax({
+      url: '{% url "resa_admin_add_pathodology" %}',
+      type: 'POST',
+      data: $(this).serialize(),
+      beforeSend: function() {
+        $('#pathologySubmitBtn').html('<span class="spinner-border spinner-border-sm" role="status"></span> Saving...').prop('disabled', true);
+      },
+      success: function(response) {
+        if (response.success) {
+          showPathologyMessage('success', response.message);
+          setTimeout(function() {
+            $('#pathodologyModal').modal('hide');
+            location.reload();
+          }, 1500);
+        } else {
+          showPathologyMessage('danger', response.message || 'Error saving record');
+        }
+      },
+      error: function() {
+        showPathologyMessage('danger', 'Server error occurred. Please try again.');
+      },
+      complete: function() {
+        $('#pathologySubmitBtn').html('<i class="fas fa-plus-circle mr-1"></i> Add Record').prop('disabled', false);
+      }
+    });
+  });
 
-<style>
-  /* Custom styles for the modal */
-  #staffModal .modal-dialog {
-      max-width: 800px; /* Set the maximum width as needed */
-      width: 90%; /* Adjust the width percentage as needed */
+  function showPathologyMessage(type, message) {
+    const container = $('#pathologyMessageContainer');
+    container.removeClass('alert-success alert-danger')
+             .addClass(`alert-${type}`)
+             .show();
+    $('#pathologyMessageContent').text(message);
   }
+});
+</script>
 
-  #staffModal .modal-content {
-      width: 100%;
-  }
-
-  #staffModal .modal-body {
-      padding: 20px;
-  }
-
-  #staffModal .modal-header {
-      background-color: #3498db; /* Change the background color as needed */
-      color: #fff;
-      border-bottom: 1px solid #ddd;
-  }
-
-  #staffModal .modal-title {
-      font-size: 1.5rem;
-  }
-
-  #staffModal .close {
-      color: #fff;
-      font-size: 1.5rem;
-  }
-
-  #staffModal .close:hover {
-      color: #f00; /* Change the close button color on hover as needed */
-  }
-
-  #staffModal .btn-primary {
-      background-color: #3498db; /* Change the button color as needed */
-      border-color: #3498db;
-  }
-
-  #staffModal .btn-primary:hover {
-      background-color: #217dbb; /* Change the button color on hover as needed */
-      border-color: #217dbb;
-  }
-</style>
-
-<div class="modal fade" id="staffModal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Add user</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="container-fluid">
-            <form id="staffForm" method="post" novalidate>
-              {% csrf_token %}
-              <!-- Personal Information -->
-              <div class="row">
-                <div class="form-group col-sm-4">
-                  <label for="firstName" class="col-form-label">First Name</label>
-                  <input type="text" class="form-control" name="firstName" id="firstName" required>
-                  <div class="invalid-feedback">First name is required.</div>
+<!-- Improved Staff Modal -->
+<div class="modal fade" id="staffModal" tabindex="-1" role="dialog" aria-labelledby="staffModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient-primary text-white py-3">
+        <h5 class="modal-title font-weight-bold" id="staffModalTitle">
+          <i class="fas fa-user-plus mr-2"></i>Add New Staff Member
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="container-fluid">
+          <div id="staffMessageContainer" class="alert alert-dismissible fade show" role="alert" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <span id="staffMessageContent"></span>
+          </div>
+          
+          <form id="staffForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="card border-primary mb-4">
+              <div class="card-header bg-light-primary text-primary font-weight-bold">
+                <i class="fas fa-user-circle mr-2"></i>Personal Information
+              </div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group col-md-4">
+                    <label for="firstName" class="font-weight-bold">First Name</label>
+                    <input type="text" class="form-control" name="firstName" id="firstName" required>
+                    <div class="invalid-feedback">First name is required</div>
+                  </div>
+                  <div class="form-group col-md-4">
+                    <label for="middleName" class="font-weight-bold">Middle Name</label>
+                    <input type="text" class="form-control" name="middleName" id="middleName">
+                  </div>
+                  <div class="form-group col-md-4">
+                    <label for="lastName" class="font-weight-bold">Last Name</label>
+                    <input type="text" class="form-control" name="lastName" id="lastName" required>
+                    <div class="invalid-feedback">Last name is required</div>
+                  </div>
                 </div>
-                <div class="form-group col-sm-4">
-                  <label for="middleName" class="col-form-label">Middle Name</label>
-                  <input type="text" class="form-control" name="middleName" id="middleName">
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="lastname" class="col-form-label">Last Name</label>
-                  <input type="text" class="form-control" name="lastname" id="lastname" required>
-                  <div class="invalid-feedback">Last name is required.</div>
+                
+                <div class="form-row">
+                  <div class="form-group col-md-3">
+                    <label for="gender" class="font-weight-bold">Gender</label>
+                    <select class="form-control select2" name="gender" id="gender" required>
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div class="form-group col-md-3">
+                    <label for="dob" class="font-weight-bold">Date of Birth</label>
+                    <input type="date" class="form-control" name="dob" id="dob" required>
+                  </div>
+                  
+                  <div class="form-group col-md-3">
+                    <label for="phone" class="font-weight-bold">Phone</label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                      </div>
+                      <input type="tel" class="form-control" id="phone" name="phone" required
+                             pattern="0\d{9}" title="10-digit number starting with 0">
+                    </div>
+                    <small class="form-text text-muted">Format: 07XXXXXXXX</small>
+                    <div class="invalid-feedback">Valid 10-digit number starting with 0</div>
+                  </div>
+                  
+                  <div class="form-group col-md-3">
+                    <label for="maritalStatus" class="font-weight-bold">Marital Status</label>
+                    <select class="form-control select2" name="maritalStatus" id="maritalStatus">
+                      <option value="">Select Status</option>
+                      <option value="single">Single</option>
+                      <option value="married">Married</option>
+                      <option value="divorced">Divorced</option>
+                      <option value="widowed">Widowed</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-  
-              <!-- Additional Personal Information -->
-              <div class="row">
-                <div class="form-group col-sm-4">
-                  <label for="gender" class="col-form-label">Gender</label>
-                  <select class="form-control select2bs4" style="width: 100%;"    name="gender" id="gender" required>
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="non-binary">Non-Binary</option>
-                    <option value="prefer-not-to-say">Prefer Not to Say</option>
-                  </select>
-                  <div class="invalid-feedback">Gender is required.</div>
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="dob" class="col-form-label">Date of Birth</label>
-                  <input type="date" class="form-control" name="dob" id="dob" required>
-                  <div class="invalid-feedback">Date of birth is required.</div>
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="phone" class="col-form-label">Phone</label>
-                  <input type="tel" class="form-control" id="phone" name="phone" value="{{ patient.phone }}" required 
-                         pattern="0\d{9}" title="Please enter a valid 10-digit phone number starting with '0'" 
-                         onchange="validatePhone(this)" oninvalid="setCustomValidity('Please enter a valid 10-digit phone number starting with \'0\'')" 
-                         oninput="setCustomValidity('')" maxlength="10" minlength="10">
-                  <div id="phone-error" style="color: red; display: none;">Please enter a valid 10-digit phone number starting with '0'</div>
+            </div>
+            
+            <div class="card border-info mb-4">
+              <div class="card-header bg-light-info text-info font-weight-bold">
+                <i class="fas fa-briefcase mr-2"></i>Professional Information
               </div>
-              </div>
-  
-              <!-- Professional Information -->
-              <div class="row">
-                <div class="form-group col-sm-4">
-                  <label for="profession" class="col-form-label">Employee Profession</label>
-                  <select class="form-control select2bs4" style="width: 100%;"    name="profession" id="profession" required>
-                    <option value="">Select Profession</option>
-                    <option value="doctor">Doctor</option>
-                    <option value="nurse">Nurse</option>
-                    <option value="pharmacist">Pharmacist</option>
-                    <option value="developer">Developer</option>
-                    <option value="designer">Designer</option>
-                    <option value="manager">Manager</option>
-                    <option value="radiologist">Radiologist</option>
-                    <option value="lab_technician">Lab Technician</option>
-                    <option value="receptionist">Receptionist</option>
-                    <option value="physiotherapist">Physiotherapist</option>
-                    <option value="accountant">Accountant</option>
-                    <option value="security_guard">Security Guard</option>
-                    <option value="chef">Chef</option>
-                    <option value="cleaner">Cleaner</option>
-                  </select>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group col-md-6">
+                    <label for="profession" class="font-weight-bold">Profession</label>
+                    <select class="form-control select2" name="profession" id="profession" required>
+                      <option value="">Select Profession</option>
+                      <option value="doctor">Doctor</option>
+                      <option value="nurse">Nurse</option>
+                      <option value="pharmacist">Pharmacist</option>
+                      <!-- other options -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group col-md-6">
+                    <label for="joiningDate" class="font-weight-bold">Joining Date</label>
+                    <input type="date" class="form-control" name="joiningDate" id="joiningDate">
+                  </div>
                 </div>
-                <div class="form-group col-sm-4">
-                  <label for="joiningDate" class="col-form-label">Joining Date</label>
-                  <input type="date" class="form-control" name="joiningDate" id="joiningDate">
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="maritalStatus" class="col-form-label">Marital Status</label>
-                  <select class="form-control select2bs4" style="width: 100%;"    name="maritalStatus" id="maritalStatus">
-                    <option value="">Select Marital Status</option>
-                    <option value="single">Single</option>
-                    <option value="married">Married</option>
-                    <option value="divorced">Divorced</option>
-                    <option value="widowed">Widowed</option>
-                  </select>
-                </div>
-              </div>
-  
-              <!-- Login Details -->
-              <h4 class="mt-4">Login Details</h4>
-              <div class="row">
-                <div class="form-group col-sm-4">
-                  <label for="email" class="col-form-label">Email</label>
-                  <input type="email" class="form-control" name="email" id="email" required>
-                  <div class="invalid-feedback">Email is required.</div>
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="password" class="col-form-label">Password</label>
-                  <input type="password" class="form-control" name="password" id="password" required>
-                  <div class="invalid-feedback">Password is required.</div>
-                </div>
-                <div class="form-group col-sm-4">
-                  <label for="confirmPassword" class="col-form-label">Confirm Password</label>
-                  <input type="password" class="form-control" name="confirmPassword" id="confirmPassword" required>
-                  <div class="invalid-feedback">Confirm password is required.</div>
-                </div>
-              </div>
-  
-              <!-- Role Information -->
-              <h4 class="mt-4">Role</h4>
-              <div class="container">
-                <div class="row">
-                  <div class="form-group col-sm-6">
-                    <label for="userRole" class="col-form-label">Select Role</label>
-                    <select class="form-control select2bs4" style="width: 100%;"    name="userRole" id="userRole" required>
+                
+                <div class="form-row">
+                  <div class="form-group col-md-6">
+                    <label for="userRole" class="font-weight-bold">System Role</label>
+                    <select class="form-control select2" name="userRole" id="userRole" required>
                       <option value="">Select Role</option>
                       <option value="admin">Administrator</option>
                       <option value="doctor">Doctor</option>
                       <option value="nurse">Nurse</option>
-                      <option value="physiotherapist">Physiotherapist</option>
-                      <option value="labTechnician">Lab Technician</option>
-                      <option value="pharmacist">Pharmacist</option>
-                      <option value="receptionist">Receptionist</option>
+                      <!-- other options -->
                     </select>
-                    <div class="invalid-feedback">Role is required.</div>
                   </div>
-                  <div class="form-group col-sm-6">
-                    <label for="Workingplace" class="col-form-label">Working place</label>
-                    <select class="form-control select2bs4" style="width: 100%;"    name="Workingplace" id="Workingplace" required>
-                      <option value="">Select Working place</option>
+                  
+                  <div class="form-group col-md-6">
+                    <label for="workingPlace" class="font-weight-bold">Working Place</label>
+                    <select class="form-control select2" name="workingPlace" id="workingPlace" required>
+                      <option value="">Select Location</option>
                       <option value="resa">Resa</option>
                       <option value="kahama">Kahama</option>
                     </select>
-                    <div class="invalid-feedback">Working place is required.</div>
                   </div>
                 </div>
               </div>
-              <div id="messageContainer" class="text-center mt-2"></div>
-              
-              <!-- Submit Button -->
-              <div class="form-group row">
-                <div class="offset-md-6 col-md-6 text-right">
-                  <button type="submit" class="btn btn-primary">Save and Continue</button>
+            </div>
+            
+            <div class="card border-warning">
+              <div class="card-header bg-light-warning text-warning font-weight-bold">
+                <i class="fas fa-key mr-2"></i>Login Credentials
+              </div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group col-md-6">
+                    <label for="email" class="font-weight-bold">Email</label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                      </div>
+                      <input type="email" class="form-control" name="email" id="email" required>
+                    </div>
+                    <div class="invalid-feedback">Valid email required</div>
+                  </div>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group col-md-6">
+                    <label for="password" class="font-weight-bold">Password</label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      </div>
+                      <input type="password" class="form-control" name="password" id="password" required>
+                      <div class="input-group-append">
+                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="invalid-feedback">Password required</div>
+                  </div>
+                  
+                  <div class="form-group col-md-6">
+                    <label for="confirmPassword" class="font-weight-bold">Confirm Password</label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      </div>
+                      <input type="password" class="form-control" name="confirmPassword" id="confirmPassword" required>
+                      <div class="input-group-append">
+                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="invalid-feedback">Passwords must match</div>
+                  </div>
                 </div>
               </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <script>
-    $(document).ready(function () {
-      // Handle form submission
-      $('#staffForm').submit(function (e) {
-        e.preventDefault();
-  
-        // Check if passwords match
-        var password = $('#password').val();
-        var confirmPassword = $('#confirmPassword').val();
-  
-        if (password !== confirmPassword) {
-          $('#messageContainer').html('<div class="alert alert-danger" role="alert">Passwords do not match</div>');
-          return;
-        }
-  
-        // Check form validity
-        if (this.checkValidity() === false) {
-          e.stopPropagation();
-          $(this).addClass('was-validated');
-          return;
-        }
-  
-        // Serialize the form data
-        var formData = $(this).serialize();
-  
-        // Send AJAX request to the server
-        $.ajax({
-          url: '{% url "admin_save_staff_view" %}',
-          method: 'POST',
-          data: formData,
-          success: function (response, status, xhr) {
-            if (xhr.status === 200) {
-              $('#messageContainer').html('<div class="alert alert-success" role="alert">' + response.message + '</div>');
-              $('#staffForm')[0].reset();
-              location.reload(true);
-            } else {
-              $('#messageContainer').html('<div class="alert alert-danger" role="alert">' + response.error + '</div>');
-            }
-          },
-          error: function (error) {
-            $('#messageContainer').html('<div class="alert alert-danger" role="alert">Error saving data</div>');
-            console.error('Error saving data:', error);
-          }
-        });
-      });
-  
-      // Phone number validation
-      $('#phone').on('input', function() {
-        var phonePattern = /^0\d{9}$/;
-        var phoneInput = $(this).val();
-  
-        if (!phonePattern.test(phoneInput)) {
-          $(this).addClass('is-invalid');
-          $('#phone-error').show();
-        } else {
-          $(this).removeClass('is-invalid');
-          $('#phone-error').hide();
-        }
-      });
-    });
-  </script>
-  
-  
-
-<style>
-  /* Custom styles for the modal */
- .modal-dialog {
-      max-width: 800px; /* Set the maximum width as needed */
-      width: 90%; /* Adjust the width percentage as needed */
-  }
-
- .modal-content {
-      width: 100%;
-  }
-
- .modal-body {
-      padding: 20px;
-  }
-
- .modal-header {
-      background-color: #3498db; /* Change the background color as needed */
-      color: #fff;
-      border-bottom: 1px solid #ddd;
-  }
-
- .modal-title {
-      font-size: 1.5rem;
-  }
-
- .close {
-      color: #fff;
-      font-size: 1.5rem;
-  }
-
- .close:hover {
-      color: #f00; /* Change the close button color on hover as needed */
-  }
-
- .btn-primary {
-      background-color: #3498db; /* Change the button color as needed */
-      border-color: #3498db;
-  }
-
- .btn-primary:hover {
-      background-color: #217dbb; /* Change the button color on hover as needed */
-      border-color: #217dbb;
-  }
-</style>
-<div class="modal fade" id="serviceModal" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-        <div class="modal-header ">
-            <h5 class="modal-title">Add new service</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+            </div>
+            
+            <div class="modal-footer bg-light p-3 border-top mt-4">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fas fa-times mr-1"></i> Cancel
               </button>
-          </div>
-      <div class="modal-body">
-        <div class="container-fluid">          
-          <form>
-            <!-- Personal Information -->
-            <div class="row">
-              <div class="form-group col-sm-6">
-                <label for="type" class="col-form-label">Type</label>
-                <select class="form-control" name="type" id="type">
-                  <option value="not-tracked">Not Tracked</option>
-                  <option value="tracked">Tracked</option>
-                  <option value="consultation">Consultation</option>
-                  <option value="investigation">Investigation</option>
-                  <option value="procedures">Procedures</option>
-                </select>
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="department" class="col-form-label">Department</label>
-                <select class="form-control" name="department" id="department">
-                  <option value="general">General</option>
-                  <option value="inhaler">Inhaler</option>
-                  <option value="laboratory">Laboratory</option>
-                </select>
-              </div>
-            </div>
-          
-            <!-- Additional Personal Information -->
-            <div class="row">
-              <div class="form-group col-sm-6">
-                <label for="name" class="col-form-label">Name</label>
-                <input type="text" class="form-control" name="name" id="name" placeholder="">
-              </div>
-              <div class="form-group col-sm-6">
-                <label for="description" class="col-form-label">Description</label>
-                <textarea id="description" name="description" rows="2" class="form-control"></textarea>
-              </div>
-            </div>
-          
-            <!-- Submit Button -->
-            <div class="form-group row">
-              <div class="offset-md-6 col-md-6 text-right">
-                <button type="submit" class="btn btn-primary">Save and Continue</button>
-              </div>
+              <button type="submit" class="btn btn-primary" id="staffSubmitBtn">
+                <i class="fas fa-user-plus mr-1"></i> Create Staff Account
+              </button>
             </div>
           </form>
-          
-        
-          
+        </div>
       </div>
-      </div>   
     </div>
   </div>
 </div>
 
 <script>
-  $('#exampleModal').on('show.bs.modal', event => {
-    var button = $(event.relatedTarget);
-    var modal = $(this);
-    // Use above variables to manipulate the DOM
-    
+$(document).ready(function() {
+  // Password toggle functionality
+  $('.toggle-password').click(function() {
+    const input = $(this).closest('.input-group').find('input');
+    const type = input.attr('type') === 'password' ? 'text' : 'password';
+    input.attr('type', type);
+    $(this).find('i').toggleClass('fa-eye fa-eye-slash');
   });
-</script>
-<script>
-    $('#exampleModal').on('show.bs.modal', event => {
-        var button = $(event.relatedTarget);
-        var modal = $(this);
-        // Use above variables to manipulate the DOM
-        
+
+  // Form submission
+  $('#staffForm').submit(function(e) {
+    e.preventDefault();
+    
+    // Validate passwords match
+    const password = $('#password').val();
+    const confirmPassword = $('#confirmPassword').val();
+    
+    if (password !== confirmPassword) {
+      $('#confirmPassword').addClass('is-invalid');
+      showStaffMessage('danger', 'Passwords do not match');
+      return;
+    } else {
+      $('#confirmPassword').removeClass('is-invalid');
+    }
+    
+    // Validate other fields
+    if (!this.checkValidity()) {
+      e.stopPropagation();
+      $(this).addClass('was-validated');
+      return;
+    }
+
+    // Submit via AJAX
+    $.ajax({
+      url: '{% url "resa_admin_save_staff" %}',
+      type: 'POST',
+      data: $(this).serialize(),
+      beforeSend: function() {
+        $('#staffSubmitBtn').html('<span class="spinner-border spinner-border-sm" role="status"></span> Creating...').prop('disabled', true);
+      },
+      success: function(response) {
+        if (response.success) {
+          showStaffMessage('success', response.message);
+          setTimeout(function() {
+            $('#staffModal').modal('hide');
+            location.reload();
+          }, 1500);
+        } else {
+          showStaffMessage('danger', response.message || 'Error creating staff');
+        }
+      },
+      error: function() {
+        showStaffMessage('danger', 'Server error occurred. Please try again.');
+      },
+      complete: function() {
+        $('#staffSubmitBtn').html('<i class="fas fa-user-plus mr-1"></i> Create Staff Account').prop('disabled', false);
+      }
     });
+  });
+
+  function showStaffMessage(type, message) {
+    const container = $('#staffMessageContainer');
+    container.removeClass('alert-success alert-danger')
+             .addClass(`alert-${type}`)
+             .show();
+    $('#staffMessageContent').text(message);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => container.alert('close'), 5000);
+  }
+});
 </script>
+
+<!-- Improved Service Modal -->
+<div class="modal fade" id="serviceModal" tabindex="-1" role="dialog" aria-labelledby="serviceModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-success text-white py-3">
+        <h5 class="modal-title font-weight-bold" id="serviceModalTitle">
+          <i class="fas fa-concierge-bell mr-2"></i>Add New Service
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="container-fluid">
+          <div id="serviceMessageContainer" class="alert alert-dismissible fade show" role="alert" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <span id="serviceMessageContent"></span>
+          </div>
+          
+          <form id="serviceForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="serviceName" class="font-weight-bold text-success">Service Name</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-tag text-success"></i></span>
+                  </div>
+                  <input type="text" class="form-control" name="name" id="serviceName" placeholder="Enter service name" required>
+                  <div class="invalid-feedback">Service name is required</div>
+                </div>
+              </div>
+              
+              <div class="form-group col-md-6">
+                <label for="serviceType" class="font-weight-bold text-success">Service Type</label>
+                <select class="form-control select2" name="type" id="serviceType" required>
+                  <option value="">Select Type</option>
+                  <option value="consultation">Consultation</option>
+                  <option value="procedure">Procedure</option>
+                  <option value="diagnostic">Diagnostic</option>
+                  <option value="therapeutic">Therapeutic</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="serviceDepartment" class="font-weight-bold text-success">Department</label>
+                <select class="form-control select2" name="department" id="serviceDepartment" required>
+                  <option value="">Select Department</option>
+                  <option value="general">General</option>
+                  <option value="cardiology">Cardiology</option>
+                  <option value="orthopedics">Orthopedics</option>
+                  <option value="pediatrics">Pediatrics</option>
+                </select>
+              </div>
+              
+              <div class="form-group col-md-6">
+                <label for="serviceCost" class="font-weight-bold text-success">Cost (TZS)</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-light"><i class="fas fa-money-bill-wave text-success"></i></span>
+                  </div>
+                  <input type="number" class="form-control" name="cost" id="serviceCost" placeholder="0.00" min="0" step="0.01" required>
+                  <div class="invalid-feedback">Valid cost required</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="serviceDescription" class="font-weight-bold text-success">Description</label>
+              <textarea class="form-control" name="description" id="serviceDescription" rows="3" placeholder="Service details and instructions"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="isActive" name="is_active" checked>
+                <label class="custom-control-label font-weight-bold text-success" for="isActive">Active Service</label>
+              </div>
+            </div>
+            
+            <div class="modal-footer bg-light p-3 border-top">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </button>
+              <button type="submit" class="btn btn-success" id="serviceSubmitBtn">
+                <i class="fas fa-plus mr-1"></i> Add Service
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+  $('#serviceForm').submit(function(e) {
+    e.preventDefault();
+    if (!this.checkValidity()) {
+      e.stopPropagation();
+      $(this).addClass('was-validated');
+      return;
+    }
+
+    $.ajax({
+      url: '{% url "resa_admin_add_service" %}',
+      type: 'POST',
+      data: $(this).serialize(),
+      beforeSend: function() {
+        $('#serviceSubmitBtn').html('<span class="spinner-border spinner-border-sm" role="status"></span> Saving...').prop('disabled', true);
+      },
+      success: function(response) {
+        if (response.success) {
+          showServiceMessage('success', response.message);
+          setTimeout(function() {
+            $('#serviceModal').modal('hide');
+            location.reload();
+          }, 1500);
+        } else {
+          showServiceMessage('danger', response.message || 'Error saving service');
+        }
+      },
+      error: function() {
+        showServiceMessage('danger', 'Server error occurred. Please try again.');
+      },
+      complete: function() {
+        $('#serviceSubmitBtn').html('<i class="fas fa-plus mr-1"></i> Add Service').prop('disabled', false);
+      }
+    });
+  });
+
+  function showServiceMessage(type, message) {
+    const container = $('#serviceMessageContainer');
+    container.removeClass('alert-success alert-danger')
+             .addClass(`alert-${type}`)
+             .show();
+    $('#serviceMessageContent').text(message);
+  }
+});
+</script>
+
+<style>
+  /* Premium Modal Styling */
+  .modal-content {
+    border-radius: 0.8rem;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    border: none;
+  }
+  
+  .modal-header {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .modal-footer {
+    border-top: 1px solid #eee;
+  }
+  
+  .select2-container .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+  }
+  
+  .card {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+    border-width: 2px;
+  }
+  
+  .card-header {
+    font-size: 1.05rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  
+  .bg-light-primary { background-color: rgba(52, 152, 219, 0.1); }
+  .bg-light-info { background-color: rgba(23, 162, 184, 0.1); }
+  .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
+  
+  .toggle-password {
+    cursor: pointer;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-left: none;
+  }
+  
+  .form-control:focus, .select2-container--focus .select2-selection {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+  }
+  
+  .invalid-feedback {
+    font-size: 0.85rem;
+  }
+</style>

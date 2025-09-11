@@ -1,11 +1,11 @@
 {% extends 'pharmacist_template/base_template.html' %}
 
 {% block title %}
-Expired medicine
+Premium Expired Medicine Management
 {% endblock title %}
 
 {% block page_title %}
-Expired medicine
+Premium Expired Medicine Management
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -14,29 +14,420 @@ Expired medicine
 
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Expired Medicine Styles - Unique to this template */
+    .pharm-expired-gradient {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(142, 45, 226, 0.15);
+        border: none;
+    }
+    
+    .pharm-expired-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-expired-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-expired-table th {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-expired-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #f3e5f5;
+    }
+    
+    .pharm-expired-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-expired-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(123, 31, 162, 0.1);
+        background: #faf5ff;
+    }
+    
+    .btn-pharm-expired {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(142, 45, 226, 0.2);
+    }
+    
+    .btn-pharm-expired:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(142, 45, 226, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-expired-export {
+        background: linear-gradient(120deg, #00c6ff, #0072ff);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 114, 255, 0.2);
+    }
+    
+    .btn-pharm-expired-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 114, 255, 0.3);
+        color: white;
+    }
+    
+    .pharm-expired-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-expired-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-expired-summary-card .card-header {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #e1bee7;
+    }
+    
+    .pharm-expired-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-expired-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #7b1fa2;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-expired-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-expired-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+    
+    .pharm-expired-status-expired {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-expired-status-warning {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-expired-status-good {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .pharm-expired-filter-bar {
+        background: linear-gradient(120deg, #f3e5f5, #e1bee7);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-expired-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-expired-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-expired-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-expired-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    .pharm-expired-status-btn[data-status="expired"] {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .pharm-expired-status-btn[data-status="warning"] {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-expired-status-btn[data-status="good"] {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmExpiredFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-expired-animated {
+        animation: pharmExpiredFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-expired-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-expired-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-expired-flip-card:hover .pharm-expired-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-expired-flip-card-front, .pharm-expired-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-expired-flip-card-front {
+        background: linear-gradient(120deg, #8e2de2, #4a00e0);
+        color: white;
+    }
+    
+    .pharm-expired-flip-card-back {
+        background: linear-gradient(120deg, #4a00e0, #8e2de2);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-expired-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Critical alert styling */
+    .pharm-expired-critical-alert {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(255, 65, 108, 0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 65, 108, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 65, 108, 0); }
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header card-primary">
-                    <h6 class="header-title text-center mt-0 mb-1  text-uppercase ">Expired medicine</h6>
+            <div class="card pharm-expired-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-exclamation-triangle mr-2"></i>Premium Expired Medicine Management</h5>
+                        <button class="btn btn-pharm-expired-export" id="exportBtn">
+                            <i class="fas fa-file-export mr-1"></i> Export Report
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
+                    <!-- Critical Alert -->
+                    <div class="pharm-expired-critical-alert" id="criticalAlert" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+                            <div>
+                                <h5 class="mb-1">Critical Alert</h5>
+                                <p class="mb-0" id="criticalAlertText">You have <span id="expiredCount">0</span> expired medicines that require immediate attention.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-expired-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Medicines</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-expired-summary-value" id="total-medicines">{{ medicines|length }}</div>
+                                    <div class="pharm-expired-summary-label">All Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-expired-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-skull-crossbones mr-2"></i>Expired</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-expired-summary-value" id="expired-medicines">0</div>
+                                    <div class="pharm-expired-summary-label">Expired Medicines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-expired-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Expiring Soon</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-expired-summary-value" id="warning-medicines">0</div>
+                                    <div class="pharm-expired-summary-label">Expiring Soon</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-expired-flip-card">
+                                <div class="pharm-expired-flip-card-inner">
+                                    <div class="pharm-expired-flip-card-front">
+                                        <div class="pharm-expired-flip-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <h4>Expiry Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-expired-flip-card-back">
+                                        <div class="pharm-expired-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Expiry Insights</h4>
+                                        <p>Advanced tracking & analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-expired-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-expired-status-filter">
+                                <button class="pharm-expired-status-btn active" data-status="all">All Medicines</button>
+                                <button class="pharm-expired-status-btn" data-status="expired">Expired</button>
+                                <button class="pharm-expired-status-btn" data-status="warning">Expiring Soon</button>
+                                <button class="pharm-expired-status-btn" data-status="good">Good</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search medicines..." id="medicineSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-expired" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-expired-table-container">
+                        <table class="table table-hover text-nowrap pharm-expired-table" id="medicineTable">
                             <thead>
                                 <tr>
                                     <th>Medicine Name</th>
                                     <th>Expiration Date</th>
+                                    <th>Status</th>
                                     <th>Days Remaining</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for medicine in medicines %}
-                                    <tr>
+                                    <tr data-status="{% if medicine.days_remaining <= 0 %}expired{% elif medicine.days_remaining <= 30 %}warning{% else %}good{% endif %}">
                                         <td>{{ medicine.name }}</td>
                                         <td>{{ medicine.expiration_date|date:"d-m-Y" }}</td>
-                                        <td id="days-remaining-{{ forloop.counter }}">{{ medicine.days_remaining }}</td>
+                                        <td>
+                                            {% if medicine.days_remaining <= 0 %}
+                                                <span class="pharm-expired-status pharm-expired-status-expired">Expired</span>
+                                            {% elif medicine.days_remaining <= 30 %}
+                                                <span class="pharm-expired-status pharm-expired-status-warning">Expiring Soon</span>
+                                            {% else %}
+                                                <span class="pharm-expired-status pharm-expired-status-good">Good</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="days-remaining" id="days-remaining-{{ forloop.counter }}">
+                                            {% if medicine.days_remaining <= 0 %}
+                                                Expired
+                                            {% else %}
+                                                {{ medicine.days_remaining }} days
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -47,32 +438,150 @@ Expired medicine
         </div>
     </div> 
 </div>
-
+{% include 'pharmacist_template/datatable.html' %}
 <script>
-    // JavaScript to calculate and display remaining days dynamically
+    // Initialize DataTable
+    new DataTable('#medicineTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let expiredCount = 0;
+        let warningCount = 0;
+        
+        document.querySelectorAll('#medicineTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            
+            // Count by status
+            if (status === 'expired') {
+                expiredCount++;
+            } else if (status === 'warning') {
+                warningCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('expired-medicines').textContent = expiredCount;
+        document.getElementById('warning-medicines').textContent = warningCount;
+        
+        // Show critical alert if there are expired medicines
+        if (expiredCount > 0) {
+            document.getElementById('criticalAlert').style.display = 'block';
+            document.getElementById('expiredCount').textContent = expiredCount;
+        }
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.pharm-expired-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-expired-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterMedicines(status);
+        });
+    });
+
+    // Filter medicines by status
+    function filterMedicines(status) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('medicineSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-expired-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medicineSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-expired-status-btn.active').getAttribute('data-status');
+        
+        filterMedicinesWithSearch(activeStatus, searchText);
+    });
+
+    // Filter medicines by both status and search text
+    function filterMedicinesWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#medicineTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-medicines').textContent = visibleCount;
+    }
+
+    // Export button functionality
+    document.getElementById('exportBtn').addEventListener('click', function() {
+        // In a real implementation, this would export the data
+        alert('Export functionality would be implemented here. This would generate a PDF/Excel report of expired medicines.');
+    });
+
+    // Color code days remaining
     document.addEventListener('DOMContentLoaded', function () {
         const rows = document.querySelectorAll('tbody tr');
-
+        
         rows.forEach(row => {
-            const daysRemainingCell = row.querySelector('[id^="days-remaining-"]');
-            const daysRemaining = parseInt(daysRemainingCell.textContent);
-
-            if (daysRemaining === 0) {
-                daysRemainingCell.style.color = 'red';
-                daysRemainingCell.textContent = 'Expired';
-            } else if (daysRemaining < 0) {
-                daysRemainingCell.style.color = 'red';
-                daysRemainingCell.textContent = 'Expired';
+            const daysRemainingCell = row.querySelector('.days-remaining');
+            const status = row.getAttribute('data-status');
+            
+            if (status === 'expired') {
+                daysRemainingCell.style.color = '#ff4b2b';
+                daysRemainingCell.style.fontWeight = 'bold';
+            } else if (status === 'warning') {
+                daysRemainingCell.style.color = '#ff9a00';
+                daysRemainingCell.style.fontWeight = 'bold';
             } else {
-                daysRemainingCell.style.color = 'green';
+                daysRemainingCell.style.color = '#00b09b';
             }
         });
     });
-</script>
-<script>
-    function submitForm(checkbox) {
-        checkbox.form.submit();
-    }
 </script>
 
 {% include 'pharmacist_template/datatable.html' %}

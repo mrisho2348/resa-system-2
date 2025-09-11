@@ -1,77 +1,399 @@
 {% extends 'pharmacist_template/base_template.html' %}
 {% load customfilter %}
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} prescription   
+Premium Prescription Management for {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
 {% endblock title %}
 
 {% block page_title %}
-
-    <a class="btn btn-primary" type="button"  href="{% url 'pharmacist_visit_list' %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-    
+<div class="d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">Premium Prescription Management</h5>
+    <a class="btn btn-premium-back" href="{% url 'pharmacist_visit_list' %}">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Visits
+    </a>
+</div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "pharmacist_template/modal_form.html" %}
-
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Insurance Coverage Modal Styles */
+    #insuranceCoverageModal .modal-header {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+    }
+
+    #insuranceCoverageModal .modal-content {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    #insuranceCoverageModal .modal-body {
+        padding: 1.5rem;
+        font-size: 1rem;
+    }
+
+    #insuranceCoverageModal .modal-footer {
+        border-top: 1px solid #eee;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Premium Prescription Form Styles */
+    .pharm-prescription-gradient {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(74, 0, 224, 0.15);
+        border: none;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-prescription-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-prescription-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-prescription-table th {
+        background: linear-gradient(120deg, #EDE7F6, #D1C4E9);
+        color: #512DA8;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-prescription-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #EDE7F6;
+    }
+    
+    .pharm-prescription-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-prescription-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(81, 45, 168, 0.1);
+        background: #f8f5ff;
+    }
+    
+    .btn-premium-primary {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(74, 0, 224, 0.2);
+    }
+    
+    .btn-premium-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(74, 0, 224, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-back {
+        background: linear-gradient(120deg, #6a11cb, #2575fc);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(106, 17, 203, 0.2);
+    }
+    
+    .btn-premium-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(106, 17, 203, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-info {
+        background: linear-gradient(120deg, #00b4db, #0083b0);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 180, 219, 0.2);
+    }
+    
+    .btn-premium-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 180, 219, 0.3);
+        color: white;
+    }
+    
+    .btn-premium-danger {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 65, 108, 0.2);
+    }
+    
+    .btn-premium-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 65, 108, 0.3);
+        color: white;
+    }
+    
+    .premium-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f8f5ff, #EDE7F6);
+    }
+    
+    .premium-patient-card .card-header {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #D1C4E9;
+    }
+    
+    .premium-patient-info {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-patient-detail {
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .premium-patient-detail:last-child {
+        border-bottom: none;
+    }
+    
+    .premium-form-control {
+        border: 1px solid #D1C4E9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-form-control:focus {
+        border-color: #4A00E0;
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 224, 0.25);
+    }
+    
+    .premium-total-box {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(74, 0, 224, 0.2);
+    }
+    
+    .premium-response-box {
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .premium-response-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .premium-response-error {
+        background: linear-gradient(120deg, #ff416c, #ff4b2b);
+        color: white;
+    }
+    
+    .premium-select2 .select2-selection {
+        border: 1px solid #D1C4E9;
+        border-radius: 8px;
+        padding: 0.5rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .premium-select2 .select2-selection:focus {
+        border-color: #4A00E0;
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 224, 0.25);
+    }
+    
+    /* Animation for new rows */
+    @keyframes premiumFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .premium-animated-row {
+        animation: premiumFadeIn 0.5s ease forwards;
+    }
+    
+    /* Status indicators */
+    .premium-status-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .premium-status-primary {
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+    }
+    
+    /* Price display styling */
+    .premium-price-display {
+        font-weight: 600;
+        color: #4A00E0;
+        font-size: 1.2rem;
+    }
+    
+    /* Floating action button */
+    .premium-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #4A00E0, #8E2DE2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px rgba(74, 0, 224, 0.3);
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    
+    .premium-fab:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 10px 25px rgba(74, 0, 224, 0.4);
+        color: white;
+    }
+    
+    /* Walk-in patient specific styles */
+    .walkin-patient-badge {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Patient Information Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary-600">
-                    <h5 class="card-title text-center text-uppercase">Patient information</h5>
+            <div class="card premium-patient-card">
+                <div class="card-header">
+                    <h5 class="card-title text-center mb-0">
+                        <i class="fas fa-user-injured mr-2"></i>Patient Information
+                        {% if not visit %}
+                        <span class="walkin-patient-badge">WALK-IN PATIENT</span>
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row" style="font-size:13px;">
-                        <div class="col-md-3 text-uppercase">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3 text-uppercase">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
-                            {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-
-                            <div class="col-md-3 text-uppercase" >SEX:<b> {{ patient.gender }}</b></div>
-                            <div class="col-md-3 text-uppercase">FILE NO : <b>{{ patient.mrn }}</b> </div>
-                        </div>
-                        <div class="row mt-3">
-                              <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
-                                    {{ patient.payment_form }}- {{ patient.insurance_name }}   
-                                    {% else  %}   
-                                    {{ patient.payment_form }}                  
-                                {% endif %}</b>
-                            </div>
-                            <div class="col-md-3">
-                                Visit number:  <b>{{ visit.vst }}</b>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="premium-patient-info">
+                                <div class="premium-patient-detail">
+                                    <strong>PATIENT:</strong> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
+                                </div>
+                                <div class="premium-patient-detail">
+                                    <strong>DOB:</strong> {{ patient.dob|date:'d-m-Y' }} 
+                                    [Age: {% if patient.dob %}
+                                    <script>
+                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                        var now = new Date();
+                                        var ageMilliseconds = now - dob;
+                                        var ageSeconds = ageMilliseconds / 1000;
+                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                        document.write(ageYears + ' years');
+                                    </script>
+                                    {% else %}
+                                    {{ patient.age }}
+                                    {% endif %}]
+                                </div>
+                                <div class="premium-patient-detail">
+                                    <strong>SEX:</strong> {{ patient.gender }}
+                                </div>
                             </div>
                         </div>
-                </div>        
-            
+                        <div class="col-md-6">
+                            <div class="premium-patient-info">
+                                <div class="premium-patient-detail">
+                                    <strong>FILE NO:</strong> {{ patient.mrn }}
+                                </div>
+                                <div class="premium-patient-detail">
+                                    <strong>PAYMENT MODE:</strong> 
+                                    {% if patient.payment_form == "Insurance" %}
+                                        {{ patient.payment_form }} - {{ patient.insurance_name }}
+                                    {% else %}
+                                        {{ patient.payment_form }}
+                                    {% endif %}
+                                </div>
+                                {% if visit %}
+                                <div class="premium-patient-detail">
+                                    <strong>VISIT NUMBER:</strong> {{ visit.vst }}
+                                </div>
+                                {% else %}
+                                <div class="premium-patient-detail">
+                                    <strong>PATIENT TYPE:</strong> Walk-in (No Visit Record)
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Prescription Form Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
+            <div class="card pharm-prescription-gradient">
                 <div class="card-header">
-                    <h4 class="header-title text-center mt-0 mb-1 text-uppercase">Add Prescription</h4>
+                    <h5 class="card-title text-center text-white mb-0"><i class="fas fa-prescription mr-2"></i>Add Prescription</h5>
                 </div>
                 <div class="card-body">
-                    <form id="addPrescriptionForm{{ visit.id }}" method="post">
+                    <form id="addPrescriptionForm" method="post">
                         {% csrf_token %}
-                        <div class="table-responsive">
-                            <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm display" id="prescriptionTable{{ visit.id }}">
+                        <div class="table-responsive pharm-prescription-table-container">
+                            <table class="table table-hover text-nowrap pharm-prescription-table" id="prescriptionTable">
                                 <thead>
                                     <tr>
                                         <th>Drug</th>
@@ -82,23 +404,23 @@
                                         <th>Quantity</th>
                                         <th>Unit Price</th>
                                         <th>Total Price</th>
-                                        <th></th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
+                                    <tr class="premium-animated-row">
                                         <td>
-                                            <select class="form-control select2bs4 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
+                                            <select class="form-control premium-select2 medicine-select" style="width: 100%;" id="medicine" name="medicine[]" required>
                                                 <option value="">Select Medicine</option>
                                                 {% for medicine in medicines %}
                                                     <option value="{{ medicine.id }}" {% if medicine.id == prescription.medicine.id %} selected {% endif %}>{{ medicine.drug_name }}</option>
                                                 {% endfor %}
                                             </select>
                                         </td>
-                                        <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
-                                        <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
+                                        <td><input type="text" class="form-control premium-form-control formulation_unit" name="formulation" value="1"></td>
+                                        <td><input type="text" class="form-control premium-form-control dose-input" name="dose[]" value="1"></td>
                                         <td>
-                                            <select class="form-control select2bs4 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">
+                                            <select class="form-control premium-select2 frequency-select" style="width: 100%;" id="frequency" name="frequency[]">
                                                 <option value="">Select Frequency</option>
                                                 {% for frequency in frequencies %}
                                                     <option value="{{ frequency.id }}" {% if frequency.id == prescription.frequency.id %} selected {% endif %}>{{ frequency }}</option>
@@ -106,71 +428,63 @@
                                             </select>
                                         </td>
                                         <td>
-                                            <select class="form-control select2bs4 duration-select" style="width: 100%;" id="duration" name="duration[]">
+                                            <select class="form-control premium-select2 duration-select" style="width: 100%;" id="duration" name="duration[]">
                                                 {% for rate in range_31 %}
                                                     <option value="{{ rate }}">{{ rate }}</option>
                                                 {% endfor %}
                                             </select>
                                         </td>
-                                        <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                                        <td><input type="text" class="form-control unit-price-input" value=""></td>
-                                        <td><input type="text" class="form-control total-price-input" value="" name="total_price[]"></td>
-                                        <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
+                                        <td><input type="text" class="form-control premium-form-control quantity-input" name="quantity[]" value="1"></td>
+                                        <td><input type="text" class="form-control premium-form-control unit-price-input" value=""></td>
+                                        <td><input type="text" class="form-control premium-form-control total-price-input" value="" name="total_price[]"></td>
+                                        <td><button type="button" class="btn btn-premium-danger delete-row">Delete</button></td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <hr>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-9"></div>
-                            <div class="col-md-3">
-                                <div class="row">
-                                    <div class="col-md-6">Total Price</div>
-                                    <input type="hidden" id="sumt{{ visit.id }}" name="Amount" value="0">
-                                    <div class="col-md-6">
-                                        Sh <span id="sum{{ visit.id }}">0</span>
-                                    </div>
+                        
+                        <!-- Total Price Display -->
+                        <div class="premium-total-box">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="mb-0">Total Price</h5>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <input type="hidden" id="sumt" name="Amount" value="0">
+                                    <h4 class="premium-price-display mb-0">Sh <span id="sum">0</span></h4>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div id="PrescriptionResponse{{ visit.id }}"></div>
-                            </div>
-                        </div>
+                        
+                        <!-- Response Message Container -->
+                        <div class="premium-response-box" id="PrescriptionResponse" style="display: none;"></div>
+                        
                         <!-- Hidden inputs for visit and patient IDs -->
-                        <input type="hidden" class="form-control" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
-                        <input type="hidden" class="form-control" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                        <!-- Add Row and Save Prescription buttons -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <button type="button" class="btn btn-info btn-block" id="addRow{{ visit.id }}"><i class="fa fa-plus-square" aria-hidden="true"></i> Add Prescription</button>
-                                </div>
+                        <input type="hidden" class="form-control" id="visit_id" name="visit_id" value="{% if visit %}{{ visit.id }}{% endif %}">
+                        <input type="hidden" class="form-control" id="patient_id" name="patient_id" value="{{ patient.id }}">
+                        
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-premium-info btn-block" id="addRow">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add Medication
+                                </button>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Date</label>
-                                    <input type="date" class="form-control total-cost" name="order_date" id="orderDate{{ visit.id }}">
+                                    <label class="text-white">Date</label>
+                                    <input type="date" class="form-control premium-form-control" name="order_date" id="orderDate">
                                     <script>
                                         // Set the current date for the order date input
                                         const currentDate = new Date().toISOString().split('T')[0];
-                                        document.getElementById('orderDate{{ visit.id }}').value = currentDate;
+                                        document.getElementById('orderDate').value = currentDate;
                                     </script>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <button type="button" class="btn btn-primary btn-block" onclick="addPrescription{{ visit.id }}()">Save Prescriptions</button>
-                                </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-premium-primary btn-block mt-4" onclick="addPrescription()">
+                                    <i class="fas fa-save mr-2"></i> Save Prescription
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -178,378 +492,416 @@
             </div>
         </div>
     </div>
-    
-    <script>
-        $(document).ready(function() {      
-
-            // Event listeners
-            $('#addRow{{ visit.id }}').click(addRow);
-            $(document).on('click', '.delete-row', deleteRow);
-            $(document).on('change', '.medicine-select', updateUnitPrice);
-            $(document).on('change', '.frequency-select', updateTotalPrice);
-            $(document).on('change', '.duration-select', updateTotalPrice);
-            $(document).on('input', '.quantity-input', updateTotalPrice);
-            $(document).on('input', '.dose-input', updateTotalPrice);
-    
-            // Initial setup
-            updateTotalPrice();
-        });
-        
-       // Function to initialize Select2 dynamically
-            function initializeSelect2(selector) {
-                $(selector).select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                });
-            }
-        // Function to add a new row to the prescription table
-        function addRow() {
-            var newRow = `
-                <tr>
-                    <td>
-                        <select class="form-control select2bs4 medicine-select" style="width: 100%;" name="medicine[]" required>
-                            <option value="">Select Medicine</option>
-                            {% for medicine in medicines %}
-                                <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="text" class="form-control formulation_unit" name="formulation" value="1"></td>
-                    <td><input type="text" class="form-control dose-input" name="dose[]" value="1"></td>
-                    <td>
-                        <select class="form-control select2bs4 frequency-select" style="width: 100%;" name="frequency[]" required>
-                            <option value="">Select Frequency</option>
-                            {% for frequency in frequencies %}
-                                <option value="{{ frequency.id }}">{{ frequency }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-control select2bs4 duration-select" name="duration[]" style="width: 100%;">
-                            {% for rate in range_31 %}
-                                <option value="{{ rate }}">{{ rate }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td><input type="text" class="form-control quantity-input" name="quantity[]" value="1"></td>
-                    <td><input type="text" class="form-control unit-price-input" value=""></td>
-                    <td><input type="text" class="form-control total-price-input" name="total_price[]" value=""></td>
-                    <td><button type="button" class="btn btn-danger delete-row">Delete</button></td>
-                </tr>`;
-            
-            $('#prescriptionTable{{ visit.id }} tbody').append(newRow);
-                        // Only initialize Select2 on the new row
-                initializeSelect2(newRow.find('.select2bs4'));
-        }
-    
-        // Function to delete a row from the prescription table
-        function deleteRow() {
-            $(this).closest('tr').remove();
-            updateTotalPrice();
-        }
-    
-        // Function to update unit price and total price when medicine is selected
-        function updateUnitPrice() {
-            var selectedMedicineId = $(this).val();
-            var patientId = $('#patient_id{{ visit.id }}').val();
-            var row = $(this).closest('tr');
-    
-            $.ajax({
-                url: '{% url "pharmacist_get_unit_price" %}',
-                method: 'POST',
-                data: {
-                    medicine_id: selectedMedicineId,
-                    patient_id: patientId
-                },
-                success: function(response) {
-                    row.find('.unit-price-input').val(response.unit_price);
-                    updateTotalPrice();
-                },
-                error: function(xhr) {
-                    console.error(xhr.responseText);
-                }
-            });
-        }
-    
-      function updateTotalPrice() {
-                let totalPrice = 0;
-
-                $('#prescriptionTable{{ visit.id }} tbody tr').each(function () {
-                    const row = $(this);
-                    const medicineId = row.find('.medicine-select').val();
-                    const frequencyId = row.find('.frequency-select').val();
-                    const durationVal = row.find('.duration-select').val();
-                    const doseVal = row.find('.dose-input').val();
-
-                    // Skip row if required fields are missing
-                    if (!medicineId || !frequencyId || !durationVal || !doseVal) {
-                        return; // skip this row
-                    }
-
-                    const duration = parseInt(durationVal);
-                    const enteredDose = parseFloat(doseVal);
-
-                    // If not a number, skip
-                    if (isNaN(duration) || isNaN(enteredDose)) return;
-
-                    const isDividable = IsDrugDividable(medicineId);
-                    const frequencyName = getFrequencyName(frequencyId);
-
-                    let quantity;
-
-                    if (frequencyName === 'PRN' || isDividable === 'False') {
-                        quantity = parseFloat(row.find('.quantity-input').val()) || 0;
-                    } else {
-                        const formulationUnit = getFormulationUnit(medicineId);
-
-                        // Prevent division by zero
-                        if (!formulationUnit || formulationUnit === 0) return;
-
-                        const adjustedDose = enteredDose / formulationUnit;
-                        quantity = calculateTabletQuantity(frequencyName, duration, adjustedDose);
-                    }
-
-                    row.find('.quantity-input').val(quantity);
-
-                    const unitPrice = parseFloat(row.find('.unit-price-input').val()) || 0;
-                    const rowTotalPrice = quantity * unitPrice;
-                    row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
-                    totalPrice += rowTotalPrice;
-                });
-
-                $('#sum{{ visit.id }}').text(totalPrice.toFixed(2));
-            }
-
-    
-        // Function to check if a drug is dividable
-        function IsDrugDividable(medicineId) {
-            var dividable = '';
-            $.ajax({
-                url: '{% url "pharmacist_get_drug_division_status" %}',
-                method: 'GET',
-                data: { medicine_id: medicineId },
-                async: false,
-                success: function(response) {
-                    if ('dividable' in response) {
-                        dividable = response.dividable;
-                    } else {
-                        console.error('Drug type not found');
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Error fetching drug type:', xhr.responseText);
-                }
-            });
-            return dividable;
-        }
-    
-        // Function to get the frequency name
-        function getFrequencyName(frequencyId) {
-            var frequencyName = '';
-            $.ajax({
-                url: '{% url "pharmacist_get_frequency_name" %}',
-                method: 'GET',
-                data: { frequency_id: frequencyId },
-                async: false,
-                success: function(response) {
-                    if ('frequency_name' in response) {
-                        frequencyName = response.frequency_name;
-                    } else {
-                        console.error('Frequency name not found');
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Error fetching frequency name:', xhr.responseText);
-                }
-            });
-            return frequencyName;
-        }
-    
-        // Function to calculate quantity for tablet type medication
-        function calculateTabletQuantity(frequency, duration, dose) {
-            var quantity = 0;
-            switch (frequency) {
-                case 'OD':
-                case 'I.C':
-                case 'STAT':
-                    quantity = duration * dose;
-                    break;
-                case 'QID':
-                    quantity = duration * 4 * dose;
-                    break;
-                case 'TID':
-                    quantity = duration * 3 * dose;
-                    break;
-                case 'BID':
-                    quantity = duration * 2 * dose;
-                    break;
-                case 'PRN':
-                    quantity = '';
-                    break;
-                default:
-                    quantity = 1;
-                    break;
-            }
-            return quantity;
-        }
-    
-        // Function to get the formulation unit
-        function getFormulationUnit(medicineId) {
-            var formulationUnit = 1;
-            $.ajax({
-                url: '{% url "pharmacist_get_formulation_unit" %}',
-                method: 'GET',
-                data: { medicine_id: medicineId },
-                async: false,
-                success: function(response) {
-                    if (response && response.formulation_unit) {
-                        formulationUnit = parseFloat(response.formulation_unit);
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Error fetching formulation unit:', xhr.responseText);
-                }
-            });
-            return formulationUnit;
-        }
-    
-       // Function to handle form submission using AJAX
-        function addPrescription{{ visit.id }}() {
-            let isValid = true;
-            let errorMsg = "";
-
-            $('#prescriptionTable{{ visit.id }} tbody tr').each(function (index, row) {
-                const $row = $(row);
-                const medicine = $row.find('[name="medicine[]"]').val();
-                const formulation = $row.find('[name="formulation"]').val();
-                const dose = $row.find('[name="dose[]"]').val();
-                const frequency = $row.find('[name="frequency[]"]').val();
-                const duration = $row.find('[name="duration[]"]').val();
-                const quantity = $row.find('[name="quantity[]"]').val();
-                const unitPrice = $row.find('.unit-price-input').val();
-
-                if (!medicine || !formulation || !dose || !frequency || !duration || !quantity || !unitPrice) {
-                    isValid = false;
-                    errorMsg = "Please fill all fields for every row before submitting.";
-                    return false; // Break the loop
-                }
-
-                if (isNaN(dose) || dose <= 0 || isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
-                    isValid = false;
-                    errorMsg = "Dose, quantity, and unit price must be positive numbers.";
-                    return false;
-                }
-            });
-
-            if (!isValid) {
-                $('#PrescriptionResponse{{ visit.id }}').html(
-                    `<div class="alert alert-danger">${errorMsg}</div>`
-                );
-                return;
-            }
-
-            // If validation passes, proceed to submit via AJAX
-            $.ajax({
-                type: 'POST',
-                url: '{% url "pharmacist_add_remoteprescription" %}',
-                data: $('#addPrescriptionForm{{ visit.id }}').serialize(),
-                success: function (response) {
-                    if (response.status === 'success') {
-                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                        var redirectUrl = '{% url "pharmacist_prescription_list"  %}';
-                        window.location.href = redirectUrl;
-                    } else {
-                        $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                    }
-                },
-                error: function (xhr) {
-                    $('#PrescriptionResponse{{ visit.id }}').html('<div class="alert alert-danger">' + xhr.responseText + '</div>');
-                }
-            });
-        }
-
-    </script>
-    
-
-    <script>
-        $(document).ready(function() {
-            // Add event listener for medicine selection change
-            $(document).on('change', '.medicine-select', function() {
-                var medicineId = $(this).val();
-                var formulationField = $(this).closest('tr').find('.formulation_unit');
-    
-                // Make an AJAX request to fetch the formulation dosage information for the selected medicine
-                $.ajax({
-                    url: '{% url "pharmacist_get_medicine_formulation" %}', // Update this URL to match your endpoint
-                    method: 'GET',
-                    data: { 'medicine_id': medicineId },
-                    success: function(response) {
-                        // Check if the formulation dosage information is available in the response
-                        if ('formulation' in response) {
-                            // Populate the formulation dosage information in the input field
-                            formulationField.val(response.formulation);
-                        } else {
-                            // Clear the formulation dosage information if not available
-                            formulationField.val('');
-                            console.error('Formulation dosage information not found in response.');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        // Handle error if AJAX request fails
-                        formulationField.val('');
-                        console.error('Error fetching medicine formulation dosage:', error);
-                    }
-                });
-            });
-        });
-    </script>
+    <!-- Insurance Coverage Modal -->
+    <div class="modal fade" id="insuranceCoverageModal" tabindex="-1" role="dialog" aria-labelledby="insuranceCoverageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="insuranceCoverageModalLabel">Insurance Coverage Alert</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>The selected medicine is not covered by the patient's insurance plan (<span id="insurancePlan"></span>).</p>
+                    <p>Cash price: <strong id="cashPriceValue"></strong></p>
+                    <p>Would you like to proceed with the cash price instead?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="useCashPrice">Use Cash Price</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Floating Action Button -->
+    <div class="premium-fab" id="scrollToTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
 </div>
 
-<style>
-    /* styles.css */
-
-/* Add custom styles for the container */
-.container {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-}
-
-/* Add styles for the card */
-.card {
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Add styles for the table */
-.table {
-    width: 100%;
-}
-
-/* Add styles for table headers */
-.table th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Add styles for table rows */
-.table tbody tr {
-    background-color: #f9f9f9;
-}
-
-/* Add styles for buttons */
-.btn {
-    border-radius: 5px;
-    margin-right: 5px;
-}
-
-/* Add more styles as needed */
-
-</style>
- 
-
 {% include 'pharmacist_template/datatable.html' %}
-    
-
 {% endblock main_content %}
+
+{% block customer_js %}
+
+<script>
+    $(document).ready(function() {      
+        // Initialize Select2
+        $('.premium-select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+
+        // Event listeners
+        $('#addRow').click(addRow);
+        $(document).on('click', '.delete-row', deleteRow);
+        $(document).on('change', '.medicine-select', updateUnitPrice);
+        $(document).on('change', '.frequency-select', updateTotalPrice);
+        $(document).on('change', '.duration-select', updateTotalPrice);
+        $(document).on('input', '.quantity-input', updateTotalPrice);
+        $(document).on('input', '.dose-input', updateTotalPrice);
+
+        // Scroll to top button
+        $('#scrollToTop').click(function() {
+            $('html, body').animate({ scrollTop: 0 }, 'slow');
+        });
+
+        // Initial setup
+        updateTotalPrice();
+    });
+    
+    // Function to add a new row to the prescription table
+    function addRow() {
+        var newRow = `
+            <tr class="premium-animated-row">
+                <td>
+                    <select class="form-control premium-select2 medicine-select" style="width: 100%;" name="medicine[]" required>
+                        <option value="">Select Medicine</option>
+                        {% for medicine in medicines %}
+                            <option value="{{ medicine.id }}">{{ medicine.drug_name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" class="form-control premium-form-control formulation_unit" name="formulation" value="1"></td>
+                <td><input type="text" class="form-control premium-form-control dose-input" name="dose[]" value="1"></td>
+                <td>
+                    <select class="form-control premium-select2 frequency-select" style="width: 100%;" name="frequency[]" required>
+                        <option value="">Select Frequency</option>
+                        {% for frequency in frequencies %}
+                            <option value="{{ frequency.id }}">{{ frequency }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="form-control premium-select2 duration-select" name="duration[]" style="width: 100%;">
+                        {% for rate in range_31 %}
+                            <option value="{{ rate }}">{{ rate }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" class="form-control premium-form-control quantity-input" name="quantity[]" value="1"></td>
+                <td><input type="text" class="form-control premium-form-control unit-price-input" value=""></td>
+                <td><input type="text" class="form-control premium-form-control total-price-input" name="total_price[]" value=""></td>
+                <td><button type="button" class="btn btn-premium-danger delete-row">Delete</button></td>
+            </tr>`;
+        
+        $('#prescriptionTable tbody').append(newRow);
+        
+        // Reinitialize Select2 on the new row
+        $('.premium-select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+    }
+
+    // Function to delete a row from the prescription table
+    function deleteRow() {
+        $(this).closest('tr').remove();
+        updateTotalPrice();
+    }
+
+    // Function to update unit price and total price when medicine is selected
+    function updateUnitPrice() {
+        var selectedMedicineId = $(this).val();
+        var patientId = $('#patient_id').val();
+        var row = $(this).closest('tr');
+
+        $.ajax({
+            url: '{% url "pharmacist_get_unit_price" %}',
+            method: 'POST',
+            data: {
+                medicine_id: selectedMedicineId,
+                patient_id: patientId
+            },
+            success: function(response) {
+                if (response.unit_price === 0 || response.error) {
+                    // Medicine not covered by insurance - show modal
+                    showInsuranceCoverageModal(selectedMedicineId, row, response.cash_price);
+                } else {
+                    row.find('.unit-price-input').val(response.unit_price);
+                    updateTotalPrice();
+                }
+            },
+            error: function(xhr) {
+                console.error(xhr.responseText);
+                // Even on error, try to get the cash price as fallback
+                getCashPrice(selectedMedicineId, row);
+            }
+        });
+    }
+
+    // Function to get cash price for a medicine
+    function getCashPrice(medicineId, row) {
+        $.ajax({
+            url: '{% url "pharmacist_get_cash_price" %}',
+            method: 'GET',
+            data: { medicine_id: medicineId },
+            success: function(response) {
+                showInsuranceCoverageModal(medicineId, row, response.cash_price);
+            },
+            error: function(xhr) {
+                console.error('Error fetching cash price:', xhr.responseText);
+                alert('Error: Could not retrieve medicine pricing information.');
+            }
+        });
+    }
+
+    // Function to show insurance coverage modal
+    function showInsuranceCoverageModal(medicineId, row, cashPrice) {
+        // Store the current row and cash price in modal data
+        $('#insuranceCoverageModal').data('row', row);
+        $('#insuranceCoverageModal').data('cashPrice', cashPrice);
+        
+        // Update modal content
+        $('#cashPriceValue').text('Sh ' + cashPrice);
+        $('#insurancePlan').text('{{ patient.insurance_name }}' || '{{ patient.payment_form }}');
+        
+        // Show the modal
+        $('#insuranceCoverageModal').modal('show');
+    }
+
+    // Handle the "Use Cash Price" button click
+    $(document).on('click', '#useCashPrice', function() {
+        var row = $('#insuranceCoverageModal').data('row');
+        var cashPrice = $('#insuranceCoverageModal').data('cashPrice');
+        
+        // Set the cash price in the unit price field
+        row.find('.unit-price-input').val(cashPrice);
+        
+        // Update the total price
+        updateTotalPrice();
+        
+        // Close the modal
+        $('#insuranceCoverageModal').modal('hide');
+    });
+
+    function updateTotalPrice() {
+        let totalPrice = 0;
+
+        $('#prescriptionTable tbody tr').each(function () {
+            const row = $(this);
+            const medicineId = row.find('.medicine-select').val();
+            const frequencyId = row.find('.frequency-select').val();
+            const durationVal = row.find('.duration-select').val();
+            const doseVal = row.find('.dose-input').val();
+
+            // Skip row if required fields are missing
+            if (!medicineId || !frequencyId || !durationVal || !doseVal) {
+                return; // skip this row
+            }
+
+            const duration = parseInt(durationVal);
+            const enteredDose = parseFloat(doseVal);
+
+            // If not a number, skip
+            if (isNaN(duration) || isNaN(enteredDose)) return;
+
+            const isDividable = IsDrugDividable(medicineId);
+            const frequencyName = getFrequencyName(frequencyId);
+
+            let quantity;
+
+            if (frequencyName === 'PRN' || isDividable === 'False') {
+                quantity = parseFloat(row.find('.quantity-input').val()) || 0;
+            } else {
+                const formulationUnit = getFormulationUnit(medicineId);
+
+                // Prevent division by zero
+                if (!formulationUnit || formulationUnit === 0) return;
+
+                const adjustedDose = enteredDose / formulationUnit;
+                quantity = calculateTabletQuantity(frequencyName, duration, adjustedDose);
+            }
+
+            row.find('.quantity-input').val(quantity);
+
+            const unitPrice = parseFloat(row.find('.unit-price-input').val()) || 0;
+            const rowTotalPrice = quantity * unitPrice;
+            row.find('.total-price-input').val(rowTotalPrice.toFixed(2));
+            totalPrice += rowTotalPrice;
+        });
+
+        $('#sum').text(totalPrice.toFixed(2));
+    }
+
+    // Function to check if a drug is dividable
+    function IsDrugDividable(medicineId) {
+        var dividable = '';
+        $.ajax({
+            url: '{% url "pharmacist_get_drug_division_status" %}',
+            method: 'GET',
+            data: { medicine_id: medicineId },
+            async: false,
+            success: function(response) {
+                if ('dividable' in response) {
+                    dividable = response.dividable;
+                } else {
+                    console.error('Drug type not found');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error fetching drug type:', xhr.responseText);
+            }
+        });
+        return dividable;
+    }
+
+    // Function to get the frequency name
+    function getFrequencyName(frequencyId) {
+        var frequencyName = '';
+        $.ajax({
+            url: '{% url "pharmacist_get_frequency_name" %}',
+            method: 'GET',
+            data: { frequency_id: frequencyId },
+            async: false,
+            success: function(response) {
+                if ('frequency_name' in response) {
+                    frequencyName = response.frequency_name;
+                } else {
+                    console.error('Frequency name not found');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error fetching frequency name:', xhr.responseText);
+            }
+        });
+        return frequencyName;
+    }
+
+    // Function to calculate quantity for tablet type medication
+    function calculateTabletQuantity(frequency, duration, dose) {
+        var quantity = 0;
+        switch (frequency) {
+            case 'OD':
+            case 'I.C':
+            case 'STAT':
+                quantity = duration * dose;
+                break;
+            case 'QID':
+                quantity = duration * 4 * dose;
+                break;
+            case 'TID':
+                quantity = duration * 3 * dose;
+                break;
+            case 'BID':
+                quantity = duration * 2 * dose;
+                break;
+            case 'PRN':
+                quantity = '';
+                break;
+            default:
+                quantity = 1;
+                break;
+        }
+        return quantity;
+    }
+
+    // Function to get the formulation unit
+    function getFormulationUnit(medicineId) {
+        var formulationUnit = 1;
+        $.ajax({
+            url: '{% url "pharmacist_get_formulation_unit" %}',
+            method: 'GET',
+            data: { medicine_id: medicineId },
+            async: false,
+            success: function(response) {
+                if (response && response.formulation_unit) {
+                    formulationUnit = parseFloat(response.formulation_unit);
+                }
+            },
+            error: function(xhr) {
+                console.error('Error fetching formulation unit:', xhr.responseText);
+            }
+        });
+        return formulationUnit;
+    }
+
+    // Function to handle form submission using AJAX
+    function addPrescription() {
+        let isValid = true;
+        let errorMsg = "";
+
+        $('#prescriptionTable tbody tr').each(function (index, row) {
+            const $row = $(row);
+            const medicine = $row.find('[name="medicine[]"]').val();
+            const formulation = $row.find('[name="formulation"]').val();
+            const dose = $row.find('[name="dose[]"]').val();
+            const frequency = $row.find('[name="frequency[]"]').val();
+            const duration = $row.find('[name="duration[]"]').val();
+            const quantity = $row.find('[name="quantity[]"]').val();
+            const unitPrice = $row.find('.unit-price-input').val();
+
+            if (!medicine || !formulation || !dose || !frequency || !duration || !quantity || !unitPrice) {
+                isValid = false;
+                errorMsg = "Please fill all fields for every row before submitting.";
+                return false; // Break the loop
+            }
+
+            if (isNaN(dose) || dose <= 0 || isNaN(quantity) || quantity <= 0 || isNaN(unitPrice) || unitPrice <= 0) {
+                isValid = false;
+                errorMsg = "Dose, quantity, and unit price must be positive numbers.";
+                return false;
+            }
+        });
+
+        if (!isValid) {
+            $('#PrescriptionResponse').html(
+                `<div class="premium-response-box premium-response-error">${errorMsg}</div>`
+            ).show();
+            return;
+        }
+
+        // If validation passes, proceed to submit via AJAX
+        $.ajax({
+            type: 'POST',
+            url: '{% url "pharmacist_add_remoteprescription" %}',
+            data: $('#addPrescriptionForm').serialize(),
+            success: function (response) {
+                if (response.status === 'success') {
+                    $('#PrescriptionResponse').html('<div class="premium-response-box premium-response-success">' + response.message + '</div>').show();
+                    var redirectUrl = '{% url "pharmacist_prescription_list"  %}';
+                    setTimeout(function() {
+                        window.location.href = redirectUrl;
+                    }, 1500);
+                } else {
+                    $('#PrescriptionResponse').html('<div class="premium-response-box premium-response-error">' + response.message + '</div>').show();
+                }
+            },
+            error: function (xhr) {
+                $('#PrescriptionResponse').html('<div class="premium-response-box premium-response-error">' + xhr.responseText + '</div>').show();
+            }
+        });
+    }
+
+    // Function to fetch medicine formulation
+    $(document).on('change', '.medicine-select', function() {
+        var medicineId = $(this).val();
+        var formulationField = $(this).closest('tr').find('.formulation_unit');
+
+        // Make an AJAX request to fetch the formulation dosage information for the selected medicine
+        $.ajax({
+            url: '{% url "pharmacist_get_medicine_formulation" %}',
+            method: 'GET',
+            data: { 'medicine_id': medicineId },
+            success: function(response) {
+                // Check if the formulation dosage information is available in the response
+                if ('formulation' in response) {
+                    // Populate the formulation dosage information in the input field
+                    formulationField.val(response.formulation);
+                } else {
+                    // Clear the formulation dosage information if not available
+                    formulationField.val('');
+                    console.error('Formulation dosage information not found in response.');
+                }
+            },
+            error: function(xhr, status, error) {
+                // Handle error if AJAX request fails
+                formulationField.val('');
+                console.error('Error fetching medicine formulation dosage:', error);
+            }
+        });
+    });
+</script>
+
+{% endblock customer_js %}

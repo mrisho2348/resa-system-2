@@ -1,0 +1,520 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+
+{% block title %}
+{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }} visit
+{% endblock title %}
+
+{% block page_title %}   
+    <a class="btn btn-prem-visit-nav" type="button"  href="{% url 'pemba_doctor_patient_visit_history' patient.id %}" class="breadcrumb-link">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+      <!-- Breadcrumb content can be added here if needed -->
+       {% if visit.data_recorder == request.user.staff %}
+       <a class="btn btn-prem-visit-nav" type="button"  href="{% url 'pemba_doctor_patient_health_edit' patient.id %}" class="breadcrumb-link">
+        <i class="fas fa-arrow-left"></i> Back health info
+    </a>
+       {% endif %}
+   
+        <!-- Breadcrumb content can be added here if needed -->
+         {% if visit %}
+         <a class="btn btn-prem-visit-nav" type="button"  href="{% url 'pemba_doctor_vitals_save' patient.id visit.id %}" class="breadcrumb-link">
+            <i class="fas fa-arrow-right"></i> Forward
+        </a>
+         {% endif %}
+       
+{% endblock page_title %}
+
+{% block breadcrumb %}
+Patient Visit
+{% endblock breadcrumb %}
+
+{% block main_content %}
+    {% load static %}             
+
+    <style>
+        /* Premium Patient Visit Styles - Unique to this template */
+        .visit-prem-gradient {
+            background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+            border: none;
+        }
+        
+        .visit-prem-gradient .card-header {
+            background: rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 1.2rem 1.5rem;
+        }
+        
+        .visit-prem-form-container {
+            border-radius: 10px;
+            overflow: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+            padding: 2rem;
+            background: white;
+        }
+        
+        .visit-prem-input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        
+        .visit-prem-input-group label {
+            font-weight: 600;
+            color: #006064;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .visit-prem-input-group .form-control {
+            border: 1px solid #b2ebf2;
+            padding: 0.75rem 1rem;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .visit-prem-input-group .form-control:focus {
+            border-color: #006064;
+            box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+        }
+        
+        .btn-prem-visit {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+            width: 100%;
+        }
+        
+        .btn-prem-visit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+            color: white;
+        }
+        
+        .btn-prem-visit-nav {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+            margin-right: 10px;
+        }
+        
+        .btn-prem-visit-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+            color: white;
+        }
+        
+        .visit-prem-modal-header {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            border-radius: 0;
+            padding: 1.2rem 1.5rem;
+        }
+        
+        .visit-prem-summary-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        }
+        
+        .visit-prem-summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .visit-prem-summary-card .card-header {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #b2ebf2;
+        }
+        
+        .visit-prem-summary-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .visit-prem-summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #006064;
+            margin-bottom: 0.5rem;
+        }
+        
+        .visit-prem-summary-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .visit-prem-modal-content {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .visit-prem-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .visit-prem-badge-required {
+            background: linear-gradient(120deg, #F44336, #EF5350);
+            color: white;
+        }
+        
+        .visit-prem-section-title {
+            color: #006064;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #b2ebf2;
+        }
+        
+        /* Flip card effect for premium feature */
+        .visit-prem-flip-card {
+            perspective: 1000px;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+        
+        .visit-prem-flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        
+        .visit-prem-flip-card:hover .visit-prem-flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .visit-prem-flip-card-front, .visit-prem-flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .visit-prem-flip-card-front {
+            background: linear-gradient(120deg, #0F2027, #203A43);
+            color: white;
+        }
+        
+        .visit-prem-flip-card-back {
+            background: linear-gradient(120deg, #203A43, #0F2027);
+            color: white;
+            transform: rotateY(180deg);
+        }
+        
+        .visit-prem-flip-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Animation for form sections */
+        @keyframes visitPremFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .visit-prem-animated {
+            animation: visitPremFadeIn 0.5s ease forwards;
+        }
+        
+        /* Premium select2 styling */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #b2ebf2;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            height: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #006064;
+            box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+        }
+        
+        .visit-prem-alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .visit-prem-alert-success {
+            background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+            color: white;
+            border: none;
+        }
+        
+        .visit-prem-alert-error {
+            background: linear-gradient(120deg, #F44336, #EF5350);
+            color: white;
+            border: none;
+        }
+        
+        /* Form section styling */
+        .visit-prem-form-section {
+            background: #f8fdff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid #e0f7fa;
+        }
+        
+        /* Patient info card styling */
+        .visit-prem-patient-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: none;
+            margin-bottom: 20px;
+            background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        }
+        
+        .visit-prem-patient-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .visit-prem-patient-info {
+            font-size: 0.9rem;
+            color: #006064;
+            margin-bottom: 0.5rem;
+        }
+        
+        .visit-prem-patient-info b {
+            color: #0F2027;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .visit-prem-form-container {
+                padding: 1rem;
+            }
+            
+            .btn-prem-visit-nav {
+                margin-bottom: 10px;
+                width: 100%;
+            }
+        }
+    </style>
+
+    <div class="container-fluid">
+        <!-- Patient Information Card -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card visit-prem-patient-card">
+                    <div class="card-body">
+                        <div class="row visit-prem-patient-info">
+                            <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
+                            <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
+                                {% else %}
+                                {{ patient.age }}
+                                {% endif %}]</b></div>
+                            <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                            <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b></div>
+                        </div>
+                        <div class="row visit-prem-patient-info">
+                            <div class="col-md-3">Company: <b>{{ patient.company }}</b></div>
+                        </div>
+                    </div>    
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card visit-prem-summary-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Visit Status</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="visit-prem-summary-value">{% if visit %}Active{% else %}New{% endif %}</div>
+                        <div class="visit-prem-summary-label">Current Visit</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card visit-prem-summary-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="visit-prem-summary-value">2</div>
+                        <div class="visit-prem-summary-label">Mandatory Fields</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="visit-prem-flip-card">
+                    <div class="visit-prem-flip-card-inner">
+                        <div class="visit-prem-flip-card-front">
+                            <div class="visit-prem-flip-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h4>Visit Details</h4>
+                            <p>Hover to reveal</p>
+                        </div>
+                        <div class="visit-prem-flip-card-back">
+                            <div class="visit-prem-flip-icon">
+                                <i class="fas fa-stethoscope"></i>
+                            </div>
+                            <h4>Medical Visit</h4>
+                            <p>Record patient visit details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Patient Visit Card -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-12">
+                <div class="card visit-prem-gradient shadow-lg">
+                    <div class="card-header py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-white">
+                                <i class="fas fa-calendar-plus mr-2"></i>
+                                {% if visit %}
+                                    Edit Patient Visit
+                                {% else %}
+                                    Add Patient Visit
+                                {% endif %}
+                            </h5>                       
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="visit-prem-form-container">
+                            <form method="post" action="{% if visit %}{% url 'pemba_doctor_visit_edit' patient.id visit.id %}{% else %}{% url 'pemba_doctor_visit_save' patient.id %}{% endif %}">
+                                {% csrf_token %}
+                                <div class="visit-prem-form-section visit-prem-animated">
+                                    <h4 class="visit-prem-section-title">
+                                        <i class="fas fa-info-circle mr-2"></i>Visit Information
+                                    </h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="visit-prem-input-group">
+                                                <label for="visit_type">Visit Type <span class="visit-prem-badge visit-prem-badge-required">Required</span></label>
+                                                <select class="form-control select2bs4" style="width: 100%;" id="visit_type" name="visit_type" required>
+                                                    <option value=""></option>
+                                                    <option value="Normal" {% if visit and visit.visit_type == 'Normal' %} selected {% endif %}>Normal</option>
+                                                    <option value="Emergency" {% if visit and visit.visit_type == 'Emergency' %} selected {% endif %}>Emergency</option>
+                                                    <option value="Follow up" {% if visit and visit.visit_type == 'Follow up' %} selected {% endif %}>Follow up</option>
+                                                    <option value="Trauma" {% if visit and visit.visit_type == 'Trauma' %} selected {% endif %}>Trauma</option>
+                                                    <option value="Pregnancy" {% if visit and visit.visit_type == 'Pregnancy' %} selected {% endif %}>Pregnancy</option>
+                                                    <option value="Psych" {% if visit and visit.visit_type == 'Psych' %} selected {% endif %}>Psych</option>
+                                                    <option value="Medical/Surgery" {% if visit and visit.visit_type == 'Medical/Surgery' %} selected {% endif %}>Medical/Surgery</option>
+                                                    <option value="Pediatric" {% if visit and visit.visit_type == 'Pediatric' %} selected {% endif %}>Pediatric</option>
+                                                    <option value="Follow UP" {% if visit and visit.visit_type == 'Follow UP' %} selected {% endif %}>Follow UP</option>
+                                                    <option value="DOA" {% if visit and visit.visit_type == 'DOA' %} selected {% endif %}>DOA</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="visit-prem-input-group">
+                                                <label class="control-label">Consultation:</label>
+                                                <input type="text" class="form-control" id="primary_service" name="primary_service" value="{% if visit %}{{ visit.primary_service }}{% else %}Consultation{% endif %}" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if visit %}
+                                        <input type="hidden" name="visit_id" value="{{ visit.id }}">
+                                    {% endif %}
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            {% if visit %}
+                                                {% if visit.data_recorder == request.user.staff %}
+                                                <button type="submit" class="btn btn-prem-visit" name="save_continue_health">
+                                                    <i class="fas fa-save mr-2"></i> Save to continue
+                                                </button>
+                                                {% endif %}
+                                            {% else %}
+                                            <button type="submit" class="btn btn-prem-visit" name="save_continue_health">
+                                                <i class="fas fa-save mr-2"></i> Save to continue
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Messages -->
+                        <div class="card-footer">
+                            {% if messages %}
+                                <div class="row">
+                                    <div class="col-12">
+                                        {% for message in messages %}
+                                            {% if message.tags == 'error' %}
+                                                <div class="alert visit-prem-alert visit-prem-alert-error alert-message">{{ message }}</div>
+                                            {% elif message.tags == 'success' %}
+                                                <div class="alert visit-prem-alert visit-prem-alert-success alert-message">{{ message }}</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
+    </div>
+    
+    <script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+    </script>
+    
+    {% include 'pembadoctor_template/datatable.html' %}     
+{% endblock main_content %}

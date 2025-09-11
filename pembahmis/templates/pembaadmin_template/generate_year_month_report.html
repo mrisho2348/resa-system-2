@@ -1,0 +1,388 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% block title %}
+Premium Report Generation
+{% endblock title %}
+{% block page_title %}
+Premium Report Generation
+{% endblock page_title %}
+
+{% block main_content %}
+{% load static %}
+<style>
+    /* Premium Report Selection Styles - Unique to this template */
+    .report-prem-gradient {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+        border: none;
+    }
+    
+    .report-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .report-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .report-prem-form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .report-prem-form-group label {
+        font-weight: 600;
+        color: #303F9F;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .report-prem-form-control {
+        border: 1px solid #c5cae9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .report-prem-form-control:focus {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+        outline: none;
+    }
+    
+    .btn-report-prem {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+        width: 100%;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-report-prem:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+        color: white;
+    }
+    
+    .report-prem-modal-header {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .report-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .report-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .report-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+        color: #303F9F;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c5cae9;
+    }
+    
+    .report-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .report-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #303F9F;
+        margin-bottom: 0.5rem;
+    }
+    
+    .report-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .report-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    /* Flip card effect for premium feature */
+    .report-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .report-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .report-prem-flip-card:hover .report-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .report-prem-flip-card-front, .report-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .report-prem-flip-card-front {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .report-prem-flip-card-back {
+        background: linear-gradient(120deg, #764ba2, #667eea);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .report-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for view switching */
+    @keyframes reportPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .report-prem-animated {
+        animation: reportPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #c5cae9;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #303F9F;
+        box-shadow: 0 0 0 0.2rem rgba(48, 63, 159, 0.25);
+    }
+    
+    .report-prem-alert {
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: none;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .report-prem-alert-danger {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        color: #c62828;
+    }
+    
+    .report-prem-alert-primary {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #1565c0;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12 mx-auto">
+            <div class="card report-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-chart-line mr-2"></i>Premium Report Generation</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card report-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-alt mr-2"></i>Year Selection</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="report-prem-summary-value">{% now "Y" %}</div>
+                                    <div class="report-prem-summary-label">Current Year</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card report-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-calendar mr-2"></i>Month Selection</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="report-prem-summary-value">{% now "F" %}</div>
+                                    <div class="report-prem-summary-label">Current Month</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="report-prem-flip-card">
+                                <div class="report-prem-flip-card-inner">
+                                    <div class="report-prem-flip-card-front">
+                                        <div class="report-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Report Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="report-prem-flip-card-back">
+                                        <div class="report-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Data Insights</h4>
+                                        <p>Advanced reporting</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Container -->
+                    <div class="report-prem-form-container">
+                        <form method="post" enctype="multipart/form-data" action="{% url 'pemba_admin_generate_year_month_report' %}">
+                            {% csrf_token %}
+                            
+                            {{ form.non_field_errors }}
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="report-prem-form-group">
+                                        <label for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>
+                                        {{ form.year }}
+                                        {% if form.year.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.year.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="report-prem-form-group">
+                                        <label for="{{ form.month.id_for_label }}">{{ form.month.label }}</label>
+                                        {{ form.month }}
+                                        {% if form.month.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.month.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div> <!-- End of Row -->
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <button type="submit" class="btn-report-prem">
+                                        <i class="fas fa-file-pdf mr-2"></i> Generate Premium Report
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                {% if messages %}
+                                    {% for message in messages %}
+                                        {% if message.tags == 'error' %}
+                                        <div class="report-prem-alert report-prem-alert-danger">
+                                            <i class="fas fa-exclamation-circle mr-2"></i>{{ message }}
+                                        </div>
+                                        {% elif message.tags == 'success' %}
+                                        <div class="report-prem-alert report-prem-alert-primary">
+                                            <i class="fas fa-check-circle mr-2"></i>{{ message }}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>       
+    </div>
+</div>
+
+<script>
+    // Add premium styling to select elements
+    $(document).ready(function() {
+        // Initialize select2 if available
+        if ($.fn.select2) {
+            $('#{{ form.year.id_for_label }}').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select Year',
+                allowClear: true
+            });
+            
+            $('#{{ form.month.id_for_label }}').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Select Month',
+                allowClear: true
+            });
+        }
+        
+        // Add custom classes to form elements
+        $('#{{ form.year.id_for_label }}').addClass('report-prem-form-control');
+        $('#{{ form.month.id_for_label }}').addClass('report-prem-form-control');
+        
+        // Add animation to form elements
+        $('.report-prem-form-group').addClass('report-prem-animated');
+        
+        // Add delay to animation for better visual effect
+        $('.report-prem-form-group').each(function(index) {
+            $(this).css('animation-delay', (index * 0.1) + 's');
+        });
+    });
+</script>
+
+{% endblock main_content %}

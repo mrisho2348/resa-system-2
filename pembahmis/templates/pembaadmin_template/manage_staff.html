@@ -1,0 +1,479 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+Staff Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembaadmin_template/modal_form.html" %}
+<a class="btn btn-gradient float-right" type="button" data-toggle="modal" data-target="#staffModal">
+    <i class="fas fa-plus mr-2"></i> New Staff
+</a>
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    .card-gradient {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+        color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .card-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .staff-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .staff-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .action-btn {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .modal-header-gradient {
+        background: linear-gradient(120deg, #1e88e5, #0d47a1);
+        color: white;
+        border-radius: 0;
+    }
+    .modal-header-secondary {
+        background: linear-gradient(120deg, #5c6bc0, #3949ab);
+        color: white;
+        border-radius: 0;
+    }
+    .staff-table th {
+        background: linear-gradient(120deg, #e3f2fd, #bbdefb);
+        color: #0d47a1;
+        font-weight: 600;
+    }
+    .alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+    }
+    .fa-user-tie {
+        font-size: 1.5rem;
+        color: #0d47a1;
+    }
+    .avatar-sm {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: white;
+    }
+    .badge-active {
+        background: linear-gradient(120deg, #43a047, #1b5e20);
+    }
+    .badge-inactive {
+        background: linear-gradient(120deg, #e53935, #b71c1c);
+    }
+    .date-badge {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        background: #f5f5f5;
+        color: #666;
+    }
+    .switch-container {
+        display: flex;
+        align-items: center;
+    }
+    .switch-label {
+        margin-left: 10px;
+        font-weight: 500;
+    }
+    .profile-img-sm {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #e0e0e0;
+    }
+    .detail-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+    }
+    .detail-card-header {
+        background: linear-gradient(120deg, #5c6bc0, #3949ab);
+        color: white;
+        padding: 10px 15px;
+        font-weight: 600;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        padding: 15px;
+    }
+    .info-item {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    .info-label {
+        font-weight: 600;
+        color: #555;
+        min-width: 120px;
+        display: inline-block;
+    }
+    .info-value {
+        color: #333;
+    }
+</style>
+
+<!-- Global alert container -->
+<div class="alert-container" id="globalAlertContainer"></div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card card-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-tie mr-2"></i>Staff Management</h5>
+                        <div class="d-flex">
+                            <button class="btn btn-light btn-sm mr-2" onclick="location.reload()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>                            
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap staff-table" id="staffTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th><i class="fas fa-user mr-2"></i>Staff</th>
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-briefcase mr-2"></i>Experience</th>
+                                    <th><i class="fas fa-envelope mr-2"></i>Email</th>
+                                    <th><i class="fas fa-phone mr-2"></i>Mobile</th>
+                                    <th><i class="fas fa-building mr-2"></i>Workplace</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Last Login</th>
+                                    <th><i class="fas fa-calendar-check mr-2"></i>Joined</th>
+                                    <th><i class="fas fa-id-badge mr-2"></i>Position</th>
+                                    <th><i class="fas fa-power-off mr-2"></i>Status</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-table-body">
+                                {% for staff in staffs %}
+                                <tr class="staff-card">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if staff.profile_picture %}
+                                            <img src="{{ staff.profile_picture.url }}" class="profile-img-sm mr-2" alt="{{ staff.admin.first_name }}">
+                                            {% else %}
+                                            <div class="avatar-sm mr-2 bg-light-primary rounded-circle d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ staff.admin.first_name }} {{ staff.admin.last_name }}</strong>
+                                                <div class="small">{{ staff.middle_name }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ staff.gender }}</td>
+                                    <td>
+                                        <span class="date-badge">{{ staff.date_of_birth|date:'d M Y' }}</span>
+                                        <div class="small mt-1">
+                                            {{ staff.date_of_birth|timesince }} old
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="date-badge">{{ staff.joining_date|date:'d M Y' }}</span>
+                                        <div class="small mt-1">
+                                            {{ staff.joining_date|timesince }} experience
+                                        </div>
+                                    </td>
+                                    <td>{{ staff.admin.email }}</td>
+                                    <td>{{ staff.phone_number }}</td>
+                                    <td>{{ staff.work_place }}</td>
+                                    <td>
+                                        {% if staff.admin.last_login %}
+                                        <span class="date-badge">{{ staff.admin.last_login|date:'d M Y' }}</span>
+                                        {% else %}
+                                        <span class="date-badge">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="date-badge">{{ staff.joining_date|date:"d M Y" }}</span>
+                                    </td>
+                                    <td>{{ staff.role }}</td>
+                                    <td>
+                                        <div class="switch-container">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" 
+                                                    id="statusSwitch{{ staff.id }}" 
+                                                    {% if staff.admin.is_active %}checked{% endif %}
+                                                    onchange="updateStaffStatus({{ staff.admin.id }}, this.checked)">
+                                                <label class="custom-control-label" for="statusSwitch{{ staff.id }}"></label>
+                                            </div>
+                                            <span class="switch-label">
+                                                {% if staff.admin.is_active %}
+                                                <span class="status-badge badge-active">Active</span>
+                                                {% else %}
+                                                <span class="status-badge badge-inactive">Inactive</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center">
+                                            <button class="btn btn-outline-info action-btn mx-1" 
+                                                    data-toggle="modal" 
+                                                    data-target="#staffDetailModal{{ staff.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <a href="{% url 'resa_admin_edit_staff' staff_id=staff.id %}" class="btn btn-outline-primary action-btn mx-1">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for staff in staffs %}
+<!-- Staff Detail Modal -->
+<div class="modal fade" id="staffDetailModal{{ staff.id }}" tabindex="-1" role="dialog" aria-labelledby="staffDetailModalLabel{{ staff.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header modal-header-secondary py-3">
+            <h5 class="modal-title text-white">
+                <i class="fas fa-user-tie mr-2"></i>Staff Details: {{ staff.get_full_name }}
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-id-card mr-2"></i>Personal Information
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Full Name:</span>
+                        <span class="info-value">{{ staff.get_full_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ staff.admin.email }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone:</span>
+                        <span class="info-value">{{ staff.phone_number }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Gender:</span>
+                        <span class="info-value">{{ staff.gender }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date of Birth:</span>
+                        <span class="info-value">{{ staff.date_of_birth|date:'d M Y' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Marital Status:</span>
+                        <span class="info-value">{{ staff.marital_status }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-card">
+                <div class="detail-card-header">
+                    <i class="fas fa-briefcase mr-2"></i>Employment Details
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Profession:</span>
+                        <span class="info-value">{{ staff.profession }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Role:</span>
+                        <span class="info-value">{{ staff.role }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Workplace:</span>
+                        <span class="info-value">{{ staff.work_place }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Joining Date:</span>
+                        <span class="info-value">{{ staff.joining_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">MCT Number:</span>
+                        <span class="info-value">{{ staff.mct_number|default:"N/A" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">
+                            {% if staff.admin.is_active %}
+                                <span class="status-badge badge-active">Active</span>
+                            {% else %}
+                                <span class="status-badge badge-inactive">Inactive</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Last Login:</span>
+                        <span class="info-value">
+                            {% if staff.admin.last_login %}
+                                {{ staff.admin.last_login }}
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                {% if staff.signature %}
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-card-header">
+                            <i class="fas fa-signature mr-2"></i>Signature
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="{{ staff.signature.url }}" alt="Signature" height="80">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if staff.profile_picture %}
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-card-header">
+                            <i class="fas fa-camera mr-2"></i>Profile Picture
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="{{ staff.profile_picture.url }}" alt="Profile Picture" class="img-thumbnail" width="120">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+    $(document).ready(function() {      
+        // Add hover effect to table rows
+        $('#staffTable tbody tr').hover(
+            function() {
+                $(this).css('transform', 'translateY(-2px)');
+                $(this).css('box-shadow', '0 8px 25px rgba(0,0,0,0.15)');
+            },
+            function() {
+                $(this).css('transform', '');
+                $(this).css('box-shadow', '0 4px 15px rgba(0,0,0,0.08)');
+            }
+        );
+        
+        // Function to show alert in the global container
+        function showAlert(message, type) {
+            var alertClass = 'alert-' + type;
+            var alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            $('#globalAlertContainer').html(alertHtml);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+        
+        // Update staff status
+        updateStaffStatus = function(userId, isActive) {
+            $.ajax({
+                url: '{% url "pemba_admin_update_staff_status" %}',
+                type: 'POST',
+                data: {
+                    'user_id': userId,
+                    'is_active': isActive ? 1 : 0,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('Staff status updated successfully!', 'success');
+                        // Update status badge visually
+                        const badge = $(`#statusSwitch${userId}`).closest('.switch-container').find('.status-badge');
+                        badge.removeClass('badge-active badge-inactive');
+                        if (isActive) {
+                            badge.addClass('badge-active').text('Active');
+                        } else {
+                            badge.addClass('badge-inactive').text('Inactive');
+                        }
+                    } else {
+                        // Revert the switch if update failed
+                        $(`#statusSwitch${userId}`).prop('checked', !isActive);
+                        showAlert(response.message, 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    // Revert the switch on error
+                    $(`#statusSwitch${userId}`).prop('checked', !isActive);
+                    showAlert('Error updating staff status', 'danger');
+                }
+            });
+        };
+    });
+</script>
+
+{% include 'pembaadmin_template/datatable.html' %}
+<script>
+    new DataTable('#staffTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+    });
+</script>
+{% endblock main_content %}

@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt - {{ visit.visit_number }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.5cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background: #fff;
+            margin: 0;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+        
+        .print-container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 8px;
+            position: relative;
+        }
+        
+        .print-header {
+            text-align: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .print-watermark {
+            position: absolute;
+            opacity: 0.1;
+            font-size: 50px;
+            transform: rotate(-45deg);
+            top: 40%;
+            left: 10%;
+            z-index: -1;
+            font-weight: bold;
+            color: #0f0c29;
+        }
+        
+        .print-footer {
+            text-align: center;
+            margin-top: 12px;
+            padding-top: 6px;
+            border-top: 1px solid #ccc;
+            font-size: 9px;
+        }
+        
+        .print-section {
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+        }
+        
+        .print-section h4 {
+            margin: 0 0 5px 0;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #0f0c29;
+        }
+        
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+            margin-top: 3px;
+        }
+        
+        .compact-table th,
+        .compact-table td {
+            padding: 3px 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .compact-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .space-optimize {
+            margin: 3px 0;
+        }
+        
+        .row {
+            display: flex;
+            width: 100%;
+            margin: 6px 0;
+        }
+        
+        .col-6 {
+            flex: 0 0 48%;
+            margin: 0 1%;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        
+        .receipt-header {
+            background: linear-gradient(120deg, #0f0c29, #302b63);
+            color: white;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 12px;
+        }
+        
+        .receipt-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .receipt-subtitle {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        .info-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            padding: 6px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+        }
+        
+        .info-card-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #0f0c29;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 3px;
+            font-size: 10px;
+        }
+        
+        .pharmacy-stamp {
+            border: 2px dashed #0f0c29;
+            padding: 6px;
+            text-align: center;
+            margin-top: 12px;
+            font-style: italic;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        
+        .print-signature {
+            margin-top: 12px;
+            padding-top: 6px;
+            border-top: 1px dashed #999;
+            width: 95%;
+            font-size: 10px;
+        }
+        
+        .small-text {
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <!-- Header with full-width image -->
+        <div class="print-header">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid rounded" alt="Header Image" style="max-height: 70px; width: auto;">
+        </div>
+        
+        <div class="print-watermark">OFFICIAL RECEIPT</div>
+        
+        <!-- Receipt Title -->
+        <div class="receipt-header text-center">
+            <div class="receipt-title">OFFICIAL PRESCRIPTION RECEIPT</div>
+            <div class="receipt-subtitle">Generated on {% now "d/m/Y" %}</div>
+        </div>
+        
+        <!-- Customer and Visit Information - Two columns in one row -->
+        <div class="row">
+            <div class="col-6">
+                <div class="info-card">
+                    <div class="info-card-title">Customer Information</div>
+                    <p class="space-optimize"><strong>Name:</strong> {{ visit.customer.first_name }} {{ visit.customer.last_name }}</p>
+                    <p class="space-optimize"><strong>Phone:</strong> {{ visit.customer.phone_number|default:"N/A" }}</p>
+                    <p class="space-optimize"><strong>Address:</strong> {{ visit.customer.address|default:"N/A" }}</p>
+                    <p class="space-optimize"><strong>Payment Method:</strong> {{ visit.customer.get_payment_form_display }}</p>
+                </div>
+            </div>
+            
+            <div class="col-6">
+                <div class="info-card">
+                    <div class="info-card-title">Visit Information</div>
+                    <p class="space-optimize"><strong>Visit Date:</strong> {{ visit.visit_date|date:"d/m/Y H:i" }}</p>
+                    <p class="space-optimize"><strong>Visit #:</strong> {{ visit.visit_number }}</p>
+                    <p class="space-optimize"><strong>Pharmacy ID:</strong> {{ visit.customer.pharmacy_number }}</p>
+                    <p class="space-optimize"><strong>Receipt #:</strong> {{ visit.receipt_number }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="print-section">
+            <h4>Prescription Details</h4>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Drug Name</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Unit Price</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prescription in prescriptions %}
+                    <tr>
+                        <td>{{ prescription.medicine.drug_name }}</td>
+                        <td>{{ prescription.dosage|default:prescription.formulation_dose }}</td>
+                        <td>{{ prescription.frequency.name|default:"N/A" }}</td>
+                        <td>{{ prescription.duration }} days</td>
+                        <td class="text-right">{{ prescription.quantity_used }}</td>
+                        <td class="text-right">{% widthratio prescription.total_price prescription.quantity_used 1 %}</td>
+                        <td class="text-right">{{ prescription.total_price|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="6" class="text-right"><strong>Subtotal:</strong></td>
+                        <td class="text-right">{{ total_price|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" class="text-right"><strong>Tax (10%):</strong></td>
+                        <td class="text-right">{{ tax|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="6" class="text-right"><strong>Total Amount:</strong></td>
+                        <td class="text-right"><strong>{{ grand_total|floatformat:2 }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- Signature sections - Two columns in one row -->
+        <div class="row">
+            <div class="col-6">
+                <div class="print-signature">
+                    <p style="margin: 3px 0;">Customer Signature: ________________</p>
+                    <p style="margin: 3px 0;">Date: ________________</p>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="print-signature">
+                    <p style="margin: 3px 0;">Pharmacist Signature: {{ pharmacist.admin.first_name }} {{ pharmacist.middle_name }} {{ pharmacist.admin.last_name }}</p>
+                    <p style="margin: 3px 0;">Date: ________________</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pharmacy-stamp">
+            <p>OFFICIALLY ISSUED BY RESA PHARMACY</p>
+            <p class="small-text">This document serves as an official receipt for prescribed medication</p>
+        </div>
+        
+        <div class="print-footer">
+            <p>Generated by RESA Pharmacy Management System</p>
+            <p>This is an official receipt - Please keep for your records</p>
+            <p>Document ID: REC-{{ visit.id }} | Printed on: {{ visit.receipt_generated_at}}</p>
+        </div>
+    </div>
+</body>
+</html>

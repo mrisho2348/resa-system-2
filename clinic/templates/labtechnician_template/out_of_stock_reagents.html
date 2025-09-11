@@ -1,0 +1,772 @@
+{% extends 'labtechnician_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+
+{% block title %}
+Premium Out of Stock Reagents
+{% endblock title %}
+
+{% block page_title %}
+<a href="{% url 'labtechnician_dashboard' %}" class="btn lab-prem-btn-action mb-2">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+</a>
+{% endblock page_title%}
+
+{% block breadcrumb %}
+{% include "labtechnician_template/modal_form.html" %}
+Premium Out of Stock Reagents
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium styling for out of stock reagents */
+    .lab-prem-gradient {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(213, 0, 0, 0.15);
+        border: none;
+    }
+    
+    .lab-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .lab-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .lab-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .lab-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #FFEBEE, #FFCDD2);
+        color: #C62828;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #EF9A9A;
+    }
+    
+    .lab-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .lab-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #C62828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lab-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .lab-prem-table th {
+        background: linear-gradient(120deg, #FFEBEE, #FFCDD2);
+        color: #C62828;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #FFEBEE;
+    }
+    
+    .lab-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .lab-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(198, 40, 40, 0.1);
+        background: #fff5f5;
+    }
+    
+    .lab-prem-btn-action {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(213, 0, 0, 0.2);
+        margin: 2px;
+    }
+    
+    .lab-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(213, 0, 0, 0.3);
+        color: white;
+    }
+    
+    .lab-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .lab-prem-badge-reagent {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+    }
+    
+    .lab-prem-badge-manufacturer {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+    }
+    
+    .lab-prem-badge-critical {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+    }
+    
+    .lab-prem-filter-bar {
+        background: linear-gradient(120deg, #FFEBEE, #FFCDD2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #C62828;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes labPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .lab-prem-animated {
+        animation: labPremFadeIn 0.5s ease forwards;
+    }
+    
+    .lab-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .lab-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .lab-prem-flip-card:hover .lab-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .lab-prem-flip-card-front, .lab-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .lab-prem-flip-card-front {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+    }
+    
+    .lab-prem-flip-card-back {
+        background: linear-gradient(120deg, #FF1744, #D50000);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .lab-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .out-of-stock-badge {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .stock-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .stock-out {
+        background-color: #D50000;
+    }
+    
+    .lab-search-input {
+        border-radius: 25px;
+        border: 1px solid #FFEBEE;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .lab-search-input:focus {
+        box-shadow: 0 0 0 0.2rem rgba(213, 0, 0, 0.25);
+        border-color: #D50000;
+    }
+    
+    .days-out-badge {
+        background: linear-gradient(120deg, #9C27B0, #7B1FA2);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .priority-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .priority-high {
+        background-color: #D50000;
+    }
+    
+    .priority-medium {
+        background-color: #FF6F00;
+    }
+    
+    .priority-low {
+        background-color: #00C853;
+    }
+    
+    .impact-badge {
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .impact-high {
+        background: linear-gradient(120deg, #D50000, #FF1744);
+        color: white;
+    }
+    
+    .impact-medium {
+        background: linear-gradient(120deg, #FF6F00, #FFA000);
+        color: white;
+    }
+    
+    .impact-low {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Summary Cards -->
+        <div class="col-md-3">
+            <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-box-open mr-2"></i>Out of Stock</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="lab-prem-summary-value" id="total-out-of-stock">{{ reagents|length }}</div>
+                    <div class="lab-prem-summary-label">Reagents Out of Stock</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-flask mr-2"></i>Reagent Types</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="lab-prem-summary-value" id="unique-reagents">0</div>
+                    <div class="lab-prem-summary-label">Different Reagents</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card lab-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-circle mr-2"></i>High Impact</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="lab-prem-summary-value" id="high-impact">0</div>
+                    <div class="lab-prem-summary-label">Critical Reagents</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="lab-prem-flip-card">
+                <div class="lab-prem-flip-card-inner">
+                    <div class="lab-prem-flip-card-front">
+                        <div class="lab-prem-flip-icon">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <h4>Stock Alert</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="lab-prem-flip-card-back">
+                        <div class="lab-prem-flip-icon">
+                            <i class="fas fa-truck-loading"></i>
+                        </div>
+                        <h4>Restock Needed</h4>
+                        <p>Urgent replenishment required</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="lab-prem-filter-bar">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control lab-search-input" placeholder="Search reagents by name, manufacturer, or lot number..." id="labPremSearch">
+                    <div class="input-group-append">
+                        <button class="btn lab-prem-btn-action" type="button" id="searchButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-right">
+                <span class="filter-section-label">Sort by:</span>
+                <select class="form-control lab-search-input d-inline-block w-auto" id="sortSelect">
+                    <option value="0">Highest Impact</option>
+                    <option value="1">Reagent Name (A-Z)</option>
+                    <option value="2">Reagent Name (Z-A)</option>
+                    <option value="3">Manufacturer (A-Z)</option>
+                    <option value="4">Days Out of Stock (Most)</option>
+                    <option value="5">Days Out of Stock (Least)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table View -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card lab-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-box-open mr-2"></i>Premium Out of Stock Reagents</h5>
+                        <div>
+                            <button class="btn lab-prem-btn-action" id="refreshBtn">
+                                <i class="fas fa-sync-alt mr-1"></i>Refresh
+                            </button>
+                            <button class="btn lab-prem-btn-action" id="bulkReorderBtn" data-toggle="modal" data-target="#bulkReorderModal">
+                                <i class="fas fa-cart-arrow-down mr-1"></i>Bulk Reorder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if reagents %}
+                    <div class="table-responsive lab-prem-table-container">
+                        <table class="table table-hover text-nowrap lab-prem-table" id="reagentsTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-flask mr-2"></i>Reagent Name</th>
+                                    <th><i class="fas fa-industry mr-2"></i>Manufacturer</th>
+                                    <th><i class="fas fa-barcode mr-2"></i>Lot Number</th>
+                                    <th><i class="fas fa-calendar-times mr-2"></i>Expiration Date</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Last Stock Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Days Out of Stock</th>
+                                    <th><i class="fas fa-exclamation-circle mr-2"></i>Impact Level</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagents %}
+                                    <tr>
+                                        <td>
+                                            <span class="lab-prem-badge lab-prem-badge-reagent">
+                                                {{ reagent.name }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="lab-prem-badge lab-prem-badge-manufacturer">
+                                                {{ reagent.manufacturer }}
+                                            </span>
+                                        </td>
+                                        <td>{{ reagent.lot_number }}</td>
+                                        <td>{{ reagent.expiration_date|date:"d-m-Y" }}</td>
+                                        <td>{{ reagent.updated_at|date:"d-m-Y" }}</td>
+                                        <td>
+                                            <span class="days-out-badge">
+                                                {% if reagent.days_out_of_stock > 14 %}
+                                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                                {% endif %}
+                                                {{ reagent.days_out_of_stock }} days
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="impact-badge {% if reagent.impact_level == 'high' %}impact-high{% elif reagent.impact_level == 'medium' %}impact-medium{% else %}impact-low{% endif %}">
+                                                <span class="priority-indicator {% if reagent.impact_level == 'high' %}priority-high{% elif reagent.impact_level == 'medium' %}priority-medium{% else %}priority-low{% endif %}"></span>
+                                                {{ reagent.impact_level|title }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">                                         
+                                            <a href="{% url 'lab_update_reagent' reagent.id %}" data-toggle="tooltip" title="Edit Reagent">
+                                                <button type="button" class="btn lab-prem-btn-action">
+                                                    <i class="fas fa-edit mr-1"></i>Edit
+                                                </button>
+                                            </a>
+                                            <button type="button" class="btn lab-prem-btn-action" data-toggle="modal" data-target="#reorderModal{{ reagent.id }}" title="Reorder Reagent">
+                                                <i class="fas fa-cart-plus mr-1"></i>Reorder
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Reorder Modal -->
+                                    <div class="modal fade" id="reorderModal{{ reagent.id }}" tabindex="-1" role="dialog" aria-labelledby="reorderModalLabel{{ reagent.id }}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="reorderModalLabel{{ reagent.id }}">Reorder {{ reagent.name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Reorder request for <strong>{{ reagent.name }}</strong> (Lot: {{ reagent.lot_number }}) will be sent to the inventory manager.</p>
+                                                    <div class="form-group">
+                                                        <label for="quantity{{ reagent.id }}">Quantity to Order:</label>
+                                                        <input type="number" class="form-control" id="quantity{{ reagent.id }}" value="10" min="1">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="urgency{{ reagent.id }}">Urgency Level:</label>
+                                                        <select class="form-control" id="urgency{{ reagent.id }}">
+                                                            <option value="high">High - Needed Immediately</option>
+                                                            <option value="medium" selected>Medium - Needed Soon</option>
+                                                            <option value="low">Low - Routine Restock</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="notes{{ reagent.id }}">Notes:</label>
+                                                        <textarea class="form-control" id="notes{{ reagent.id }}" rows="2" placeholder="Any special instructions..."></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn lab-prem-btn-action" onclick="submitReorder({{ reagent.id }})">
+                                                        <i class="fas fa-paper-plane mr-1"></i>Submit Request
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </tbody>                  
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h4 class="text-dark">No Out of Stock Reagents</h4>
+                        <p class="text-muted">All reagents are in stock. Excellent inventory management!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bulk Reorder Modal -->
+    <div class="modal fade" id="bulkReorderModal" tabindex="-1" role="dialog" aria-labelledby="bulkReorderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkReorderModalLabel">Bulk Reorder Out of Stock Reagents</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Select reagents to include in your bulk reorder request:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllReagents">
+                                            <label class="form-check-label" for="selectAllReagents">
+                                                Select All
+                                            </label>
+                                        </div>
+                                    </th>
+                                    <th>Reagent Name</th>
+                                    <th>Manufacturer</th>
+                                    <th>Suggested Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagents %}
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input reagent-checkbox" type="checkbox" value="{{ reagent.id }}" id="reagent{{ reagent.id }}" checked>
+                                        </div>
+                                    </td>
+                                    <td>{{ reagent.name }}</td>
+                                    <td>{{ reagent.manufacturer }}</td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm" value="10" min="1" id="bulkQty{{ reagent.id }}">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label for="bulkUrgency">Urgency Level for All Items:</label>
+                        <select class="form-control" id="bulkUrgency">
+                            <option value="high">High - Needed Immediately</option>
+                            <option value="medium" selected>Medium - Needed Soon</option>
+                            <option value="low">Low - Routine Restock</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkNotes">Notes:</label>
+                        <textarea class="form-control" id="bulkNotes" rows="3" placeholder="Any special instructions for this bulk order..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn lab-prem-btn-action" onclick="submitBulkReorder()">
+                        <i class="fas fa-paper-plane mr-1"></i>Submit Bulk Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'labtechnician_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    $(document).ready(function() {
+        var table = $('#reagentsTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: ['excel', 'pdf', 'print'],
+            responsive: true,
+            pageLength: 10,
+            order: [[6, 'asc']], // Default sort by impact level (highest first)
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search reagents...",
+                lengthMenu: "Show _MENU_ entries"
+            }
+        });
+        
+        // Calculate summary statistics
+        function calculateSummaryStats() {
+            const uniqueReagents = new Set();
+            let highImpact = 0;
+            
+            $('#reagentsTable tbody tr').each(function() {
+                const reagent = $(this).find('td:eq(0)').text().trim();
+                const impact = $(this).find('td:eq(6)').text().trim().toLowerCase();
+                
+                uniqueReagents.add(reagent);
+                
+                if (impact === 'high') {
+                    highImpact++;
+                }
+            });
+            
+            // Update summary cards
+            $('#unique-reagents').text(uniqueReagents.size);
+            $('#high-impact').text(highImpact);
+        }
+        
+        // Initialize summary stats
+        calculateSummaryStats();
+        
+        // Custom search functionality
+        $('#labPremSearch').on('keyup', function() {
+            table.search(this.value).draw();
+            $('#total-out-of-stock').text(table.rows({search: 'applied'}).count());
+            calculateSummaryStats();
+        });
+        
+        $('#searchButton').on('click', function() {
+            table.search($('#labPremSearch').val()).draw();
+            $('#total-out-of-stock').text(table.rows({search: 'applied'}).count());
+            calculateSummaryStats();
+        });
+        
+        // Sort functionality
+        $('#sortSelect').on('change', function() {
+            const sortValue = $(this).val();
+            
+            switch(sortValue) {
+                case '0': // Highest Impact
+                    table.order([6, 'asc']).draw();
+                    break;
+                case '1': // Reagent Name A-Z
+                    table.order([0, 'asc']).draw();
+                    break;
+                case '2': // Reagent Name Z-A
+                    table.order([0, 'desc']).draw();
+                    break;
+                case '3': // Manufacturer A-Z
+                    table.order([1, 'asc']).draw();
+                    break;
+                case '4': // Days Out of Stock (Most)
+                    table.order([5, 'desc']).draw();
+                    break;
+                case '5': // Days Out of Stock (Least)
+                    table.order([5, 'asc']).draw();
+                    break;
+            }
+        });
+        
+        // Refresh button
+        $('#refreshBtn').on('click', function() {
+            const $icon = $(this).find('i');
+            $icon.addClass('fa-spin');
+            
+            // Simulate refresh delay
+            setTimeout(function() {
+                table.ajax.reload(function() {
+                    calculateSummaryStats();
+                    $icon.removeClass('fa-spin');
+                });
+            }, 800);
+        });
+        
+        // Add animation to table rows
+        $('#reagentsTable tbody tr').each(function(i) {
+            $(this).delay(i * 100).css({
+                opacity: 0
+            }).animate({
+                opacity: 1
+            }, 300);
+        });
+        
+        // Bulk reorder select all functionality
+        $('#selectAllReagents').on('change', function() {
+            $('.reagent-checkbox').prop('checked', this.checked);
+        });
+    });
+    
+    // Function to submit reorder request
+    function submitReorder(reagentId) {
+        const quantity = $('#quantity' + reagentId).val();
+        const urgency = $('#urgency' + reagentId).val();
+        const notes = $('#notes' + reagentId).val();
+        
+        // Show loading state
+        const submitBtn = $('[onclick="submitReorder(' + reagentId + ')"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin mr-1"></i>Processing...').prop('disabled', true);
+        
+        // Simulate API call
+        setTimeout(function() {
+            // Show success message
+            alert('Reorder request submitted successfully!');
+            
+            // Close modal
+            $('#reorderModal' + reagentId).modal('hide');
+            
+            // Reset button
+            submitBtn.html(originalText).prop('disabled', false);
+        }, 1500);
+    }
+    
+    // Function to submit bulk reorder request
+    function submitBulkReorder() {
+        const selectedReagents = [];
+        const urgency = $('#bulkUrgency').val();
+        const notes = $('#bulkNotes').val();
+        
+        $('.reagent-checkbox:checked').each(function() {
+            const reagentId = $(this).val();
+            const quantity = $('#bulkQty' + reagentId).val();
+            selectedReagents.push({
+                id: reagentId,
+                quantity: quantity
+            });
+        });
+        
+        if (selectedReagents.length === 0) {
+            alert('Please select at least one reagent to reorder.');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = $('[onclick="submitBulkReorder()"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin mr-1"></i>Processing...').prop('disabled', true);
+        
+        // Simulate API call
+        setTimeout(function() {
+            // Show success message
+            alert('Bulk reorder request for ' + selectedReagents.length + ' items submitted successfully!');
+            
+            // Close modal
+            $('#bulkReorderModal').modal('hide');
+            
+            // Reset button
+            submitBtn.html(originalText).prop('disabled', false);
+        }, 2000);
+    }
+</script>
+{% endblock main_content %}

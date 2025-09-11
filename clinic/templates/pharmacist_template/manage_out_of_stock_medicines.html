@@ -1,54 +1,578 @@
 {% extends 'pharmacist_template/base_template.html' %}
 
 {% block title %}
-Out of Stock Medicines
+Premium Out of Stock Medicines Management
 {% endblock title %}
+
 {% block breadcrumb %}
 {% include "pharmacist_template/modal_form.html" %}
-Out of Stock Medicines 
+Premium Out of Stock Medicines Management
 {% endblock breadcrumb %}
+
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Out of Stock Medicines Styles - Unique to this template */
+    .pharm-outstock-gradient {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(211, 16, 39, 0.15);
+        border: none;
+    }
+    
+    .pharm-outstock-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .pharm-outstock-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .pharm-outstock-table th {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        color: #c62828;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-outstock-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #ffebee;
+    }
+    
+    .pharm-outstock-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .pharm-outstock-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(198, 40, 40, 0.1);
+        background: #fff5f5;
+    }
+    
+    .btn-pharm-outstock {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(211, 16, 39, 0.2);
+    }
+    
+    .btn-pharm-outstock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(211, 16, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-pharm-outstock-order {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+    }
+    
+    .btn-pharm-outstock-order:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .pharm-outstock-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-outstock-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .pharm-outstock-summary-card .card-header {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        color: #c62828;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ffcdd2;
+    }
+    
+    .pharm-outstock-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .pharm-outstock-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #c62828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pharm-outstock-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .pharm-outstock-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        text-align: center;
+        min-width: 90px;
+    }
+    
+    .pharm-outstock-status-out {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        color: white;
+    }
+    
+    .pharm-outstock-status-recent {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-outstock-filter-bar {
+        background: linear-gradient(120deg, #ffebee, #ffcdd2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .pharm-outstock-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .pharm-outstock-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .pharm-outstock-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .pharm-outstock-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        color: white;
+    }
+    
+    .pharm-outstock-status-btn[data-status="recent"] {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-outstock-status-btn[data-status="older"] {
+        background: linear-gradient(120deg, #8e8e8e, #bdbdbd);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes pharmOutstockFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .pharm-outstock-animated {
+        animation: pharmOutstockFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .pharm-outstock-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .pharm-outstock-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .pharm-outstock-flip-card:hover .pharm-outstock-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-outstock-flip-card-front, .pharm-outstock-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .pharm-outstock-flip-card-front {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        color: white;
+    }
+    
+    .pharm-outstock-flip-card-back {
+        background: linear-gradient(120deg, #ea384d, #d31027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .pharm-outstock-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Critical alert styling */
+    .pharm-outstock-critical-alert {
+        background: linear-gradient(120deg, #d31027, #ea384d);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(211, 16, 39, 0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(211, 16, 39, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(211, 16, 39, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(211, 16, 39, 0); }
+    }
+    
+    /* Time indicator for how long out of stock */
+    .pharm-outstock-time-indicator {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .pharm-outstock-time-recent {
+        background: linear-gradient(120deg, #ff9a00, #ffcc00);
+        color: white;
+    }
+    
+    .pharm-outstock-time-old {
+        background: linear-gradient(120deg, #8e8e8e, #bdbdbd);
+        color: white;
+    }
+</style>
 
 <div class="container-fluid">
     <div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header card-primary">
-                <h6 class="header-title text-center mt-0 mb-1  text-uppercase ">Out of Stock Medicines </h6>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display" id="example"  style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Medicine Name</th>
-                                <th>Original Stock Level</th>              
-                                <th>When it completed</th>         
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for inventory in out_of_stock_medicines  %}
+        <div class="col-md-12">
+            <div class="card pharm-outstock-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-exclamation-triangle mr-2"></i>Premium Out of Stock Medicines Management</h5>
+                        <button class="btn btn-pharm-outstock-order" id="orderBtn">
+                            <i class="fas fa-cart-plus mr-1"></i> Place Order
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Critical Alert -->
+                    <div class="pharm-outstock-critical-alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle fa-2x mr-3"></i>
+                            <div>
+                                <h5 class="mb-1">Critical Stock Alert</h5>
+                                <p class="mb-0">You have <span id="outOfStockCount">{{ out_of_stock_medicines|length }}</span> medicines out of stock that require immediate attention.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card pharm-outstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Out of Stock</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-outstock-summary-value" id="total-outstock">{{ out_of_stock_medicines|length }}</div>
+                                    <div class="pharm-outstock-summary-label">Total Out of Stock</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-outstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Recently Out</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-outstock-summary-value" id="recent-outstock">0</div>
+                                    <div class="pharm-outstock-summary-label">Recent Out of Stock</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pharm-outstock-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i>Restock Needed</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="pharm-outstock-summary-value" id="restock-needed">0</div>
+                                    <div class="pharm-outstock-summary-label">Priority Restock</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="pharm-outstock-flip-card">
+                                <div class="pharm-outstock-flip-card-inner">
+                                    <div class="pharm-outstock-flip-card-front">
+                                        <div class="pharm-outstock-flip-icon">
+                                            <i class="fas fa-box-open"></i>
+                                        </div>
+                                        <h4>Stockout Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="pharm-outstock-flip-card-back">
+                                        <div class="pharm-outstock-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Stockout Insights</h4>
+                                        <p>Advanced analytics</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="pharm-outstock-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="pharm-outstock-status-filter">
+                                <button class="pharm-outstock-status-btn active" data-status="all">All Out of Stock</button>
+                                <button class="pharm-outstock-status-btn" data-status="recent">Recent</button>
+                                <button class="pharm-outstock-status-btn" data-status="older">Older</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search out of stock medicines..." id="medicineSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-pharm-outstock" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive pharm-outstock-table-container">
+                        <table class="table table-hover text-nowrap pharm-outstock-table" id="outstockTable">
+                            <thead>
                                 <tr>
-                                    <td>{{ inventory.drug_name }}</td>
-                                    <td>{{ inventory.quantity }}</td>                   
-                                    <td>{{ inventory.updated_at|date:"d-m-Y" }}</td>
-                                    </tr>
-                
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    <th>Medicine Name</th>
+                                    <th>Original Stock Level</th>
+                                    <th>Status</th>
+                                    <th>Time Out of Stock</th>
+                                    <th>Last Updated</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                               {% for item in medicines_with_status %}
+                                <tr data-days-out="{{ item.status }}">
+                                    <td>{{ item.inventory.drug_name }}</td>
+                                    <td>{{ item.inventory.quantity }}</td>
+                                    <td>
+                                        <span class="pharm-outstock-status pharm-outstock-status-out">Out of Stock</span>
+                                    </td>
+                                    <td>
+                                        <span class="pharm-outstock-time-indicator {% if item.status == 'recent' %}pharm-outstock-time-recent{% else %}pharm-outstock-time-old{% endif %}">
+                                            {% if item.days_out <= 7 %}
+                                                Recent ({{ item.days_out }} days)
+                                            {% else %}
+                                                Older ({{ item.days_out }} days)
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.inventory.updated_at|date:"d-m-Y" }}</td>
+                                    <td>
+                                        <button class="btn btn-pharm-outstock-order btn-sm" onclick="restockMedicine('{{ item.inventory.drug_name }}')">
+                                            <i class="fas fa-cart-plus mr-1"></i> Restock
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div> 
 </div>
+{% include 'pharmacist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#outstockTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search out of stock medicines...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let recentCount = 0;
+        let restockNeeded = 0;
+        
+        document.querySelectorAll('#outstockTable tbody tr').forEach(row => {
+            const daysOut = row.getAttribute('data-days-out');
+            
+            // Count recent out of stock items
+            if (daysOut === 'recent') {
+                recentCount++;
+            }
+            
+            // All out of stock items need restocking
+            restockNeeded++;
+        });
+        
+        // Update summary cards
+        document.getElementById('recent-outstock').textContent = recentCount;
+        document.getElementById('restock-needed').textContent = restockNeeded;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
 
+    // Status filter functionality
+    document.querySelectorAll('.pharm-outstock-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.pharm-outstock-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterOutOfStock(status);
+        });
+    });
 
+    // Filter out of stock medicines by status
+    function filterOutOfStock(status) {
+        const rows = document.querySelectorAll('#outstockTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const daysOut = row.getAttribute('data-days-out');
+            
+            if (status === 'all' || daysOut === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-outstock').textContent = visibleCount;
+    }
 
+    // Search functionality
+    document.getElementById('medicineSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-outstock-status-btn.active').getAttribute('data-status');
+        
+        filterOutOfStockWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('medicineSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.pharm-outstock-status-btn.active').getAttribute('data-status');
+        
+        filterOutOfStockWithSearch(activeStatus, searchText);
+    });
 
+    // Filter out of stock medicines by both status and search text
+    function filterOutOfStockWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#outstockTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const daysOut = row.getAttribute('data-days-out');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || daysOut === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-outstock').textContent = visibleCount;
+    }
+
+    // Order button functionality
+    document.getElementById('orderBtn').addEventListener('click', function() {
+        // In a real implementation, this would initiate a bulk order process
+        alert('Bulk order functionality would be implemented here. This would allow you to order all out-of-stock medicines at once.');
+    });
+
+    // Restock medicine function
+    function restockMedicine(medicineName) {
+        // In a real implementation, this would initiate a restock process for the specific medicine
+        alert(`Restock functionality would be implemented here for: ${medicineName}`);
+    }
+</script>
 
 {% include 'pharmacist_template/datatable.html' %}
 {% endblock main_content %}

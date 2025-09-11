@@ -1,0 +1,1180 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+{% load static %}
+{% load customfilter %}
+{% block title %}
+   Premium Drug Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+
+<a class="btn btn-prem-drug-add float-right mr-2" type="button" data-toggle="modal" data-target="#addDrugModal">
+    <i class="fas fa-plus"></i> New Drug
+</a>
+
+{% endblock breadcrumb %}
+{% load static %}
+{% block main_content %}       
+
+<style>
+    /* Premium Drug Management Styles - Unique to this template */
+    .drug-prem-gradient {
+        background: linear-gradient(120deg, #2C3E50, #1A535C);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 83, 92, 0.15);
+        border: none;
+    }
+    
+    .drug-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .drug-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .drug-prem-table th {
+        background: linear-gradient(120deg, #e8f5e9, #c8e6c9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .drug-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8f5e9;
+    }
+    
+    .drug-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .drug-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(46, 125, 50, 0.1);
+        background: #f1f8e9;
+    }
+    
+    .btn-prem-drug {
+        background: linear-gradient(120deg, #2C3E50, #1A535C);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.2);
+    }
+    
+    .btn-prem-drug:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-drug-add {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-drug-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-drug-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-drug-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-drug-delete {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+    }
+    
+    .btn-prem-drug-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(244, 67, 54, 0.3);
+        color: white;
+    }
+    
+    .drug-prem-modal-header {
+        background: linear-gradient(120deg, #2C3E50, #1A535C);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .drug-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .drug-prem-input-group label {
+        font-weight: 600;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .drug-prem-input-group .form-control {
+        border: 1px solid #c8e6c9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .drug-prem-input-group .form-control:focus {
+        border-color: #2E7D32;
+        box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+    }
+    
+    .drug-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .drug-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .drug-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f1f8e9, #e8f5e9);
+        color: #2E7D32;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #c8e6c9;
+    }
+    
+    .drug-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .drug-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+    }
+    
+    .drug-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .drug-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .drug-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .drug-prem-badge-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .drug-prem-badge-warning {
+        background: linear-gradient(120deg, #FFA726, #FFCC80);
+        color: white;
+    }
+    
+    .drug-prem-badge-danger {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .drug-prem-badge-info {
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    .drug-prem-filter-bar {
+        background: linear-gradient(120deg, #f1f8e9, #e8f5e9);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .drug-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .drug-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .drug-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .drug-prem-status-btn[data-category="all"] {
+        background: linear-gradient(120deg, #2C3E50, #1A535C);
+        color: white;
+    }
+    
+    .drug-prem-status-btn[data-category="Tablet"] {
+        background: linear-gradient(120deg, #AB47BC, #CE93D8);
+        color: white;
+    }
+    
+    .drug-prem-status-btn[data-category="Capsule"] {
+        background: linear-gradient(120deg, #42A5F5, #90CAF9);
+        color: white;
+    }
+    
+    .drug-prem-status-btn[data-category="Syrup"] {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .drug-prem-status-btn[data-category="Injection"] {
+        background: linear-gradient(120deg, #FFA726, #FFCC80);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes drugPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .drug-prem-animated {
+        animation: drugPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .drug-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .drug-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .drug-prem-flip-card:hover .drug-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .drug-prem-flip-card-front, .drug-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .drug-prem-flip-card-front {
+        background: linear-gradient(120deg, #2C3E50, #1A535C);
+        color: white;
+    }
+    
+    .drug-prem-flip-card-back {
+        background: linear-gradient(120deg, #1A535C, #2C3E50);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .drug-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Stock status indicators */
+    .drug-prem-stock-indicator {
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 5px;
+        background: #e0e0e0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .drug-prem-stock-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    
+    .drug-prem-stock-high {
+        background: linear-gradient(90deg, #66BB6A, #4CAF50);
+    }
+    
+    .drug-prem-stock-medium {
+        background: linear-gradient(90deg, #FFA726, #FF9800);
+    }
+    
+    .drug-prem-stock-low {
+        background: linear-gradient(90deg, #F44336, #D32F2F);
+    }
+    
+    /* Expiry warning styles */
+    .drug-prem-expiry-warning {
+        position: relative;
+    }
+    
+    .drug-prem-expiry-warning::after {
+        content: '';
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #F44336;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #c8e6c9;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #2E7D32;
+        box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card drug-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-pills mr-2"></i>Premium Drug Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card drug-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-pills mr-2"></i>Total Drugs</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="drug-prem-summary-value" id="total-drugs">{{ medicines|length }}</div>
+                                    <div class="drug-prem-summary-label">All Drugs</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card drug-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-tablets mr-2"></i>Tablets</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="drug-prem-summary-value" id="tablet-drugs">0</div>
+                                    <div class="drug-prem-summary-label">Tablets</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card drug-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-syringe mr-2"></i>Injections</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="drug-prem-summary-value" id="injection-drugs">0</div>
+                                    <div class="drug-prem-summary-label">Injections</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="drug-prem-flip-card">
+                                <div class="drug-prem-flip-card-inner">
+                                    <div class="drug-prem-flip-card-front">
+                                        <div class="drug-prem-flip-icon">
+                                            <i class="fas fa-capsules"></i>
+                                        </div>
+                                        <h4>Drug Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="drug-prem-flip-card-back">
+                                        <div class="drug-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Stock Insights</h4>
+                                        <p>Advanced inventory tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="drug-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="drug-prem-status-filter">
+                                <button class="drug-prem-status-btn active" data-category="all">All Drugs</button>
+                                <button class="drug-prem-status-btn" data-category="Tablet">Tablets</button>
+                                <button class="drug-prem-status-btn" data-category="Capsule">Capsules</button>
+                                <button class="drug-prem-status-btn" data-category="Syrup">Syrups</button>
+                                <button class="drug-prem-status-btn" data-category="Injection">Injections</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search drugs..." id="drugPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-drug" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive drug-prem-table-container">
+                        <table class="table table-hover text-nowrap drug-prem-table" id="drugTable">
+                            <thead>
+                                <tr>
+                                    <th>Drug Name</th>
+                                    <th>Drug Type</th>
+                                    <th>Formulation Unit</th>
+                                    <th>Dividable</th>
+                                    <th>Dividing Unit</th>
+                                    <th>Clinic Stock?</th>
+                                    <th>Manufacturer</th>
+                                    <th>Remain Qty</th>
+                                    <th>Qty</th>
+                                    <th>Min. Stock Level</th>
+                                    <th>Stock Status</th>
+                                    <th>Batch Number</th>
+                                    <th>Expiration Date</th>
+                                    <th><i class="fas fa-clock"></i> Time Left</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for medicine in medicines %}
+                                    <tr data-category="{{ medicine.drug_type }}" data-stock-status="{% if medicine.remain_quantity == 0 %}out{% elif medicine.remain_quantity <= 5 %}low{% else %}good{% endif %}" data-expiry-status="{% if medicine.days_left < 0 %}expired{% elif medicine.days_left <= 3 %}warning{% else %}good{% endif %}">
+                                        <td>{{ medicine.drug_name }}</td>
+                                        <td>{{ medicine.drug_type }}</td>
+                                        <td>{{ medicine.formulation_unit }}</td>
+                                        <td>{{ medicine.is_dividable|yesno:"Yes,No" }}</td>
+                                        <td>
+                                            {% if medicine.is_dividable %}
+                                                {{ medicine.dividing_unit }} 
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ medicine.is_clinic_stock|yesno:"Yes,No" }}</td>
+
+                                        {% if medicine.is_clinic_stock %}
+                                            <td>{{ medicine.manufacturer }}</td>
+                                            <td>{{ medicine.remain_quantity }}</td>
+                                           <td>
+                                              {{ medicine.quantity }}
+                                              <div class="drug-prem-stock-indicator">
+                                                  {% if medicine.quantity and medicine.remain_quantity %}
+                                                      {% with percentage=medicine.remain_quantity|div:medicine.quantity|mul:100 %}
+                                                          <div class="drug-prem-stock-fill 
+                                                              {% if percentage > 50 %}
+                                                                  drug-prem-stock-high
+                                                              {% elif percentage > 20 %}
+                                                                  drug-prem-stock-medium
+                                                              {% else %}
+                                                                  drug-prem-stock-low
+                                                              {% endif %}" 
+                                                              style="width: {{ percentage }}%">
+                                                          </div>
+                                                      {% endwith %}
+                                                  {% else %}
+                                                      <div class="drug-prem-stock-fill drug-prem-stock-low" style="width:0%"></div>
+                                                  {% endif %}
+                                              </div>
+                                          </td>
+
+                                            <td>{{ medicine.minimum_stock_level }}</td>
+                                            <!-- Stock Status Badge -->
+                                            <td>
+                                              {% if medicine.remain_quantity == 0 %}
+                                                <span class="drug-prem-badge drug-prem-badge-danger">Out of Stock</span>
+                                              {% elif medicine.remain_quantity <= 5 %}
+                                                <span class="drug-prem-badge drug-prem-badge-warning">Low Stock</span>
+                                              {% else %}
+                                                <span class="drug-prem-badge drug-prem-badge-success">In Stock</span>
+                                              {% endif %}
+                                            </td>
+                                            <td>{{ medicine.batch_number }}</td>
+                                            <td class="{% if medicine.days_left <= 3 and medicine.days_left >= 0 %}drug-prem-expiry-warning{% endif %}">{{ medicine.expiration_date|date:"d-m-Y" }}</td>
+                                        {% else %}
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                            <td class="text-muted">-</td>
+                                        {% endif %}
+                                         <!-- Time Left Badge -->
+                                        <td>
+                                          {% if medicine.days_left is not None %}
+                                            {% if medicine.days_left < 0 %}
+                                              <span class="drug-prem-badge drug-prem-badge-danger">Expired</span>
+                                            {% elif medicine.days_left == 0 %}
+                                              <span class="drug-prem-badge drug-prem-badge-danger">Expires Today</span>
+                                            {% elif medicine.days_left == 1 %}
+                                              <span class="drug-prem-badge drug-prem-badge-danger">Expires Tomorrow</span>
+                                            {% elif medicine.days_left <= 3 %}
+                                              <span class="drug-prem-badge drug-prem-badge-warning">In {{ medicine.days_left }} days</span>
+                                            {% else %}
+                                              <span class="drug-prem-badge drug-prem-badge-info">{{ medicine.days_left }} days left</span>
+                                            {% endif %}
+                                          {% else %}
+                                            <span class="text-muted">-</span>
+                                          {% endif %}
+                                        </td>
+                                        <td>{{ medicine.created_at|date:"d-m-Y" }}</td>
+                                        <td>{{ medicine.updated_at|date:"d-m-Y" }}</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-prem-drug-edit" data-toggle="modal" data-target="#editDrugModal{{ medicine.id }}" title="Edit">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-prem-drug-delete" data-toggle="modal" data-target="#deleteDrugModal{{ medicine.id }}" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================= ADD DRUG MODAL ======================= -->
+<div class="modal fade" id="addDrugModal" tabindex="-1" role="dialog" aria-labelledby="addDrugModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content drug-prem-modal-content">
+      <div class="modal-header drug-prem-modal-header">
+        <h5 class="modal-title text-white" id="addDrugModalLabel"><i class="fas fa-plus-circle mr-2"></i>Add Premium Drug</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div id="addMedicineContainers" class="alert" role="alert"></div>
+          <form id="addDrugForm" method="post">
+            {% csrf_token %}
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="drug-prem-input-group">
+                    <label for="drug_name">Drug Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="drug_name" name="drug_name" required>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="drug-prem-input-group">
+                    <label for="drug_type">Drug Type <span class="text-danger">*</span></label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="drug_type" name="drug_type" required>
+                      <option value=""></option>
+                      <option value="Tablet">Tablet</option>
+                      <option value="Capsule">Capsule</option>
+                      <option value="Syrup">Syrup</option>
+                      <option value="Injection">Injection</option>
+                      <option value="Ointment">Ointment</option>
+                      <option value="Drops">Drops</option>
+                      <option value="Inhaler">Inhaler</option>
+                      <option value="Patch">Patch</option>
+                      <option value="Liquid">Liquid</option>
+                      <option value="Cream">Cream</option>
+                      <option value="Gel">Gel</option>
+                      <option value="Suppository">Suppository</option>
+                      <option value="Powder">Powder</option>
+                      <option value="Lotion">Lotion</option>
+                      <option value="Suspension">Suspension</option>
+                      <option value="Lozenge">Lozenge</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="drug-prem-input-group">
+                    <label for="formulation_unit">Formulation Unit <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="formulation_unit" name="formulation_unit" required>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="drug-prem-input-group">
+                    <label for="is_dividable">Dividable? <span class="text-danger">*</span></label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="is_dividable" name="is_dividable" required>
+                      <option value="">Select</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-4" id="dividing_unit_row" style="display: none;">
+                  <div class="drug-prem-input-group">
+                    <label for="dividing_unit">Dividing Unit (e.g. 125mg/ml)</label>
+                    <input type="number" class="form-control" id="dividing_unit" name="dividing_unit">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="drug-prem-input-group">
+                    <label for="is_clinic_stock">Is Clinic Stock? <span class="text-danger">*</span></label>
+                    <select class="form-control select2bs4" style="width: 100%;" id="is_clinic_stock" name="is_clinic_stock" required>
+                      <option value="">Select</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div id="clinic_fields" style="display: none;">
+                <div class="row mt-2">
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label for="manufacturer">Manufacturer <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control clinic-required" id="manufacturer" name="manufacturer">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label for="quantity">Quantity <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control clinic-required" id="quantity" name="quantity">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label for="minimum_stock_level">Minimum Stock Level <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control clinic-required" id="minimum_stock_level" name="minimum_stock_level">
+                    </div>
+                  </div>
+                </div>
+                <div class="row mt-2">
+                  <div class="col-md-6">
+                    <div class="drug-prem-input-group">
+                      <label for="batch_number">Batch Number <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control clinic-required" id="batch_number" name="batch_number">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="drug-prem-input-group">
+                      <label for="expiration_date">Expiration Date <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control clinic-required" id="expiration_date" name="expiration_date"  min="{{ today|date:'Y-m-d' }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-md-12">
+                  <button type="button" class="btn btn-prem-drug-add btn-block" id="addMedicine">
+                    <i class="fas fa-plus-circle mr-2"></i> Add Premium Drug
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for medicine in medicines %}
+<!-- Edit Modal -->
+<div class="modal fade" id="editDrugModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="editDrugModalLabel{{ medicine.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content drug-prem-modal-content">
+      <div class="modal-header drug-prem-modal-header">
+        <h5 class="modal-title text-white" id="editDrugModalLabel{{ medicine.id }}"><i class="fas fa-edit mr-2"></i>Edit Premium Drug</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div id="editMedicineContainers{{ medicine.id }}" class="alert" role="alert"></div>
+          <form id="editDrugForm{{ medicine.id }}" method="post">
+            {% csrf_token %}
+            <div class="card-body">
+              <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+              <div class="container-fluid">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Drug Name</label>
+                      <input type="text" class="form-control" name="drug_name" value="{{ medicine.drug_name }}" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Drug Type</label>
+                      <select class="form-control select2bs4" style="width: 100%;" id="edit_drug_type{{ medicine.id }}" name="drug_type" required>
+                        <option value=""></option>
+                        <option value="Tablet" {% if medicine.drug_type == 'Tablet' %} selected {% endif %}>Tablet</option>
+                        <option value="Capsule" {% if medicine.drug_type == 'Capsule' %} selected {% endif %}>Capsule</option>
+                        <option value="Syrup" {% if medicine.drug_type == 'Syrup' %} selected {% endif %}>Syrup</option>
+                        <option value="Injection" {% if medicine.drug_type == 'Injection' %} selected {% endif %}>Injection</option>
+                        <option value="Ointment" {% if medicine.drug_type == 'Ointment' %} selected {% endif %}>Ointment</option>
+                        <option value="Drops" {% if medicine.drug_type == 'Drops' %} selected {% endif %}>Drops</option>
+                        <option value="Inhaler" {% if medicine.drug_type == 'Inhaler' %} selected {% endif %}>Inhaler</option>
+                        <option value="Patch" {% if medicine.drug_type == 'Patch' %} selected {% endif %}>Patch</option>
+                        <option value="Liquid" {% if medicine.drug_type == 'Liquid' %} selected {% endif %}>Liquid</option>
+                        <option value="Cream" {% if medicine.drug_type == 'Cream' %} selected {% endif %}>Cream</option>
+                        <option value="Gel" {% if medicine.drug_type == 'Gel' %} selected {% endif %}>Gel</option>
+                        <option value="Suppository" {% if medicine.drug_type == 'Suppository' %} selected {% endif %}>Suppository</option>
+                        <option value="Powder" {% if medicine.drug_type == 'Powder' %} selected {% endif %}>Powder</option>
+                        <option value="Lotion" {% if medicine.drug_type == 'Lotion' %} selected {% endif %}>Lotion</option>
+                        <option value="Suspension" {% if medicine.drug_type == 'Suspension' %} selected {% endif %}>Suspension</option>
+                        <option value="Lozenge" {% if medicine.drug_type == 'Lozenge' %} selected {% endif %}>Lozenge</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Formulation Unit</label>
+                      <input type="text" class="form-control" name="formulation_unit" value="{{ medicine.formulation_unit }}" required>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Is Dividable?</label>
+                      <select class="form-control select2bs4" style="width: 100%;" name="is_dividable" id="edit_is_dividable{{ medicine.id }}">
+                        <option value="true" {% if medicine.is_dividable %}selected{% endif %}>Yes</option>
+                        <option value="false" {% if not medicine.is_dividable %}selected{% endif %}>No</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4" id="edit_dividing_unit_row{{ medicine.id }}" {% if not medicine.is_dividable %}style="display:none;"{% endif %}>
+                    <div class="drug-prem-input-group">
+                      <label>Dividing Unit</label>
+                      <input type="number" class="form-control" name="dividing_unit" value="{{ medicine.dividing_unit }}">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Is Clinic Stock?</label>
+                      <select class="form-control select2bs4" style="width: 100%;" name="is_clinic_stock" id="edit_is_clinic_stock{{ medicine.id }}">
+                        <option value="true" {% if medicine.is_clinic_stock %}selected{% endif %}>Yes</option>
+                        <option value="false" {% if not medicine.is_clinic_stock %}selected{% endif %}>No</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row" id="edit_clinic_fields{{ medicine.id }}" {% if not medicine.is_clinic_stock %}style="display:none;"{% endif %}>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Manufacturer</label>
+                      <input type="text" class="form-control clinic-required" name="manufacturer" id="edit_manufacturer{{ medicine.id }}" value="{{ medicine.manufacturer|default:'' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Quantity</label>
+                      <input type="number" class="form-control clinic-required" name="quantity" id="edit_quantity{{ medicine.id }}" value="{{ medicine.quantity|default:'' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="drug-prem-input-group">
+                      <label>Minimum Stock Level</label>
+                      <input type="number" class="form-control clinic-required" name="minimum_stock_level" id="edit_minimum_stock_level{{ medicine.id }}" value="{{ medicine.minimum_stock_level|default:'' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="drug-prem-input-group">
+                      <label>Batch Number</label>
+                      <input type="text" class="form-control clinic-required" name="batch_number" id="edit_batch_number{{ medicine.id }}" value="{{ medicine.batch_number|default:'' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="drug-prem-input-group">
+                      <label>Expiration Date</label>
+                      <input type="date" class="form-control clinic-required" name="expiration_date" id="edit_expiration_date{{ medicine.id }}" value="{{ medicine.expiration_date|date:'Y-m-d' }}"  min="{{ today|date:'Y-m-d' }}">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12">
+                    <button type="button" class="btn btn-prem-drug-add btn-block" id="editDrug{{ medicine.id }}">
+                      <i class="fas fa-save mr-2"></i> Update Drug
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endfor %}
+
+{% for medicine in medicines %}
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteDrugModal{{ medicine.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteDrugModalLabel{{ medicine.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content drug-prem-modal-content">
+      <div class="modal-header drug-prem-modal-header">
+        <h5 class="modal-title text-white" id="deleteDrugModalLabel{{ medicine.id }}"><i class="fas fa-trash mr-2"></i>Delete Drug</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the drug "{{ medicine.drug_name }}"?</p>
+        <input type="hidden" id="deleteDrugId{{ medicine.id }}" value="{{ medicine.id }}">
+        <div id="deleteErrorContainer{{ medicine.id }}" class="alert alert-danger d-none" role="alert"></div>
+        <div id="deleteSuccessContainer{{ medicine.id }}" class="alert alert-success d-none" role="alert"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-prem-drug-delete delete-confirm-btn" data-id="{{ medicine.id }}">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% include 'pembadoctor_template/datatable.html' %}
+
+<script>
+    // Initialize DataTable
+    new DataTable('#drugTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search drugs...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let tabletCount = 0;
+        let capsuleCount = 0;
+        let syrupCount = 0;
+        let injectionCount = 0;
+        
+        document.querySelectorAll('#drugTable tbody tr').forEach(row => {
+            const category = row.getAttribute('data-category');
+            
+            // Count by category
+            if (category === 'Tablet') {
+                tabletCount++;
+            } else if (category === 'Capsule') {
+                capsuleCount++;
+            } else if (category === 'Syrup') {
+                syrupCount++;
+            } else if (category === 'Injection') {
+                injectionCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('tablet-drugs').textContent = tabletCount;
+        document.getElementById('injection-drugs').textContent = injectionCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Category filter functionality
+    document.querySelectorAll('.drug-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.drug-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const category = this.getAttribute('data-category');
+            filterDrugs(category);
+        });
+    });
+
+    // Filter drugs by category
+    function filterDrugs(category) {
+        const rows = document.querySelectorAll('#drugTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            
+            if (category === 'all' || rowCategory === category) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-drugs').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('drugPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeCategory = document.querySelector('.drug-prem-status-btn.active').getAttribute('data-category');
+        
+        filterDrugsWithSearch(activeCategory, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('drugPremSearch').value.toLowerCase();
+        const activeCategory = document.querySelector('.drug-prem-status-btn.active').getAttribute('data-category');
+        
+        filterDrugsWithSearch(activeCategory, searchText);
+    });
+
+    // Filter drugs by both category and search text
+    function filterDrugsWithSearch(category, searchText) {
+        const rows = document.querySelectorAll('#drugTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            const rowText = row.textContent.toLowerCase();
+            
+            const categoryMatch = category === 'all' || rowCategory === category;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (categoryMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-drugs').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}
+{% block customer_js %}
+<script>
+  $(document).ready(function () {
+    // Toggle dividing_unit field
+    $('#is_dividable').change(function () {
+      $('#dividing_unit_row').toggle($(this).val() === 'true');
+    });
+
+    // Toggle clinic-only fields and apply/remove required
+    $('#is_clinic_stock').change(function () {
+      const isClinic = $(this).val() === 'true';
+      $('#clinic_fields').toggle(isClinic);
+      $('.clinic-required').prop('required', isClinic);
+    });
+
+    // Submit Form
+    $('#addMedicine').click(function () {
+      const form = $('#addDrugForm')[0];
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+
+      $.ajax({
+        url: '{% url "kahama_admin_add_kahama_medicine" %}',
+        method: 'POST',
+        data: $('#addDrugForm').serialize(),
+        success: function (response) {
+          if (response.success) {
+            $('#addMedicineContainers').html('<div class="alert alert-success">' + response.message + '</div>');
+            setTimeout(() => location.reload(), 1000);
+          } else {
+            $('#addMedicineContainers').html('<div class="alert alert-danger">' + response.message + '</div>');
+          }
+        },
+        error: function () {
+          $('#addMedicineContainers').html('<div class="alert alert-danger">Server error occurred. Please try again.</div>');
+        }
+      });
+    });
+  });
+</script>
+
+<script>
+$(document).ready(function () {
+  {% for medicine in medicines %}
+  $('#edit_is_dividable{{ medicine.id }}').change(function () {
+    $('#edit_dividing_unit_row{{ medicine.id }}').toggle($(this).val() === 'true');
+  });
+
+  $('#edit_is_clinic_stock{{ medicine.id }}').change(function () {
+    const isClinic = $(this).val() === 'true';
+    const container = $('#edit_clinic_fields{{ medicine.id }}');
+    container.toggle(isClinic);
+    container.find('.clinic-required').each(function () {
+      $(this).prop('required', isClinic);
+    });
+  });
+
+  $('#editDrug{{ medicine.id }}').click(function () {
+    let form = $('#editDrugForm{{ medicine.id }}');
+    if (!form[0].checkValidity()) {
+      form[0].classList.add('was-validated');
+      return;
+    }
+    $.ajax({
+      url: '{% url "kahama_admin_add_kahama_medicine" %}',
+      type: 'POST',
+      data: form.serialize(),
+      success: function (response) {
+        if (response.success) {
+          $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+        }
+      },
+      error: function () {
+        $('#editMedicineContainers{{ medicine.id }}').html('<div class="alert alert-danger">Request failed</div>');
+      }
+    });
+  });
+  {% endfor  %}
+});
+</script>
+
+<script>
+  $(document).ready(function () {
+    $('.delete-confirm-btn').click(function () {
+      var medicineId = $(this).data('id');
+      var errorContainer = $('#deleteErrorContainer' + medicineId);
+      var successContainer = $('#deleteSuccessContainer' + medicineId);
+      errorContainer.addClass('d-none').text('');
+      successContainer.addClass('d-none').text('');
+
+      $.ajax({
+        url: '{% url "kahama_admin_delete_kahama_medicine" %}',
+        type: 'POST',
+        data: {
+          'medicine_id': medicineId,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: function (response) {
+          if (response.success) {
+            successContainer.removeClass('d-none').text(response.message);
+            setTimeout(() => location.reload(), 1000);
+          } else {
+            errorContainer.removeClass('d-none').text("Error: " + response.message);
+          }
+        },
+        error: function (xhr, errmsg, err) {
+          errorContainer.removeClass('d-none').text("Server error: " + xhr.status + ": " + xhr.responseText);
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

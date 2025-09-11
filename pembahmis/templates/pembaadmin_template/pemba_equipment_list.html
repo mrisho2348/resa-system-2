@@ -1,0 +1,248 @@
+{% extends 'pembaadmin_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+Pemba Equipment List
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="{% static 'plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}">
+<link rel="stylesheet" href="{% static 'plugins/sweetalert2/sweetalert2.min.css' %}">
+{% endblock extra_css %}
+
+{% block main_content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Pemba Equipment Management</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addEquipmentModal">
+                                <i class="fas fa-plus"></i> Add Equipment
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table id="equipmentTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Serial Number</th>
+                                    <th>Manufacturer</th>
+                                    <th>Purchase Date</th>
+                                    <th>Warranty Expiry</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for equipment in equipment_list %}
+                                <tr>
+                                    <td>{{ equipment.name }}</td>
+                                    <td>{{ equipment.description|default:"-" }}</td>
+                                    <td>{{ equipment.serial_number }}</td>
+                                    <td>{{ equipment.manufacturer|default:"-" }}</td>
+                                    <td>{{ equipment.purchase_date|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ equipment.warranty_expiry_date|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ equipment.location|default:"-" }}</td>
+                                    <td>
+                                        {% if equipment.status == 'Operational' %}
+                                            <span class="badge badge-success">{{ equipment.status }}</span>
+                                        {% elif equipment.status == 'Maintenance' %}
+                                            <span class="badge badge-warning">{{ equipment.status }}</span>
+                                        {% elif equipment.status == 'Out of Service' %}
+                                            <span class="badge badge-danger">{{ equipment.status }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ equipment.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info edit-equipment" data-equipment-id="{{ equipment.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-equipment" data-equipment-id="{{ equipment.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Add/Edit Equipment Modal -->
+<div class="modal fade" id="addEquipmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="equipmentModalTitle">Add Equipment</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="equipmentForm">
+                <div class="modal-body">
+                    <input type="hidden" id="equipment_id" name="equipment_id">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="name">Equipment Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="serial_number">Serial Number *</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="manufacturer">Manufacturer</label>
+                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <input type="text" class="form-control" id="location" name="location">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="purchase_date">Purchase Date</label>
+                                <input type="date" class="form-control" id="purchase_date" name="purchase_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="warranty_expiry_date">Warranty Expiry Date</label>
+                                <input type="date" class="form-control" id="warranty_expiry_date" name="warranty_expiry_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="status">Status</label>
+                                <select class="form-control" id="status" name="status">
+                                    <option value="Operational">Operational</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Out of Service">Out of Service</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Equipment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock main_content %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+
+<script>
+$(document).ready(function() {
+    $('#equipmentTable').DataTable({
+        "responsive": true,
+        "autoWidth": false,
+        "pageLength": 25,
+        "order": [[0, "asc"]]
+    });
+
+    // Form submission
+    $('#equipmentForm').submit(function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: '{% url "pembahmis:add_or_edit_pemba_equipment" %}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Success!', response.message, 'success').then(function() {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error!', response.message, 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error!', 'An error occurred while saving the equipment.', 'error');
+            }
+        });
+    });
+
+    // Delete equipment
+    $('.delete-equipment').click(function() {
+        var equipmentId = $(this).data('equipment-id');
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '{% url "pembahmis:delete_pemba_equipment" %}',
+                    type: 'POST',
+                    data: {
+                        'id': equipmentId,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'true') {
+                            Swal.fire('Deleted!', response.message, 'success').then(function() {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error!', 'An error occurred while deleting the equipment.', 'error');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %} 

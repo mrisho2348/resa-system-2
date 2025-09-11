@@ -1,0 +1,722 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Discharging
+{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <a class="btn btn-prem-discharge-nav" href="{% url 'pemba_doctor_consultation_save_next' patient.id visit.id %}">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <h5 class="m-0 text-white">Patient Discharge</h5>
+    {% if remote_discharges_notes %}   
+    <a class="btn btn-prem-discharge-nav" href="{% url 'pemba_doctor_consultation_save' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+    {% endif %}
+</div>
+{% endblock page_title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Discharge Styles - Unique to this template */
+    .discharge-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .discharge-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .discharge-prem-form-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        padding: 2rem;
+        background: white;
+    }
+    
+    .discharge-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .discharge-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .discharge-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .discharge-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .btn-prem-discharge {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 25px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+        width: 100%;
+    }
+    
+    .btn-prem-discharge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-discharge-nav {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 极速加速器 4px 8px rgba(15, 32, 39, 0.2);
+        margin-right: 10px;
+    }
+    
+    .btn-prem-discharge-nav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .discharge-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,极速加速器.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .discharge-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .discharge-prem-summary-card .极速加速器-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .discharge-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .discharge-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .discharge-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .discharge-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .discharge-prem-badge-required {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+    }
+    
+    .discharge-prem-badge-warning {
+        background: linear-gradient(120deg, #FF9800, #FFB74D);
+        color: white;
+    }
+    
+    .discharge-prem-section-title {
+        color: #006064;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #b2ebf2;
+    }
+    
+    /* Flip card effect for premium feature */
+    .discharge-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .discharge-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .discharge-prem-flip-card:hover .discharge-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .discharge-prem-flip-card-front, .discharge-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+       极速加速器 justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .discharge-prem-fl极速加速器-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .discharge-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .discharge-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes dischargePremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .discharge-prem-animated {
+        animation: dischargePremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Premium select2 styling */
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #b2ebf2;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        height: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .discharge-prem-alert {
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .discharge-prem-alert-success {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+        border: none;
+    }
+    
+    .discharge-prem-alert-error {
+        background: linear-gradient(120deg, #F44336, #EF5350);
+        color: white;
+        border: none;
+    }
+    
+    .discharge-prem-alert-warning {
+        background: linear-gradient(120deg, #FF980极速加速器, #FFB74D);
+        color: white;
+        border: none;
+    }
+    
+    /* Form section styling */
+    .discharge-prem-form-section {
+        background: #f8fdff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        border: 1px solid #e0极速加速器fa;
+    }
+    
+    /* Patient info card styling */
+    .discharge-prem-patient-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+    }
+    
+    .discharge-prem-patient-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .discharge-prem-patient-info {
+        font-size: 0.9rem;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .discharge-prem-patient-info b {
+        color: #0F2027;
+    }
+    
+    /* Table styling */
+    .discharge-prem-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .discharge-prem-table th {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .discharge-prem-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e0f7fa;
+    }
+    
+    .discharge-prem-table tr:nth-child(even) {
+        background-color: #f8fdff;
+极速加速器    }
+    
+    .discharge-prem-table tr:hover {
+        background-color: #e0f7fa;
+    }
+    
+    /* List styling */
+    .discharge-prem-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .discharge-prem-list li {
+        background: #e0f7fa;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #006064;
+    }
+    
+    /* Form field styling */
+    .discharge-prem-form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .discharge-prem-form-field label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .discharge-prem-form-field input,
+    .discharge-prem-form-field textarea,
+    .discharge-prem-form-field select {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        width: 100%;
+    }
+    
+    .discharge-prem-form-field input:focus,
+    .discharge-prem-form-field textarea:focus,
+    .discharge-prem-form-field select:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    /* Modal premium styling */
+    .discharge-prem-modal .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .discharge-prem-modal .modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .discharge-prem-modal .modal-footer {
+        border-top: 1px solid #e0f7fa;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Progress bar styling */
+    .discharge-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e0f7fa;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .discharge-prem-progress-bar {
+        height: 100%;
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        border-radius: 5极速加速器x;
+        transition: width 0.6s ease;
+    }
+    
+    /* Payment badge styling */
+    .discharge-prem-payment-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(120deg, #4CAF50, #66BB6A);
+        color: white;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .discharge-prem-form-container {
+            padding: 1rem;
+        }
+        
+        .btn-prem-discharge-nav {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .discharge-prem-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Patient Information Card -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card discharge-prem-patient-card">
+                <div class="card-body">
+                    <div class="row discharge-prem-patient-info">
+                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {% if patient.middle_name %}{{ patient.middle_name }} {% endif %} {{ patient.last_name }}</b></div>
+                        <div class="col-md-3"><b>DOB: {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                            <script>
+                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                var now = new Date();
+                                var ageMilliseconds = now - dob;
+                                var ageSeconds = ageMilliseconds / 1000;
+                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                document.write(ageYears + ' years');
+                            </script>
+                            {% else %}
+                            {{ patient.age }}
+                            {% endif %}]</b></div>
+                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
+                        <div class="col-md-3">FILE NO: <b>{{ patient.mrn }}</b></div>
+                    </div>
+                    <div class="row discharge-prem-patient-info">
+                        <div class="col-md-3">
+                            PAYMENT MODE: 
+                            <span class="discharge-prem-payment-badge">
+                                {% if patient.payment_form == "Insurance" %}
+                                    {{ patient.payment_form }} - {{ patient.insurance_name }}   
+                                {% else %}   
+                                    {{ patient.payment_form }}                  
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-3">Visit Number: <b>{{ visit.vst }}</b></div>
+                    </div>
+                </div>    
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card discharge-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-sign-out-alt mr-2"></i>Discharge Status</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="discharge-prem-summary-value">{% if remote_discharges_notes %}Completed{% else %}Pending{% endif %}</div>
+                    <div class="discharge-prem-summary-label">Current Status</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card discharge-prem-summary-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle mr-2"></i>Required Fields</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="discharge-prem-summary-value">3</div>
+                    <div class极速加速器="discharge-prem-summary-label">Mandatory Fields</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="discharge-prem-flip-card">
+                <div class="discharge-prem-flip-card-inner">
+                    <div class="discharge-prem-flip-card-front">
+                        <div class="discharge-prem-flip-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <h4>Patient Discharge</h4>
+                        <p>Hover to reveal</p>
+                    </div>
+                    <div class="discharge-prem-flip-card-back">
+                        <div class="discharge-prem-fl极速加速器-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <h4>Return Home</h4>
+                        <p>Complete patient discharge</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="discharge-prem-progress">
+                <div class="discharge-prem-progress-bar" style="width: 90%"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small class="text-muted">Consultation</small>
+                <small class="text-muted">Diagnosis</small>
+                <small class="text-muted">Treatment</small>
+                <small class="text-muted"><b>Discharge</b></small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnosis Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card discharge-prem-gradient shadow-lg mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-diagnoses mr-2"></i>
+                            Diagnosis Information
+                        </h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="discharge-prem-form-container">
+                        {% for note in consultation_notes %}
+                        <div class="table-responsive">
+                            <table class="discharge-prem-table">
+                                <tbody>
+                                    <tr>
+                                        <th>Preliminary Diagnosis</th>
+                                        <th>Final Diagnosis</th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <ul class="discharge-prem-list">
+                                                {% for diagnosis in note.provisional_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="discharge-prem-list">
+                                                {% for diagnosis in note.final_diagnosis.all %}
+                                                <li>{{ diagnosis}}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>        
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Discharge Form Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card discharge-prem-gradient shadow-lg">
+                <div class="card-header py极速加速器-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            Patient Discharge
+                        </h5>
+                        <span class="discharge-prem-badge discharge-prem-badge-warning">Final Step</span>                      
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="discharge-prem-form-container">
+                        <form method="POST" action="{% url 'pemba_doctor_discharge_save' patient.id visit.id %}" id="dischargeForm">
+                            {% csrf_token %}
+                            <div class="discharge-prem-form-section discharge-prem-animated">
+                                <h4 class="discharge-prem-section-title">
+                                    <i class="fas fa-file-medical mr-2"></i>Discharge Details
+                                </h4>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="discharge-prem-form-field">
+                                            {{ form.media }}
+                                            {% for field in form %}
+                                                <div class="discharge-prem-input-group">
+                                                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="discharge-prem-badge discharge-prem-badge-required">Required</span>{% endif %}</label>
+                                                    {{ field }}
+                                                    {% if field.help_text %}
+                                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                                    {% endif %}
+                                                    {% for error in field.errors %}
+                                                        <div class="alert discharge-prem-alert discharge-prem-alert-error">{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>                 
+                                </div>  
+                            </div>
+                            
+                            <!-- Messages -->
+                            <div class="card-footer">
+                                {% if messages %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            {% for message in messages %}
+                                                {% if message.tags == 'error' %}
+                                                    <div class="alert discharge-prem-alert discharge-prem-alert-error alert-message">{{ message }}</div>
+                                                {% elif message.tags == 'success' %}
+                                                    <div class="alert discharge-prem-alert discharge-prem-alert-success alert-message">{{ message }}</div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="button" class="btn btn-prem-discharge mt-3" onclick="showConfirmationModal()">
+                                <i class="fas fa-paper-plane mr-2"></i> Complete Discharge
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
+
+<!-- Premium Confirmation Modal -->
+<div class="modal fade discharge-prem-modal" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content discharge-prem-modal-content">
+            <div class="modal-header discharge-prem-modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Final Confirmation
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert discharge-prem-alert discharge-prem-alert-warning">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <strong>Warning:</strong> This is the final step before discharging the patient. Do you want to proceed?
+                </div>
+                <p class="mb-0">Once submitted, this discharge cannot be easily modified. Please review all information carefully.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-prem-discharge" id="confirmSubmit">Proceed</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showConfirmationModal() {
+        $('#confirmationModal').modal('show');
+    }
+
+    document.getElementById("confirmSubmit").addEventListener("click", function () {
+        document.getElementById("dischargeForm").submit();
+    });
+</script>
+
+{% include 'pembadoctor_template/datatable.html' %}
+{% endblock main_content %}

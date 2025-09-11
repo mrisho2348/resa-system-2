@@ -1,66 +1,545 @@
 {% extends 'labtechnician_template/base_template.html' %}
 {% load static %}
 
-{% block title %}Reagents Expiring Soon{% endblock title %}
+{% block title %}Reagents Expiring Soon - Premium View{% endblock title %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h4 class="page-title-premium mb-0">Reagents Expiring Soon</h4>
+    <a href="{% url 'labtechnician_dashboard' %}" class="btn reagent-prem-btn-action">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+    </a>
+</div>
+{% endblock page_title %}
 
 {% block breadcrumb %}
-  {% include "labtechnician_template/modal_form.html" %}
-  Reagents Expiring Soon
+{% include "labtechnician_template/modal_form.html" %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>Comprehensive Overview of Reagents Expiring Within 10 Days</span>
+    <span class="badge reagent-prem-badge-warning">Total: {{ reagents|length }}</span>
+</div>
 {% endblock breadcrumb %}
 
 {% block main_content %}
+<style>
+    /* Premium styling for expiring reagents */
+    .reagent-prem-gradient {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 105, 92, 0.15);
+        border: none;
+    }
+    
+    .reagent-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .reagent-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .reagent-prem-table th {
+        background: linear-gradient(120deg, #fff8e1, #ffecb3);
+        color: #ff8f00;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #fff8e1;
+    }
+    
+    .reagent-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .reagent-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 143, 0, 0.1);
+        background: #fff8e1;
+    }
+    
+    .reagent-prem-btn-action {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 105, 92, 0.2);
+        margin: 2px;
+    }
+    
+    .reagent-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 105, 92, 0.3);
+        color: white;
+    }
+    
+    .reagent-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-badge-danger {
+        background: linear-gradient(120deg, #c62828, #d32f2f);
+        color: white;
+    }
+    
+    .reagent-prem-badge-warning {
+        background: linear-gradient(120deg, #ff9800, #ff5722);
+        color: white;
+    }
+    
+    .reagent-prem-badge-info {
+        background: linear-gradient(120deg, #2196F3, #1976D2);
+        color: white;
+    }
+    
+    .reagent-prem-badge-success {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    .page-title-premium {
+        background: linear-gradient(120deg, #00695c, #00897b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .reagent-expiring-row {
+        background: linear-gradient(120deg, #fff8e1, #ffecb3) !important;
+    }
+    
+    .reagent-expiring-row:hover {
+        background: #ffecb3 !important;
+    }
+    
+    .reagent-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .reagent-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .reagent-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #fff8e1, #ffecb3);
+        color: #ff8f00;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ffd54f;
+    }
+    
+    .reagent-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .reagent-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #ff8f00;
+        margin-bottom: 0.5rem;
+    }
+    
+    .reagent-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .reagent-prem-filter-bar {
+        background: linear-gradient(120deg, #fff8e1, #ffecb3);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-section-label {
+        font-weight: 600;
+        color: #ff8f00;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    @keyframes reagentPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .reagent-prem-animated {
+        animation: reagentPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="header-title text-center mt-0 mb-1 text-uppercase">Reagents Expiring Soon (Within 10 Days)</h5>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card reagent-prem-animated">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-vial mr-2"></i>Expiring Soon</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="total-expiring">{{ reagents|length }}</div>
+                    <div class="reagent-prem-summary-label">Within 10 Days</div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm display text-nowrap" id="example" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Expiration Date</th>
-                  <th><i class="fas fa-clock"></i> Time Left</th>
-                  <th>Manufacturer</th>
-                  <th>Lot Number</th>
-                  <th>Remaining Quantity</th>
-                  <th>Storage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for reagent in reagents %}
-                <tr>
-                  <td>{{ reagent.name }}</td>
-                  <td>{{ reagent.expiration_date|date:"d-m-Y" }}</td>
-                   <td>
-                    {% if reagent.days_left is not None %}
-                        {% if reagent.days_left <= 1 %}
-                        <span class="badge badge-danger">Expires {{ reagent.days_left }} day{{ reagent.days_left|pluralize }}</span>
-                        {% elif reagent.days_left <= 3 %}
-                        <span class="badge badge-warning">In {{ reagent.days_left }} days</span>
-                        {% else %}
-                        <span class="badge badge-info">{{ reagent.days_left }} days left</span>
-                        {% endif %}
-                    {% else %}
-                        <span class="text-muted">N/A</span>
-                    {% endif %}
-                    </td>
-                  <td>{{ reagent.manufacturer }}</td>
-                  <td>{{ reagent.lot_number }}</td>
-                  <td>{{ reagent.remaining_quantity }}</td>
-                  <td>{{ reagent.storage_conditions }}</td>
-                </tr>                
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card reagent-prem-animated">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-circle mr-2"></i>Critical (≤3 Days)</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="critical-count">0</div>
+                    <div class="reagent-prem-summary-label">Critical Expirations</div>
+                </div>
+            </div>
         </div>
-      </div>
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card reagent-prem-animated">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-box-open mr-2"></i>Remaining Stock</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="remaining-stock">0</div>
+                    <div class="reagent-prem-summary-label">Total Units Expiring</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card reagent-prem-summary-card reagent-prem-animated">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Average Time Left</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="reagent-prem-summary-value" id="average-days">0</div>
+                    <div class="reagent-prem-summary-label">Days Until Expiry</div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <!-- Filter Bar -->
+    <div class="reagent-prem-filter-bar reagent-prem-animated">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search expiring reagents..." id="expiringSearch">
+                    <div class="input-group-append">
+                        <button class="btn reagent-prem-btn-action" type="button" id="searchExpiringButton">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end">
+                    <span class="filter-section-label">Days Left:</span>
+                    <select class="form-control ml-2" style="width: auto;" id="daysFilter">
+                        <option value="all">All (1-10 days)</option>
+                        <option value="1">1 day</option>
+                        <option value="2">2 days</option>
+                        <option value="3">3 days</option>
+                        <option value="4-7">4-7 days</option>
+                        <option value="8-10">8-10 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <button type="button" id="clearExpiringFilters" class="btn reagent-prem-btn-action btn-block">
+                    <i class="fas fa-eraser mr-1"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card reagent-prem-gradient shadow-lg reagent-prem-animated">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-white"><i class="fas fa-clock mr-2"></i>Reagents Expiring Within 10 Days</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive reagent-prem-table-container">
+                        <table class="table table-hover text-nowrap reagent-prem-table" id="expiringReagentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Expiration Date</th>
+                                    <th><i class="fas fa-clock"></i> Time Left</th>
+                                    <th>Manufacturer</th>
+                                    <th>Lot Number</th>
+                                    <th>Remaining Quantity</th>
+                                    <th>Storage Conditions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reagent in reagents %}
+                                <tr class="reagent-expiring-row">
+                                    <td>
+                                        <span class="reagent-prem-badge 
+                                            {% if reagent.days_left <= 1 %}reagent-prem-badge-danger
+                                            {% elif reagent.days_left <= 3 %}reagent-prem-badge-warning
+                                            {% else %}reagent-prem-badge-info{% endif %}">
+                                            {{ reagent.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reagent.expiration_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if reagent.days_left is not None %}
+                                            {% if reagent.days_left <= 1 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-danger">Expires {{ reagent.days_left }} day{{ reagent.days_left|pluralize }}</span>
+                                            {% elif reagent.days_left <= 3 %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-warning">In {{ reagent.days_left }} days</span>
+                                            {% else %}
+                                                <span class="reagent-prem-badge reagent-prem-badge-info">{{ reagent.days_left }} days left</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ reagent.manufacturer }}</td>
+                                    <td>{{ reagent.lot_number }}</td>
+                                    <td>
+                                        <span class="reagent-prem-badge reagent-prem-badge-success">
+                                            {{ reagent.remaining_quantity }}
+                                        </span>
+                                    </td>
+                                    <td>{{ reagent.storage_conditions }}</td>
+                                    <td>
+                                        <button class="btn reagent-prem-btn-action btn-sm" data-toggle="tooltip" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn reagent-prem-btn-action btn-sm" data-toggle="tooltip" title="Order Replacement">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </button>
+                                    </td>
+                                </tr>                
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    // Initialize DataTable
+    new DataTable('#expiringReagentsTable', {
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel mr-1"></i> Export to Excel',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf mr-1"></i> Export to PDF',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print mr-1"></i> Print Report',
+                className: 'btn reagent-prem-btn-action btn-sm'
+            }
+        ],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'asc']], // Sort by time left ascending
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search expiring reagents...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let criticalCount = 0;
+        let totalRemaining = 0;
+        let totalDays = 0;
+        let itemCount = 0;
+        
+        document.querySelectorAll('#expiringReagentsTable tbody tr').forEach(row => {
+            const daysCell = row.cells[2];
+            const quantityCell = row.cells[5];
+            
+            // Extract days left from badge text
+            const daysText = daysCell.textContent;
+            let daysLeft = 0;
+            
+            if (daysText.includes('Expires today') || daysText.includes('Expires 1 day')) {
+                daysLeft = 1;
+            } else if (daysText.includes('In') && daysText.includes('days')) {
+                const match = daysText.match(/In (\d+) days/);
+                if (match) daysLeft = parseInt(match[1]);
+            } else if (daysText.includes('days left')) {
+                const match = daysText.match(/(\d+) days left/);
+                if (match) daysLeft = parseInt(match[1]);
+            }
+            
+            // Check for critical expiration (3 days or less)
+            if (daysLeft <= 3) {
+                criticalCount++;
+            }
+            
+            // Add to total days for average calculation
+            totalDays += daysLeft;
+            itemCount++;
+            
+            // Add to total remaining quantity
+            const quantity = parseInt(quantityCell.textContent);
+            if (!isNaN(quantity)) {
+                totalRemaining += quantity;
+            }
+        });
+        
+        // Calculate average days left
+        const averageDays = itemCount > 0 ? Math.round(totalDays / itemCount) : 0;
+        
+        // Update summary cards
+        document.getElementById('critical-count').textContent = criticalCount;
+        document.getElementById('remaining-stock').textContent = totalRemaining;
+        document.getElementById('average-days').textContent = averageDays;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Search functionality
+    document.getElementById('expiringSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterExpiringReagents(searchText);
+    });
+    
+    document.getElementById('searchExpiringButton').addEventListener('click', function() {
+        const searchText = document.getElementById('expiringSearch').value.toLowerCase();
+        filterExpiringReagents(searchText);
+    });
+
+    // Days filter functionality
+    document.getElementById('daysFilter').addEventListener('change', function() {
+        const daysValue = this.value;
+        filterExpiringReagentsByDays(daysValue);
+    });
+
+    // Filter expiring reagents by search text
+    function filterExpiringReagents(searchText) {
+        const rows = document.querySelectorAll('#expiringReagentsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-expiring').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Filter expiring reagents by days left
+    function filterExpiringReagentsByDays(daysValue) {
+        const rows = document.querySelectorAll('#expiringReagentsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const daysCell = row.cells[2];
+            const daysText = daysCell.textContent;
+            let daysLeft = 0;
+            
+            if (daysText.includes('Expires today') || daysText.includes('Expires 1 day')) {
+                daysLeft = 1;
+            } else if (daysText.includes('In') && daysText.includes('days')) {
+                const match = daysText.match(/In (\d+) days/);
+                if (match) daysLeft = parseInt(match[1]);
+            } else if (daysText.includes('days left')) {
+                const match = daysText.match(/(\d+) days left/);
+                if (match) daysLeft = parseInt(match[1]);
+            }
+            
+            let daysMatch = true;
+            if (daysValue === '1') {
+                daysMatch = daysLeft === 1;
+            } else if (daysValue === '2') {
+                daysMatch = daysLeft === 2;
+            } else if (daysValue === '3') {
+                daysMatch = daysLeft === 3;
+            } else if (daysValue === '4-7') {
+                daysMatch = daysLeft >= 4 && daysLeft <= 7;
+            } else if (daysValue === '8-10') {
+                daysMatch = daysLeft >= 8 && daysLeft <= 10;
+            }
+            
+            if (daysMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-expiring').textContent = visibleCount;
+        calculateSummaryStats();
+    }
+
+    // Clear filters
+    document.getElementById('clearExpiringFilters').addEventListener('click', function() {
+        document.getElementById('expiringSearch').value = '';
+        document.getElementById('daysFilter').value = 'all';
+        
+        const rows = document.querySelectorAll('#expiringReagentsTable tbody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-expiring').textContent = rows.length;
+        calculateSummaryStats();
+    });
+</script>
+
 {% include 'labtechnician_template/datatable.html' %}
 {% endblock main_content %}

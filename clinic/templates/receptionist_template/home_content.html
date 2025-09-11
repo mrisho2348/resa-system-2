@@ -1,259 +1,1114 @@
-
 {% extends 'receptionist_template/base_template.html' %}
 {% load static %}
+{% load customfilter %}
+{% load patient_filters %}
+
 {% block title %}
 RECEPTION DASHBOARD
 {% endblock title %}
+
 {% block main_content %}
 {% include "receptionist_template/modal_form.html" %}
-<section class="content">
+
+<style>
+:root {
+    --reception-primary: #2c3e50;
+    --reception-secondary: #3498db;
+    --reception-accent: #9b59b6;
+    --reception-success: #27ae60;
+    --reception-warning: #f39c12;
+    --reception-danger: #e74c3c;
+    --reception-dark: #2c3e50;
+    --reception-light: #ecf0f1;
+    --reception-gradient: linear-gradient(135deg, var(--reception-primary), var(--reception-secondary));
+    --reception-gradient-reverse: linear-gradient(135deg, var(--reception-secondary), var(--reception-primary));
+    --reception-accent-gradient: linear-gradient(135deg, var(--reception-accent), var(--reception-primary));
+}
+
+.reception-body {
+    background-color: #f8f9fc;
+    font-family: 'Poppins', sans-serif;
+}
+
+.reception-card {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(44, 62, 80, 0.15);
+    border: none;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 25px;
+    background: white;
+}
+
+.reception-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(44, 62, 80, 0.2);
+}
+
+.reception-card-header {
+    background: var(--reception-gradient);
+    color: white;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 15px 25px;
+    font-weight: 600;
+    border: none;
+    font-size: 1.1rem;
+}
+
+.reception-card-body {
+    padding: 25px;
+}
+
+.reception-small-box {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease;
+    position: relative;
+    color: white;
+    margin-bottom: 25px;
+    height: 150px;
+    perspective: 1000px;
+}
+
+.reception-small-box:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.reception-small-box .inner {
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.reception-small-box h3 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.reception-small-box p {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.reception-small-box .icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1;
+    font-size: 80px;
+    opacity: 0.25;
+    transition: all 0.5s ease;
+}
+
+.reception-small-box:hover .icon {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 0.35;
+}
+
+.reception-bg-info { background: linear-gradient(135deg, #3498db, #2980b9); }
+.reception-bg-success { background: linear-gradient(135deg, #27ae60, #229954); }
+.reception-bg-warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.reception-bg-primary { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+.reception-bg-danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.reception-bg-secondary { background: linear-gradient(135deg, #7f8c8d, #636e72); }
+
+.reception-section-title {
+    color: var(--reception-dark);
+    font-weight: 700;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eef1f6;
+    position: relative;
+}
+
+.reception-section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 70px;
+    height: 2px;
+    background: var(--reception-gradient);
+}
+
+.reception-nav-tabs {
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.reception-nav-tabs .nav-link {
+    border: none;
+    color: #7f8c8d;
+    font-weight: 500;
+    padding: 12px 25px;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-right: 5px;
+}
+
+.reception-nav-tabs .nav-link:hover {
+    background-color: #f1f5fd;
+}
+
+.reception-nav-tabs .nav-link.active {
+    background: var(--reception-gradient);
+    color: white;
+    border: none;
+    box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.reception-nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: white;
+}
+
+.reception-view-all-btn {
+    background: var(--reception-gradient);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.reception-view-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+    color: white;
+}
+
+.reception-data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.reception-data-table th {
+    background-color: #f1f5fd;
+    color: var(--reception-primary);
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+}
+
+.reception-data-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eef1f6;
+}
+
+.reception-data-table tr:hover td {
+    background-color: #f8faff;
+}
+
+.reception-chart-container {
+    position: relative;
+    height: 350px;
+}
+
+.reception-progress {
+    height: 12px;
+    border-radius: 10px;
+    background-color: #e9ecef;
+    overflow: visible;
+}
+
+.reception-progress-bar {
+    border-radius: 10px;
+}
+
+.reception-category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.reception-category-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5fd;
+}
+
+.reception-category-list li:last-child {
+    border-bottom: none;
+}
+
+.reception-category-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.reception-icon-patient { background: #3498db; }
+.reception-icon-appointment { background: #27ae60; }
+.reception-icon-pending { background: #e74c3c; }
+.reception-icon-completed { background: #f39c12; }
+
+.reception-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.reception-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.reception-data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    .reception-chart-grid,
+    .reception-data-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reception-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Flip card effect for small boxes */
+.reception-flip-card {
+    perspective: 1000px;
+    height: 150px;
+}
+
+.reception-flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+}
+
+.reception-flip-card:hover .reception-flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.reception-flip-card-front, .reception-flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px;
+}
+
+.reception-flip-card-back {
+    background: var(--reception-dark);
+    color: white;
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 2;
+}
+
+.reception-flip-card-back a.btn {
+    position: relative;
+    z-index: 3;
+    pointer-events: auto;
+} 
+
+.reception-flip-card-back p {
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.reception-flip-card-back .btn {
+    background: white;
+    color: var(--reception-primary);
+    border: none;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.reception-flip-card-front, .reception-flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 16px;
+}
+
+.reception-flip-card,
+.reception-flip-card-inner,
+.reception-small-box {
+    pointer-events: auto;
+}
+
+.reception-small-box .icon {
+    z-index: 1;
+}
+
+/* Status badges */
+.reception-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.reception-badge-completed {
+    background: rgba(39, 174, 96, 0.15);
+    color: #27ae60;
+}
+
+.reception-badge-pending {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+.reception-badge-processing {
+    background: rgba(52, 152, 219, 0.15);
+    color: #3498db;
+}
+
+.reception-badge-in-progress {
+    background: rgba(243, 156, 18, 0.15);
+    color: #f39c12;
+}
+
+/* Search input styling */
+.reception-search-input {
+    border-radius: 50px;
+    padding: 10px 20px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.reception-search-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    border-color: var(--reception-secondary);
+}
+
+/* Alert styling */
+.reception-alert {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.reception-alert h5 {
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.reception-alert ul {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+/* Notification panel */
+.reception-notification-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    display: none;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.reception-notification-header {
+    background: var(--reception-gradient);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reception-notification-body {
+    padding: 15px;
+}
+
+.reception-notification-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+.reception-notification-item:last-child {
+    border-bottom: none;
+}
+
+.reception-notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.reception-notification-icon-warning {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+.reception-notification-icon-danger {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.reception-notification-icon-info {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+.reception-notification-content {
+    flex-grow: 1;
+}
+
+.reception-notification-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.reception-notification-desc {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.reception-notification-time {
+    font-size: 0.75rem;
+    color: #adb5bd;
+}
+
+.reception-notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+.reception-notification-toggle {
+    position: relative;
+    font-size: 1.5rem;
+    color: var(--reception-primary);
+    cursor: pointer;
+}
+</style>
+
+<!-- Notification Panel -->
+<div class="reception-notification-panel" id="notificationPanel">
+    <div class="reception-notification-header">
+        <h5 class="mb-0">Notifications</h5>
+        <button type="button" class="btn-close btn-close-white" onclick="closeNotifications()"></button>
+    </div>
+    <div class="reception-notification-body">
+        <!-- Today's Appointments Notifications -->
+        {% if today_appointments_count > 0 %}
+        <div class="reception-notification-item">
+            <div class="reception-notification-icon reception-notification-icon-info">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="reception-notification-content">
+                <div class="reception-notification-title">Today's Appointments</div>
+                <div class="reception-notification-desc">You have {{ today_appointments_count }} appointments scheduled for today</div>
+                <div class="reception-notification-time">Today</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Pending Bills Notifications -->
+        {% if pending_bills_count > 0 %}
+        <div class="reception-notification-item">
+            <div class="reception-notification-icon reception-notification-icon-warning">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div class="reception-notification-content">
+                <div class="reception-notification-title">Pending Bills</div>
+                <div class="reception-notification-desc">There are {{ pending_bills_count }} bills awaiting payment</div>
+                <div class="reception-notification-time">Today</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- New Patients Notifications -->
+        {% if new_patients_count > 0 %}
+        <div class="reception-notification-item">
+            <div class="reception-notification-icon reception-notification-icon-info">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="reception-notification-content">
+                <div class="reception-notification-title">New Patients</div>
+                <div class="reception-notification-desc">{{ new_patients_count }} new patients registered recently</div>
+                <div class="reception-notification-time">Today</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if today_appointments_count == 0 and pending_bills_count == 0 and new_patients_count == 0 %}
+        <div class="text-center py-4">
+            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+            <p class="mb-0">No notifications at this time</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<section class="content reception-body">
     <div class="container-fluid">
-        <!-- First Row -->
-        <div class="row">
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total patients -->
-                <div class="small-box bg-success">
-                    <div class="inner">
-                        <h3>{{ total_patients_count }}</h3>
-                        <p>ALL PATIENTS</p>
+        <!-- Notification Toggle -->
+        <div class="d-flex justify-content-end mb-3">
+            <div class="reception-notification-toggle" onclick="toggleNotifications()">
+                <i class="fas fa-bell"></i>
+                {% if today_appointments_count > 0 or pending_bills_count > 0 or new_patients_count > 0 %}
+                <span class="reception-notification-badge">{{ today_appointments_count|add:pending_bills_count|add:new_patients_count }}</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Stats Section -->
+        <div class="dashboard-section">
+            <h3 class="reception-section-title">Reception Overview</h3>
+            <div class="reception-stats-grid">
+                <!-- Total Patients -->
+                <div class="reception-small-box reception-bg-info">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ total_patients_count }}</h3>
+                                    <p>TOTAL PATIENTS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Total registered patients</p>
+                                <a href="{% url 'receptionist_manage_patients' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-user"></i> <!-- Replaced icon -->
+                </div>
+                
+                <!-- Today's Appointments -->
+                <div class="reception-small-box reception-bg-warning">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ today_appointments_count }}</h3>
+                                    <p>TODAY'S APPOINTMENTS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Appointments scheduled for today</p>
+                                <a href="{% url 'receptionist_appointment_list' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pending Bills -->
+                <div class="reception-small-box reception-bg-danger">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ pending_bills_count }}</h3>
+                                    <p>PENDING BILLS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Bills awaiting payment</p>
+                                <a href="{% url 'receptionist_all_orders_view' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lab Orders -->
+                <div class="reception-small-box reception-bg-primary">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ total_lab_orders_count }}</h3>
+                                    <p>LAB ORDERS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-vials"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Total laboratory test orders</p>
+                                <a href="{% url 'receptionist_patient_laboratory_view' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Imaging Records -->
+                <div class="reception-small-box reception-bg-secondary">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ imaging_records_count }}</h3>
+                                    <p>IMAGING RECORDS</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-x-ray"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Total imaging/radiology records</p>
+                                <a href="{% url 'receptionist_patient_imaging_view' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Procedures -->
+                <div class="reception-small-box reception-bg-success">
+                    <div class="reception-flip-card">
+                        <div class="reception-flip-card-inner">
+                            <div class="reception-flip-card-front">
+                                <div class="inner">
+                                    <h3>{{ procedures_count }}</h3>
+                                    <p>PROCEDURES</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-procedures"></i>
+                                </div>
+                            </div>
+                            <div class="reception-flip-card-back">
+                                <p>Medical procedures performed</p>
+                                <a href="{% url 'receptionist_patient_procedure_view' %}" class="btn">View Details</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total lab orders -->
-                <div class="small-box bg-warning">
-                    <div class="inner">
-                        <h3>{{ total_lab_orders_count }}</h3>
-                        <p>LAB ORDERS</p>
+        </div>
+        
+        <!-- Daily Earnings Section -->
+        <div class="dashboard-section">
+            <h3 class="reception-section-title" id="daily-earnings-heading">Wednesday Earnings</h3>
+            <div class="reception-data-grid">
+                <!-- Daily Hospital -->
+                <div class="reception-card">
+                    <div class="reception-card-header">
+                        <h5 class="mb-0">Hospital Earnings</h5>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-vials"></i> <!-- Replaced icon -->
+                    <div class="reception-card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>NHIF:</span>
+                            <strong><span id="daily_hospital_nhif">0</span> TZS</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Cash:</span>
+                            <strong><span id="daily_hospital_cash">0</span> TZS</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Other Insurance:</span>
+                            <strong><span id="daily_hospital_other">0</span> TZS</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>Walk-In Prescription:</span>
+                            <strong><span id="daily_hospital_walkin">0</span> TZS</strong>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="h6">Total:</span>
+                            <strong class="h5"><span id="daily_hospital_total">0</span> TZS</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Prescription -->
+                <div class="reception-card">
+                    <div class="reception-card-header">
+                        <h5 class="mb-0">Prescription Earnings</h5>
+                    </div>
+                    <div class="reception-card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>NHIF:</span>
+                            <strong><span id="daily_prescription_nhif">0</span> TZS</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Cash:</span>
+                            <strong><span id="daily_prescription_cash">0</span> TZS</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>Other Insurance:</span>
+                            <strong><span id="daily_prescription_other">0</span> TZS</strong>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="h6">Total:</span>
+                            <strong class="h5"><span id="daily_prescription_total">0</span> TZS</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Grand Total -->
+                <div class="reception-card">
+                    <div class="reception-card-header">
+                        <h5 class="mb-0">Grand Total</h5>
+                    </div>
+                    <div class="reception-card-body text-center">
+                        <div class="h2 mb-0" id="daily_grand_total">0</div>
+                        <div class="text-muted">TZS</div>
+                        <hr>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small>Hospital: <span id="hospital_percentage">60%</span></small>
+                            <small>Prescription: <span id="prescription_percentage">40%</span></small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total doctors -->
-                <div class="small-box bg-secondary">
-                    <div class="inner">
-                        <h3>{{ total_doctors_count }}</h3>
-                        <p>DOCTORS</p>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="dashboard-section">
+            <div class="reception-chart-grid">
+                <!-- Patient Gender Distribution -->
+                <div class="reception-card">
+                    <div class="reception-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Patient Gender Distribution</h5>
+                        <div class="form-group mb-0">
+                            <select class="form-control form-control-sm" id="yearSelect">
+                                <option value="2022">2022</option>
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-user-md"></i> <!-- Replaced icon -->
-                    </div>
-                </div>
-            </div>        
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total lab technicians -->
-                <div class="small-box bg-info">
-                    <div class="inner">
-                        <h3>{{ total_lab_technicians_count }}</h3>
-                        <p>LAB TECHNICIANS</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-microscope"></i> <!-- Replaced icon -->
-                    </div>
-                </div>
-            </div>        
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total pharmacists -->
-                <div class="small-box bg-success">
-                    <div class="inner">
-                        <h3>{{ total_pharmacists_count }}</h3>
-                        <p>PHARMACISTS</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-capsules"></i> <!-- Replaced icon -->
+                    <div class="reception-card-body">
+                        <div class="reception-chart-container">
+                            <canvas id="genderChart"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>        
-            <div class="col-lg-3 col-6">
-                <!-- Small box for total receptionists -->
-                <div class="small-box bg-warning">
-                    <div class="inner">
-                        <h3>{{ total_receptionists_count }}</h3>
-                        <p>RECEPTIONISTS</p>
+                
+                <!-- Service Status Distribution -->
+                <div class="reception-card">
+                    <div class="reception-card-header">
+                        <h5 class="mb-0">Service Status Overview</h5>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-user"></i> <!-- Replaced icon -->
+                    <div class="reception-card-body">
+                        <div class="reception-chart-container">
+                            <canvas id="serviceStatusChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
-                    <!-- Imaging Status -->
-        <div class="col-lg-3 col-6">
-            <a href="{% url 'receptionist_observation_record_list' %}">
-                <div class="small-box bg-info">
-                    <div class="inner">
-                        <h3>IMAGING RECORDS</h3>
-                        <p>
-                            <span id="imaging-pending" class="badge badge-warning">0 Pending</span>
-                            <span id="imaging-completed" class="badge badge-success">0 Done</span>
-                        </p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-x-ray"></i>
-                    </div>
-                </div>
-            </a>
         </div>
-
-        <!-- Procedure Status -->
-        <div class="col-lg-3 col-6">
-            <a href="{% url 'receptionist_patient_procedure_view' %}">
-                <div class="small-box bg-danger">
-                    <div class="inner">
-                        <h3>PROCEDURES</h3>
-                        <p>
-                            <span id="procedure-pending" class="badge badge-warning">0 Pending</span>
-                            <span id="procedure-completed" class="badge badge-success">0 Done</span>
-                        </p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-cut"></i>
-                    </div>
+        
+        <!-- Recent Patients Section -->
+        <div class="dashboard-section">
+            <div class="reception-card">
+                <div class="reception-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Patients</h5>
+                    <a href="{% url 'receptionist_manage_patients' %}" class="reception-view-all-btn">
+                        <i class="fas fa-eye me-1"></i> View All
+                    </a>
                 </div>
-            </a>
-        </div>
-
-        <!-- Laboratory Status -->
-        <div class="col-lg-3 col-6">
-            <a href="{% url 'receptionist_patient_laboratory_view' %}">
-                <div class="small-box bg-warning">
-                    <div class="inner">
-                        <h3>LAB RECORDS</h3>
-                        <p>
-                            <span id="lab-pending" class="badge badge-warning">0 Pending</span>
-                            <span id="lab-completed" class="badge badge-success">0 Done</span>
-                        </p>
+                <div class="reception-card-body">
+                    <input type="text" id='patientSearch' placeholder='Search patients...' onkeyup='searchPatientFunction()' class='form-control reception-search-input mb-3'>
+                    <div class="table-responsive">
+                        <table id='patientsTable' class='reception-data-table'>
+                            <thead>
+                                <tr>
+                                    <th>MRN</th>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Gender</th>
+                                    <th>Phone</th>
+                                    <th>Registration Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for patient in recently_added_patients %}
+                                <tr>
+                                    <td>{{ patient.mrn }}</td>
+                                    <td>{{ patient }}</td>
+                                    <td>{{ patient.dob|calculate_age }} years</td>
+                                    <td>{{ patient.gender }}</td>
+                                    <td>{{ patient.phone }}</td>
+                                    <td>{{ patient.created_at|date:"d-m-Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-vial"></i>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Consultation Status -->
-        <div class="col-lg-3 col-6">
-            <a href="{% url 'receptionist_consultation_notes' %}">
-                <div class="small-box bg-secondary">
-                    <div class="inner">
-                        <h3>CONSULTATIONS</h3>
-                        <p>
-                            <span id="consultation-in-progress" class="badge badge-warning">0 In Progress</span>
-                            <span id="consultation-completed" class="badge badge-success">0 Done</span>
-                        </p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-notes-medical"></i>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        </div>
-    <div class="container-fluid">  
-        <!-- === DAILY EARNINGS === -->
-    <h4 class="mt-4" id="daily-earnings-heading">Wednesday Earnings</h4>
-    <div class="row" id="daily-earnings">
-        <!-- Daily Hospital -->
-        <div class="col-lg-4 col-12">
-            <div class="card bg-light">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Hospital</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>NHIF:</strong> <span id="daily_hospital_nhif">0</span> TZS</p>
-                    <p><strong>Cash:</strong> <span id="daily_hospital_cash">0</span> TZS</p>
-                    <p><strong>Other Insurance:</strong> <span id="daily_hospital_other">0</span> TZS</p>
-                    <hr>
-                    <p><strong>Total:</strong> <span id="daily_hospital_total">0</span> TZS</p>
                 </div>
             </div>
         </div>
-
-        <!-- Daily Prescription -->
-        <div class="col-lg-4 col-12">
-            <div class="card bg-light">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Prescription</h5>
+        
+        <!-- Service Status Section -->
+        <div class="dashboard-section">
+            <div class="reception-data-grid">
+                <!-- Imaging Status -->
+                <div class="reception-card">
+                    <div class="reception-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Imaging Status</h5>
+                        <a href="{% url 'receptionist_patient_imaging_view' %}" class="reception-view-all-btn">
+                            <i class="fas fa-eye me-1"></i> View All
+                        </a>
+                    </div>
+                    <div class="reception-card-body">
+                        <div class="d-flex justify-content-around text-center mb-4">
+                            <div>
+                                <div class="h3 text-warning" id="imaging-pending-count">0</div>
+                                <div class="text-muted">Pending</div>
+                            </div>
+                            <div>
+                                <div class="h3 text-success" id="imaging-completed-count">0</div>
+                                <div class="text-muted">Completed</div>
+                            </div>
+                        </div>
+                        <div class="progress reception-progress mb-3">
+                            <div class="progress-bar bg-warning" role="progressbar" id="imaging-progress-pending" style="width: 30%" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-success" role="progressbar" id="imaging-progress-completed" style="width: 70%" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p><strong>NHIF:</strong> <span id="daily_prescription_nhif">0</span> TZS</p>
-                    <p><strong>Cash:</strong> <span id="daily_prescription_cash">0</span> TZS</p>
-                    <p><strong>Other Insurance:</strong> <span id="daily_prescription_other">0</span> TZS</p>
-                    <hr>
-                    <p><strong>Total:</strong> <span id="daily_prescription_total">0</span> TZS</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Daily Grand Total -->
-        <div class="col-lg-4 col-12">
-            <div class="card bg-light">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Grand Total</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>Total Earnings:</strong> <span id="daily_grand_total">0</span> TZS</p>
+                
+                <!-- Laboratory Status -->
+                <div class="reception-card">
+                    <div class="reception-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Laboratory Status</h5>
+                        <a href="{% url 'receptionist_patient_laboratory_view' %}" class="reception-view-all-btn">
+                            <i class="fas fa-eye me-1"></i> View All
+                        </a>
+                    </div>
+                    <div class="reception-card-body">
+                        <div class="d-flex justify-content-around text-center mb-4">
+                            <div>
+                                <div class="h3 text-warning" id="lab-pending-count">0</div>
+                                <div class="text-muted">Pending</div>
+                            </div>
+                            <div>
+                                <div class="h3 text-success" id="lab-completed-count">0</div>
+                                <div class="text-muted">Completed</div>
+                            </div>
+                        </div>
+                        <div class="progress reception-progress mb-3">
+                            <div class="progress-bar bg-warning" role="progressbar" id="lab-progress-pending" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-success" role="progressbar" id="lab-progress-completed" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</section>
 
+{% include 'receptionist_template/datatable.html' %}
 
+{% endblock main_content %}
+
+{% block customer_js %}
 <script>
-  const patientStatusUrl = "{% url 'receptionist_patient_status_report' %}";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    fetch(patientStatusUrl)
-      .then(response => response.json())
-      .then(data => {
-        // Imaging
-        if (data.imaging) {
-          document.getElementById('imaging-pending').textContent = `${data.imaging.pending || 0} Pending`;
-          document.getElementById('imaging-completed').textContent = `${data.imaging.completed || 0} Done`;
+// Initialize DataTable
+$(document).ready(function () {
+    new DataTable('#patientsTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        language: {
+            search: "Search Patients:",
+            paginate: {
+                next: '<i class="fas fa-chevron-right"></i>',
+                previous: '<i class="fas fa-chevron-left"></i>'
+            }
         }
+    });
+});
 
-        // Procedure
-        if (data.procedure) {
-          document.getElementById('procedure-pending').textContent = `${data.procedure.pending || 0} Pending`;
-          document.getElementById('procedure-completed').textContent = `${data.procedure.completed || 0} Done`;
+// Create gender distribution chart
+var genderChart;
+function createGenderChart(data) {
+    var ctx = document.getElementById('genderChart').getContext('2d');
+    
+    if (genderChart) {
+        genderChart.data.labels = data.labels;
+        genderChart.data.datasets[0].data = data.maleData;
+        genderChart.data.datasets[1].data = data.femaleData;
+        genderChart.update();
+    } else {
+        genderChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Male',
+                    data: data.maleData,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3
+                }, {
+                    label: 'Female',
+                    data: data.femaleData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Patients'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Create service status chart
+var serviceStatusChart;
+function createServiceStatusChart() {
+    var ctx = document.getElementById('serviceStatusChart').getContext('2d');
+    
+    // Fetch data from server
+    $.ajax({
+        url: '{% url "receptionist_service_status_data" %}',
+        method: 'GET',
+        success: function(data) {
+            if (serviceStatusChart) {
+                serviceStatusChart.data.datasets[0].data = data.data;
+                serviceStatusChart.update();
+            } else {
+                serviceStatusChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.data,
+                            backgroundColor: data.colors,
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching service status data:', error);
         }
+    });
+}
 
-        // Laboratory
-        if (data.laboratory) {
-          document.getElementById('lab-pending').textContent = `${data.laboratory.pending || 0} Pending`;
-          document.getElementById('lab-completed').textContent = `${data.laboratory.completed || 0} Done`;
+// Fetch gender data for selected year
+function fetchGenderData(year) {
+    $.ajax({
+        url: '{% url "receptionist_get_gender_monthly_data" %}',
+        method: 'GET',
+        data: { 'year': year },
+        success: function(data) {
+            createGenderChart(data);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching gender data:', error);
         }
+    });
+}
 
-        // Consultation
-        if (data.consultation) {
-          document.getElementById('consultation-in-progress').textContent = `${data.consultation.in_progress || 0} In Progress`;
-          document.getElementById('consultation-completed').textContent = `${data.consultation.completed || 0} Done`;
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching patient status:', error);
-      });
-  });
-</script>
-
-
-
-<script>
+// Load earnings data
 function loadEarnings() {
     $.ajax({
         url: '{% url "receptionist_get_earnings_data" %}',
         method: 'GET',
         success: function(data) {
-            // Daily
+            // Daily earnings
             $('#daily_hospital_nhif').text(data.daily.hospital.nhif);
             $('#daily_hospital_cash').text(data.daily.hospital.cash);
             $('#daily_hospital_other').text(data.daily.hospital.other);
+            $('#daily_hospital_walkin').text(data.daily.hospital.walkin || 0);
             $('#daily_hospital_total').text(data.daily.hospital.total);
 
             $('#daily_prescription_nhif').text(data.daily.prescription.nhif);
@@ -262,307 +1117,157 @@ function loadEarnings() {
             $('#daily_prescription_total').text(data.daily.prescription.total);
 
             $('#daily_grand_total').text(data.daily.grand_total);
-
             
-
+            // Calculate percentages for progress bars
+            const hospitalTotal = parseInt(data.daily.hospital.total.replace(/,/g, '')) || 0;
+            const prescriptionTotal = parseInt(data.daily.prescription.total.replace(/,/g, '')) || 0;
+            const grandTotal = hospitalTotal + prescriptionTotal;
+            
+            if (grandTotal > 0) {
+                const hospitalPercentage = Math.round((hospitalTotal / grandTotal) * 100);
+                const prescriptionPercentage = 100 - hospitalPercentage;
+                
+                $('#hospital_percentage').text(hospitalPercentage + '%');
+                $('#prescription_percentage').text(prescriptionPercentage + '%');
+                
+                $('.progress-bar:eq(0)').css('width', hospitalPercentage + '%');
+                $('.progress-bar:eq(1)').css('width', prescriptionPercentage + '%');
+            }
         },
         error: function(xhr, status, error) {
-            console.error('Error fetching earnings:', error);        }
+            console.error('Error fetching earnings:', error);
+        }
     });
 }
 
+// Load patient status data
+function loadPatientStatus() {
+    const patientStatusUrl = "{% url 'receptionist_patient_status_report' %}";
+
+    fetch(patientStatusUrl)
+        .then(response => response.json())
+        .then(data => {
+            // Imaging
+            if (data.imaging) {
+                $('#imaging-pending-count').text(data.imaging.pending || 0);
+                $('#imaging-completed-count').text(data.imaging.completed || 0);
+                
+                const imagingTotal = (data.imaging.pending || 0) + (data.imaging.completed || 0);
+                if (imagingTotal > 0) {
+                    const pendingPercentage = Math.round((data.imaging.pending / imagingTotal) * 100);
+                    const completedPercentage = 100 - pendingPercentage;
+                    
+                    $('#imaging-progress-pending').css('width', pendingPercentage + '%');
+                    $('#imaging-progress-completed').css('width', completedPercentage + '%');
+                }
+            }
+
+            // Laboratory
+            if (data.laboratory) {
+                $('#lab-pending-count').text(data.laboratory.pending || 0);
+                $('#lab-completed-count').text(data.laboratory.completed || 0);
+                
+                const labTotal = (data.laboratory.pending || 0) + (data.laboratory.completed || 0);
+                if (labTotal > 0) {
+                    const pendingPercentage = Math.round((data.laboratory.pending / labTotal) * 100);
+                    const completedPercentage = 100 - pendingPercentage;
+                    
+                    $('#lab-progress-pending').css('width', pendingPercentage + '%');
+                    $('#lab-progress-completed').css('width', completedPercentage + '%');
+                }
+            }
+
+            // Procedure
+            if (data.procedure) {
+                // You can add procedure status display if needed
+            }
+
+            // Consultation
+            if (data.consultation) {
+                // You can add consultation status display if needed
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching patient status:', error);
+        });
+}
+
+// Search function for patients table
+function searchPatientFunction() {
+    var input = document.getElementById('patientSearch');
+    var filter = input.value.toUpperCase();
+    var table = document.getElementById('patientsTable');
+    var tr = table.getElementsByTagName('tr');
+
+    for (var i = 0; i < tr.length; i++) {
+        var td = tr[i].getElementsByTagName('td')[1]; // Name column
+        if (td) {
+            var txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+}
+
+// Notification functions
+function toggleNotifications() {
+    var panel = document.getElementById('notificationPanel');
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+    }
+}
+
+function closeNotifications() {
+    document.getElementById('notificationPanel').style.display = 'none';
+}
+
+// Close notifications when clicking outside
+window.onclick = function(event) {
+    var panel = document.getElementById('notificationPanel');
+    var toggle = document.querySelector('.reception-notification-toggle');
+    if (panel.style.display === 'block' && !panel.contains(event.target) && !toggle.contains(event.target)) {
+        panel.style.display = 'none';
+    }
+}
+
+// Get current weekday name
 function getCurrentWeekdayName() {
     const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const today = new Date();
     return weekdays[today.getDay()];
 }
 
+// Initialize on page load
 $(document).ready(function() {
-      const currentDay = getCurrentWeekdayName();
+    // Set current day in earnings header
+    const currentDay = getCurrentWeekdayName();
     $('#daily-earnings-heading').text(`${currentDay} Earnings`);
+    
+    // Load initial data
     loadEarnings();
+    loadPatientStatus();
+    
+    // Initialize charts
+    var selectedYear = $('#yearSelect').val();
+    fetchGenderData(selectedYear);
+    createServiceStatusChart();
+    
+    // Update charts when year selection changes
+    $('#yearSelect').on('change', function() {
+        var selectedYear = $(this).val();
+        fetchGenderData(selectedYear);
+    });
+    
+    // Update data every 5 minutes
+    setInterval(function() {
+        loadEarnings();
+        loadPatientStatus();
+    }, 300000);
 });
 </script>
-
-
-        <div class="row">
-            <div class="col-md-7">
-                <div class="container-fluid">
-                    <div class="card card-primar">
-                        <div class="card-header">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5 class="card-title">Patient Survey</h5>
-                                </div>
-                                <div class="col-md-6">
-                                    <!-- Form with Select Fields -->
-                                    <form>
-                                        <div class="form-group">
-                                            <label for="yearSelect">Select Year:</label>
-                                            <select class="form-control select2bs4" style="width: 100%;" id="yearSelect">
-                                                <option value="2022">2022</option>
-                                                <option value="2023">2023</option>
-                                                <option value="2024">2024</option>
-                                                <option value="2025">2025</option>
-                                                <!-- Add more options as needed -->
-                                            </select>
-                                        </div>
-                                        <!-- Add more select fields if needed -->
-        
-                                        <!-- Add a submit button if needed -->
-                                        <!-- <button type="submit" class="btn btn-primary">Submit</button> -->
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body">                         
-                            <canvas id="genderChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-5">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="text-uppercase text-muted mt-2 m-0 font-11">Total Patients Reports</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="apexchart-wrapper">
-                            <!-- The chart will be dynamically generated here -->
-                        </div>
-                        <span class="h4 fw-bold" id="totalPatients">0</span>
-            
-                        <div class="progress mt-3 rounded" id="patientsProgress">
-                            <!-- Progress bars will be dynamically generated here -->
-                        </div>
-                        <ul class="list-unstyled mb-0">
-                            <li class="list-item mt-3 fw-semibold d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i class="fas fa-circle font-10 text-primary me-2"></i>Female
-                                </span>
-                                <p class="align-self-center mb-0 fw-semibold" id="femalePatients">0</p>
-                            </li>
-                            <li class="list-item mt-2 fw-semibold d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i class="fas fa-circle font-10 text-info me-2"></i>Male
-                                </span>
-                                <p class="align-self-center mb-0 fw-semibold" id="malePatients">0</p>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        // Function to update card content based on the selected year
-                        function updateCardContent(selectedYear) {
-                            $.ajax({
-                                url: '{% url "receptionist_get_gender_yearly_data" %}',
-                                method: 'GET',
-                                data: { 'year': selectedYear },
-                                success: function (data) {
-                                    var totalFemalePatients = data['Female'];
-                                    var totalMalePatients = data['Male'];
-            
-                                    var totalPatients = totalFemalePatients + totalMalePatients;
-            
-                                    // Update the total patients
-                                    document.getElementById('totalPatients').textContent = totalPatients;
-            
-                                    // Update the progress bars
-                                    var patientsProgress = document.getElementById('patientsProgress');
-                                    patientsProgress.innerHTML = `
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: ${totalMalePatients / totalPatients * 100}%" aria-valuenow="${totalMalePatients}" aria-valuemin="0" aria-valuemax="${totalPatients}"></div>
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: ${totalFemalePatients / totalPatients * 100}%" aria-valuenow="${totalFemalePatients}" aria-valuemin="0" aria-valuemax="${totalPatients}"></div>
-                                    `;
-            
-                                    // Update the female patients count
-                                    document.getElementById('femalePatients').textContent = totalFemalePatients;
-            
-                                    // Update the male patients count
-                                    document.getElementById('malePatients').textContent = totalMalePatients;
-                                },
-                                error: function (xhr, status, error) {
-                                    console.error('Error fetching data:', error);
-                                }
-                            });
-                        }
-            
-                        // Event listener for the year select input
-                        document.getElementById('yearSelect').addEventListener('change', function (event) {
-                            var selectedYear = event.target.value;
-                            updateCardContent(selectedYear);
-                        });
-            
-                        // Initial update based on the default year (e.g., 2022)
-                        updateCardContent('2022');
-                    });
-                </script>
-            </div>
-        </div>
-        
-        <div class="row">      
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        New Patients          
-                        <a href="{% url 'receptionist_manage_patients' %}" class="btn btn-secondary float-right mr-2">
-                            <i class="fas fa-eye"></i> View All
-                        </a>
-                    </div>
-                    <!-- Card Body with Table -->
-                    <div class="card-body">                  
-            
-                        <!-- Table -->
-                    <div class="table-responsive">
-                        <table id='patientsTable' class='table table-striped table-bordered'>
-                            <thead>
-                            <tr>
-                                <th>MRN</th>
-                                <th>Name</th>
-                                <th>Age</th>
-                                <th>Gender</th>                          
-                                <th>Phone</th>                         
-                            </tr>
-                            </thead>
-                            <tbody>
-                                {% for patient in recently_added_patients %}
-                                    <tr>                                   
-                                        <td>{{ patient.mrn }}</td>
-                                        <td>{{ patient }}</td>
-                                        <td>      <script>
-                                            var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                            var now = new Date();
-                                            var ageMilliseconds = now - dob;
-                                            var ageSeconds = ageMilliseconds / 1000;
-                                            var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                            document.write(ageYears + ' years');
-                                        </script>
-                                    </td>                                                            
-                                    <td>{{ patient.gender }}</td>                                 
-                                    <td>{{ patient.phone }}</td>                                          
-                                        
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    </div>
-                </div>
-            </div>        
-        </div>
-
-  
- 
-
-
-
-
-</section>
-{% include 'receptionist_template/datatable.html' %}
-{% endblock main_content %}
-
-{% block customer_js %}
-
-<script>
-    // Define a variable to store the Chart.js instance
-    var genderChart;
-    
-    // Function to fetch gender-wise monthly data from the server
-    function fetchGenderMonthlyData(year) {
-        $.ajax({
-            url: '{% url "receptionist_get_gender_monthly_data" %}',
-            method: 'GET',
-
-            data: { 'year': year },
-            success: function(data) {             
-                createGenderChart(data);
-            },
-            error: function(xhr, status, error) {
-                console.error('Error fetching data:', error);
-            }
-        });
-    }
-    
-    // Function to create or update the line chart using Chart.js
-    function createGenderChart(data) {
-        var ctx = document.getElementById('genderChart').getContext('2d');
-    
-        if (genderChart) {
-            // If the chart instance exists, update its data
-            genderChart.data.labels = Object.keys(data);
-            genderChart.data.datasets[0].data = Object.values(data).map(monthData => monthData['Male']);
-            genderChart.data.datasets[1].data = Object.values(data).map(monthData => monthData['Female']);
-            genderChart.update();
-        } else {
-            // If the chart instance doesn't exist, create a new chart
-            genderChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Object.keys(data),
-                    datasets: [{
-                        label: 'Male',
-                        data: Object.values(data).map(monthData => monthData['Male']),
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 2,
-                        fill: false
-                    }, {
-                        label: 'Female',
-                        data: Object.values(data).map(monthData => monthData['Female']),
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 2,
-                        fill: false
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            enabled: true,
-                            mode: 'index',
-                            intersect: false,
-                        },
-                        legend: {
-                            display: true,
-                            position: 'bottom'
-                        }
-                    },
-                    hover: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                }
-            });
-        }
-    }
-    
-    // Example usage: Fetch data for the selected year and create or update the chart
-    var selectedYear = $('#yearSelect').val();
-    fetchGenderMonthlyData(selectedYear);
-    
-    // Event listener to fetch data and update the chart when the year is changed
-    $('#yearSelect').on('change', function() {
-        var selectedYear = $(this).val();        
-        fetchGenderMonthlyData(selectedYear);
-    });
-    
-    </script>
-
-<script>
-    // Activate DataTable on the patientsTable
-    new DataTable('#patientsTable', {
-        dom: 'Bfrtip',
-        buttons: [''],
-    });
-   
-</script>
-
-
-
-
-
 {% endblock customer_js %}
-

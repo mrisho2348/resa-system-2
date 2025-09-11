@@ -1,95 +1,369 @@
 {% extends 'divine_admin_template/base_template.html' %}
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} Visits Reports    
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Visits Report
 {% endblock title %}
+
 {% block breadcrumb %}
 {% endblock breadcrumb %}
+
 {% block main_content %}
-    <style>
-        .patient-info-container {
-            background-color: #f0f0f0;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .patient-details {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .company-name {
-            font-size: 16px;
-            margin-bottom: 0;
-        }
-        
-        .company-name span {
-            color: #3498db; /* Blue color for emphasis */
-        }
-        
-        .add-visit-btn {
-            background-color: #2ecc71; /* Green button color */
-            border: none;
-        }
-        
-        .add-visit-btn:hover {
-            background-color: #27ae60; /* Darker green on hover */
-        }
-        
-    </style>
-    {% include "divine_admin_template/modal_form.html" %}
+{% include "divine_admin_template/modal_form.html" %}
+
+<style>
+    /* Premium Patient Visits Report Styles - Unique to this template */
+    .patient-visit-prem-gradient {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+        border: none;
+    }
+    
+    .patient-visit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-visit-prem-info-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        background: linear-gradient(120deg, #f5f6ff, #e8eaf6);
+    }
+    
+    .patient-visit-prem-info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .patient-visit-prem-info-card .card-header {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .patient-visit-prem-info-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .patient-visit-prem-detail {
+        font-size: 1rem;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .patient-visit-prem-detail i {
+        width: 24px;
+        margin-right: 10px;
+        color: #667eea;
+    }
+    
+    .patient-visit-prem-detail strong {
+        margin-right: 5px;
+        color: #2c3e50;
+    }
+    
+    .patient-visit-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        margin: 20px 0;
+        background: white;
+    }
+    
+    .patient-visit-prem-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    
+    .patient-visit-prem-table th {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .patient-visit-prem-table td {
+        padding: 0.9rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e8eaf6;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+    
+    .patient-visit-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .patient-visit-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(48, 63, 159, 0.1);
+        background: #f5f6ff;
+    }
+    
+    .patient-visit-prem-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .patient-visit-prem-table tbody tr:nth-child(even):hover {
+        background-color: #f5f6ff;
+    }
+    
+    /* Animation for row appearance */
+    @keyframes patientVisitPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-visit-prem-animated-row {
+        animation: patientVisitPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .patient-visit-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-visit-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .patient-visit-prem-flip-card:hover .patient-visit-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .patient-visit-prem-flip-card-front, .patient-visit-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .patient-visit-prem-flip-card-front {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .patient-visit-prem-flip-card-back {
+        background: linear-gradient(120deg, #764ba2, #667eea);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .patient-visit-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Premium button styles */
+    .btn-patient-visit-prem {
+        background: linear-gradient(120deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+    }
+    
+    .btn-patient-visit-prem:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+        color: white;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card"> 
-                <div class="card-header">
-                    <label for="">patient information </label>
-                </div>              
-                <div class="card-body">
-                    <div class="row" style="font-size:13px;">
-                        <div class="col-md-3"><b>PATIENT: {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3"><b>Age: {{ patient.age }}</b></div>
-                        <div class="col-md-3"><b>SEX: {{ patient.gender }}</b></div>
-                        <div class="col-md-3"><b>FILE NO : {{ patient.mrn }}</b> </div>
-                    </div>                       
-                </div>          
-             </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6  class="header-title text-center mt-0 mb-1  text-uppercase"> Patient Visits Reports  </h6>
+            <div class="card patient-visit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Visits Report</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
+                    <!-- Patient Information Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card patient-visit-prem-info-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Patient Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-user"></i>
+                                                <strong>Patient:</strong> {{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}
+                                            </div>
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-birthday-cake"></i>
+                                                <strong>Age:</strong> {{ patient.age }}
+                                            </div>
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-venus-mars"></i>
+                                                <strong>Gender:</strong> {{ patient.gender }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-id-card"></i>
+                                                <strong>MRN:</strong> {{ patient.mrn }}
+                                            </div>
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-building"></i>
+                                                <strong>Company:</strong> {{ patient.company }}
+                                            </div>
+                                            <div class="patient-visit-prem-detail">
+                                                <i class="fas fa-stethoscope"></i>
+                                                <strong>Total Visits:</strong> {{ patient_visits|length }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="patient-visit-prem-flip-card">
+                                <div class="patient-visit-prem-flip-card-inner">
+                                    <div class="patient-visit-prem-flip-card-front">
+                                        <div class="patient-visit-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="patient-visit-prem-flip-card-back">
+                                        <div class="patient-visit-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Patient Insights</h4>
+                                        <p>Advanced tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
-            <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
-                <thead class="thead-dark">
-                    <tr>
-                        <th scope="col">Visit No</th>
-                        <th scope="col">Visit Date</th>
-                        <th scope="col">Visit Time</th>
-                        <th scope="col">Center</th>                              
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for visit in patient_visits %}
-                        <tr>
-                            <td>{{ visit.vst }}</td>
-                            <td>{{ visit.created_at|date:"m/d/Y" }}</td>
-                            <td>{{ visit.created_at|time:"H:i" }}</td>
-                            <td>{{ visit.primary_service }}</td>
-                            
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    <!-- Visits Table Section -->
+                    <div class="patient-visit-prem-table-container">
+                        <table class="patient-visit-prem-table" id="patientVisitTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit No</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Visit Date</th>
+                                    <th><i class="fas fa-clock mr-2"></i>Visit Time</th>
+                                    <th><i class="fas fa-hospital mr-2"></i>Center</th>                              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in patient_visits %}
+                                    <tr class="patient-visit-prem-animated-row">
+                                        <td>{{ visit.vst }}</td>
+                                        <td>{{ visit.created_at|date:"m/d/Y" }}</td>
+                                        <td>{{ visit.created_at|time:"H:i" }}</td>
+                                        <td>{{ visit.primary_service }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>  
-</div>    
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable with premium styling options
+        new DataTable('#patientVisitTable', {
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excel',
+                    className: 'btn-patient-visit-prem',
+                    text: '<i class="fas fa-file-excel mr-2"></i> Excel'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn-patient-visit-prem',
+                    text: '<i class="fas fa-file-pdf mr-2"></i> PDF'
+                },
+                {
+                    extend: 'print',
+                    className: 'btn-patient-visit-prem',
+                    text: '<i class="fas fa-print mr-2"></i> Print'
+                },
+                {
+                    extend: 'colvis',
+                    className: 'btn-patient-visit-prem',
+                    text: '<i class="fas fa-columns mr-2"></i> Columns'
+                }
+            ],
+            responsive: true,
+            pageLength: 10,
+            order: [[1, 'desc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search visits...",
+                lengthMenu: "Show _MENU_ entries"
+            },
+            initComplete: function() {
+                // Add animation delay to rows for staggered effect
+                $('#patientVisitTable tbody tr').each(function(index) {
+                    $(this).css('animation-delay', (index * 0.05) + 's');
+                });
+            }
+        });
+        
+        // Add search filter for visits
+        $('.dataTables_wrapper').prepend(
+            '<div class="row mb-3">' +
+                '<div class="col-md-4">' +
+                    '<input type="text" id="visitSearch" class="form-control form-control-sm" placeholder="Search visits...">' +
+                '</div>' +
+            '</div>'
+        );
+        
+        $('#visitSearch').on('keyup', function() {
+            $('#patientVisitTable').DataTable().search(this.value).draw();
+        });
+    });
+</script>
+
 {% include 'divine_admin_template/datatable.html' %}  
 {% endblock main_content %}

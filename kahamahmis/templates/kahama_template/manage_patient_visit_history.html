@@ -1,40 +1,556 @@
 {% extends 'kahama_template/base_template.html' %}
 
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Visit History
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Visit History
 {% endblock title %}
-{% block page_title %}
-<a class="btn btn-primary" type="button"  href="{% url 'kahama_patients_list' %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
 
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <a class="btn btn-prem-obs" href="{% url 'kahama_doctor_patients_list' %}">
+        <i class="fas fa-arrow-left"></i> Back to Patients
+    </a>
+    <h5 class="mb-0 text-uppercase text-white"><i class="fas fa-history mr-2"></i>Premium Visit History</h5>
+    <a class="btn btn-prem-obs" href="{% url 'kahama_doctor_visit_save' patient.id %}">
+        <i class="fas fa-plus"></i> New Visit
+    </a>
+</div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
 {% include "kahama_template/modal_form.html" %}
-<a class="btn btn-primary float-right" href="{% url 'kahama_save_patient_visit_save' patient.id %}">
-    <i class="fas fa-plus"></i> New visit
-</a>
-<!-- Add Import insurance link and modal trigger -->
 {% endblock breadcrumb %}
-
 
 {% load static %}
 {% block main_content %}
+<style>
+    /* Premium Visit History Styles - Unique to this template */
+    .visit-prem-gradient {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(44, 62, 80, 0.15);
+        border: none;
+    }
+    
+    .visit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .visit-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .visit-prem-table th {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #ecf0f1;
+    }
+    
+    .visit-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .visit-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.1);
+        background: #f8fafc;
+    }
+    
+    .btn-prem-visit {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.2);
+    }
+    
+    .btn-prem-visit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-visit-action {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+    }
+    
+    .btn-prem-visit-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+        color: white;
+    }
+    
+    .visit-prem-modal-header {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .visit-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .visit-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #ecf0f1, #3498db);
+        color: #2c3e50;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #3498db;
+    }
+    
+    .visit-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .visit-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .visit-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .visit-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .visit-prem-filter-bar {
+        background: linear-gradient(120deg, #ecf0f1, #3498db);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .visit-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .visit-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .visit-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+    }
+    
+    .visit-prem-status-btn[data-status="recent"] {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+    }
+    
+    /* Status-specific badge colors */
+    .badge-visit-regular {
+        background: linear-gradient(120deg, #3498db, #5dade2);
+        color: white;
+    }
+    
+    .badge-visit-followup {
+        background: linear-gradient(120deg, #27ae60, #2ecc71);
+        color: white;
+    }
+    
+    .badge-visit-emergency {
+        background: linear-gradient(120deg, #e74c3c, #e67e22);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes visitPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .visit-prem-animated {
+        animation: visitPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .visit-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .visit-prem-flip-card:hover .visit-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-card-front, .visit-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-flip-card-front {
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        color: white;
+    }
+    
+    .visit-prem-flip-card-back {
+        background: linear-gradient(120deg, #3498db, #2c3e50);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .visit-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Custom modal styling */
+    .visit-prem-modal-xl {
+        max-width: 90%;
+    }
+    
+    .visit-prem-modal-header-img {
+        height: 120px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    /* Timeline styling */
+    .visit-prem-timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .visit-prem-timeline::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 100%;
+        background: linear-gradient(to bottom, #2c3e50, #3498db);
+        transform: translateX(-50%);
+    }
+    
+    .visit-prem-timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+        width: 50%;
+        padding: 0 40px;
+        box-sizing: border-box;
+    }
+    
+    .visit-prem-timeline-item:nth-child(odd) {
+        left: 0;
+        text-align: right;
+    }
+    
+    .visit-prem-timeline-item:nth-child(even) {
+        left: 50%;
+    }
+    
+    .visit-prem-timeline-content {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    
+    .visit-prem-timeline-content::after {
+        content: '';
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        background: #2c3e50;
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .visit-prem-timeline-item:nth-child(odd) .visit-prem-timeline-content::after {
+        right: -52.5px;
+    }
+    
+    .visit-prem-timeline-item:nth-child(even) .visit-prem-timeline-content::after {
+        left: -52.5px;
+    }
+    
+    /* Visit type visualization */
+    .visit-prem-types {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-type-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-type-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-type-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .visit-prem-type-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+    
+    /* Progress bar styling */
+    .visit-prem-progress {
+        height: 10px;
+        border-radius: 5px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+    
+    .visit-prem-progress-bar {
+        height: 100%;
+        border-radius: 5px;
+        background: linear-gradient(90deg, #2c3e50, #3498db);
+        transition: width 0.6s ease;
+    }
+    
+    /* Service visualization */
+    .visit-prem-services {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-service {
+        flex: 1;
+        min-width: 120px;
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-service:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-service-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #2c3e50, #3498db);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: white;
+        font-size: 1.2rem;
+    }
+    
+    .visit-prem-service-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+    
+    .visit-prem-service-count {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    /* Health trends visualization */
+    .visit-prem-health-trends {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-trend-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .visit-prem-trend-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+    
+    .visit-prem-trend-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .visit-prem-trend-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+    
+    /* Treatment summary visualization */
+    .visit-prem-treatment-summary {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .visit-prem-treatment-header {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+    
+    .visit-prem-treatment-item {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    
+    .visit-prem-treatment-bullet {
+        width: 20px;
+        height: 20px;
+        background: #3498db;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: white;
+        font-size: 0.7rem;
+    }
+    
+    .visit-prem-treatment-content {
+        flex: 1;
+    }
+</style>
+
 <div class="container-fluid">
+    <!-- Patient Info Card -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card"> 
+            <div class="card visit-prem-summary-card">
                 <div class="card-header">
-                    <label for="">Patient Information</label>
-                </div>              
+                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Information</h6>
+                </div>
                 <div class="card-body">
-                    <div class="row" style="font-size:13px;">
+                    <div class="row">
                         <div class="col-md-3">
-                            PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b>
+                            <p><strong>PATIENT:</strong><br>
+                                <b>{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</b>
+                            </p>
                         </div>
                         <div class="col-md-3">
-                            DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: 
+                            <p><strong>DOB:</strong><br>
+                                <b>{{ patient.dob|date:'d-m-Y' }} [ Age: 
                                 {% if patient.dob %}
                                     <script>
                                         var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
@@ -47,193 +563,557 @@
                                 {% else %}
                                     {{ patient.age }}
                                 {% endif %}
-                            ]</b>
+                                ]</b>
+                            </p>
                         </div>
                         <div class="col-md-3">
-                            SEX: <b>{{ patient.gender }}</b>
+                            <p><strong>SEX:</strong><br>
+                                <b>{{ patient.gender }}</b>
+                            </p>
                         </div>
                         <div class="col-md-3">
-                            FILE NO: <b>{{ patient.mrn }}</b>
-                        </div>
-                    </div>                       
-                </div>          
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Visit History</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm display" id="example" style="width:100%">
-                            <thead>
-                                <tr>
-                                    <th>VST</th>
-                                    <th>Visit Type</th>                        
-                                    <th>Service</th>              
-                                    <th>Data recorder</th>              
-                                    <th>Visiting Date</th>                       
-                                    <th>Action</th>              
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for visit in visit_history %}
-                                    <tr>
-                                        <td>{{ visit.vst }}</td>
-                                        <td>{{ visit.get_visit_type_display }}</td>
-                                        <td>{{ visit.primary_service }}</td>
-                                        <td>
-                                            <b style="color: blue;" class="text-uppercase">{{ visit.data_recorder.role }}</b> 
-                                            <span class="text-muted">{{ visit.data_recorder }}</span>
-                                        </td>
-                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td>
-                                        <td>                                           
-                                            <a href="{% url 'kahama_save_patient_visit_edit' visit.patient.id visit.id %}" data-toggle="tooltip" title="Edit Visit">
-                                                <button type="button" class="btn btn-dark btn-sm">
-                                                    <i class="fa fa-edit text-white"></i>Edit
-                                                </button>
-                                            </a>                                          
-                                                                          
-                                                                     
-                                            <button type="button" class="btn btn-light btn-sm" data-toggle="modal" data-target="#consultationModal{{ visit.id }}" data-toggle="tooltip" title="Book Appointment">
-                                                <i class="fas fa-calendar text-dark"></i>Appointment
-                                            </button>                                   
-                                    
-                                        </td>        
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div> 
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-    {% for visit in visit_history %}
-    <div class="container-fluid">
-        <div class="row">
-            <!-- left column -->
-            <div class="col-md-12">
-                <!-- Bootstrap Modal for consultation form -->
-                <div class="modal fade" id="consultationModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="consultationModalLabel{{ visit.id }}" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="consultationModalLabel{{ visit.id }}">Add Appointment</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="consultationForm{{ visit.id }}">
-                                    {% csrf_token %}
-                                    <!-- Doctor selection dropdown -->
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="doctor{{ visit.id }}">Doctor:</label>
-                                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
-                                                    <option value="">Select Doctor</option>
-                                                    {% for doctor in doctors %}
-                                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                         </div>
-                                         <div class="col-md-6">
-                                             <div class="form-group">
-                                                 <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
-                                                 <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control" required>
-                                             </div>
-                                         </div>
-                                    </div>
-                                    <input type="hidden" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
-                                    <input type="hidden" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
-    
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="start_time{{ visit.id }}">Start Time:</label>
-                                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label for="end_time{{ visit.id }}">End Time:</label>
-                                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}" required>
-                                            </div>
-                                        </div>
-                                    </div>
-    
-                                    <div class="row">
-                                        <div class="col-md-12 mb-5">
-                                            <div class="form-group">
-                                                <label for="description{{ visit.id }}">Description:</label>
-                                                <textarea id="description{{ visit.id }}" name="description" rows="2" class="form-control"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-    
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div id="successMessageContainer{{ visit.id }}"></div>
-                                        </div>
-                                    </div>
-    
-                                    <button type="button" class="btn btn-success btn-block" id="addConsultation{{ visit.id }}">Create an Appointment</button>
-                                </form>
-                            </div>
+                            <p><strong>FILE NO:</strong><br>
+                                <b>{{ patient.mrn }}</b>
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        $(document).ready(function () {
-            $('#addConsultation{{ visit.id }}').click(function (event) {
-                var form = document.getElementById('consultationForm{{ visit.id }}');
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                } else {
-                    var formData = $('#consultationForm{{ visit.id }}').serialize();
-    
-                    $.ajax({
-                        url: '{% url "kahama_appointment_view" %}', // Update with your actual URL
-                        type: 'POST',
-                        data: formData,
-                        success: function (response) {
-                            if (response.success) {
-                                $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
-                                location.reload(true);
-                            } else {
-                                $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
-                            }
-                        },
-                        error: function () {
-                            console.error('AJAX request failed');
-                            $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
-                        }
-                    });
-                }
-    
-                form.classList.add('was-validated');
-            });
-        });
-    </script>
+
+    <!-- Visit History Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card visit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-history mr-2"></i>Premium Visit History Management</h5>
+                        <button class="btn btn-prem-visit" data-toggle="modal" data-target="#visitAnalyticsModal">
+                            <i class="fas fa-chart-line mr-1"></i> Analytics
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-check mr-2"></i>Total Visits</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="total-visits">{{ visit_history|length }}</div>
+                                    <div class="visit-prem-summary-label">All Records</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Services Used</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="total-services">0</div>
+                                    <div class="visit-prem-summary-label">Unique Services</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card visit-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users mr-2"></i>Providers</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="visit-prem-summary-value" id="total-providers">0</div>
+                                    <div class="visit-prem-summary-label">Healthcare Providers</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="visit-prem-flip-card">
+                                <div class="visit-prem-flip-card-inner">
+                                    <div class="visit-prem-flip-card-front">
+                                        <div class="visit-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Visit Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="visit-prem-flip-card-back">
+                                        <div class="visit-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Visit Patterns</h4>
+                                        <p>Advanced tracking & insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="visit-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="visit-prem-status-filter">
+                                <button class="visit-prem-status-btn active" data-status="all">All Visits</button>
+                                <button class="visit-prem-status-btn" data-status="regular">Regular Visits</button>
+                                <button class="visit-prem-status-btn" data-status="followup">Follow-ups</button>
+                                <button class="visit-prem-status-btn" data-status="emergency">Emergency</button>
+                                <button class="visit-prem-status-btn" data-status="recent">Recent (30 days)</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search visits..." id="visitPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-visit" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive visit-prem-table-container">
+                        <table class="table table-hover text-nowrap visit-prem-table" id="visitTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag mr-2"></i>VST</th>
+                                    <th><i class="fas fa-stethoscope mr-2"></i>Visit Type</th>                        
+                                    <th><i class="fas fa-hand-holding-medical mr-2"></i>Service</th>              
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>              
+                                    <th><i class="fas fa-calendar mr-2"></i>Visit Date</th>                       
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>              
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in visit_history %}
+                                    <tr data-date="{{ visit.created_at|date:'Y-m-d' }}" data-type="{{ visit.visit_type }}">
+                                        <td>{{ visit.vst }}</td>
+                                        <td>
+                                            <span class="visit-prem-badge 
+                                                {% if visit.visit_type == 'followup' %}badge-visit-followup
+                                                {% elif visit.visit_type == 'emergency' %}badge-visit-emergency
+                                                {% else %}badge-visit-regular{% endif %}">
+                                                {{ visit.get_visit_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ visit.primary_service }}</td>
+                                        <td>
+                                            <b class="text-capitalize" style="color: #2c3e50;">
+                                                {% if visit.data_recorder.role == "doctor" %}Dr.{% else %}{{ visit.data_recorder.role }}{% endif %}
+                                            </b> 
+                                            <span class="text-muted">{{ visit.data_recorder }}</span>
+                                        </td>
+                                        <td>{{ visit.created_at|date:"d-m-Y" }}</td>
+                                        <td class="text-center">  
+                                            <a href="{% url 'kahama_doctor_visit_edit' visit.patient.id visit.id %}" class="btn btn-prem-visit-action" data-toggle="tooltip" title="Edit Visit">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </a>
+                                            <button type="button" class="btn btn-prem-visit-action" data-toggle="modal" data-target="#appointmentModal{{ visit.id }}" data-toggle="tooltip" title="Book Appointment">
+                                                <i class="fas fa-calendar"></i> Appointment
+                                            </button>
+                                        </td>        
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="visitAnalyticsModal" tabindex="-1" role="dialog" aria-labelledby="visitAnalyticsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content visit-prem-modal-content">
+      <div class="modal-header visit-prem-modal-header">
+        <h5 class="modal-title text-white" id="visitAnalyticsModalLabel"><i class="fas fa-chart-line mr-2"></i>Visit Analytics</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card visit-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar mr-2"></i>Visit Trends</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="visitTrendChart" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card visit-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Service Distribution</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="serviceDistributionChart" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="card visit-prem-summary-card">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-stethoscope mr-2"></i>Visit Types</h6>
+              </div>
+              <div class="card-body">
+                <canvas id="visitTypeChart" height="150"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-prem-visit" id="exportAnalytics">
+          <i class="fas fa-download mr-2"></i> Export Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Appointment Modals -->
+{% for visit in visit_history %}
+<div class="modal fade" id="appointmentModal{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="appointmentModalLabel{{ visit.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content visit-prem-modal-content">
+            <div class="modal-header visit-prem-modal-header">
+                <h5 class="modal-title text-white" id="appointmentModalLabel{{ visit.id }}">Schedule Appointment</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="appointmentForm{{ visit.id }}">
+                    {% csrf_token %}
+                    <!-- Doctor selection dropdown -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="doctor{{ visit.id }}">Doctor:</label>
+                                <select class="form-control select2bs4" style="width: 100%;" name="doctor" id="doctor{{ visit.id }}" required>
+                                    <option value="">Select Doctor</option>
+                                    {% for doctor in doctors %}
+                                        <option value="{{ doctor.id }}">{{ doctor.admin.first_name }} {{ doctor.middle_name }} {{ doctor.admin.last_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                         </div>
+                         <div class="col-md-6">
+                             <div class="form-group">
+                                 <label for="date_of_consultation{{ visit.id }}">Date of Consultation:</label>
+                                 <input type="date" id="date_of_consultation{{ visit.id }}" name="date_of_consultation" class="form-control" required>
+                             </div>
+                         </div>
+                    </div>
+                    <input type="hidden" id="patient_id{{ visit.id }}" name="patient_id" value="{{ patient.id }}">
+                    <input type="hidden" id="visit_id{{ visit.id }}" name="visit_id" value="{{ visit.id }}">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="start_time{{ visit.id }}">Start Time:</label>
+                                <input type="time" class="form-control" name="start_time" id="start_time{{ visit.id }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="end_time{{ visit.id }}">End Time:</label>
+                                <input type="time" class="form-control" name="end_time" id="end_time{{ visit.id }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group">
+                                <label for="description{{ visit.id }}">Description:</label>
+                                <textarea id="description{{ visit.id }}" name="description" rows="2" class="form-control"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="successMessageContainer{{ visit.id }}"></div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-prem-visit btn-block" id="addAppointment{{ visit.id }}">Create Appointment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endfor %}
 
+<script>
+    // Initialize DataTable
+    new DataTable('#visitTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search visits...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let uniqueServices = new Set();
+        let uniqueProviders = new Set();
+        
+        document.querySelectorAll('#visitTable tbody tr').forEach(row => {
+            const serviceName = row.cells[2].textContent.trim();
+            uniqueServices.add(serviceName);
+            
+            const providerName = row.cells[3].textContent.trim();
+            uniqueProviders.add(providerName);
+        });
+        
+        // Update summary cards
+        document.getElementById('total-services').textContent = uniqueServices.size;
+        document.getElementById('total-providers').textContent = uniqueProviders.size;
+    }
     
- 
-{% include 'kahama_template/datatable.html' %}
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.visit-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.visit-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterVisitSessions(status);
+        });
+    });
+
+    // Filter visit sessions by status
+    function filterVisitSessions(status) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowType = row.getAttribute('data-type');
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            let shouldShow = false;
+            
+            if (status === 'all') {
+                shouldShow = true;
+            } else if (status === 'recent') {
+                shouldShow = diffDays <= 30;
+            } else {
+                shouldShow = rowType === status;
+            }
+            
+            if (shouldShow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('visitPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.visit-prem-status-btn.active').getAttribute('data-status');
+        
+        filterVisitWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('visitPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.visit-prem-status-btn.active').getAttribute('data-status');
+        
+        filterVisitWithSearch(activeStatus, searchText);
+    });
+
+    // Filter visit by both status and search text
+    function filterVisitWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#visitTable tbody tr');
+        const today = new Date();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowType = row.getAttribute('data-type');
+            const dateStr = row.getAttribute('data-date');
+            const rowDate = new Date(dateStr);
+            const diffTime = Math.abs(today - rowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            const rowText = row.textContent.toLowerCase();
+            
+            let statusMatch = false;
+            
+            if (status === 'all') {
+                statusMatch = true;
+            } else if (status === 'recent') {
+                statusMatch = diffDays <= 30;
+            } else {
+                statusMatch = rowType === status;
+            }
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-visits').textContent = visibleCount;
+    }
+
+    // Initialize analytics modal charts
+    $('#visitAnalyticsModal').on('shown.bs.modal', function () {
+        // Sample data for charts
+        const trendData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Visits',
+                data: [12, 19, 8, 15, 22, 18],
+                backgroundColor: '#3498db',
+                borderColor: '#2c3e50',
+                borderWidth: 2
+            }]
+        };
+        
+        const serviceDistributionData = {
+            labels: ['General Consultation', 'Dental', 'Optometry', 'Laboratory'],
+            datasets: [{
+                label: 'Service Distribution',
+                data: [45, 15, 20, 20],
+                backgroundColor: ['#2c3e50', '#3498db', '#f39c12', '#27ae60']
+            }]
+        };
+        
+        const visitTypeData = {
+            labels: ['Regular', 'Follow-up', 'Emergency'],
+            datasets: [{
+                label: 'Visit Types',
+                data: [60, 30, 10],
+                backgroundColor: ['#2c3e50', '#3498db', '#e74c3c']
+            }]
+        };
+        
+        // Create charts
+        new Chart(document.getElementById('visitTrendChart'), {
+            type: 'line',
+            data: trendData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        new Chart(document.getElementById('serviceDistributionChart'), {
+            type: 'doughnut',
+            data: serviceDistributionData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        });
+        
+        new Chart(document.getElementById('visitTypeChart'), {
+            type: 'pie',
+            data: visitTypeData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        });
+    });
+
+    // Initialize tooltips
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+    });
+</script>
+
 {% endblock main_content %}
+
+{% block customer_js %}
+
+<script>
+    $(document).ready(function () {
+        {% for visit in visit_history %}
+        $('#addAppointment{{ visit.id }}').click(function (event) {
+            var form = document.getElementById('appointmentForm{{ visit.id }}');
+            if (form.checkValidity() === false) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                var formData = $('#appointmentForm{{ visit.id }}').serialize();
+
+                $.ajax({
+                    url: '{% url "kahama_doctor_appointment_create" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-success">' + response.message + '</div>');
+                            setTimeout(function() {
+                                $('#appointmentModal{{ visit.id }}').modal('hide');
+                                location.reload(true);
+                            }, 1500);
+                        } else {
+                            $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        console.error('AJAX request failed');
+                        $('#successMessageContainer{{ visit.id }}').html('<div class="alert alert-danger">AJAX request failed</div>');
+                    }
+                });
+            }
+
+            form.classList.add('was-validated');
+        });
+        {% endfor %}
+    });
+</script>
+{% endblock customer_js %}

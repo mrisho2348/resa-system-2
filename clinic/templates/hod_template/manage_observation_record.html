@@ -1,38 +1,448 @@
 {% extends 'hod_template/base_template.html' %}
 {% load static %}
 {% block title %}
-Observation Notes
+Premium Observation Notes
 {% endblock title %}
 {% block breadcrumb %}
 {% include "hod_template/modal_form.html" %}
 {% endblock breadcrumb %}
 {% block main_content %}
+<style>
+    /* Premium styling with unique observation-specific class names */
+    .observation-prem-gradient {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(44, 62, 80, 0.15);
+        border: none;
+    }
+    
+    .observation-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .observation-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .observation-prem-table th {
+        background: linear-gradient(120deg, #EDE7F6, #D1C4E9);
+        color: #512DA8;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #EDE7F6;
+    }
+    
+    .observation-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .observation-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(81, 45, 168, 0.1);
+        background: #f5f3fc;
+    }
+    
+    .observation-prem-btn-action {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(44, 62, 80, 0.2);
+    }
+    
+    .observation-prem-btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+        color: white;
+    }
+    
+    .observation-prem-modal-header {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .observation-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .observation-prem-input-group label {
+        font-weight: 600;
+        color: #512DA8;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .observation-prem-input-group .form-control {
+        border: 1px solid #D1C4E9;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .observation-prem-input-group .form-control:focus {
+        border-color: #512DA8;
+        box-shadow: 0 0 0 0.2rem rgba(81, 45, 168, 0.25);
+    }
+    
+    .observation-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    
+    .observation-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .observation-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .observation-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f5f3fc, #EDE7F6);
+        color: #512DA8;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #D1C4E9;
+    }
+    
+    .observation-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .observation-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #512DA8;
+        margin-bottom: 0.5rem;
+    }
+    
+    .observation-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .observation-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .observation-prem-badge-primary {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+    }
+    
+    .observation-prem-badge-available {
+        background: linear-gradient(120deg, #4caf50, #8bc34a);
+        color: white;
+    }
+    
+    .observation-prem-badge-pending {
+        background: linear-gradient(120deg, #ff9800, #ffc107);
+        color: white;
+    }
+    
+    .observation-prem-filter-bar {
+        background: linear-gradient(120deg, #f5f3fc, #EDE7F6);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .observation-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .observation-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .observation-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .observation-prem-status-btn[data-status="all"] {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+    }
+    
+    .observation-prem-status-btn[data-status="available"] {
+        background: linear-gradient(120deg, #4caf50, #8bc34a);
+        color: white;
+    }
+    
+    .observation-prem-status-btn[data-status="pending"] {
+        background: linear-gradient(120deg, #ff9800, #ffc107);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes observationPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .observation-prem-animated {
+        animation: observationPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .observation-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .observation-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .observation-prem-flip-card:hover .observation-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .observation-prem-flip-card-front, .observation-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .observation-prem-flip-card-front {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+    }
+    
+    .observation-prem-flip-card-back {
+        background: linear-gradient(120deg, #4A235A, #2C3E50);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .observation-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Enhanced modal styles */
+    .observation-prem-modal-body {
+        padding: 2rem;
+    }
+    
+    .observation-prem-modal-section {
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .observation-prem-modal-section-header {
+        background: linear-gradient(120deg, #2C3E50, #4A235A);
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .observation-prem-modal-section-body {
+        padding: 1.5rem;
+        background: white;
+    }
+    
+    .observation-prem-notes-container {
+        background: #f9f9f9;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid #512DA8;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">All Observation Notes</h6>
+            <div class="card observation-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-stethoscope mr-2"></i>Premium Observation Notes</h5>                       
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card observation-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-notes-medical mr-2"></i>Total Notes</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="observation-prem-summary-value" id="total-notes">{{ observation_records|length }}</div>
+                                    <div class="observation-prem-summary-label">All Observations</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card observation-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Today's Observations</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="observation-prem-summary-value" id="today-observations">0</div>
+                                    <div class="observation-prem-summary-label">Today</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card observation-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Available Notes</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="observation-prem-summary-value" id="available-notes">0</div>
+                                    <div class="observation-prem-summary-label">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="observation-prem-flip-card">
+                                <div class="observation-prem-flip-card-inner">
+                                    <div class="observation-prem-flip-card-front">
+                                        <div class="observation-prem-flip-icon">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <h4>Premium Feature</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="observation-prem-flip-card-back">
+                                        <div class="observation-prem-flip-icon">
+                                            <i class="fas fa-gem"></i>
+                                        </div>
+                                        <h4>Observation Analytics</h4>
+                                        <p>Advanced patient monitoring</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="observation-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="observation-prem-status-filter">
+                                <button class="observation-prem-status-btn active" data-status="all">All Observations</button>
+                                <button class="observation-prem-status-btn" data-status="available">Available Notes</button>
+                                <button class="observation-prem-status-btn" data-status="pending">Pending Notes</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search observation notes..." id="observationPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn observation-prem-btn-action" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive observation-prem-table-container">
+                        <table class="table table-hover text-nowrap observation-prem-table" id="observationTable">
                             <thead>
                                 <tr>
-                                    <th>Patient</th>
-                                    <th>Data Recorder</th>                            
-                                    <th>Date</th>                                
-                                    <th>Time</th>
-                                    <th>Result Status</th> <!-- ✅ New column -->
-                                    <th>Action</th>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>                              
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Date</th>                                
+                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th><i class="fas fa-tasks mr-2"></i>Result Status</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for observation_record in observation_records %}
-                                <tr>
-                                    <td>{{ observation_record.patient }}</td>
+                                <tr data-status="{% if observation_record.observation_notes %}available{% else %}pending{% endif %}" data-date="{{ observation_record.created_at|date:'Y-m-d' }}">
                                     <td>
-                                        <b style="color: blue;" class="text-capitalize">
+                                        <div class="d-flex align-items-center">
+                                            <div class="observation-prem-avatar">
+                                                {{ observation_record.patient.first_name|first }}{{ observation_record.patient.last_name|first }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ observation_record.patient }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>                                                     
+                                    <td>
+                                        <b style="color: #512DA8;" class="text-capitalize">
                                             {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
                                         </b> 
                                         <span class="text-muted">{{ observation_record.data_recorder }}</span>
@@ -41,23 +451,22 @@ Observation Notes
                                     <td>{{ observation_record.created_at|date:"H:i" }}</td>
                                     <td>
                                         {% if observation_record.observation_notes %}
-                                            <span class="badge badge-success">Available</span>
+                                            <span class="observation-prem-badge observation-prem-badge-available">Available</span>
                                         {% else %}
-                                            <span class="badge badge-warning">Pending</span>
+                                            <span class="observation-prem-badge observation-prem-badge-pending">Pending</span>
                                         {% endif %}
                                     </td>
-                                   <td>
-                                    {% if observation_record.observation_notes %}
-                                        <!-- Button to open View Modal -->
-                                        <button class="btn btn-info" data-toggle="modal" data-target="#viewModal{{ observation_record.id }}">
-                                            View
-                                        </button>
-
-                                    {% else %}
-                                        <!-- Disabled buttons if result is missing -->
-                                        <button class="btn btn-info" disabled>View</button>                                     
-                                    {% endif %}
-                                </td>
+                                    <td class="text-center">
+                                        {% if observation_record.observation_notes %}
+                                            <button class="btn observation-prem-btn-action" data-toggle="modal" data-target="#viewModal{{ observation_record.id }}">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        {% else %}
+                                            <button class="btn observation-prem-btn-action" disabled>
+                                                <i class="fas fa-eye-slash"></i> View
+                                            </button>                                     
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>                
@@ -71,62 +480,78 @@ Observation Notes
 
 {% for observation_record in observation_records %}
   {% if observation_record.observation_notes %}
-    <!-- Modal for Viewing Observation Record -->
+    <!-- Premium Modal for Viewing Observation Record -->
     <div class="modal fade" id="viewModal{{ observation_record.id }}" tabindex="-1" role="dialog" aria-labelledby="viewModalLabel{{ observation_record.id }}" aria-hidden="true">
-      <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title" id="viewModalLabel{{ observation_record.id }}">
-              {{ observation_record.patient.full_name }} Observation
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content observation-prem-modal-content">
+          <div class="modal-header observation-prem-modal-header py-3">
+            <h5 class="modal-title text-white" id="viewModalLabel{{ observation_record.id }}">
+              <i class="fas fa-stethoscope mr-2"></i>{{ observation_record.patient.full_name }} - Observation Note
             </h5>
             <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
 
-          <div class="modal-body">
+          <div class="modal-body observation-prem-modal-body">
             <div class="container-fluid">
 
               <!-- Header Image -->
-              <header class="header mb-3">
-                <div class="container-fluid p-0">
-                  <div class="row">
-                    <div class="col-12">
-                      <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Company Header">
-                    </div>
-                  </div>
-                </div>
+              <header class="header mb-3 text-center">
+                <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid" style="max-width: 100%; height: auto;" alt="Header Image">
               </header>
 
               <!-- Patient Details Section -->
-              <div class="row mt-1">
-                <div class="col-md-12">
-                  <div class="card">
-                    <div class="card-header bg-dark text-white">
-                      <h6 class="header-title mt-0 mb-1 text-uppercase">Patient Details</h6>
+              <div class="observation-prem-modal-section mb-4">
+                <div class="observation-prem-modal-section-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+                </div>
+                <div class="observation-prem-modal-section-body">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="observation-prem-input-group">
+                        <label>Patient Name</label>
+                        <p class="form-control-static"><b>{{ observation_record.patient.full_name }}</b></p>
+                      </div>
                     </div>
-                    <div class="card-body">
-                      <div class="table-responsive">
-                        <table class="table table-borderless text-nowrap table-sm">
-                          <tbody>
-                            <tr>
-                              <td>PATIENT: <b>{{ observation_record.patient }}</b></td>
-                              <td>DOB: <b>{{ observation_record.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ observation_record.patient.age }}</b>]</td>
-                              <td>SEX: <b>{{ observation_record.patient.gender }}</b></td>
-                              <td>FILE NO: <b>{{ observation_record.patient.mrn }}</b></td>
-                            </tr>
-                            <tr>
-                              <td>Payment form: <b>
-                                {% if observation_record.patient.payment_form == "Insurance" %}
-                                  {{ observation_record.patient.payment_form }} - {{ observation_record.patient.insurance_name }}
-                                {% else %}
-                                  {{ observation_record.patient.payment_form }}
-                                {% endif %}
-                              </b></td>
-                              <td>Visit Number: <b>{{ observation_record.visit.vst }}</b></td>
-                            </tr>
-                          </tbody>
-                        </table>
+                    <div class="col-md-3">
+                      <div class="observation-prem-input-group">
+                        <label>Date of Birth</label>
+                        <p class="form-control-static"><b>{{ observation_record.patient.dob|date:'d-m-Y' }}</b> [Age: <b>{{ observation_record.patient.age }}</b>]</p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="observation-prem-input-group">
+                        <label>Gender</label>
+                        <p class="form-control-static"><b>{{ observation_record.patient.gender }}</b></p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="observation-prem-input-group">
+                        <label>File No</label>
+                        <p class="form-control-static"><b>{{ observation_record.patient.mrn }}</b></p>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="observation-prem-input-group">
+                        <label>Visit Number</label>
+                        <p class="form-control-static"><b>{{ observation_record.visit.vst }}</b></p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="observation-prem-input-group">
+                        <label>Payment Form</label>
+                        <p class="form-control-static">
+                          <b>
+                            {% if observation_record.patient.payment_form == "Insurance" %}
+                              {{ observation_record.patient.payment_form }} - {{ observation_record.patient.insurance_name }}
+                            {% else %}
+                              {{ observation_record.patient.payment_form }}
+                            {% endif %}
+                          </b>
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -134,40 +559,38 @@ Observation Notes
               </div>
 
               <!-- Observation Notes Section -->
-              <div class="row mt-3">
-                <div class="col-md-12">
-                  <div class="card">
-                    <div class="card-header bg-secondary text-white">
-                      <h6 class="header-title mb-0 text-uppercase">Observation Notes</h6>
+              <div class="observation-prem-modal-section">
+                <div class="observation-prem-modal-section-header">
+                  <h6 class="mb-0 text-uppercase"><i class="fas fa-stethoscope mr-2"></i>Observation Notes</h6>
+                </div>
+                <div class="observation-prem-modal-section-body">
+                  <div class="observation-prem-notes-container">
+                    {{ observation_record.observation_notes|safe }}
+                  </div>
+                </div>
+                <div class="card-footer text-muted">
+                  <div class="row">
+                    <div class="col-md-5">
+                      <strong>Observed By:</strong>
+                      <b class="text-capitalize" style="color: #512DA8;">
+                        {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
+                      </b>
+                      <span class="text-muted">{{ observation_record.data_recorder }}</span>
                     </div>
-                    <div class="card-body">
-                      <p class="text-justify">{{ observation_record.observation_notes|safe }}</p>
-                    </div>
-                    <div class="card-footer text-muted">
-                      <div class="row">
-                        <div class="col-md-5">
-                          <strong>Observed By:</strong>
-                          <b class="text-capitalize" style="color: blue;">
-                            {% if observation_record.data_recorder.role == "doctor" %}Dr.{% else %}{{ observation_record.data_recorder.role }}{% endif %}
-                          </b>
-                          <span class="text-muted">{{ observation_record.data_recorder }}</span>
-                        </div>
-                        <div class="col-md-3"><strong>Signature:</strong> {{ observation_record.data_recorder.signature }}</div>
-                        <div class="col-md-2"><strong>Date:</strong> {{ observation_record.created_at|date:"d-m-Y" }}</div>
-                        <div class="col-md-2"><strong>MCT No:</strong> {{ observation_record.data_recorder.mct_number }}</div>
-                      </div>
-                    </div>
+                    <div class="col-md-3"><strong>Signature:</strong> {{ observation_record.data_recorder.signature }}</div>
+                    <div class="col-md-2"><strong>Date:</strong> {{ observation_record.created_at|date:"d-m-Y" }}</div>
+                    <div class="col-md-2"><strong>MCT No:</strong> {{ observation_record.data_recorder.mct_number }}</div>
                   </div>
                 </div>
               </div>
 
               <!-- Download PDF Button -->
-              <div class="row mt-3">
+              <div class="row mt-4">
                 <div class="col-md-12 text-right">
-                  <a href="{% url 'admin_download_observation_pdf' observation_record.patient.id observation_record.visit.id %}" 
-                    class="btn btn-outline-secondary btn-sm float-right">
-                        <i class="fa fa-download"></i> Download PDF
-                    </a>
+                  <a href="{% url 'resa_admin_download_observation_pdf' observation_record.patient.id observation_record.visit.id %}" 
+                    class="btn observation-prem-btn-action">
+                    <i class="fa fa-download mr-2"></i> Download PDF
+                  </a>
                 </div>
               </div>
 
@@ -179,8 +602,124 @@ Observation Notes
   {% endif %}
 {% endfor %}
 
-
-
 {% include 'hod_template/datatable.html' %}   
 
+<script>
+    // Initialize DataTable
+    new DataTable('#observationTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search observation notes...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        let todayCount = 0;
+        let availableCount = 0;
+        
+        document.querySelectorAll('#observationTable tbody tr').forEach(row => {
+            const status = row.getAttribute('data-status');
+            const date = row.getAttribute('data-date');
+            
+            // Count today's observations
+            if (date === today) {
+                todayCount++;
+            }
+            
+            // Count available notes
+            if (status === 'available') {
+                availableCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('today-observations').textContent = todayCount;
+        document.getElementById('available-notes').textContent = availableCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Status filter functionality
+    document.querySelectorAll('.observation-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.observation-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const status = this.getAttribute('data-status');
+            filterObservations(status);
+        });
+    });
+
+    // Filter observations by status
+    function filterObservations(status) {
+        const rows = document.querySelectorAll('#observationTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-notes').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('observationPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeStatus = document.querySelector('.observation-prem-status-btn.active').getAttribute('data-status');
+        
+        filterObservationsWithSearch(activeStatus, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('observationPremSearch').value.toLowerCase();
+        const activeStatus = document.querySelector('.observation-prem-status-btn.active').getAttribute('data-status');
+        
+        filterObservationsWithSearch(activeStatus, searchText);
+    });
+
+    // Filter observations by both status and search text
+    function filterObservationsWithSearch(status, searchText) {
+        const rows = document.querySelectorAll('#observationTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowText = row.textContent.toLowerCase();
+            
+            const statusMatch = status === 'all' || rowStatus === status;
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (statusMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-notes').textContent = visibleCount;
+    }
+</script>
 {% endblock main_content %}

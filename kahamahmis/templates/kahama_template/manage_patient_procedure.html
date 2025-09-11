@@ -1,88 +1,447 @@
 {% extends 'kahama_template/base_template.html' %}
+{% load static %}
+
 {% block title %}
-{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }} procedure   
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Procedure Management
 {% endblock title %}
 
-{% block page_title %}
-<a class="btn btn-primary" type="button"  href="{% url 'kahama_patient_procedure_view' %}" class="breadcrumb-link">
-    <i class="fas fa-arrow-left"></i> Back
-</a>
-{% endblock page_title %}
 {% block breadcrumb %}
-{% include "kahama_template/modal_form.html" %}  
-
+{% include "kahama_template/modal_form.html" %}
 {% endblock breadcrumb %}
+
 {% block main_content %}
+<style>
+    /* Premium Procedure List Styles - Unique to this template */
+    .procedure-list-prem-gradient {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(26, 42, 108, 0.15);
+        border: none;
+    }
+    
+    .procedure-list-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .procedure-list-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+        background: white;
+    }
+    
+    .procedure-list-prem-table th {
+        background: linear-gradient(120deg, #1a2a6c, #fdbb2d);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .procedure-list-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e8eaf6;
+    }
+    
+    .procedure-list-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .procedure-list-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.1);
+        background: #fff9f0;
+    }
+    
+    .btn-prem-procedure-list {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(26, 42, 108, 0.2);
+    }
+    
+    .btn-prem-procedure-list:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(26, 42, 108, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-procedure-view {
+        background: linear-gradient(120deg, #4facfe, #00f2fe);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(79, 172, 254, 0.2);
+    }
+    
+    .btn-prem-procedure-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(79, 172, 254, 0.3);
+        color: white;
+    }
+    
+    .procedure-list-prem-patient-panel {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(26, 42, 108, 0.2);
+    }
+    
+    .procedure-list-prem-patient-panel h5 {
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .procedure-list-prem-patient-panel h5 i {
+        margin-right: 10px;
+        font-size: 1.5rem;
+    }
+    
+    .procedure-list-prem-patient-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .procedure-list-prem-patient-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .procedure-list-prem-patient-info-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-bottom: 0.3rem;
+    }
+    
+    .procedure-list-prem-patient-info-value {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .procedure-list-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .procedure-list-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .procedure-list-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        color: #1a2a6c;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ffd89b;
+    }
+    
+    .procedure-list-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .procedure-list-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a2a6c;
+        margin-bottom: 0.5rem;
+    }
+    
+    .procedure-list-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .procedure-list-prem-filter-bar {
+        background: linear-gradient(120deg, #fff9f0, #ffd89b);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #1a2a6c, #fdbb2d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(253, 187, 45, 0.2);
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(253, 187, 45, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .procedure-list-prem-image-preview {
+        width: 100px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .procedure-list-prem-image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .procedure-list-prem-image-preview:hover {
+        transform: scale(1.8);
+        z-index: 10;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* Flip card effect for premium feature */
+    .procedure-list-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .procedure-list-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .procedure-list-prem-flip-card:hover .procedure-list-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .procedure-list-prem-flip-card-front, .procedure-list-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .procedure-list-prem-flip-card-front {
+        background: linear-gradient(120deg, #1a2a6c, #b21f1f);
+        color: white;
+    }
+    
+    .procedure-list-prem-flip-card-back {
+        background: linear-gradient(120deg, #b21f1f, #1a2a6c);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .procedure-list-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+</style>
 
 <div class="container-fluid">
+    <!-- Back Button -->
+    <a class="btn-prem-back" href="{% url 'kahama_doctor_procedure_list' %}">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Procedures List
+    </a>
+    
     <div class="row">
         <div class="col-md-12">
-            <div class="card">               
-                <div class="card-body">
-                    <div class="row" style="font-size:13px;">
-                        <div class="col-md-3">PATIENT: <b>{{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}</b></div>
-                        <div class="col-md-3">DOB: <b>{{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
-                            <script>
-                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
-                                var now = new Date();
-                                var ageMilliseconds = now - dob;
-                                var ageSeconds = ageMilliseconds / 1000;
-                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
-                                document.write(ageYears + ' years');
-                            </script>
+            <!-- Patient Information Panel -->
+            <div class="procedure-list-prem-patient-panel">
+                <h5><i class="fas fa-user-injured"></i> Patient Information</h5>
+                <div class="procedure-list-prem-patient-info">
+                    <div class="procedure-list-prem-patient-info-item">
+                        <span class="procedure-list-prem-patient-info-label">PATIENT</span>
+                        <span class="procedure-list-prem-patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</span>
+                    </div>
+                    <div class="procedure-list-prem-patient-info-item">
+                        <span class="procedure-list-prem-patient-info-label">DATE OF BIRTH</span>
+                        <span class="procedure-list-prem-patient-info-value">{{ patient.dob|date:'d-m-Y' }} 
+                            [Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
                             {% else %}
-                            {{ patient.age }}
-                            {% endif %}]</b></div>
-                        <div class="col-md-3">SEX: <b>{{ patient.gender }}</b></div>
-                        <div class="col-md-3">FILE NO : <b>{{ patient.mrn }}</b> </div>
-                    </div>                       
-                </div>         
-              </div>
-        </div>
-    </div> 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="header-title text-center mt-0 mb-1 text-uppercase">Procedures</h6>
+                                {{ patient.age }}
+                            {% endif %}]
+                        </span>
+                    </div>
+                    <div class="procedure-list-prem-patient-info-item">
+                        <span class="procedure-list-prem-patient-info-label">GENDER</span>
+                        <span class="procedure-list-prem-patient-info-value">{{ patient.gender }}</span>
+                    </div>
+                    <div class="procedure-list-prem-patient-info-item">
+                        <span class="procedure-list-prem-patient-info-label">FILE NO</span>
+                        <span class="procedure-list-prem-patient-info-value">{{ patient.mrn }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card procedure-list-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-procedures mr-2"></i>Premium Procedure Management</h5>
+                        <a class="btn btn-prem-procedure-list" type="button" data-toggle="modal" data-target="#procedureAnalyticsModal">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover text-nowrap table-bordered table-striped table-sm" id="example">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card procedure-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Total Procedures</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="procedure-list-prem-summary-value">{{ procedures|length }}</div>
+                                    <div class="procedure-list-prem-summary-label">All Procedures</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card procedure-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>With Results</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="procedure-list-prem-summary-value" id="with-results">0</div>
+                                    <div class="procedure-list-prem-summary-label">With Results</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card procedure-list-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Pending Results</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="procedure-list-prem-summary-value" id="pending-results">0</div>
+                                    <div class="procedure-list-prem-summary-label">Pending Results</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="procedure-list-prem-flip-card">
+                                <div class="procedure-list-prem-flip-card-inner">
+                                    <div class="procedure-list-prem-flip-card-front">
+                                        <div class="procedure-list-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Procedure Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="procedure-list-prem-flip-card-back">
+                                        <div class="procedure-list-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Performance Insights</h4>
+                                        <p>Advanced procedure tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="procedure-list-prem-filter-bar">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search procedures..." id="procedureListSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-procedure-list" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive procedure-list-prem-table-container">
+                        <table class="table table-hover text-nowrap procedure-list-prem-table" id="procedureTable">
                             <thead>
                                 <tr>
-                                    <th>visit number</th>
-                                    <th>Name</th>
-                                    <th>Description</th>  
-                                    <th>Image</th>                                
-                                    <th>Created At</th>                               
-                                    <th>Action</th>
+                                    <th><i class="fas fa-hashtag mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-procedures mr-2"></i>Name</th>
+                                    <th><i class="fas fa-align-left mr-2"></i>Description</th>
+                                    <th><i class="fas fa-image mr-2"></i>Image</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created At</th>
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for procedure in procedures %}
-                                    <tr>
-                                        <td>{{ procedure.visit.vst }}</td>
-                                        <td>{{ procedure.name }}</td>
-                                        <td>{{ procedure.description }}</td>   
-                                        <td>
-                                            {% if procedure.image %}
-                                                <img class="procedure-image" src="{{ procedure.image.url }}" alt="Procedure Image" style="max-width: 100px;">
-                                            {% else %}
-                                                No Image Available
-                                            {% endif %}
-                                        </td>                               
-                                        <td>{{ procedure.created_at|date:"d-m-Y" }}</td>                                     
-                                        <td> 
-                                             {% if procedure.doctor == request.user.staff  %}
-                                               <a href="{% url 'kahama_edit_procedure_result' procedure.patient.id procedure.visit.id procedure.id %}" class="btn btn-info">View result</a>
-                                               </a>  
-                                            {% endif %}         
-                                                                 
-                                      
+                                <tr data-has-result="{% if procedure.result %}yes{% else %}no{% endif %}">
+                                    <td>{{ procedure.visit.vst }}</td>
+                                    <td>{{ procedure.name }}</td>
+                                    <td>{{ procedure.description|truncatewords:10 }}</td>
+                                    <td>
+                                        {% if procedure.image %}
+                                        <div class="procedure-list-prem-image-preview" data-toggle="tooltip" title="Click to enlarge">
+                                            <img src="{{ procedure.image.url }}" alt="Procedure Image">
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">No Image</span>
+                                        {% endif %}
                                     </td>
-                                    </tr>                                                           
-                    
+                                    <td>{{ procedure.created_at|date:"d-m-Y" }}</td>
+                                    <td class="text-center">  
+                                        {% if procedure.doctor == request.user.staff %}
+                                        <a href="{% url 'kahama_doctor_procedure_edit' procedure.patient.id procedure.visit.id procedure.id %}" class="btn btn-prem-procedure-view" data-toggle="tooltip" title="View/Edit Results">
+                                            <i class="fas fa-edit"></i> View Result
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">Not authorized</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -92,9 +451,77 @@
         </div>
     </div>
 </div>
+
+
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Procedure Image</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modalImage" src="" alt="Procedure Image" class="img-fluid">
+      </div>
+    </div>
+  </div>
 </div>
 
-{% include 'kahama_template/datatable.html' %}
-    
+<script>
+    // Initialize DataTable
+    new DataTable('#procedureTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search procedures...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
 
+
+
+    // Search functionality
+    document.getElementById('procedureListSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        
+        const rows = document.querySelectorAll('#procedureTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('procedureListSearch').value.toLowerCase();
+        const event = new Event('keyup');
+        document.getElementById('procedureListSearch').dispatchEvent(event);
+    });
+
+    // Image preview functionality
+    document.querySelectorAll('.procedure-list-prem-image-preview').forEach(preview => {
+        preview.addEventListener('click', function() {
+            const imgSrc = this.querySelector('img').src;
+            document.getElementById('modalImage').src = imgSrc;
+            $('#imagePreviewModal').modal('show');
+        });
+    });
+
+  
+</script>
 {% endblock main_content %}

@@ -1,0 +1,465 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+{% load static %}
+
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} - Premium Lab Results Editing
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Laboratory Edit Styles - Unique to this template */
+    .lab-edit-prem-gradient {
+        background: linear-gradient(120deg, #0c2461, #1e3799, #4a69bd);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(12, 36, 97, 0.15);
+        border: none;
+    }
+    
+    .lab-edit-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .lab-edit-prem-patient-panel {
+        background: linear-gradient(120deg, #0c2461, #1e3799);
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 5px 15px rgba(12, 36, 97, 0.2);
+    }
+    
+    .lab-edit-prem-patient-panel h5 {
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lab-edit-prem-patient-panel h5 i {
+        margin-right: 10px;
+        font-size: 1.5rem;
+    }
+    
+    .lab-edit-prem-patient-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .lab-edit-prem-patient-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .lab-edit-prem-patient-info-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-bottom: 0.3rem;
+    }
+    
+    .lab-edit-prem-patient-info-value {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .lab-edit-prem-form-container {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    .lab-edit-prem-form-header {
+        background: linear-gradient(120deg, #f8fbff, #d6e4ff);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #0c2461;
+    }
+    
+    .lab-edit-prem-form-header h6 {
+        margin: 0;
+        color: #0c2461;
+        font-weight: 600;
+    }
+    
+    .lab-edit-prem-form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .lab-edit-prem-form-group label {
+        font-weight: 600;
+        color: #0c2461;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lab-edit-prem-form-control {
+        border: 1px solid #6a89cc;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .lab-edit-prem-form-control:focus {
+        border-color: #0c2461;
+        box-shadow: 0 0 0 0.2rem rgba(12, 36, 97, 0.25);
+    }
+    
+    .btn-prem-lab-save {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 176, 155, 0.2);
+        display: block;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-prem-lab-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 176, 155, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-back {
+        background: linear-gradient(120deg, #0c2461, #4a69bd);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(74, 105, 189, 0.2);
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-prem-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(74, 105, 189, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .lab-edit-prem-alert {
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid;
+    }
+    
+    .lab-edit-prem-alert-error {
+        background-color: #ffebee;
+        color: #c62828;
+        border-left-color: #c62828;
+    }
+    
+    .lab-edit-prem-alert-success {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border-left-color: #2e7d32;
+    }
+    
+    .lab-edit-prem-rich-text-container {
+        border: 1px solid #6a89cc;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .django-ckeditor-widget {
+        width: 100% !important;
+    }
+    
+    /* Animation for alerts */
+    @keyframes labEditPremFadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .lab-edit-prem-animated {
+        animation: labEditPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Status indicator */
+    .lab-edit-prem-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .lab-edit-prem-status-pending {
+        background: linear-gradient(120deg, #ff5e62, #ff9966);
+        color: white;
+    }
+    
+    .lab-edit-prem-status-completed {
+        background: linear-gradient(120deg, #00b09b, #96c93d);
+        color: white;
+    }
+    
+    /* Test details panel */
+    .lab-edit-prem-test-details {
+        background: linear-gradient(120deg, #f8fbff, #d6e4ff);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .lab-edit-prem-test-details h6 {
+        color: #0c2461;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lab-edit-prem-test-details h6 i {
+        margin-right: 10px;
+    }
+    
+    .lab-edit-prem-test-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .lab-edit-prem-test-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .lab-edit-prem-test-info-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 0.3rem;
+    }
+    
+    .lab-edit-prem-test-info-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0c2461;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Back Button -->
+    <a class="btn-prem-back" href="{% url 'pemba_doctor_patient_lab_result_history_view' patient.mrn %}">
+        <i class="fas fa-arrow-left mr-2"></i> Back to Lab History
+    </a>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Patient Information Panel -->
+            <div class="lab-edit-prem-patient-panel">
+                <h5><i class="fas fa-user-injured"></i> Patient Information</h5>
+                <div class="lab-edit-prem-patient-info">
+                    <div class="lab-edit-prem-patient-info-item">
+                        <span class="lab-edit-prem-patient-info-label">PATIENT</span>
+                        <span class="lab-edit-prem-patient-info-value">{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }}</span>
+                    </div>
+                    <div class="lab-edit-prem-patient-info-item">
+                        <span class="lab-edit-prem-patient-info-label">DATE OF BIRTH</span>
+                        <span class="lab-edit-prem-patient-info-value">{{ patient.dob|date:'d-m-Y' }} 
+                            [Age: {% if patient.dob %}
+                                <script>
+                                    var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                    var now = new Date();
+                                    var ageMilliseconds = now - dob;
+                                    var ageSeconds = ageMilliseconds / 1000;
+                                    var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                    document.write(ageYears + ' years');
+                                </script>
+                            {% else %}
+                                {{ patient.age }}
+                            {% endif %}]
+                        </span>
+                    </div>
+                    <div class="lab-edit-prem-patient-info-item">
+                        <span class="lab-edit-prem-patient-info-label">GENDER</span>
+                        <span class="lab-edit-prem-patient-info-value">{{ patient.gender }}</span>
+                    </div>
+                    <div class="lab-edit-prem-patient-info-item">
+                        <span class="lab-edit-prem-patient-info-label">FILE NO</span>
+                        <span class="lab-edit-prem-patient-info-value">{{ patient.mrn }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Test Details Panel -->
+            <div class="lab-edit-prem-test-details">
+                <h6><i class="fas fa-flask"></i> Test Details</h6>
+                <div class="lab-edit-prem-test-info">
+                    <div class="lab-edit-prem-test-info-item">
+                        <span class="lab-edit-prem-test-info-label">COMPANY</span>
+                        <span class="lab-edit-prem-test-info-value">{{ patient.company }}</span>
+                    </div>
+                    <div class="lab-edit-prem-test-info-item">
+                        <span class="lab-edit-prem-test-info-label">VISIT NUMBER</span>
+                        <span class="lab-edit-prem-test-info-value">{{ visit.vst }}</span>
+                    </div>
+                    <div class="lab-edit-prem-test-info-item">
+                        <span class="lab-edit-prem-test-info-label">LAB TEST</span>
+                        <span class="lab-edit-prem-test-info-value">{{ procedures.name }}</span>
+                    </div>
+                    <div class="lab-edit-prem-test-info-item">
+                        <span class="lab-edit-prem-test-info-label">CURRENT STATUS</span>
+                        <span class="lab-edit-prem-test-info-value">
+                            {% if procedures.result %}
+                                <span class="lab-edit-prem-status lab-edit-prem-status-completed">
+                                    <i class="fas fa-check-circle mr-1"></i> Completed
+                                </span>
+                            {% else %}
+                                <span class="lab-edit-prem-status lab-edit-prem-status-pending">
+                                    <i class="fas fa-clock mr-1"></i> Pending
+                                </span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card lab-edit-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-edit mr-2"></i>Premium Laboratory Results Editor</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="lab-edit-prem-form-container">
+                        <!-- Messages/Alerts -->
+                        {% if messages %}
+                        <div class="lab-edit-prem-animated">
+                            {% for message in messages %}
+                            {% if message.tags == 'error' %}
+                            <div class="lab-edit-prem-alert lab-edit-prem-alert-error">
+                                <i class="fas fa-exclamation-circle mr-2"></i> {{ message }}
+                            </div>
+                            {% elif message.tags == 'success' %}
+                            <div class="lab-edit-prem-alert lab-edit-prem-alert-success">
+                                <i class="fas fa-check-circle mr-2"></i> {{ message }}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Form Header -->
+                        <div class="lab-edit-prem-form-header">
+                            <h6><i class="fas fa-flask mr-2"></i>Edit Laboratory Results</h6>
+                        </div>
+                        
+                        <!-- Form -->
+                        <form method="POST" action="{% url 'pemba_doctor_laboratory_edit' patient.id visit.id procedures.id %}">
+                            {% csrf_token %}
+                            
+                            <div class="lab-edit-prem-form-group">
+                                <label for="{{ form.result.id_for_label }}">Test Results</label>
+                                <div class="lab-edit-prem-rich-text-container">
+                                    {{ form.media }}
+                                    {{ form.result }}
+                                </div>
+                                {% if form.result.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.result.errors %}
+                                    <small><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if procedures.data_recorder == request.user.staff %}
+                            <button type="submit" class="btn-prem-lab-save">
+                                <i class="fas fa-save mr-2"></i> Save Results
+                            </button>
+                            {% else %}
+                            <div class="alert alert-warning text-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i> 
+                                You can only edit results that you recorded.
+                            </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                    
+                    <!-- Preview Section -->
+                    <div class="lab-edit-prem-form-container">
+                        <div class="lab-edit-prem-form-header">
+                            <h6><i class="fas fa-eye mr-2"></i>Result Preview</h6>
+                        </div>
+                        <div class="bg-light p-3 border-radius-8">
+                            {% if procedures.result %}
+                                <div class="result-preview">
+                                    {{ procedures.result|safe }}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-vial fa-3x mb-3"></i>
+                                    <p>No results available yet. Enter results above and they will appear here.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.lab-edit-prem-alert').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+    
+    // Add styling to CKEditor to match the theme
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for CKEditor to initialize
+        setTimeout(function() {
+            const editorContainers = document.querySelectorAll('.django-ckeditor-widget');
+            editorContainers.forEach(container => {
+                const iframe = container.querySelector('iframe');
+                if (iframe) {
+                    iframe.onload = function() {
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            body {
+                                background-color: #f8fbff;
+                                color: #0c2461;
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            }
+                            .cke_editable {
+                                padding: 1rem;
+                                min-height: 300px;
+                            }
+                        `;
+                        iframe.contentDocument.head.appendChild(style);
+                    };
+                }
+            });
+        }, 1000);
+    });
+</script>
+{% endblock main_content %}

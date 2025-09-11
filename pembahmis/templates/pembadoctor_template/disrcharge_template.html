@@ -1,0 +1,208 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+
+{% block title %}
+{{ patient.first_name }} {{ patient.middle_name }} {{ patient.last_name }} Discharging
+{% endblock title %}
+{% block page_title %}      
+<a class="btn btn-primary" href="{% url 'kahama_save_remotesconsultation_notes_next' patient.id visit.id %}">
+    <i class="fas fa-arrow-left"></i> Back
+</a>      
+
+{% if remote_discharges_notes %}   
+    <a class="btn btn-success breadcrumb-link" type="button" 
+       href="{% url 'kahama_save_remotesconsultation_notes' patient.id visit.id %}">
+        <i class="fas fa-arrow-right"></i> Forward
+    </a>
+{% endif %}
+
+{% endblock page_title %}
+{% block breadcrumb %}
+    {% include "pembadoctor_template/modal_form.html" %}
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary-600">
+                    <h5 class="card-title text-center text-uppercase">Patient Discharging</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">                              
+                                <div class="card-body">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <label for="chief_complaints">Patient Information</label>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <b>PATIENT:</b> {{ patient.first_name }}  {% if  patient.middle_name   %}{{ patient.middle_name }} {% endif %}  {{ patient.last_name }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>DOB:</b> {{ patient.dob|date:'d-m-Y' }} [ Age: {% if patient.dob %}
+                                                    <script>
+                                                        var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                        var now = new Date();
+                                                        var ageMilliseconds = now - dob;
+                                                        var ageSeconds = ageMilliseconds / 1000;
+                                                        var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                        document.write(ageYears + ' years');
+                                                    </script>
+                                                    {% else %}
+                                                    {{ patient.age }}
+                                                    {% endif %}]
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>SEX:</b> {{ patient.gender }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <b>FILE NO:</b> {{ patient.mrn }}
+                                                </div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                 <div class="col-md-3">PAYMENT MODE: <b> {% if patient.payment_form == "Insurance"  %}
+                                                    {{ patient.payment_form }}- {{ patient.insurance_name }}   
+                                                    {% else  %}   
+                                                    {{ patient.payment_form }}                  
+                                                {% endif %}</b>
+                                            </div>
+                                                <div class="col-md-3">
+                                                    <b>Visit Number:</b> {{ visit.vst }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-primary-600">
+                                    <h6 class="card-title text-center text-uppercase">Diagnosis</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% for note in consultation_notes %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-nowrap table-responsive-sm table-bordered table-striped table-sm  display"  style="width:100%">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Preliminary Diagnosis</th>
+                                                    <th>Final Diagnosis</th>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <ul class="list-group">
+                                                            {% for diagnosis in note.provisional_diagnosis.all %}
+                                                            <li class="list-group-item">{{ diagnosis}}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </td>
+                                                    <td>
+                                                        <ul class="list-group">
+                                                            {% for diagnosis in note.final_diagnosis.all %}
+                                                            <li class="list-group-item">{{ diagnosis}}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>        
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="container-fluid">                        
+                        <form method="POST" action="{% url 'kahama_save_remote_discharges_notes' patient.id visit.id %}" id="dischargeForm">
+                            {% csrf_token %}
+                            <div class="card">                           
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">                                     
+                                                {{ form.media }}
+                                                {{ form.as_p }}
+                                            </div>
+                                        </div>                 
+                                    </div>  
+                                </div>
+                                <div class="card-footer">
+                                    {% if messages %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            {% for message in messages %}
+                                            {% if message.tags == 'error' %}
+                                            <div class="alert alert-danger alert-message">{{ message }}</div>
+                                            {% elif message.tags == 'success' %}
+                                            <div class="alert alert-primary alert-message">{{ message }}</div>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>                          
+                            <button type="button" class="btn btn-primary btn-block mt-3" onclick="showConfirmationModal()">Save to proceed</button>
+                                </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="confirmationModalLabel">Final Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Warning: This is the last step before submitting the discharge. Do you want to proceed?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSubmit">Proceed</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showConfirmationModal() {
+        $('#confirmationModal').modal('show');  // Show Bootstrap modal
+    }
+
+    document.getElementById("confirmSubmit").addEventListener("click", function () {
+        document.getElementById("dischargeForm").submit();  // Ensure form is submitted only after confirmation
+    });
+</script>
+<script>
+    // Fade out alerts after 5 seconds (5000ms)
+    setTimeout(function() {
+        document.querySelectorAll('.alert-message').forEach(function(el) {
+            el.style.transition = 'opacity 0.5s ease-out';
+            el.style.opacity = '0';
+            setTimeout(() => el.style.display = 'none', 500);
+        });
+    }, 5000);
+</script>
+{% include 'pembadoctor_template/datatable.html' %}
+{% endblock main_content %}
+
+
+

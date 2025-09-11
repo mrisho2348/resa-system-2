@@ -1,75 +1,400 @@
 {% extends 'receptionist_template/base_template.html' %}
 {% load static %}
 {% block title %}
-All Imaging Results
+Premium Imaging Results Management
 {% endblock title %}
 {% block breadcrumb %}
 {% include "receptionist_template/modal_form.html" %}
- 
 {% endblock breadcrumb %}
 {% block main_content %}
+
+<style>
+    /* Premium Imaging Management Styles */
+    .imaging-prem-gradient {
+        background: linear-gradient(120deg, #9C27B0, #673AB7);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(156, 39, 176, 0.15);
+        border: none;
+    }
+    
+    .imaging-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .imaging-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .imaging-prem-table th {
+        background: linear-gradient(120deg, #f3e5f5, #ede7f6);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .imaging-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #ede7f6;
+    }
+    
+    .imaging-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .imaging-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(156, 39, 176, 0.1);
+        background: #faf5ff;
+    }
+    
+    .btn-prem-imaging {
+        background: linear-gradient(120deg, #9C27B0, #673AB7);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(156, 39, 176, 0.2);
+    }
+    
+    .btn-prem-imaging:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(156, 39, 176, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-imaging-view {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 157, 88, 0.2);
+    }
+    
+    .btn-prem-imaging-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 157, 88, 0.3);
+        color: white;
+    }
+    
+    .imaging-prem-modal-header {
+        background: linear-gradient(120deg, #9C27B0, #673AB7);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .imaging-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .imaging-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .imaging-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #faf5ff, #f3e5f5);
+        color: #7b1fa2;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #ede7f6;
+    }
+    
+    .imaging-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .imaging-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #7b1fa2;
+        margin-bottom: 0.5rem;
+    }
+    
+    .imaging-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .imaging-prem-filter-bar {
+        background: linear-gradient(120deg, #faf5ff, #f3e5f5);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .imaging-prem-date-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .date-filter-group label {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #7b1fa2;
+        min-width: 80px;
+    }
+    
+    .date-filter-input {
+        border: 1px solid #ede7f6;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Flip card effect for premium feature */
+    .imaging-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .imaging-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .imaging-prem-flip-card:hover .imaging-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .imaging-prem-flip-card-front, .imaging-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .imaging-prem-flip-card-front {
+        background: linear-gradient(120deg, #9C27B0, #673AB7);
+        color: white;
+    }
+    
+    .imaging-prem-flip-card-back {
+        background: linear-gradient(120deg, #673AB7, #9C27B0);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .imaging-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .status-badge-imaging {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-available {
+        background: linear-gradient(120deg, #0f9d58, #34a853);
+        color: white;
+    }
+    
+    .status-pending {
+        background: linear-gradient(120deg, #f9ab00, #fbbc04);
+        color: white;
+    }
+    
+    /* Animation for filtering */
+    @keyframes imagingPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .imaging-prem-animated {
+        animation: imagingPremFadeIn 0.5s ease forwards;
+    }
+</style>
+
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-
-        <!-- Card Header -->
-        <div class="card-header text-center">
-          <h6 class="header-title text-uppercase mb-0">All Imaging Results</h6>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card imaging-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-x-ray mr-2"></i>Premium Imaging Results Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card imaging-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-x-ray mr-2"></i>Total Imaging Records</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="imaging-prem-summary-value" id="total-imaging">{{ patient_imaging|length }}</div>
+                                    <div class="imaging-prem-summary-label">All Imaging Records</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card imaging-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Available Results</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="imaging-prem-summary-value" id="available-imaging">0</div>
+                                    <div class="imaging-prem-summary-label">Results Available</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card imaging-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock mr-2"></i>Pending Results</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="imaging-prem-summary-value" id="pending-imaging">0</div>
+                                    <div class="imaging-prem-summary-label">Pending Results</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="imaging-prem-flip-card">
+                                <div class="imaging-prem-flip-card-inner">
+                                    <div class="imaging-prem-flip-card-front">
+                                        <div class="imaging-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Imaging Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="imaging-prem-flip-card-back">
+                                        <div class="imaging-prem-flip-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <h4>Imaging Insights</h4>
+                                        <p>Advanced imaging tracking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="imaging-prem-filter-bar">
+                        <div class="imaging-prem-date-filter">
+                            <div class="date-filter-group">
+                                <label for="startDate">From:</label>
+                                <input type="date" class="date-filter-input" id="startDate">
+                            </div>
+                            <div class="date-filter-group">
+                                <label for="endDate">To:</label>
+                                <input type="date" class="date-filter-input" id="endDate">
+                            </div>
+                            <button class="btn btn-prem-imaging" id="applyDateFilter">
+                                <i class="fas fa-filter mr-2"></i> Apply Filter
+                            </button>
+                            <button class="btn btn-prem-imaging" id="clearDateFilter">
+                                <i class="fas fa-times mr-2"></i> Clear Filter
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search imaging records..." id="imagingSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-imaging" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive imaging-prem-table-container">
+                        <table class="table table-hover text-nowrap imaging-prem-table" id="imagingTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
+                                    <th><i class="fas fa-list-ol mr-2"></i>Visit Number</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
+                                    <th><i class="fas fa-cogs mr-2"></i>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in patient_imaging %}
+                                <tr data-date="{{ record.latest_date|date:'Y-m-d' }}">
+                                    <td>{{ record.patient }}</td>
+                                    <td>{{ record.visit.vst }}</td>
+                                    <td>
+                                        <strong class="text-primary text-capitalize">{{ record.imaging_done_by.role }}</strong><br>
+                                        <span class="text-muted">
+                                            {{ record.imaging_done_by.admin.first_name }}
+                                            {{ record.imaging_done_by.middle_name }}
+                                            {{ record.imaging_done_by.admin.last_name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.latest_date|date:"d-m-Y" }}</td>
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-prem-imaging-view btn-sm"
+                                                data-toggle="modal"
+                                                data-target="#imagingModal{{ record.patient.mrn }}{{ record.visit.vst }}">
+                                            <i class="fa fa-image"></i> View Imaging Info
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <!-- Card Body -->
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered table-striped table-sm text-nowrap" id="example">
-              <thead class="thead-light">
-                <tr>
-                  <th>Patient</th>
-                  <th>Visit Number</th>
-                  <th>Data Recorder</th>
-                  <th>Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {% for record in patient_imaging %}
-                <tr>
-                  <td>{{ record.patient }}</td>
-                  <td>{{ record.visit.vst }}</td>
-                  <td>
-                    <strong class="text-primary text-capitalize">{{ record.imaging_done_by.role }}</strong><br>
-                    <span class="text-muted">
-                      {{ record.imaging_done_by.admin.first_name }}
-                      {{ record.imaging_done_by.middle_name }}
-                      {{ record.imaging_done_by.admin.last_name }}
-                    </span>
-                  </td>
-                  <td>{{ record.latest_date|date:"d-m-Y" }}</td>
-                  <td>
-                    <button type="button"
-                            class="btn btn-info btn-sm"
-                            data-toggle="modal"
-                            data-target="#imagingModal{{ record.patient.mrn }}{{ record.visit.vst }}">
-                      <i class="fa fa-image text-dark"></i> View Imaging Info
-                    </button>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
-
-      </div>
     </div>
-  </div>
 </div>
-
-
-
-
 
 {% for record in patient_imaging %}
 <!-- Imaging Modal -->
@@ -78,8 +403,8 @@ All Imaging Results
     <div class="modal-content">
 
       <!-- Modal Header -->
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Imaging Result Summary</h5>
+      <div class="modal-header imaging-prem-modal-header">
+        <h5 class="modal-title"><i class="fas fa-x-ray mr-2"></i>Imaging Result Summary</h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -97,7 +422,7 @@ All Imaging Results
           <!-- Patient Full Details -->
           <div class="card mb-3">
             <div class="card-header bg-dark text-white">
-              <h6 class="mb-0 text-uppercase">Patient Details</h6>
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
             </div>
             <div class="card-body">
               <table class="table table-borderless table-sm">
@@ -124,7 +449,7 @@ All Imaging Results
           <!-- Imaging Result Summary -->
           <div class="card mb-3">
             <div class="card-header bg-secondary text-white">
-              <h6 class="mb-0 text-uppercase">Imaging Summary</h6>
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-x-ray mr-2"></i>Imaging Summary</h6>
             </div>
             <div class="card-body">
               <div class="table-responsive">
@@ -143,18 +468,20 @@ All Imaging Results
                       <td>{{ imaging.imaging.name }}</td>
                       <td>
                         {% if imaging.result %}
-                          <span class="text-success">Available</span>
+                          <span class="status-badge-imaging status-available">Available</span>
                           <button type="button" class="btn btn-link p-0" data-toggle="modal" data-target="#imagingResultModal{{ imaging.id }}">
                             View Result
                           </button>
                         {% else %}
-                          <span class="text-muted">Pending</span>
+                          <span class="status-badge-imaging status-pending">Pending</span>
                         {% endif %}
                       </td>
                       <td>{{ imaging.description|default:"-" }}</td>
                       <td>
                         {% if imaging.image %}
-                          <a href="{{ imaging.image.url }}" target="_blank">View Image</a>
+                          <a href="{{ imaging.image.url }}" target="_blank" class="btn btn-prem-imaging btn-sm">
+                            <i class="fas fa-eye"></i> View Image
+                          </a>
                         {% else %}
                           <span class="text-muted">No Image</span>
                         {% endif %}
@@ -188,7 +515,7 @@ All Imaging Results
           <!-- PDF Download Button -->
           <div class="row mt-3">
             <div class="col-md-12 text-right">
-              <a href="{% url 'receptionist_download_all_imaging_results_pdf' record.patient.mrn record.visit.vst %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+              <a href="{% url 'receptionist_download_all_imaging_results_pdf' record.patient.mrn record.visit.vst %}" class="btn btn-prem-imaging" target="_blank">
                 <i class="fa fa-download"></i> Download PDF
               </a>
             </div>
@@ -202,8 +529,6 @@ All Imaging Results
 </div>
 {% endfor %}
 
-
-
 {% for record in patient_imaging %}
   {% for imaging in record.imaging_records %}
     <!-- Imaging Result Modal -->
@@ -214,7 +539,7 @@ All Imaging Results
           <!-- Modal Header -->
           <div class="modal-header bg-info text-white">
             <h5 class="modal-title" id="imagingResultModalLabel{{ imaging.id }}">
-              Imaging Result - {{ imaging.imaging.name }}
+              <i class="fas fa-x-ray mr-2"></i>Imaging Result - {{ imaging.imaging.name }}
             </h5>
             <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -233,11 +558,11 @@ All Imaging Results
           <!-- Modal Footer -->
           <div class="modal-footer">
             {% if imaging.result %}
-              <a href="{% url 'receptionist_download_imaging_result_pdf' imaging.id %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+              <a href="{% url 'receptionist_download_imaging_result_pdf' imaging.id %}" class="btn btn-prem-imaging" target="_blank">
                 <i class="fa fa-download"></i> Download Result
               </a>
             {% endif %}
-            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           </div>
 
         </div>
@@ -245,7 +570,181 @@ All Imaging Results
     </div>
   {% endfor %}
 {% endfor %}
+{% include 'receptionist_template/datatable.html' %}
+<script>
+    // Initialize DataTable
+    new DataTable('#imagingTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[3, 'desc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search imaging records...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let availableCount = 0;
+        let pendingCount = 0;
+        
+        // Count available and pending imaging results
+        document.querySelectorAll('#imagingTable tbody tr').forEach(row => {
+            // This is a simplified version - you might need to adjust based on your data structure
+            // For a more accurate count, you would need to iterate through all imaging records in all modals
+        });
+        
+        // Update summary cards
+        document.getElementById('available-imaging').textContent = availableCount;
+        document.getElementById('pending-imaging').textContent = pendingCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Date range filter functionality
+    document.getElementById('applyDateFilter').addEventListener('click', function() {
+        const startDateInput = document.getElementById('startDate').value;
+        const endDateInput = document.getElementById('endDate').value;
+        
+        // Parse dates with proper validation
+        const startDate = startDateInput ? new Date(startDateInput) : null;
+        const endDate = endDateInput ? new Date(endDateInput) : null;
+        
+        // Adjust end date to include the entire day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        filterImagingByDate(startDate, endDate);
+    });
+    
+    document.getElementById('clearDateFilter').addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        
+        // Show all rows
+        document.querySelectorAll('#imagingTable tbody tr').forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Update total count
+        document.getElementById('total-imaging').textContent = document.querySelectorAll('#imagingTable tbody tr:not([style*="display: none"])').length;
+    });
+
+    // Filter imaging by date range
+    function filterImagingByDate(startDate, endDate) {
+        const rows = document.querySelectorAll('#imagingTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowDateStr = row.getAttribute('data-date');
+            if (!rowDateStr) {
+                row.style.display = 'none';
+                return;
+            }
+            
+            // Parse row date
+            const rowDateParts = rowDateStr.split('-');
+            const rowDate = new Date(rowDateParts[0], rowDateParts[1] - 1, rowDateParts[2]);
+            
+            // Determine if row should be shown
+            let showRow = true;
+            
+            if (startDate && endDate) {
+                // Both dates provided - check if row date is in range
+                showRow = rowDate >= startDate && rowDate <= endDate;
+            } else if (startDate) {
+                // Only start date provided - check if row date is on or after start
+                showRow = rowDate >= startDate;
+            } else if (endDate) {
+                // Only end date provided - check if row date is on or before end
+                showRow = rowDate <= endDate;
+            }
+            // If neither date is provided, showRow remains true
+            
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-imaging').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('imagingSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        filterImagingWithSearch(searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('imagingSearch').value.toLowerCase();
+        filterImagingWithSearch(searchText);
+    });
+
+    // Filter imaging by search text
+    function filterImagingWithSearch(searchText) {
+        const rows = document.querySelectorAll('#imagingTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchText === '' || rowText.includes(searchText)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-imaging').textContent = visibleCount;
+    }
+
+    // Add event listeners for Enter key in search and date inputs
+    document.getElementById('imagingSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchText = this.value.toLowerCase();
+            filterImagingWithSearch(searchText);
+        }
+    });
+    
+    document.getElementById('startDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+    
+    document.getElementById('endDate').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('applyDateFilter').click();
+        }
+    });
+
+    // Set today's date as default end date for better UX
+    window.addEventListener('load', function() {
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = formattedToday;
+        
+        // Set start date to 30 days ago by default
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = formattedThirtyDaysAgo;
+        
+        // Apply the default filter on page load
+        document.getElementById('applyDateFilter').click();
+    });
+</script>
 
 {% include 'receptionist_template/datatable.html' %}   
-
 {% endblock main_content %}

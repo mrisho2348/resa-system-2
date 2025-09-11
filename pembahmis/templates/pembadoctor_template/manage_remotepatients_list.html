@@ -1,0 +1,698 @@
+{% extends 'pembadoctor_template/base_template.html' %}
+
+{% block title %}
+   Premium Patient Management
+{% endblock title %}
+
+{% block breadcrumb %}
+{% include "pembadoctor_template/modal_form.html" %}
+<a class="btn btn-prem-patient-add float-right mr-2" href="{% url 'pemba_doctor_patient_add' %}">
+    <i class="fas fa-plus"></i> New Patient
+</a>
+{% endblock breadcrumb %}
+
+{% block main_content %}
+<style>
+    /* Premium Patient Management Styles - Unique to this template */
+    .patient-prem-gradient {
+        background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+        border: none;
+    }
+    
+    .patient-prem-gradient .card-header {
+        background: rgba(0,0,0,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-prem-table-container {
+        border-radius: 10px;
+        overflow: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+    }
+    
+    .patient-prem-table th {
+        background: linear-gradient(120deg, #e0f7fa, #b2ebf2);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+        border: none;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-prem-table td {
+        padding: 1.1rem 0.75rem;
+        vertical-align: middle;
+        border-color: #e0f7fa;
+    }
+    
+    .patient-prem-table tbody tr {
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .patient-prem-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 97, 100, 0.1);
+        background: #f1fcff;
+    }
+    
+    .btn-prem-patient {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+    }
+    
+    .btn-prem-patient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-patient-add {
+        background: linear-gradient(120deg, #00BFA5, #1DE9B6);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 191, 165, 0.2);
+    }
+    
+    .btn-prem-patient-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 191, 165, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-patient-edit {
+        background: linear-gradient(120deg, #FF9800, #FFC107);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-prem-patient-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(255, 152, 0, 0.3);
+        color: white;
+    }
+    
+    .btn-prem-patient-view {
+        background: linear-gradient(120deg, #00C853, #64DD17);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 200, 83, 0.2);
+    }
+    
+    .btn-prem-patient-view:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 200, 83, 0.3);
+        color: white;
+    }
+    
+    .patient-prem-modal-header {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+        border-radius: 0;
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .patient-prem-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .patient-prem-input-group label {
+        font-weight: 600;
+        color: #006064;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .patient-prem-input-group .form-control {
+        border: 1px solid #b2ebf2;
+        padding: 0.75rem 1rem;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .patient-prem-input-group .form-control:focus {
+        border-color: #006064;
+        box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+    }
+    
+    .patient-prem-summary-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .patient-prem-summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .patient-prem-summary-card .card-header {
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        color: #006064;
+        font-weight: 600;
+        padding: 1rem 1.2rem;
+        border-bottom: 1px solid #b2ebf2;
+    }
+    
+    .patient-prem-summary-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .patient-prem-summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #006064;
+        margin-bottom: 0.5rem;
+    }
+    
+    .patient-prem-summary-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-prem-modal-content {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .patient-prem-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .patient-prem-badge-male {
+        background: linear-gradient(120deg, #29B6F6, #81D4FA);
+        color: white;
+    }
+    
+    .patient-prem-badge-female {
+        background: linear-gradient(120deg, #F48FB1, #F8BBD0);
+        color: white;
+    }
+    
+    .patient-prem-badge-other {
+        background: linear-gradient(120deg, #B39DDB, #D1C4E9);
+        color: white;
+    }
+    
+    .patient-prem-badge-regular {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .patient-prem-badge-emergency {
+        background: linear-gradient(120deg, #FF7043, #FFAB91);
+        color: white;
+    }
+    
+    .patient-prem-filter-bar {
+        background: linear-gradient(120deg, #f1fcff, #e0f7fa);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .patient-prem-status-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .patient-prem-status-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .patient-prem-status-btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Status button colors */
+    .patient-prem-status-btn[data-category="all"] {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .patient-prem-status-btn[data-category="male"] {
+        background: linear-gradient(120deg, #29B6F6, #81D4FA);
+        color: white;
+    }
+    
+    .patient-prem-status-btn[data-category="female"] {
+        background: linear-gradient(120deg, #F48FB1, #F8BBD0);
+        color: white;
+    }
+    
+    .patient-prem-status-btn[data-category="regular"] {
+        background: linear-gradient(120deg, #66BB6A, #A5D6A7);
+        color: white;
+    }
+    
+    .patient-prem-status-btn[data-category="emergency"] {
+        background: linear-gradient(120deg, #FF7043, #FFAB91);
+        color: white;
+    }
+    
+    /* Animation for view switching */
+    @keyframes patientPremFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .patient-prem-animated {
+        animation: patientPremFadeIn 0.5s ease forwards;
+    }
+    
+    /* Flip card effect for premium feature */
+    .patient-prem-flip-card {
+        perspective: 1000px;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-prem-flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+    }
+    
+    .patient-prem-flip-card:hover .patient-prem-flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .patient-prem-flip-card-front, .patient-prem-flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .patient-prem-flip-card-front {
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        color: white;
+    }
+    
+    .patient-prem-flip-card-back {
+        background: linear-gradient(120deg, #203A43, #0F2027);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .patient-prem-flip-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .patient-prem-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(120deg, #0F2027, #203A43);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .patient-prem-name {
+        display: flex;
+        align-items: center;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card patient-prem-gradient shadow-lg">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Management</h5>                       
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card patient-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Total Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-prem-summary-value" id="total-patients">{{ patients|length }}</div>
+                                    <div class="patient-prem-summary-label">All Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card patient-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-male mr-2"></i>Male Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-prem-summary-value" id="male-patients">0</div>
+                                    <div class="patient-prem-summary-label">Male</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card patient-prem-summary-card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-female mr-2"></i>Female Patients</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="patient-prem-summary-value" id="female-patients">0</div>
+                                    <div class="patient-prem-summary-label">Female</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="patient-prem-flip-card">
+                                <div class="patient-prem-flip-card-inner">
+                                    <div class="patient-prem-flip-card-front">
+                                        <div class="patient-prem-flip-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <h4>Patient Analytics</h4>
+                                        <p>Hover to reveal</p>
+                                    </div>
+                                    <div class="patient-prem-flip-card-back">
+                                        <div class="patient-prem-flip-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <h4>Demographics</h4>
+                                        <p>Advanced patient insights</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Bar -->
+                    <div class="patient-prem-filter-bar">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="patient-prem-status-filter">
+                                <button class="patient-prem-status-btn active" data-category="all">All Patients</button>
+                                <button class="patient-prem-status-btn" data-category="male">Male</button>
+                                <button class="patient-prem-status-btn" data-category="female">Female</button>
+                                <button class="patient-prem-status-btn" data-category="regular">Regular</button>
+                                <button class="patient-prem-status-btn" data-category="emergency">Emergency</button>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" placeholder="Search patients..." id="patientPremSearch">
+                            <div class="input-group-append">
+                                <button class="btn btn-prem-patient" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table View -->
+                    <div class="table-responsive patient-prem-table-container">
+                        <table class="table table-hover text-nowrap patient-prem-table" id="patientTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-id-card mr-2"></i>MRN</th>
+                                    <th><i class="fas fa-user mr-2"></i>Name</th>           
+                                    <th><i class="fas fa-venus-mars mr-2"></i>Gender</th>
+                                    <th><i class="fas fa-birthday-cake mr-2"></i>Age</th>
+                                    <th><i class="fas fa-building mr-2"></i>Company</th>
+                                    <th><i class="fas fa-phone mr-2"></i>Phone</th>
+                                    <th><i class="fas fa-tag mr-2"></i>Patient Type</th>  
+                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Created At</th>                                             
+                                    <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patient-table-body">
+                                {% for patient in patients %}
+                                <tr data-gender="{{ patient.gender|lower }}" data-type="{{ patient.patient_type|lower }}">
+                                    <td>{{ patient.mrn }}</td>
+                                    <td>
+                                        <div class="patient-prem-name">
+                                            <div class="patient-prem-avatar">
+                                                {{ patient.first_name|first }}{{ patient.last_name|first }}
+                                            </div>
+                                            {{ patient.first_name }} {{ patient.middle_name }}  {{ patient.last_name }}
+                                        </div>
+                                    </td>                
+                                    <td>
+                                        <span class="patient-prem-badge patient-prem-badge-{{ patient.gender|lower }}">
+                                            {{ patient.gender }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">DOB: {{ patient.dob|date:'d-m-Y' }}</small><br>
+                                        <b>Age: {% if patient.dob %}
+                                            <script>
+                                                var dob = new Date("{{ patient.dob|date:'Y-m-d' }}");
+                                                var now = new Date();
+                                                var ageMilliseconds = now - dob;
+                                                var ageSeconds = ageMilliseconds / 1000;
+                                                var ageYears = Math.floor(ageSeconds / (365.25 * 24 * 60 * 60));
+                                                document.write(ageYears + ' years');
+                                            </script>
+                                            {% else %}
+                                            {{ patient.age }}
+                                            {% endif %}</b>
+                                    </td>
+                                    <td>{{ patient.company }}</td>
+                                    <td>{{ patient.phone }}</td>                                               
+                                    <td>
+                                        <span class="patient-prem-badge patient-prem-badge-{{ patient.patient_type|lower }}">
+                                            {{ patient.patient_type }}
+                                        </span>
+                                    </td> 
+                                    <td>
+                                        <b style="color: #006064;" class="text-capitalize">
+                                            {% if patient.data_recorder.role == "doctor" %}Dr.{% else %}{{ patient.data_recorder.role }}{% endif %}
+                                        </b>
+                                        <span class="text-muted">{{ patient.data_recorder }}</span>
+                                    </td> 
+                                    <td>{{ patient.created_at|date:"d-m-Y" }}</td>   
+                                               
+                                    <td class="text-center">                                      
+                                        {% if patient.data_recorder == request.user.staff %}
+                                        <a href="{% url 'pemba_doctor_patient_edit' patient_id=patient.id %}" data-toggle="tooltip" title="Edit patient">
+                                            <button type="button" class="btn btn-prem-patient-edit">
+                                                <i class="fa fa-edit text-white"></i>
+                                            </button>
+                                        </a>
+                                        {% endif %}                                  
+                                        <a href="{% url 'pemba_doctor_patient_visit_history' patient.id %}" data-toggle="tooltip" title="View Visit History">
+                                            <button type="button" class="btn btn-prem-patient-view"><i class="fa fa-eye text-white"></i></button>
+                                        </a>                                     
+                                    </td>                                
+                                    
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'pembadoctor_template/datatable.html' %}
+    
+<script>
+    // Initialize DataTable
+    new DataTable('#patientTable', {
+        dom: 'Bfrtip',
+        buttons: ['excel', 'pdf', 'print'],
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search patients...",
+            lengthMenu: "Show _MENU_ entries"
+        }
+    });
+
+    // Calculate summary statistics
+    function calculateSummaryStats() {
+        let maleCount = 0;
+        let femaleCount = 0;
+        let regularCount = 0;
+        let emergencyCount = 0;
+        
+        document.querySelectorAll('#patientTable tbody tr').forEach(row => {
+            const gender = row.getAttribute('data-gender');
+            const type = row.getAttribute('data-type');
+            
+            // Count by gender
+            if (gender === 'male') {
+                maleCount++;
+            } else if (gender === 'female') {
+                femaleCount++;
+            }
+            
+            // Count by type
+            if (type === 'regular') {
+                regularCount++;
+            } else if (type === 'emergency') {
+                emergencyCount++;
+            }
+        });
+        
+        // Update summary cards
+        document.getElementById('male-patients').textContent = maleCount;
+        document.getElementById('female-patients').textContent = femaleCount;
+    }
+    
+    // Initialize summary stats
+    calculateSummaryStats();
+
+    // Category filter functionality
+    document.querySelectorAll('.patient-prem-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active class
+            document.querySelectorAll('.patient-prem-status-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            const category = this.getAttribute('data-category');
+            filterPatients(category);
+        });
+    });
+
+    // Filter patients by category
+    function filterPatients(category) {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowGender = row.getAttribute('data-gender');
+            const rowType = row.getAttribute('data-type');
+            
+            if (category === 'all' || 
+                (category === 'male' && rowGender === 'male') ||
+                (category === 'female' && rowGender === 'female') ||
+                (category === 'regular' && rowType === 'regular') ||
+                (category === 'emergency' && rowType === 'emergency')) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+
+    // Search functionality
+    document.getElementById('patientPremSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const activeCategory = document.querySelector('.patient-prem-status-btn.active').getAttribute('data-category');
+        
+        filterPatientsWithSearch(activeCategory, searchText);
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const searchText = document.getElementById('patientPremSearch').value.toLowerCase();
+        const activeCategory = document.querySelector('.patient-prem-status-btn.active').getAttribute('data-category');
+        
+        filterPatientsWithSearch(activeCategory, searchText);
+    });
+
+    // Filter patients by both category and search text
+    function filterPatientsWithSearch(category, searchText) {
+        const rows = document.querySelectorAll('#patientTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const rowGender = row.getAttribute('data-gender');
+            const rowType = row.getAttribute('data-type');
+            const rowText = row.textContent.toLowerCase();
+            
+            const categoryMatch = category === 'all' || 
+                                (category === 'male' && rowGender === 'male') ||
+                                (category === 'female' && rowGender === 'female') ||
+                                (category === 'regular' && rowType === 'regular') ||
+                                (category === 'emergency' && rowType === 'emergency');
+            
+            const searchMatch = searchText === '' || rowText.includes(searchText);
+            
+            if (categoryMatch && searchMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update total count
+        document.getElementById('total-patients').textContent = visibleCount;
+    }
+</script>
+
+{% endblock main_content %}
+
+{% block customer_js %}
+  <!-- Any custom JavaScript for patient management would go here -->
+{% endblock %}
