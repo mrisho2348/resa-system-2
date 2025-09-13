@@ -57,7 +57,7 @@ class LoginCheckMiddleware(MiddlewareMixin):
             # Clinic staff
             ("receptionist", "resa"): ["clinic.ReceptionistView", "clinic.delete", "django.views.static"],
             ("doctor", "resa"): ["clinic.DoctorView", "django.views.static"],
-            ("nurse", "resa"): ["clinic.NurseView", "django.views.static"],
+            ("nurse", "resa"): ["clinic.DoctorView", "django.views.static"],
             ("labtechnician", "resa"): ["clinic.LabTechnicianView", "django.views.static"],
             ("pharmacist", "resa"): ["clinic.PharmacistView", "django.views.static"],
             ("admin", "resa"): [
@@ -108,7 +108,7 @@ class LoginCheckMiddleware(MiddlewareMixin):
             # Clinic staff dashboards
             ("receptionist", "resa"): "receptionist_dashboard",
             ("doctor", "resa"): "doctor_dashboard",
-            ("nurse", "resa"): "nurse_dashboard",
+            ("nurse", "resa"): "receptionist_dashboard",
             ("labtechnician", "resa"): "labtechnician_dashboard",
             ("pharmacist", "resa"): "pharmacist_dashboard",
             ("admin", "resa"): "admin_dashboard",

@@ -68,7 +68,7 @@ def RESAPortalLogin(request):
                         if role == "doctor":
                             return redirect("doctor_dashboard")
                         elif role == "nurse":
-                            return redirect("nurse_dashboard")
+                            return redirect("receptionist_dashboard")
                         elif role == "admin":
                             return redirect("resa_admin_dashboard")
                         elif role == "physiotherapist":
