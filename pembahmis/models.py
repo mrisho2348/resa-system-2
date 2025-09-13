@@ -10,6 +10,17 @@ from clinic.models import COVERAGE_CHOICES, NATURE_OF_REFERRAL_CHOICES, TRANSPOR
 # Administrative Models
 # =========================
 
+class PembaDiseaseRecode(models.Model):
+    data_recorder = models.ForeignKey(Staffs, on_delete=models.CASCADE,blank=True, null=True,related_name='pemba_disease_records') 
+    disease_name = models.CharField(max_length=255, unique=True)  
+    code = models.CharField(max_length=25,unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+    def __str__(self):
+        return self.disease_name
+
+
 class PembaCompany(models.Model):
     """
     Represents a company or organization associated with Pemba patients.
@@ -61,6 +72,8 @@ class PembaPatient(models.Model):
     phone = models.CharField(max_length=20, help_text="Patient's phone number.")
     osha_certificate = models.BooleanField(default=False, help_text="Whether the patient has an OSHA certificate.")
     date_of_osha_certification = models.DateField(null=True, blank=True, help_text="Date of OSHA certification.")
+    ftw_certificate = models.BooleanField(default=False,help_text="Whether the patient has an FTW certificate.")
+    date_of_ftw_certification = models.DateField(null=True, blank=True,help_text="Date of FTW certification.")
     insurance = models.CharField(max_length=20, choices=[('Uninsured', 'Uninsured'), ('Insured', 'Insured'), ('Unknown', 'Unknown')], help_text="Insurance status.")
     insurance_company = models.CharField(max_length=100, blank=True, null=True, help_text="Name of the insurance company.")
     other_insurance_company = models.CharField(max_length=100, blank=True, null=True, help_text="Other insurance company (if not listed).")
@@ -188,7 +201,10 @@ class PembaPatientSurgery(models.Model):
     data_recorder = models.ForeignKey('clinic.Staffs', on_delete=models.SET_NULL, blank=True, null=True, related_name='patient_surgeries', help_text="Staff member who recorded the surgery.")
     patient = models.ForeignKey('pembahmis.PembaPatient', on_delete=models.CASCADE, related_name='surgeries', help_text="Patient who underwent the surgery.")
     surgery_name = models.CharField(max_length=100, blank=True, null=True, help_text="Name of the surgery.")
-    surgery_date = models.DateField(blank=True, null=True, help_text="Date when the surgery was performed.")
+    surgery_date =  models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="Date when the surgery was performed."
+    )
     created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the surgery record was created.")
     updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the surgery record was last updated.")
     objects = models.Manager()
@@ -296,25 +312,98 @@ def pembagenerate_vst():
     new_vst_number = last_vst_number + 1
     return f"VST-{new_vst_number:07d}"
 
-# --- Patient Vital ---
 class PembaPatientVital(models.Model):
-    patient = models.ForeignKey('pembahmis.PembaPatient', on_delete=models.CASCADE, related_name='vitals', help_text="Patient whose vitals are recorded.")
-    visit = models.ForeignKey('PembaPatientVisits', on_delete=models.CASCADE, related_name='vitals', help_text="Visit during which vitals were recorded.")
-    doctor = models.ForeignKey('clinic.Staffs', on_delete=models.SET_NULL, blank=True, null=True, related_name='recorded_vitals', help_text="Doctor who recorded the vitals.")
-    recorded_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the vitals were recorded.")
-    respiratory_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Respiratory rate (breaths per minute).")
-    pulse_rate = models.PositiveIntegerField(null=True, blank=True, help_text="Pulse rate (beats per minute).")
-    sbp = models.PositiveIntegerField(null=True, blank=True, help_text="Systolic Blood Pressure (mmHg).")
-    dbp = models.PositiveIntegerField(null=True, blank=True, help_text="Diastolic Blood Pressure (mmHg).")
-    blood_pressure = models.CharField(max_length=7, null=True, blank=True, help_text="Blood pressure in format 'SBP/DBP'.")
-    spo2 = models.PositiveIntegerField(null=True, blank=True, help_text="Oxygen saturation (SPO2) in percent.")
-    temperature = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, default=37.5, help_text="Body temperature in Celsius.")
-    gcs = models.PositiveIntegerField(null=True, blank=True, help_text="Glasgow Coma Scale score.")
-    avpu = models.CharField(max_length=20, null=True, blank=True, help_text="AVPU scale value.")
-    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the vitals were last updated.")
+    """
+    Stores vital signs for a kahama patient during a visit.
+    """
+    patient = models.ForeignKey(
+        'pembahmis.PembaPatient', on_delete=models.CASCADE,
+        related_name='pemba_vitals',
+        help_text="Patient whose vitals are recorded."
+    )
+    visit = models.ForeignKey(
+        'PembaPatientVisits', on_delete=models.CASCADE,
+        related_name='pemba_vitals',
+        help_text="Visit during which vitals were recorded."
+    )
+    doctor = models.ForeignKey(
+        'clinic.Staffs', on_delete=models.SET_NULL, blank=True, null=True,
+        related_name='recorded_pemba_vitals',
+        help_text="Doctor who recorded the vitals."
+    )
+    recorded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when the vitals were recorded."
+    )
+
+    respiratory_rate = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Respiratory rate (breaths per minute)."
+    )
+    pulse_rate = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Pulse rate (beats per minute)."
+    )
+    sbp = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Systolic Blood Pressure (mmHg)."
+    )
+    dbp = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Diastolic Blood Pressure (mmHg)."
+    )
+    blood_pressure = models.CharField(
+        max_length=7, null=True, blank=True,
+        help_text="Blood pressure in format 'SBP/DBP'."
+    )
+    spo2 = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Oxygen saturation (SPO2) in percent."
+    )
+    temperature = models.DecimalField(
+        max_digits=4, decimal_places=1, null=True, blank=True, default=37.5,
+        help_text="Body temperature in Celsius."
+    )
+    gcs = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Glasgow Coma Scale score."
+    )
+
+    # New fields
+    height = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Height in centimeters."
+    )
+    weight = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Weight in kilograms."
+    )
+    bmi = models.DecimalField(
+        max_digits=4, decimal_places=1, null=True, blank=True,
+        help_text="Body Mass Index (BMI)."
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp when the vitals were last updated."
+    )
+
     objects = models.Manager()
+
     def __str__(self):
         return f"Vitals for {self.patient.full_name} at {self.recorded_at}"
+
+    def save(self, *args, **kwargs):
+        """
+        Automatically calculate BMI when height and weight are provided.
+        """
+        if self.height and self.weight:
+            # convert height cm → m
+            height_m = float(self.height) / 100
+            if height_m > 0:
+                self.bmi = round(float(self.weight) / (height_m ** 2), 1)
+        super().save(*args, **kwargs)
+
 
 # --- Patient Diagnosis Record ---
 class PembaPatientDiagnosisRecord(models.Model):
@@ -331,22 +420,60 @@ class PembaPatientDiagnosisRecord(models.Model):
         final = ", ".join([str(d) for d in self.final_diagnosis.all()])
         return f"Patient: {self.patient.full_name} | Provisional: [{provisional}] | Final: [{final}]"
 
-# --- Consultation Notes ---
 class PembaConsultationNotes(models.Model):
-    doctor = models.ForeignKey('clinic.Staffs', on_delete=models.PROTECT, related_name='pemba_consultation_notes', help_text="Doctor who wrote the consultation notes.")
-    patient = models.ForeignKey('pembahmis.PembaPatient', on_delete=models.CASCADE, related_name='consultation_notes', help_text="Patient for whom the notes are written.")
-    visit = models.ForeignKey('PembaPatientVisits', on_delete=models.CASCADE, null=True, blank=True, related_name='consultation_notes', help_text="Visit associated with the consultation notes.")
-    history_of_presenting_illness = models.TextField(null=True, blank=True, help_text="History of presenting illness.")
-    review_of_systems = models.TextField(null=True, blank=True, help_text="Review of systems.")
-    physical_examination = models.TextField(null=True, blank=True, help_text="Physical examination findings.")
-    doctor_plan = models.TextField(help_text="Doctor's plan.")
-    doctor_plan_note = models.TextField(null=True, blank=True, help_text="Additional notes on the doctor's plan.")
-    pathology = models.ManyToManyField('clinic.PathodologyRecord', blank=True, help_text="Pathology records associated with the consultation.")
-    allergy_summary = models.TextField(null=True, blank=True, help_text="Summary of allergies.")
-    known_comorbidities_summary = models.TextField(null=True, blank=True, help_text="Summary of known comorbidities.")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the consultation notes were created.")
-    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the consultation notes were last updated.")
+    """
+    Stores consultation notes for a kahama patient visit.
+    """
+    doctor = models.ForeignKey(
+        'clinic.Staffs', on_delete=models.PROTECT,
+        related_name='pemba_consultation_notes',
+        help_text="Doctor who wrote the consultation notes."
+    )
+    patient = models.ForeignKey(
+        'pembahmis.PembaPatient', on_delete=models.CASCADE,
+        related_name='pemba_consultation_notes',
+        help_text="Patient for whom the notes are written."
+    )
+    visit = models.ForeignKey(
+        'PembaPatientVisits', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='pemba_consultation_notes',
+        help_text="Visit associated with the consultation notes."
+    )
+    history_of_presenting_illness = models.TextField(
+        null=True, blank=True,
+        help_text="History of presenting illness."
+    )
+    review_of_systems = models.TextField(
+        null=True, blank=True,
+        help_text="Review of systems."
+    )
+    physical_examination = models.TextField(
+        null=True, blank=True,
+        help_text="Physical examination findings."
+    )
+    doctor_plan = models.TextField(
+        help_text="Doctor's plan."
+    )
+    doctor_plan_note = models.TextField(
+        null=True, blank=True,
+        help_text="Additional notes on the doctor's plan."
+    )
+    pathology = models.ManyToManyField(
+        PathodologyRecord, blank=True,
+        help_text="Pathology records associated with the consultation."
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when the consultation notes were created."
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp when the consultation notes were last updated."
+    )
+
     objects = models.Manager()
+
     def __str__(self):
         return f"Consultation for {self.patient.full_name} by Dr. {self.doctor}"
 
@@ -363,21 +490,6 @@ class PembaObservationRecord(models.Model):
         return f"Observation for {self.patient.full_name} ({self.data_recorder})"
 
 
-
-# --- Imaging Record ---
-class PembaImagingRecord(models.Model):
-    patient = models.ForeignKey('pembahmis.PembaPatient', on_delete=models.CASCADE, related_name='imaging_records', help_text="Patient for whom the imaging was performed.")
-    visit = models.ForeignKey('PembaPatientVisits', on_delete=models.CASCADE, related_name='imaging_records', help_text="Visit associated with the imaging.")
-    data_recorder = models.ForeignKey('clinic.Staffs', on_delete=models.SET_NULL, blank=True, null=True, related_name='recorded_imaging', help_text="Staff member who recorded the imaging.")
-    imaging = models.ForeignKey('clinic.Service', on_delete=models.SET_NULL, blank=True, null=True, related_name='pemba_imaging_records', help_text="Imaging service performed.")
-    description = models.TextField(blank=True, null=True, help_text="Description of the imaging.")
-    result = models.TextField(null=True, blank=True, help_text="Result of the imaging.")
-    image = models.ImageField(upload_to='imaging_records/', null=True, blank=True, help_text="Image file of the imaging result.")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the imaging record was created.")
-    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when the imaging record was last updated.")
-    objects = models.Manager()
-    def __str__(self):
-        return f"Imaging Record for {self.patient.full_name} - {self.imaging} ({self.data_recorder})"
 
 # --- Laboratory Request ---
 class PembaLaboratoryRequest(models.Model):

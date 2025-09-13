@@ -1,7 +1,7 @@
 {% extends 'pembaadmin_template/base_template.html' %}
 
 {% block title %}
-   Premium Patient Management
+    Patient Management
 {% endblock title %}
 
 {% block breadcrumb %}
@@ -12,7 +12,7 @@
 {% load static %}
 {% block main_content %}
 <style>
-    /* Premium Patient Management Styles - Unique to this template */
+    /*  Patient Management Styles - Unique to this template */
     .patient-prem-gradient {
         background: linear-gradient(120deg, #2C3E50, #4A235A);
         border-radius: 12px;
@@ -325,7 +325,7 @@
         animation: patientPremFadeIn 0.5s ease forwards;
     }
     
-    /* Flip card effect for premium feature */
+    /* Flip card effect for  feature */
     .patient-prem-flip-card {
         perspective: 1000px;
         height: 200px;
@@ -376,7 +376,7 @@
         margin-bottom: 15px;
     }
     
-    /* Premium select2 styling */
+    /*  select2 styling */
     .select2-container--default .select2-selection--single {
         border: 1px solid #c5cae9;
         border-radius: 8px;
@@ -397,7 +397,7 @@
             <div class="card patient-prem-gradient shadow-lg">
                 <div class="card-header py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i>Premium Patient Management</h5>                       
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-user-injured mr-2"></i> Patient Management</h5>                       
                     </div>
                 </div>
                 <div class="card-body">
@@ -777,7 +777,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for visit in patient.remotepatientvisits_set.all %}
+                {% for visit in patient.visits.all %}
                 <tr>
                     <td>{{ visit.vst }}</td>
                     <td>{{ visit.get_visit_type_display }}</td>
@@ -804,13 +804,13 @@
 {% endfor %}
 
 {% for patient in patients %}
-  {% for visit in patient.remotepatientvisits_set.all %}
+  {% for visit in patient.visits.all %}
     <div class="modal fade" id="visitDetailModal_{{ visit.id }}" tabindex="-1" role="dialog" aria-labelledby="visitDetailModalLabel_{{ visit.id }}" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
         <div class="modal-content patient-prem-modal-content">
           <div class="modal-header patient-prem-modal-header">
             <h5 class="modal-title text-white" id="visitDetailModalLabel_{{ visit.id }}">
-                <a href="{% url 'divine_download_consultation_summary_pdf' patient.id visit.id %}" class="btn btn-prem-patient">
+                <a href="{% url 'pemba_admin_consultation_download_summary' patient.id visit.id %}" class="btn btn-prem-patient">
                     <i class="fas fa-download mr-2"></i>Download Consultation Summary PDF
                 </a>
             </h5>
@@ -818,7 +818,7 @@
           </div>
           <div class="modal-body">
            <div class="card mb-4 patient-prem-summary-card">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header  bg-warning text-dark">
                     <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
                 </div>
                 <div class="card-body">
@@ -851,14 +851,14 @@
                 </div>
             </div>
 
-        {% if visit.remotepatientvital_set.exists %}
+        {% if visit.pemba_vitals.all %}
                     <!-- 🔹 CARD: Vital Signs -->
             <div class="card mb-4 patient-prem-summary-card">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header  bg-warning text-dark">
                     <h6 class="mb-0"><i class="fas fa-heartbeat mr-2"></i>Vital Signs/Assessment Data</h6>
                 </div>
                 <div class="card-body">
-                    {% if visit.remotepatientvital_set.exists %}
+                    {% if visit.pemba_vitals.all %}
                     <div class="table-responsive">
                         <table class="table table-hover text-nowrap table-bordered table-striped table-sm patient-prem-table">
                         <thead class="thead-dark">
@@ -878,7 +878,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for vitals in visit.remotepatientvital_set.all %}
+                            {% for vitals in visit.pemba_vitals.all %}
                             <tr>                          
                             <td>{{ vitals.respiratory_rate|default:"-" }}</td>
                             <td>{{ vitals.pulse_rate|default:"-" }}</td>
@@ -903,10 +903,10 @@
              </div>
             </div>
         {% endif %}
-        {% with consultation_note=visit.remoteconsultationnotes_set.first diagnosis_record=visit.remotepatientdiagnosisrecord_set.first %}
+        {% with consultation_note=visit.pemba_consultation_notes.first diagnosis_record=visit.diagnosis_records.first %}
         {% if consultation_note %}
             <div class="card clinical-notes-card mt-4 patient-prem-summary-card">
-            <div class="card-header bg-dark text-white">
+            <div class="card-header  bg-warning text-dark">
                 <h2 class="card-title"><i class="fas fa-stethoscope mr-2"></i>Clinical Notes</h2>
             </div>
             <div class="card-body">
@@ -917,7 +917,7 @@
                     <th>Chief Complaints:</th>
                     <td>
                         <ul>
-                        {% for complaint in visit.chiefcomplaint_set.all %}
+                        {% for complaint in visit.pembachiefcomplaint_set.all %}
                             <li>{{ complaint.health_record }} - Duration: {{ complaint.duration }}</li>
                         {% endfor %}
                         </ul>
@@ -947,17 +947,7 @@
                     <tr>
                     <th>Doctor's Plan Notes:</th>
                     <td>{{ consultation_note.doctor_plan_note }}</td>
-                    </tr>
-
-                    <tr>
-                    <th>Allergy Summary:</th>
-                    <td>{{ consultation_note.allergy_summary }}</td>
-                    </tr>
-
-                    <tr>
-                    <th>Known Comorbidities:</th>
-                    <td>{{ consultation_note.known_comorbidities_summary }}</td>
-                    </tr>
+                    </tr>                    
 
                     {% if diagnosis_record %}
                     <tr>
@@ -990,10 +980,10 @@
         {% endif %}
         {% endwith %}
 
-        {% if visit.remotelaboratoryorder_set.exists %}
+        {% if visit.laboratory_requests.all %}
                  <!-- 🔬 CARD: Laboratory Orders -->
             <div class="card mb-4 patient-prem-summary-card">
-                <div class="card-header bg-danger text-white">
+                <div class="card-header  bg-warning text-dark">
                     <h6 class="mb-0"><i class="fas fa-vial mr-2"></i>Lab Data</h6>
                 </div>
                 <div class="card-body">
@@ -1011,7 +1001,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for lab in visit.remotelaboratoryorder_set.all %}
+                                {% for lab in visit.laboratory_requests.all %}
                                 <tr>                                    
                                     <td>{{ lab.lab_number }}</td>
                                     <td>{{ lab.name.name|default:"-" }}</td>
@@ -1040,10 +1030,10 @@
         {% endif %}
 
 
-        {% if visit.remoteprocedure_set.exists %}
+        {% if visit.procedures.all %}
                <!-- 🔹 CARD: Procedures -->
             <div class="card mb-4 patient-prem-summary-card">
-                <div class="card-header bg-warning text-dark">
+                <div class="card-header  bg-warning text-dark">
                     <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Procedure Records</h6>
                 </div>
                 <div class="card-body">
@@ -1061,7 +1051,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for procedure in visit.remoteprocedure_set.all %}
+                                {% for procedure in visit.procedures.all %}
                                 <tr>                                    
                                     <td>{{ procedure.name.name|default:"-" }}</td>
                                     <td>{{ procedure.description|default:"-" }}</td>                               
@@ -1089,70 +1079,14 @@
         {% endif %}
 
 
-        {% if visit.remoteimagingrecord_set.exists %}
-            <!-- 🔹 CARD: Imaging Records -->
-            <div class="card mb-4 patient-prem-summary-card">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-x-ray mr-2"></i>Imaging Records</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
-                            <thead class="thead-light">
-                                <tr>                               
-                                    <th>Imaging</th>
-                                    <th>Description</th>
-                                    <th>Result</th>
-                                    <th>Image</th>                                 
-                                    <th>Done By</th>                                 
-                                
-                                    <th>Created At</th>
-                                    <th>Updated At</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for record in visit.remoteimagingrecord_set.all %}
-                                <tr>                                   
-                                    <td>{{ record.imaging.name|default:"-" }}</td>
-                                    <td>{{ record.description|default:"-" }}</td>
-                                    <td>
-                                        {% if record.result %}
-                                            <button class="btn btn-prem-patient-view" data-toggle="modal" data-target="#imagingResultModal{{ record.id }}">
-                                                View Result
-                                            </button>
-                                        {% else %}
-                                            <em>No result</em>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if record.image %}
-                                            <a href="{{ record.image.url }}" target="_blank">View Image</a>
-                                        {% else %}
-                                            <span class="text-muted">No Image</span>
-                                        {% endif %}
-                                    </td>                               
-                                    <td>{{ record.data_recorder.get_full_name|default:"System" }}</td>                            
-                                    <td>{{ record.created_at|date:"d-m-Y" }}</td>
-                                    <td>{{ record.updated_at|date:"d-m-Y" }}</td>
-                                </tr>
-                              
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-
-
-        {% if visit.remoteobservationrecord_set.exists %}
+        {% if visit.observation_records.all %}
                 <!-- 📝 CARD: Observation Records -->
             <div class="card mb-4 patient-prem-summary-card">
-            <div class="card-header bg-info text-white">
+            <div class="card-header  bg-warning text-dark">
                 <h6 class="mb-0"><i class="fas fa-clipboard-list mr-2"></i>Observation Records</h6>
             </div>
             <div class="card-body">
-                {% if visit.remoteobservationrecord_set.exists %}
+                {% if visit.observation_records.all %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
                     <thead class="thead-light">
@@ -1164,7 +1098,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for observation in visit.remoteobservationrecord_set.all %}
+                        {% for observation in visit.observation_records.all %}
                         <tr>                     
                         <td>{{ observation.observation_notes|safe }}</td>
                         <td>{{ observation.data_recorder.get_full_name|default:"System" }}</td>
@@ -1182,14 +1116,14 @@
             </div>
         {% endif %}
 
-        {% if visit.remoteprescription_set.exists %}
+        {% if visit.prescriptions.all %}
                    <!-- 💊 CARD: Prescription Records -->
             <div class="card mb-4 patient-prem-summary-card">
-            <div class="card-header bg-success text-white">
+            <div class="card-header  bg-warning text-dark">
                 <h6 class="mb-0"><i class="fas fa-prescription mr-2"></i>Prescription Records</h6>
             </div>
             <div class="card-body">
-                {% if visit.remoteprescription_set.exists %}
+                {% if visit.prescriptions.all %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
                     <thead class="thead-light">
@@ -1210,7 +1144,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for prescription in visit.remoteprescription_set.all %}
+                        {% for prescription in visit.prescriptions.all %}
                         <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ prescription.medicine.name }}</td>
@@ -1237,14 +1171,14 @@
             </div>
         {% endif %}
 
-        {% if visit.remotecounseling_set.exists %}
+        {% if visit.counselings.all %}
                     <!-- 💬 CARD: Counseling Notes -->
             <div class="card mb-4 patient-prem-summary-card">
-            <div class="card-header bg-info text-white">
+            <div class="card-header  bg-warning text-dark">
                 <h6 class="mb-0"><i class="fas fa-comments mr-2"></i>Counseling Notes</h6>
             </div>
             <div class="card-body">
-                {% if visit.remotecounseling_set.exists %}
+                {% if visit.counselings.all %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
                     <thead class="thead-light">
@@ -1257,7 +1191,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for session in visit.remotecounseling_set.all %}
+                        {% for session in visit.counselings.all %}
                         <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ session.data_recorder.get_full_name|default:"System" }}</td>
@@ -1284,14 +1218,14 @@
             </div>
         {% endif %}
 
-        {% if visit.remotereferral_set.exists %}
+        {% if visit.referrals.all %}
                     <!-- 🏥 CARD: Referral Details -->
             <div class="card mb-4 patient-prem-summary-card">
-            <div class="card-header bg-info text-white">
+            <div class="card-header  bg-warning text-dark">
                 <h6 class="mb-0"><i class="fas fa-hospital-alt mr-2"></i>Referral Details</h6>
             </div>
             <div class="card-body">
-                {% if visit.remotereferral_set.exists %}
+                {% if visit.referrals.all %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
                     <thead class="thead-light">
@@ -1308,7 +1242,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for referral in visit.remotereferral_set.all %}
+                        {% for referral in visit.referrals.all %}
                         <tr>                        
                         <td>{{ referral.source_location|default:"-" }}</td>
                         <td>{{ referral.destination_location|default:"-" }}</td>
@@ -1335,14 +1269,14 @@
             </div>
         {% endif %}
 
-        {% if visit.remotedischargesnotes_set.exists %}
+        {% if visit.discharge_notes.all %}
                     <!-- 🏥 CARD: Discharge Notes -->
             <div class="card mb-4 patient-prem-summary-card">
             <div class="card-header bg-warning text-dark">
                 <h6 class="mb-0"><i class="fas fa-sign-out-alt mr-2"></i>Discharge Notes</h6>
             </div>
             <div class="card-body">
-                {% if visit.remotedischargesnotes_set.exists %}
+                {% if visit.discharge_notes.all %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover table-sm text-nowrap patient-prem-table">
                     <thead class="thead-light">
@@ -1355,7 +1289,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for discharge in visit.remotedischargesnotes_set.all %}
+                        {% for discharge in visit.discharge_notes.all %}
                         <tr>                        
                         <td>{{ discharge.discharge_condition|default:"-" }}</td>
                         <td>{{ discharge.discharge_notes|safe|default:"-" }}</td>
@@ -1385,8 +1319,8 @@
 {# 🧪 Lab Result Modals           #}
 {# =============================== #}
 {% for patient in patients %}
-  {% for visit in patient.remotepatientvisits_set.all %}
-    {% for lab in visit.remotelaboratoryorder_set.all %}
+  {% for visit in patient.visits.all %}
+    {% for lab in visit.laboratory_requests.all %}
       {% if lab.result %}
         <div class="modal fade" id="resultModal{{ lab.id }}" tabindex="-1" role="dialog" aria-labelledby="resultModalLabel{{ lab.id }}" aria-hidden="true">
           <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
@@ -1418,8 +1352,8 @@
 {# 🩺 Procedure Result Modals     #}
 {# =============================== #}
 {% for patient in patients %}
-  {% for visit in patient.remotepatientvisits_set.all %}
-    {% for procedure in visit.remoteprocedure_set.all %}
+  {% for visit in patient.visits.all %}
+    {% for procedure in visit.procedures.all %}
       {% if procedure.result %}
         <div class="modal fade" id="procedureResultModal{{ procedure.id }}" tabindex="-1" role="dialog" aria-labelledby="procedureResultModalLabel{{ procedure.id }}" aria-hidden="true">
           <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
@@ -1446,39 +1380,7 @@
   {% endfor %}
 {% endfor %}
 
-
-{# =============================== #}
-{# 🖼️ Imaging Result Modals       #}
-{# =============================== #}
-{% for patient in patients %}
-  {% for visit in patient.remotepatientvisits_set.all %}
-    {% for record in visit.remoteimagingrecord_set.all %}
-      {% if record.result %}
-        <div class="modal fade" id="imagingResultModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="imagingResultModalLabel{{ record.id }}" aria-hidden="true">
-          <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-            <div class="modal-content patient-prem-modal-content">
-              <div class="modal-header patient-prem-modal-header">
-                <h5 class="modal-title text-white" id="imagingResultModalLabel{{ record.id }}">
-                  Imaging Result: {{ record.imaging.name|default:"Imaging" }}
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-              <div class="modal-body">
-                {{ record.result|safe }}
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-prem-patient" data-dismiss="modal">Close</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      {% endif %}
-    {% endfor %}
-  {% endfor %}
-{% endfor %}
-
+{% include 'pembaadmin_template/datatable.html' %}
 <script>
     // Initialize DataTable
     new DataTable('#patientTable', {

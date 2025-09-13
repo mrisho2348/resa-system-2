@@ -1,7 +1,7 @@
 import calendar
 import os
 import json
-from kahamahmis.kahamaReports import render_comprehensive_report, render_daily_comprehensive_report
+from pembahmis.pembaReports import render_comprehensive_report, render_daily_comprehensive_report
 import numpy as np
 from datetime import datetime, date
 from django.utils.timezone import now
@@ -32,19 +32,19 @@ import pdfkit
 # Local imports
 from clinic.forms import StaffProfileForm, YearMonthSelectionForm
 from clinic.models import CustomUser
-from kahamahmis.models import (
-    KahamaPatient, KahamaPatientVisits, KahamaAppointment, Staffs, KahamaCompany, 
-    KahamaService, KahamaLaboratoryRequest, KahamaProcedure, KahamaReferral, 
-    PathodologyRecord, KahamaPatientVital, KahamaHealthRecord, 
-    KahamaPatientHealthCondition, KahamaPatientSurgery, KahamaFamilyMedicalHistory, 
-    KahamaPatientMedicationAllergy, KahamaPatientLifestyleBehavior,
-    KahamaConsultationNotes, KahamaDischargesNotes, KahamaPatientDiagnosisRecord, 
-    KahamaDiagnosis, KahamaCounseling, KahamaPrescription, KahamaObservationRecord, 
-    KahamaChiefComplaint, KahamaMedicine, PrescriptionFrequency, Country
+from pembahmis.models import (
+    PembaPatient, PembaPatientVisits, PembaAppointment, Staffs, PembaCompany, 
+    PembaService, PembaLaboratoryRequest, PembaProcedure, PembaReferral, 
+    PathodologyRecord, PembaPatientVital, PembaHealthRecord, 
+    PembaPatientHealthCondition, PembaPatientSurgery, PembaFamilyMedicalHistory, 
+    PembaPatientMedicationAllergy, PembaPatientLifestyleBehavior,
+    PembaConsultationNotes, PembaDischargesNotes, PembaPatientDiagnosisRecord, 
+    PembaDiagnosis, PembaCounseling, PembaPrescription, PembaObservationRecord, 
+    PembaChiefComplaint, PembaMedicine, PrescriptionFrequency, Country
 )
-from kahamahmis.forms import (
-    KahamaCounselingForm, KahamaDischargesNotesForm, KahamaLaboratoryRequestForm, KahamaObservationRecordForm, 
-    KahamaProcedureForm, KahamaReferralForm
+from pembahmis.forms import (
+    PembaCounselingForm, PembaDischargesNotesForm, PembaLaboratoryRequestForm, PembaObservationRecordForm, 
+    PembaProcedureForm, PembaReferralForm
 )
 
 
@@ -67,7 +67,7 @@ class EditStaffProfileView(View):
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated successfully!")
-            return redirect('kahama_edit_staff_profile', pk=staff.id)
+            return redirect('pemba_edit_staff_profile', pk=staff.id)
 
         return render(request, self.template_name, {'form': form, 'staff': staff})
 
@@ -98,8 +98,8 @@ def change_password(request):
             logout(request)  # Log out the user
             
             # Redirect based on workplace
-            if request.user.staffs.work_place == 'kahama':
-                return redirect('kahamahmis:kahama')  # Redirect to Kahama login page
+            if request.user.staffs.work_place == 'pemba':
+                return redirect('pembahmis:pemba')  # Redirect to pemba login page
             else:
                 return redirect('login')  # Redirect to default login page (Resa)
 
@@ -114,14 +114,14 @@ def change_password(request):
 # ==================== DASHBOARD & REPORT VIEWS ====================
 
 @login_required
-def kahama_dashboard(request):
+def pemba_dashboard(request):
     """Main dashboard view with statistics"""
-    all_appointment = KahamaAppointment.objects.count()
-    total_patients = KahamaPatient.objects.count()
-    recently_added_patients = KahamaPatient.objects.order_by('-created_at')[:6]
-    doctors = Staffs.objects.filter(role='doctor', work_place='kahama')
+    all_appointment = PembaAppointment.objects.count()
+    total_patients = PembaPatient.objects.count()
+    recently_added_patients = PembaPatient.objects.order_by('-created_at')[:6]
+    doctors = Staffs.objects.filter(role='doctor', work_place='pemba')
     doctors_count = doctors.count()
-    nurses = Staffs.objects.filter(role='nurse', work_place='kahama').count()
+    nurses = Staffs.objects.filter(role='nurse', work_place='pemba').count()
     
     context = {
         'total_patients': total_patients,
@@ -157,7 +157,7 @@ def render_report(report_type, year):
     if report_type == 'patient_type_reports':       
         all_patient_types = ['National Staff', 'International Staff', 'National Visitor', 'International Visitor', 'Unknown Status','Permanent','Temporary','Visitor', 'Others']
         patients_by_type = (
-            KahamaPatient.objects.filter(created_at__year=year)
+            PembaPatient.objects.filter(created_at__year=year)
             .values('patient_type')
             .annotate(month=ExtractMonth('created_at'))
             .annotate(num_patients=Count('id'))
@@ -178,9 +178,9 @@ def render_report(report_type, year):
         }
         return render_to_string('pembadoctor_template/patient_type_report_table.html', context)
     elif report_type == 'patient_company_wise_reports':    
-        all_companies = KahamaCompany.objects.values_list('name', flat=True)
+        all_companies = PembaCompany.objects.values_list('name', flat=True)
         patients_by_company = (
-            KahamaPatient.objects.filter(created_at__year=year)
+            PembaPatient.objects.filter(created_at__year=year)
             .values('company__name')
             .annotate(month=ExtractMonth('created_at'))
             .annotate(num_patients=Count('id'))
@@ -199,9 +199,9 @@ def render_report(report_type, year):
         }
         return render_to_string('pembadoctor_template/company_wise_reports_table.html', context)
     elif report_type == 'patient_lab_result_reports':      
-        laboratory_services = KahamaService.objects.filter(category='Laboratory')
+        laboratory_services = PembaService.objects.filter(category='Laboratory')
         laboratories_by_month = (
-            KahamaLaboratoryRequest.objects.filter(created_at__year=year)
+            PembaLaboratoryRequest.objects.filter(created_at__year=year)
             .annotate(month=ExtractMonth('created_at'))
             .values('name__name', 'month')
             .annotate(num_patients=Count('id'))
@@ -223,9 +223,9 @@ def render_report(report_type, year):
         }
         return render_to_string('pembadoctor_template/laboratory_report_table.html', context)
     elif report_type == 'patient_procedure_reports':      
-        procedure_services = KahamaService.objects.filter(category='Procedure')
+        procedure_services = PembaService.objects.filter(category='Procedure')
         procedures_by_month = (
-            KahamaProcedure.objects.filter(created_at__year=year)
+            PembaProcedure.objects.filter(created_at__year=year)
             .annotate(month=ExtractMonth('created_at'))
             .values('name__name', 'month')
             .annotate(num_patients=Count('id'))
@@ -247,16 +247,16 @@ def render_report(report_type, year):
         }
         return render_to_string('pembadoctor_template/procedure_report_table.html', context)
     elif report_type == 'patient_referral_reports':
-        referrals = KahamaReferral.objects.filter(created_at__year=year)
+        referrals = PembaReferral.objects.filter(created_at__year=year)
         context = {'referrals': referrals}
         return render_to_string('pembadoctor_template/referral_reports_table.html', context)
     elif report_type == 'patient_pathology_reports':
         all_pathology_records = PathodologyRecord.objects.values_list('name', flat=True)
         patients_by_pathology_record = (
-            PathodologyRecord.objects.filter(kahamaconsultationnotes__created_at__year=year)
-            .annotate(month=ExtractMonth('kahamaconsultationnotes__created_at'))
+            PathodologyRecord.objects.filter(pembaconsultationnotes__created_at__year=year)
+            .annotate(month=ExtractMonth('pembaconsultationnotes__created_at'))
             .values('name', 'month')
-            .annotate(num_patients=Count('kahamaconsultationnotes__id'))
+            .annotate(num_patients=Count('pembaconsultationnotes__id'))
         )
         pathology_record_reports = {record: [0] * 12 for record in all_pathology_records}
         for patient in patients_by_pathology_record:
@@ -310,8 +310,8 @@ def get_gender_yearly_data(request):
     """AJAX view to get gender data by year"""
     if request.method == 'GET':
         selected_year = request.GET.get('year')
-        male_count = KahamaPatient.objects.filter(gender='Male', created_at__year=selected_year).count()
-        female_count = KahamaPatient.objects.filter(gender='Female', created_at__year=selected_year).count()
+        male_count = PembaPatient.objects.filter(gender='Male', created_at__year=selected_year).count()
+        female_count = PembaPatient.objects.filter(gender='Female', created_at__year=selected_year).count()
         
         yearly_gender_data = {
             'Male': male_count,
@@ -327,10 +327,10 @@ def get_gender_yearly_data(request):
 def get_patient_data_by_company(request):
     """AJAX view to get patient data by company"""
     patient_data = {}
-    companies = KahamaCompany.objects.all()
+    companies = PembaCompany.objects.all()
     
     for company in companies:
-        patients_count = KahamaPatient.objects.filter(company=company).count()
+        patients_count = PembaPatient.objects.filter(company=company).count()
         patient_data[company.name] = patients_count
         
     return JsonResponse(patient_data)
@@ -344,13 +344,13 @@ def get_gender_monthly_data(request):
         gender_monthly_data = {}
         
         for month in range(1, 13):
-            male_count = KahamaPatient.objects.filter(
+            male_count = PembaPatient.objects.filter(
                 gender='Male',
                 created_at__year=selected_year,
                 created_at__month=month
             ).count()
             
-            female_count = KahamaPatient.objects.filter(
+            female_count = PembaPatient.objects.filter(
                 gender='Female',
                 created_at__year=selected_year,
                 created_at__month=month
@@ -380,11 +380,11 @@ def appointment_view(request):
             description = request.POST.get('description')
             created_by = request.user.staff
             
-            visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
+            visit = get_object_or_404(PembaPatientVisits, id=visit_id)
             doctor = get_object_or_404(Staffs, id=doctor_id)
-            patient = get_object_or_404(KahamaPatient, id=patient_id)
+            patient = get_object_or_404(PembaPatient, id=patient_id)
             
-            consultation = KahamaAppointment(
+            consultation = PembaAppointment(
                 doctor=doctor,
                 visit=visit,
                 patient=patient,
@@ -409,9 +409,9 @@ def appointment_view(request):
 @login_required
 def appointment_list_view(request):
     """View for listing appointments"""
-    appointments = KahamaAppointment.objects.all() 
-    doctors = Staffs.objects.filter(role='doctor', work_place='kahama')
-    patients = KahamaPatient.objects.all()
+    appointments = PembaAppointment.objects.all() 
+    doctors = Staffs.objects.filter(role='doctor', work_place='pemba')
+    patients = PembaPatient.objects.all()
     
     context = {        
         'appointments': appointments,
@@ -452,7 +452,7 @@ def add_appointment(request):
                 return JsonResponse({'success': False, 'message': 'Start time must be earlier than end time'})
 
             # Save appointment
-            appointment = KahamaAppointment.objects.create(
+            appointment = PembaAppointment.objects.create(
                 patient_id=patient_id,
                 doctor_id=doctor_id,
                 appointment_date=appointment_date,
@@ -476,7 +476,7 @@ def add_appointment(request):
 def confirm_meeting(request, appointment_id):
     """View for confirming appointments"""
     try:
-        appointment = get_object_or_404(KahamaAppointment, id=appointment_id)
+        appointment = get_object_or_404(PembaAppointment, id=appointment_id)
         
         if request.method == 'POST':
             selected_status = int(request.POST.get('status'))
@@ -504,7 +504,7 @@ def edit_meeting(request, appointment_id):
             start_time = request.POST.get('start_time')
             end_time = request.POST.get('end_time')
             
-            appointment = get_object_or_404(KahamaAppointment, id=appointment_id)
+            appointment = get_object_or_404(PembaAppointment, id=appointment_id)
             appointment.start_time = start_time
             appointment.end_time = end_time
             appointment.save()
@@ -523,20 +523,20 @@ def edit_meeting(request, appointment_id):
 def save_remotesconsultation_notes(request, patient_id, visit_id):
     """View for saving consultation notes"""
     doctor = request.user.staff
-    patient = get_object_or_404(KahamaPatient, pk=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, patient=patient, id=visit_id)
-    patient_visits = KahamaPatientVisits.objects.filter(patient=patient)
+    patient = get_object_or_404(PembaPatient, pk=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, patient=patient, id=visit_id)
+    patient_visits = PembaPatientVisits.objects.filter(patient=patient)
 
     # Fetch patient health-related data
     try:
         context_data = {
-            'patient_vitals': KahamaPatientVital.objects.filter(patient=patient, visit=visit),
-            'health_records': KahamaHealthRecord.objects.all(),
-            'health_conditions': KahamaPatientHealthCondition.objects.filter(patient=patient),
-            'surgery_info': KahamaPatientSurgery.objects.filter(patient=patient),
-            'family_history': KahamaFamilyMedicalHistory.objects.filter(patient=patient),
-            'allergies': KahamaPatientMedicationAllergy.objects.filter(patient=patient),
-            'behaviors': KahamaPatientLifestyleBehavior.objects.filter(patient=patient).first(),
+            'patient_vitals': PembaPatientVital.objects.filter(patient=patient, visit=visit),
+            'health_records': PembaHealthRecord.objects.all(),
+            'health_conditions': PembaPatientHealthCondition.objects.filter(patient=patient),
+            'surgery_info': PembaPatientSurgery.objects.filter(patient=patient),
+            'family_history': PembaFamilyMedicalHistory.objects.filter(patient=patient),
+            'allergies': PembaPatientMedicationAllergy.objects.filter(patient=patient),
+            'behaviors': PembaPatientLifestyleBehavior.objects.filter(patient=patient).first(),
         }
         
     except Exception:
@@ -546,11 +546,11 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
             'family_history': None, 'allergies': None, 'behaviors': None,
         }
     
-    consultation_note = KahamaConsultationNotes.objects.filter(patient=patient, visit=visit).first()
-    previous_referrals = KahamaReferral.objects.filter(patient=patient, visit=visit)
-    previous_discharges = KahamaDischargesNotes.objects.filter(patient=patient, visit=visit)
+    consultation_note = PembaConsultationNotes.objects.filter(patient=patient, visit=visit).first()
+    previous_referrals = PembaReferral.objects.filter(patient=patient, visit=visit)
+    previous_discharges = PembaDischargesNotes.objects.filter(patient=patient, visit=visit)
 
-    provisional_record, _ = KahamaPatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+    provisional_record, _ = PembaPatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
     provisional_diagnosis_ids = provisional_record.provisional_diagnosis.values_list('id', flat=True)
     final_diagnosis_ids = provisional_record.final_diagnosis.values_list('id', flat=True)
 
@@ -564,7 +564,7 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
         'previous_discharges': previous_discharges,
         'patient_visits': patient_visits,
         'pathology_records': pathology_records,
-        'provisional_diagnoses': KahamaDiagnosis.objects.all(),
+        'provisional_diagnoses': PembaDiagnosis.objects.all(),
         'provisional_diagnosis_ids': provisional_diagnosis_ids,
         'final_provisional_diagnosis': final_diagnosis_ids,
         'range_51': range(51),
@@ -603,11 +603,11 @@ def save_remotesconsultation_notes(request, patient_id, visit_id):
                 consultation_note.pathology.set(pathology_ids)
                 consultation_note.save()
             else:
-                if KahamaConsultationNotes.objects.filter(patient=patient, visit=visit).exists():
+                if PembaConsultationNotes.objects.filter(patient=patient, visit=visit).exists():
                     messages.error(request, 'A consultation note already exists for this visit.')
                     return render(request, 'pembadoctor_template/add_consultation_notes.html', context)
 
-                consultation_note = KahamaConsultationNotes.objects.create(
+                consultation_note = PembaConsultationNotes.objects.create(
                     doctor=doctor,
                     patient=patient,
                     visit=visit,
@@ -639,17 +639,17 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
     """View for saving additional consultation notes"""
     try:
         # Retrieve the patient and visit objects
-        patient = get_object_or_404(KahamaPatient, pk=patient_id)
-        visit = get_object_or_404(KahamaPatientVisits, patient=patient_id, id=visit_id)
-        doctor_plan_note = KahamaConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
+        patient = get_object_or_404(PembaPatient, pk=patient_id)
+        visit = get_object_or_404(PembaPatientVisits, patient=patient_id, id=visit_id)
+        doctor_plan_note = PembaConsultationNotes.objects.filter(patient=patient_id, visit=visit).first()
         data_recorder = request.user.staff
 
         # Retrieve the consultation note object if it exists, otherwise create a new one
-        consultation_note, created = KahamaPatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
+        consultation_note, created = PembaPatientDiagnosisRecord.objects.get_or_create(patient=patient, visit=visit)
 
         # Retrieve all provisional and final diagnoses
-        provisional_diagnoses = KahamaDiagnosis.objects.all()
-        final_diagnoses = KahamaDiagnosis.objects.all()
+        provisional_diagnoses = PembaDiagnosis.objects.all()
+        final_diagnoses = PembaDiagnosis.objects.all()
 
         # Get the IDs of the provisional and final diagnoses associated with the consultation note
         provisional_diagnosis_ids = consultation_note.provisional_diagnosis.values_list('id', flat=True)
@@ -664,7 +664,7 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
             doctor_plan = request.POST.get('doctor_plan')            
             
             if not consultation_note:
-                consultation_note = KahamaPatientDiagnosisRecord.objects.create(patient=patient, visit=visit)
+                consultation_note = PembaPatientDiagnosisRecord.objects.create(patient=patient, visit=visit)
                 consultation_note.data_recorder = data_recorder
                 
             consultation_note.final_diagnosis.set(final_diagnosis)
@@ -724,9 +724,9 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
 def consultation_notes_view(request):
     """View for displaying consultation notes"""
     # Get all patients who have consultation notes
-    patient_records = KahamaPatient.objects.filter(
-        consultation_notes__isnull=False
-    ).distinct().order_by('-consultation_notes__updated_at')
+    patient_records = PembaPatient.objects.filter(
+        pemba_consultation_notes__isnull=False
+    ).distinct().order_by('-pemba_consultation_notes__updated_at')
 
     return render(request, 'pembadoctor_template/manage_consultation_notes.html', {
         'patient_records': patient_records
@@ -739,23 +739,23 @@ def consultation_notes_view(request):
 def download_consultation_summary_pdf(request, patient_id, visit_id):
     """View for downloading consultation summary as PDF"""
     # Fetch core patient and visit info
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
 
     # Query all related models for that visit
-    counseling = KahamaCounseling.objects.filter(patient=patient, visit=visit).last()
-    prescriptions = KahamaPrescription.objects.filter(patient=patient, visit=visit)
-    observations = KahamaObservationRecord.objects.filter(patient=patient, visit=visit).last()
-    discharge_note = KahamaDischargesNotes.objects.filter(patient=patient, visit=visit).last()
-    referral = KahamaReferral.objects.filter(patient=patient, visit=visit).last()
-    complaints = KahamaChiefComplaint.objects.filter(patient=patient, visit=visit)
-    vitals = KahamaPatientVital.objects.filter(patient=patient, visit=visit).last()
+    counseling = PembaCounseling.objects.filter(patient=patient, visit=visit).last()
+    prescriptions = PembaPrescription.objects.filter(patient=patient, visit=visit)
+    observations = PembaObservationRecord.objects.filter(patient=patient, visit=visit).last()
+    discharge_note = PembaDischargesNotes.objects.filter(patient=patient, visit=visit).last()
+    referral = PembaReferral.objects.filter(patient=patient, visit=visit).last()
+    complaints = PembaChiefComplaint.objects.filter(patient=patient, visit=visit)
+    vitals = PembaPatientVital.objects.filter(patient=patient, visit=visit).last()
 
     # Add Consultation Notes
-    consultation_note = KahamaConsultationNotes.objects.filter(patient=patient, visit=visit).last()   
+    consultation_note = PembaConsultationNotes.objects.filter(patient=patient, visit=visit).last()   
 
     # Add Laboratory Orders
-    lab_tests = KahamaLaboratoryRequest.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
+    lab_tests = PembaLaboratoryRequest.objects.filter(patient=patient, visit=visit).select_related('name', 'data_recorder')
 
     # Prepare context
     context = {
@@ -802,16 +802,16 @@ def download_consultation_summary_pdf(request, patient_id, visit_id):
 @login_required    
 def save_counsel(request, patient_id, visit_id):
     """View for saving counseling records"""
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)              
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)              
     data_recorder = request.user.staff
 
     # Use .filter().first() to avoid DoesNotExist error
-    remote_counseling = KahamaCounseling.objects.filter(patient=patient, visit=visit).first()
-    consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    remote_counseling = PembaCounseling.objects.filter(patient=patient, visit=visit).first()
+    consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
 
     if request.method == 'POST':        
-        form = KahamaCounselingForm(request.POST, instance=remote_counseling)
+        form = PembaCounselingForm(request.POST, instance=remote_counseling)
 
         if form.is_valid():
             counseling = form.save(commit=False)
@@ -829,7 +829,7 @@ def save_counsel(request, patient_id, visit_id):
 
         return redirect(reverse('pemba_doctor_consultation_save', args=[patient_id, visit_id]))
     else:
-        form = KahamaCounselingForm(instance=remote_counseling)   
+        form = PembaCounselingForm(instance=remote_counseling)   
 
     context = {
         'patient': patient, 
@@ -846,16 +846,16 @@ def save_counsel(request, patient_id, visit_id):
 @login_required
 def counseling_list_view(request):
     """View for listing counseling records"""
-    counselings = KahamaCounseling.objects.all().order_by('-created_at')
+    counselings = PembaCounseling.objects.all().order_by('-created_at')
     return render(request, 'pembadoctor_template/manage_counselling.html', {'counselings': counselings})
 
 
 @login_required
 def download_counseling_pdf(request, patient_id, visit_id):
     """View for downloading counseling notes as PDF"""
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    counseling = get_object_or_404(KahamaCounseling, patient=patient, visit=visit)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    counseling = get_object_or_404(PembaCounseling, patient=patient, visit=visit)
     
     context = {
         'counseling': counseling,
@@ -887,10 +887,10 @@ def download_counseling_pdf(request, patient_id, visit_id):
 @login_required    
 def save_remote_discharges_notes(request, patient_id, visit_id):
     """View for saving discharge notes"""
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    remote_discharges_notes = KahamaDischargesNotes.objects.filter(patient=patient, visit=visit).first()  
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    remote_discharges_notes = PembaDischargesNotes.objects.filter(patient=patient, visit=visit).first()  
     
     context = {
         'patient': patient,
@@ -903,7 +903,7 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
         data_recorder = request.user.staff      
         
         if request.method == 'POST':
-            form = KahamaDischargesNotesForm(request.POST, instance=remote_discharges_notes)
+            form = PembaDischargesNotesForm(request.POST, instance=remote_discharges_notes)
             
             if form.is_valid():
                 remote_discharges_notes = form.save(commit=False)
@@ -917,7 +917,7 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
             else:
                 messages.error(request, 'Please correct the errors in the form.')
         else:
-            form = KahamaDischargesNotesForm(instance=remote_discharges_notes)        
+            form = PembaDischargesNotesForm(instance=remote_discharges_notes)        
         
         context['form'] = form
         return render(request, 'pembadoctor_template/discharge_template.html', context)    
@@ -930,16 +930,16 @@ def save_remote_discharges_notes(request, patient_id, visit_id):
 @login_required
 def discharge_notes_list_view(request):
     """View for listing discharge notes"""
-    discharge_notes = KahamaDischargesNotes.objects.all().order_by('-discharge_date')
+    discharge_notes = PembaDischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'pembadoctor_template/manage_discharge.html', {'discharge_notes': discharge_notes})
 
 
 @login_required
 def download_discharge_pdf(request, patient_id, visit_id):
     """View for downloading discharge notes as PDF"""
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    discharge_note = get_object_or_404(KahamaDischargesNotes, patient=patient, visit=visit)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    discharge_note = get_object_or_404(PembaDischargesNotes, patient=patient, visit=visit)
     
     context = {
         'discharge_note': discharge_note,
@@ -971,15 +971,15 @@ def download_discharge_pdf(request, patient_id, visit_id):
 @login_required    
 def save_laboratory(request, patient_id, visit_id):
     """View for saving laboratory requests"""
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    remote_service = KahamaService.objects.filter(category='Laboratory')
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    remote_service = PembaService.objects.filter(category='Laboratory')
     data_recorder = request.user.staff
-    previous_results = KahamaLaboratoryRequest.objects.filter(patient=patient)
-    consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+    previous_results = PembaLaboratoryRequest.objects.filter(patient=patient)
+    consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
     
     # Check if the laboratory order already exists for this patient on the specified visit
-    laboratory_order = KahamaLaboratoryRequest.objects.filter(patient=patient, visit=visit).first()
+    laboratory_order = PembaLaboratoryRequest.objects.filter(patient=patient, visit=visit).first()
     
     context = {
         'patient': patient,
@@ -1006,7 +1006,7 @@ def save_laboratory(request, patient_id, visit_id):
                     messages.success(request, '')
                 else:
                     # If no laboratory order exists, create a new one
-                    KahamaLaboratoryRequest.objects.create(
+                    PembaLaboratoryRequest.objects.create(
                         data_recorder=data_recorder,
                         patient=patient,
                         visit=visit,
@@ -1029,7 +1029,7 @@ def patient_laboratory_view(request):
     """View for displaying patient laboratory results"""
     # Get distinct (patient, visit) combinations with latest result date
     distinct_lab_sets = (
-        KahamaLaboratoryRequest.objects
+        PembaLaboratoryRequest.objects
         .values('patient_id', 'visit_id')
         .annotate(latest_date=Max('created_at'))
         .order_by('-latest_date')
@@ -1042,7 +1042,7 @@ def patient_laboratory_view(request):
         visit_id = entry['visit_id']
         latest_date = entry['latest_date']
 
-        lab_tests = KahamaLaboratoryRequest.objects.filter(
+        lab_tests = PembaLaboratoryRequest.objects.filter(
             patient_id=patient_id,
             visit_id=visit_id
         ).select_related('patient', 'visit', 'data_recorder__admin')
@@ -1064,34 +1064,14 @@ def patient_laboratory_view(request):
     return render(request, 'pembadoctor_template/manage_lab_result.html', context)
 
 
-@login_required
-def patient_lab_details_view(request, mrn, visit_number):
-    """View for displaying detailed lab results for a patient"""
-    # Fetch the patient with a prefetch query to reduce database hits
-    patient = get_object_or_404(KahamaPatient.objects.prefetch_related('remotelaboratoryorder_set'), mrn=mrn)
-    visit = get_object_or_404(KahamaPatientVisits, vst=visit_number)
-    
-    # Retrieve lab results efficiently
-    lab_results = list(patient.remotelaboratoryorder_set.filter(visit__vst=visit_number))
 
-    # Get the first data recorder if lab results exist
-    lab_done_by = lab_results[0].data_recorder if lab_results else None
-
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'lab_done_by': lab_done_by,
-        'lab_results': lab_results,
-    }
-
-    return render(request, 'pembadoctor_template/lab_details.html', context)
 
 @login_required
 def patient_lab_result_history_view(request, mrn):
-    patient = get_object_or_404(KahamaPatient, mrn=mrn)    
+    patient = get_object_or_404(PembaPatient, mrn=mrn)    
     # Retrieve all procedures for the specific patient
-    lab_results = KahamaLaboratoryRequest.objects.filter(patient=patient)
-    patient_lab_results =  KahamaService.objects.filter(category='Laboratory')    
+    lab_results = PembaLaboratoryRequest.objects.filter(patient=patient)
+    patient_lab_results =  PembaService.objects.filter(category='Laboratory')    
     context = {
         'patient': patient,
         'lab_results': lab_results,
@@ -1104,7 +1084,7 @@ def download_lab_result_pdf(request, lab_id):
     """View for downloading lab results as PDF"""
     # Fetch the lab order or return 404 if not found
     lab = get_object_or_404(
-        KahamaLaboratoryRequest.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
+        PembaLaboratoryRequest.objects.select_related('patient', 'visit', 'data_recorder', 'name'),
         id=lab_id
     )
 
@@ -1145,11 +1125,11 @@ def download_lab_result_pdf(request, lab_id):
 def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
     """View for downloading all lab results for a patient as PDF"""
     # Fetch patient and visit objects
-    patient = get_object_or_404(KahamaPatient, mrn=patient_mrn)
-    visit = get_object_or_404(KahamaPatientVisits, vst=visit_vst)
+    patient = get_object_or_404(PembaPatient, mrn=patient_mrn)
+    visit = get_object_or_404(PembaPatientVisits, vst=visit_vst)
 
     # Fetch all laboratory orders for this patient and visit
-    lab_tests = KahamaLaboratoryRequest.objects.filter(patient=patient, visit=visit).select_related(
+    lab_tests = PembaLaboratoryRequest.objects.filter(patient=patient, visit=visit).select_related(
         'name', 'data_recorder'
     )
 
@@ -1193,10 +1173,10 @@ def download_all_lab_results_pdf(request, patient_mrn, visit_vst):
 def edit_lab_result(request, patient_id, visit_id, lab_id):
     """View for editing lab results"""
     # Retrieve patient and visit objects
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)            
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)            
 
-    procedures = KahamaLaboratoryRequest.objects.filter(patient=patient, visit=visit, id=lab_id).first()
+    procedures = PembaLaboratoryRequest.objects.filter(patient=patient, visit=visit, id=lab_id).first()
     
     # Prepare context for rendering the template
     context = {
@@ -1207,7 +1187,7 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
     
     # Handle form submission
     if request.method == 'POST':        
-        form = KahamaLaboratoryRequestForm(request.POST, instance=procedures)
+        form = PembaLaboratoryRequestForm(request.POST, instance=procedures)
         
         # Check if a record already exists for the patient and visit
         if procedures:
@@ -1242,7 +1222,7 @@ def edit_lab_result(request, patient_id, visit_id, lab_id):
    
     else:
         # If it's a GET request, initialize the form with existing data (if any)
-        form = KahamaLaboratoryRequestForm(instance=procedures)   
+        form = PembaLaboratoryRequestForm(instance=procedures)   
     
     # Add the form to the context
     context['form'] = form    
@@ -1257,12 +1237,12 @@ def patient_observation_view(request):
     template_name = 'pembadoctor_template/manage_observation.html'    
     
     # Query to retrieve the latest procedure record for each patient
-    observations = KahamaObservationRecord.objects.filter(
+    observations = PembaObservationRecord.objects.filter(
         patient=OuterRef('id')
     ).order_by('-created_at')
     
     # Query to retrieve patients with their corresponding procedure (excluding patients without observations)
-    patients_with_observations = KahamaPatient.objects.annotate(
+    patients_with_observations = PembaPatient.objects.annotate(
         observation_name=Subquery(observations.values('imaging__name')[:1]),      
     ).filter(observation_name__isnull=False)    
   
@@ -1276,36 +1256,36 @@ def patient_observation_view(request):
 @login_required
 def observation_record_list_view(request):
     """View for listing observation records"""
-    observation_records = KahamaObservationRecord.objects.all().order_by('-created_at')
-    return render(request, 'pembadoctor_template/manade_observation_record.html', {'observation_records': observation_records})
+    observation_records = PembaObservationRecord.objects.all().order_by('-created_at')
+    return render(request, 'pembadoctor_template/manage_observation_record.html', {'observation_records': observation_records})
 
 @login_required
 def save_observation(request, patient_id, visit_id):
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
     data_recorder = request.user.staff
-    record_exists = KahamaObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
+    record_exists = PembaObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
+    consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
     context = {'patient': patient, 
                'visit': visit, 
                'consultation_notes': consultation_notes, 
                'record_exists': record_exists
                }
     if request.method == 'POST':
-        form = KahamaObservationRecordForm(request.POST)
+        form = PembaObservationRecordForm(request.POST)
         if form.is_valid():
             description = form.cleaned_data['observation_notes']
             try:
                 if record_exists:
                     # If a record exists, update it
-                    observation_record = KahamaObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
+                    observation_record = PembaObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
                     observation_record.observation_notes = description
                     observation_record.data_recorder = data_recorder
                     observation_record.save()
                     messages.success(request, '')
                 else:
                     # If no record exists, create a new one
-                    KahamaObservationRecord.objects.create(
+                    PembaObservationRecord.objects.create(
                         patient=patient,
                         visit=visit,
                         data_recorder=data_recorder,
@@ -1318,7 +1298,7 @@ def save_observation(request, patient_id, visit_id):
         else:
             messages.error(request, 'Please fill out all required fields.')
     else:
-        form = KahamaObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
+        form = PembaObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
 
     context['form'] = form
     return render(request, 'pembadoctor_template/observation_template.html', context)
@@ -1327,9 +1307,9 @@ def save_observation(request, patient_id, visit_id):
 def download_observation_pdf(request, patient_id, visit_id):
     """View for downloading observation records as PDF"""
     # Fetch the required patient and visit
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    observation_record = get_object_or_404(KahamaObservationRecord, patient=patient, visit=visit)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    observation_record = get_object_or_404(PembaObservationRecord, patient=patient, visit=visit)
 
     # Prepare context for the template
     context = {
@@ -1428,7 +1408,7 @@ def patient_info_form(request):
             age = age or None
             
             # Check if a patient with the same information already exists
-            existing_patient = KahamaPatient.objects.filter(
+            existing_patient = PembaPatient.objects.filter(
                 first_name=first_name,
                 middle_name=middle_name,
                 last_name=last_name,                          
@@ -1439,7 +1419,7 @@ def patient_info_form(request):
                 return redirect(reverse('pemba_doctor_patient_add'))
                 
             # Create or update patient record
-            patient = KahamaPatient(
+            patient = PembaPatient(
                 first_name=first_name,
                 middle_name=middle_name,
                 last_name=last_name,
@@ -1478,7 +1458,7 @@ def patient_info_form(request):
             
     range_121 = range(0, 121)
     all_country = Country.objects.all()
-    all_company = KahamaCompany.objects.all()
+    all_company = PembaCompany.objects.all()
     
     context = {
         'range_121': range_121,
@@ -1492,8 +1472,8 @@ def patient_info_form(request):
 @login_required
 def patients_list(request):
     """View for listing all patients"""
-    patients = KahamaPatient.objects.order_by('-created_at')    
-    doctors = Staffs.objects.filter(role='doctor', work_place='kahama')
+    patients = PembaPatient.objects.order_by('-created_at')    
+    doctors = Staffs.objects.filter(role='doctor', work_place='pemba')
     
     return render(request, 'pembadoctor_template/manage_remotepatients_list.html', {
         'patients': patients,
@@ -1505,8 +1485,8 @@ def patients_list(request):
 def patient_info_form_edit(request, patient_id):    
     """View for editing patient information"""
     try:
-        patient = KahamaPatient.objects.get(pk=patient_id)    
-    except KahamaPatient.DoesNotExist:
+        patient = PembaPatient.objects.get(pk=patient_id)    
+    except PembaPatient.DoesNotExist:
         return HttpResponse("Patient not found", status=404)
         
     if request.method == 'POST':
@@ -1589,7 +1569,7 @@ def patient_info_form_edit(request, patient_id):
             patient.other_occupation = other_occupation if occupation == 'Other' else None
             patient.patient_type = patient_type           
             patient.other_patient_type = other_patient_type if patient_type == 'Other' else None           
-            patient.company_id = KahamaCompany.objects.get(id=company_id)
+            patient.company_id = PembaCompany.objects.get(id=company_id)
             patient.save()
             
             if 'save_back' in request.POST:
@@ -1602,7 +1582,7 @@ def patient_info_form_edit(request, patient_id):
             return redirect(reverse('pemba_doctor_patient_edit', args=[patient_id]))
             
     all_country = Country.objects.all()
-    all_company = KahamaCompany.objects.all()
+    all_company = PembaCompany.objects.all()
     range_121 = range(1, 121)
     
     return render(request, 'pembadoctor_template/edit_remotepatient.html', {
@@ -1625,12 +1605,12 @@ def delete_health_record(request):
         if not record_id:
             return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
             
-        record = get_object_or_404(KahamaPatientHealthCondition, id=record_id)
+        record = get_object_or_404(PembaPatientHealthCondition, id=record_id)
         record.delete()
         
         return JsonResponse({'status': 'success', 'message': 'Record deleted'})
         
-    except KahamaPatientHealthCondition.DoesNotExist:
+    except PembaPatientHealthCondition.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Health record not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
@@ -1646,12 +1626,12 @@ def delete_family_medical_history_record(request):
         if not record_id:
             return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
             
-        record = get_object_or_404(KahamaFamilyMedicalHistory, id=record_id)
+        record = get_object_or_404(PembaFamilyMedicalHistory, id=record_id)
         record.delete()
         
         return JsonResponse({'status': 'success', 'message': 'Family medical history record deleted successfully'})
         
-    except KahamaFamilyMedicalHistory.DoesNotExist:
+    except PembaFamilyMedicalHistory.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Record not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
@@ -1667,12 +1647,12 @@ def delete_medication_allergy_record(request):
         if not record_id:
             return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
             
-        record = get_object_or_404(KahamaPatientMedicationAllergy, id=record_id)
+        record = get_object_or_404(PembaPatientMedicationAllergy, id=record_id)
         record.delete()
         
         return JsonResponse({'status': 'success', 'message': 'Record deleted successfully'})
         
-    except KahamaPatientMedicationAllergy.DoesNotExist:
+    except PembaPatientMedicationAllergy.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Allergy record not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
@@ -1688,12 +1668,12 @@ def delete_surgery_history_record(request):
         if not record_id:
             return JsonResponse({'status': 'error', 'message': 'Record ID not provided'}, status=400)
             
-        record = get_object_or_404(KahamaPatientSurgery, id=record_id)
+        record = get_object_or_404(PembaPatientSurgery, id=record_id)
         record.delete()
         
         return JsonResponse({'status': 'success', 'message': 'Surgery record deleted successfully'})
         
-    except KahamaPatientSurgery.DoesNotExist:
+    except PembaPatientSurgery.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Surgery record not found'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Unexpected error: {str(e)}'}, status=500)
@@ -1703,36 +1683,36 @@ def delete_surgery_history_record(request):
 def health_info_edit(request, patient_id):
     """View for editing patient health information"""
     try:
-        patient = get_object_or_404(KahamaPatient, pk=patient_id)
+        patient = get_object_or_404(PembaPatient, pk=patient_id)
         
         try:
-            all_medicines = KahamaMedicine.objects.all()
-        except KahamaMedicine.DoesNotExist:
+            all_medicines = PembaMedicine.objects.all()
+        except PembaMedicine.DoesNotExist:
             all_medicines = []
             
         try:
-            patient_health_records = KahamaPatientHealthCondition.objects.filter(patient_id=patient_id)
-        except KahamaPatientHealthCondition.DoesNotExist:
+            patient_health_records = PembaPatientHealthCondition.objects.filter(patient_id=patient_id)
+        except PembaPatientHealthCondition.DoesNotExist:
             patient_health_records = None
             
         try:
-            medication_allergies = KahamaPatientMedicationAllergy.objects.filter(patient_id=patient_id)
-        except KahamaPatientMedicationAllergy.DoesNotExist:
+            medication_allergies = PembaPatientMedicationAllergy.objects.filter(patient_id=patient_id)
+        except PembaPatientMedicationAllergy.DoesNotExist:
             medication_allergies = None
             
         try:
-            surgery_history = KahamaPatientSurgery.objects.filter(patient_id=patient_id)
-        except KahamaPatientSurgery.DoesNotExist:
+            surgery_history = PembaPatientSurgery.objects.filter(patient_id=patient_id)
+        except PembaPatientSurgery.DoesNotExist:
             surgery_history = None
             
         try:
-            lifestyle_behavior = KahamaPatientLifestyleBehavior.objects.get(patient_id=patient_id)
-        except KahamaPatientLifestyleBehavior.DoesNotExist:
+            lifestyle_behavior = PembaPatientLifestyleBehavior.objects.get(patient_id=patient_id)
+        except PembaPatientLifestyleBehavior.DoesNotExist:
             lifestyle_behavior = None
             
         try:
-            family_medical_history = KahamaFamilyMedicalHistory.objects.filter(patient=patient)
-        except KahamaFamilyMedicalHistory.DoesNotExist:
+            family_medical_history = PembaFamilyMedicalHistory.objects.filter(patient=patient)
+        except PembaFamilyMedicalHistory.DoesNotExist:
             family_medical_history = None
             
         context = {
@@ -1755,7 +1735,7 @@ def health_info_edit(request, patient_id):
                 lifestyle_behavior.sufficient_sleep = request.POST.get('sufficient_sleep')
                 lifestyle_behavior.save()
             else:
-                lifestyle_behavior = KahamaPatientLifestyleBehavior(
+                lifestyle_behavior = PembaPatientLifestyleBehavior(
                     patient_id=patient_id,
                     smoking=request.POST.get('smoking'),
                     alcohol_consumption=request.POST.get('alcohol_consumption'),
@@ -1783,7 +1763,7 @@ def health_info_edit(request, patient_id):
                 new_comments = request.POST.getlist('new_comments[]')
                 
                 for condition, relationship, comments in zip(new_conditions, new_relationships, new_comments):
-                    new_record = KahamaFamilyMedicalHistory(patient=patient, condition=condition, relationship=relationship, comments=comments)
+                    new_record = PembaFamilyMedicalHistory(patient=patient, condition=condition, relationship=relationship, comments=comments)
                     new_record.save()
                     
             if request.POST.get('family_medical_history') == 'no':
@@ -1795,7 +1775,7 @@ def health_info_edit(request, patient_id):
                 reaction = request.POST.get('reaction_' + allergy_id)
                 
                 if medicine_name is not None:
-                    medicine_name_id = KahamaMedicine.objects.get(id=medicine_name) 
+                    medicine_name_id = PembaMedicine.objects.get(id=medicine_name) 
                     allergy.medicine_id = medicine_name_id.id
                     
                 if reaction is not None:
@@ -1808,8 +1788,8 @@ def health_info_edit(request, patient_id):
                 new_reactions = request.POST.getlist('new_reaction[]')
                 
                 for medicine_name, reaction in zip(new_medicine_names, new_reactions):
-                    medicine_name_id = KahamaMedicine.objects.get(id=medicine_name)  
-                    new_allergy = KahamaPatientMedicationAllergy(patient=patient, medicine_id=medicine_name_id.id, reaction=reaction)
+                    medicine_name_id = PembaMedicine.objects.get(id=medicine_name)  
+                    new_allergy = PembaPatientMedicationAllergy(patient=patient, medicine_id=medicine_name_id.id, reaction=reaction)
                     new_allergy.save()
                     
             if request.POST.get('medication_allergy') == 'no':
@@ -1833,7 +1813,7 @@ def health_info_edit(request, patient_id):
                 new_dates_of_surgery = request.POST.getlist('new_date_of_surgery[]')
                 
                 for name, date in zip(new_surgery_names, new_dates_of_surgery):
-                    new_surgery = KahamaPatientSurgery(patient=patient, surgery_name=name, surgery_date=date)
+                    new_surgery = PembaPatientSurgery(patient=patient, surgery_name=name, surgery_date=date)
                     new_surgery.save()
                     
             if request.POST.get('surgery_history') == 'no':
@@ -1857,7 +1837,7 @@ def health_info_edit(request, patient_id):
                 new_health_condition_notes = request.POST.getlist('new_health_condition_notes[]')
                 
                 for condition, notes in zip(new_health_conditions, new_health_condition_notes):
-                    new_record = KahamaPatientHealthCondition(patient=patient, health_condition=condition, health_condition_notes=notes)
+                    new_record = PembaPatientHealthCondition(patient=patient, health_condition=condition, health_condition_notes=notes)
                     new_record.save()
                     
                 messages.success(request, '')
@@ -1882,11 +1862,11 @@ def save_patient_health_information(request, patient_id):
     """View for saving patient health information"""
     try:
         # Retrieve the patient object using the patient_id from URL parameters
-        patient = get_object_or_404(KahamaPatient, pk=patient_id)
+        patient = get_object_or_404(PembaPatient, pk=patient_id)
         
         try:
-            all_medicines = KahamaMedicine.objects.all()
-        except KahamaMedicine.DoesNotExist:
+            all_medicines = PembaMedicine.objects.all()
+        except PembaMedicine.DoesNotExist:
             # Handle the case where no medicines are found
             all_medicines = []
             
@@ -1906,7 +1886,7 @@ def save_patient_health_information(request, patient_id):
             data_recorder = request.user.staff 
             
             # Create PatientLifestyleBehavior object
-            lifestyle_behavior = KahamaPatientLifestyleBehavior.objects.create(
+            lifestyle_behavior = PembaPatientLifestyleBehavior.objects.create(
                 patient=patient,
                 smoking=smoking,
                 alcohol_consumption=alcohol_consumption,
@@ -1923,7 +1903,7 @@ def save_patient_health_information(request, patient_id):
                 surgery_dates = request.POST.getlist('date_of_surgery[]')
                 
                 for name, date in zip(surgery_names, surgery_dates):
-                    surgery = KahamaPatientSurgery.objects.create(
+                    surgery = PembaPatientSurgery.objects.create(
                         patient=patient,
                         surgery_name=name,
                         data_recorder=data_recorder,
@@ -1936,7 +1916,7 @@ def save_patient_health_information(request, patient_id):
                 health_condition_notes = request.POST.getlist('health_condition_notes[]')
                 
                 for condition, notes in zip(health_conditions, health_condition_notes):
-                    patient_health_condition = KahamaPatientHealthCondition.objects.create(
+                    patient_health_condition = PembaPatientHealthCondition.objects.create(
                         patient=patient,
                         data_recorder=data_recorder,
                         health_condition=condition,
@@ -1950,7 +1930,7 @@ def save_patient_health_information(request, patient_id):
                 comments = request.POST.getlist('comments[]')
                 
                 for condition, relationship, comment in zip(conditions, relationships, comments):
-                    family_medical_history = KahamaFamilyMedicalHistory.objects.create(
+                    family_medical_history = PembaFamilyMedicalHistory.objects.create(
                         patient=patient,
                         data_recorder=data_recorder,
                         condition=condition,
@@ -1964,8 +1944,8 @@ def save_patient_health_information(request, patient_id):
                 reactions = request.POST.getlist('reaction[]')
                 
                 for medicine_name, reaction in zip(medicine_names, reactions):
-                    medicine_name_id = KahamaMedicine.objects.get(id=medicine_name)           
-                    medication_allergy = KahamaPatientMedicationAllergy.objects.create(
+                    medicine_name_id = PembaMedicine.objects.get(id=medicine_name)           
+                    medication_allergy = PembaPatientMedicationAllergy.objects.create(
                         patient=patient,
                         data_recorder=data_recorder,
                         medicine_id=medicine_name_id.id,
@@ -1975,7 +1955,7 @@ def save_patient_health_information(request, patient_id):
             # Redirect to the appropriate URL upon successful data saving
             return redirect(reverse('pemba_doctor_visit_save', args=[patient_id]))
 
-    except KahamaPatient.DoesNotExist:
+    except PembaPatient.DoesNotExist:
         # Handle the case where the patient ID is not valid
         messages.error(request, 'Patient not found.')
         return redirect(reverse('pemba_doctor_patient_health_info', args=[patient_id])) 
@@ -1995,15 +1975,15 @@ def save_prescription(request, patient_id, visit_id):
     """View for saving prescriptions"""
     try:
         # Retrieve visit history for the specified patient
-        visit = KahamaPatientVisits.objects.get(id=visit_id)         
+        visit = PembaPatientVisits.objects.get(id=visit_id)         
         frequencies = PrescriptionFrequency.objects.all()         
-        prescriptions = KahamaPrescription.objects.filter(patient=patient_id, visit_id=visit_id)        
-        consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+        prescriptions = PembaPrescription.objects.filter(patient=patient_id, visit_id=visit_id)        
+        consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
         current_date = timezone.now().date()
-        patient = KahamaPatient.objects.get(id=patient_id)   
+        patient = PembaPatient.objects.get(id=patient_id)   
         
         
-        medicines = KahamaMedicine.objects.filter(
+        medicines = PembaMedicine.objects.filter(
             remain_quantity__gt=0,  # Inventory level greater than zero
             expiration_date__gt=current_date  # Not expired
         ).distinct()
@@ -2029,7 +2009,7 @@ def save_prescription(request, patient_id, visit_id):
 def prescription_list(request):
     """View for listing prescriptions"""
     # Step 1: Fetch all prescriptions with related fields
-    prescriptions = KahamaPrescription.objects.select_related(
+    prescriptions = PembaPrescription.objects.select_related(
         'visit', 'patient', 'medicine', 'frequency'
     ).order_by('-visit__created_at')
 
@@ -2062,11 +2042,11 @@ def prescription_list(request):
 def download_prescription_notes_pdf(request, patient_id, visit_id):
     """View for downloading prescription notes as PDF"""
     # Fetch patient and visit
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
 
     # Get all prescriptions for this patient and visit
-    prescriptions = KahamaPrescription.objects.filter(patient=patient, visit=visit)
+    prescriptions = PembaPrescription.objects.filter(patient=patient, visit=visit)
 
     # Prepare context
     context = {
@@ -2114,11 +2094,11 @@ def add_remoteprescription(request):
         quantities = request.POST.getlist('quantity[]')
         entered_by = request.user.staff
 
-        patient = KahamaPatient.objects.get(id=patient_id)
-        visit = KahamaPatientVisits.objects.get(id=visit_id)
+        patient = PembaPatient.objects.get(id=patient_id)
+        visit = PembaPatientVisits.objects.get(id=visit_id)
 
         for i in range(len(medicines)):
-            medicine = KahamaMedicine.objects.get(id=medicines[i])
+            medicine = PembaMedicine.objects.get(id=medicines[i])
             quantity_used_str = quantities[i]
 
             if quantity_used_str is None:
@@ -2142,7 +2122,7 @@ def add_remoteprescription(request):
                     medicine.remain_quantity -= quantity_used
                     medicine.save()
 
-            KahamaPrescription.objects.create(
+            PembaPrescription.objects.create(
                 patient=patient,
                 medicine=medicine,
                 entered_by=entered_by,
@@ -2164,7 +2144,7 @@ def get_all_medicine_data(request):
     """AJAX view to get all medicine data"""
     try:
         today = date.today()
-        medicines = KahamaMedicine.objects.all()
+        medicines = PembaMedicine.objects.all()
 
         medicine_data = {}
         
@@ -2235,13 +2215,13 @@ def get_all_frequency_data(request):
 @login_required    
 def save_remoteprocedure(request, patient_id, visit_id):
     """View for saving procedures"""
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    procedures = KahamaService.objects.filter(category='Procedure')
-    consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    procedures = PembaService.objects.filter(category='Procedure')
+    consultation_notes = PembaPatientDiagnosisRecord.objects.filter(
         patient=patient_id, visit=visit_id
     )
-    previous_procedures = KahamaProcedure.objects.filter(patient_id=patient_id)
+    previous_procedures = PembaProcedure.objects.filter(patient_id=patient_id)
 
     context = {
         'patient': patient,
@@ -2275,7 +2255,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
 
                 print(f"Processing: name={name}, desc={description}, img={image}")
 
-                existing_procedure = KahamaProcedure.objects.filter(
+                existing_procedure = PembaProcedure.objects.filter(
                     patient_id=patient_id,
                     visit_id=visit_id,
                     name_id=name
@@ -2289,7 +2269,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
                     existing_procedure.save()
                     messages.success(request, f"Updated procedure {name}")
                 else:
-                    KahamaProcedure.objects.create(
+                    PembaProcedure.objects.create(
                         patient_id=patient_id,
                         visit_id=visit_id,
                         doctor=request.user.staff,
@@ -2311,9 +2291,9 @@ def save_remoteprocedure(request, patient_id, visit_id):
 @login_required    
 def edit_procedure_result(request, patient_id, visit_id, procedure_id):
     """View for editing procedure results"""
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)            
-    procedures = KahamaProcedure.objects.get(patient=patient, visit=visit, id=procedure_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)            
+    procedures = PembaProcedure.objects.get(patient=patient, visit=visit, id=procedure_id)
     
     context = {
         'patient': patient, 
@@ -2322,7 +2302,7 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
     }
     
     if request.method == 'POST':        
-        form = KahamaProcedureForm(request.POST, instance=procedures)
+        form = PembaProcedureForm(request.POST, instance=procedures)
         
         if procedures:
             if form.is_valid():
@@ -2351,7 +2331,7 @@ def edit_procedure_result(request, patient_id, visit_id, procedure_id):
         return redirect(reverse('pemba_doctor_procedure_history', args=[patient.mrn]))
         
     else:
-        form = KahamaProcedureForm(instance=procedures)   
+        form = PembaProcedureForm(instance=procedures)   
         
     context['form'] = form    
     return render(request, 'pembadoctor_template/edit_procedure_result.html', context)
@@ -2363,7 +2343,7 @@ def patient_procedure_view(request):
     from django.db.models import Max
     
     distinct_procedure_sets = (
-        KahamaProcedure.objects
+        PembaProcedure.objects
         .values('patient_id', 'visit_id')
         .annotate(latest_date=Max('created_at'))
         .order_by('-latest_date')
@@ -2376,7 +2356,7 @@ def patient_procedure_view(request):
         visit_id = entry['visit_id']
         latest_date = entry['latest_date']
         
-        procedures = KahamaProcedure.objects.filter(
+        procedures = PembaProcedure.objects.filter(
             patient_id=patient_id,
             visit_id=visit_id
         ).select_related('patient', 'visit', 'doctor__admin', 'name')
@@ -2402,9 +2382,9 @@ def patient_procedure_view(request):
 @login_required
 def patient_procedure_history_view(request, mrn):
     """View for displaying patient procedure history"""
-    patient = get_object_or_404(KahamaPatient, mrn=mrn)
-    procedures = KahamaProcedure.objects.filter(patient=patient)
-    patient_procedures = KahamaService.objects.filter(category='Procedure')
+    patient = get_object_or_404(PembaPatient, mrn=mrn)
+    procedures = PembaProcedure.objects.filter(patient=patient)
+    patient_procedures = PembaService.objects.filter(category='Procedure')
     
     context = {
         'patient': patient,
@@ -2418,7 +2398,7 @@ def patient_procedure_history_view(request, mrn):
 @login_required
 def download_procedure_result_pdf(request, procedure_id):
     """View for downloading procedure results as PDF"""
-    procedure = get_object_or_404(KahamaProcedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
+    procedure = get_object_or_404(PembaProcedure.objects.select_related('patient', 'visit', 'name'), id=procedure_id)
     
     context = {
         'procedure': procedure,
@@ -2446,9 +2426,9 @@ def download_procedure_result_pdf(request, procedure_id):
 @login_required
 def download_all_procedures_pdf(request, patient_mrn, visit_vst):
     """View for downloading all procedures as PDF"""
-    patient = get_object_or_404(KahamaPatient, mrn=patient_mrn)
-    visit = get_object_or_404(KahamaPatientVisits, vst=visit_vst)
-    procedures = KahamaProcedure.objects.filter(patient=patient, visit=visit).select_related('name')
+    patient = get_object_or_404(PembaPatient, mrn=patient_mrn)
+    visit = get_object_or_404(PembaPatientVisits, vst=visit_vst)
+    procedures = PembaProcedure.objects.filter(patient=patient, visit=visit).select_related('name')
     
     if not procedures.exists():
         return HttpResponse("No procedures found for this visit.", status=404)
@@ -2484,11 +2464,11 @@ def download_all_procedures_pdf(request, patient_mrn, visit_vst):
 def save_remotereferral(request, patient_id, visit_id):
     """View for saving referrals"""
     try:
-        patient = get_object_or_404(KahamaPatient, id=patient_id)
-        visit = get_object_or_404(KahamaPatientVisits, id=visit_id)        
+        patient = get_object_or_404(PembaPatient, id=patient_id)
+        visit = get_object_or_404(PembaPatientVisits, id=visit_id)        
         data_recorder = request.user.staff
-        referral = KahamaReferral.objects.filter(patient=patient, visit=visit).first()   
-        consultation_notes = KahamaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
+        referral = PembaReferral.objects.filter(patient=patient, visit=visit).first()   
+        consultation_notes = PembaPatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
         
         context = {
             'patient': patient,
@@ -2498,7 +2478,7 @@ def save_remotereferral(request, patient_id, visit_id):
         }  
         
         if request.method == 'POST':
-            form = KahamaReferralForm(request.POST, instance=referral)
+            form = PembaReferralForm(request.POST, instance=referral)
             
             if form.is_valid():
                 if referral:
@@ -2519,7 +2499,7 @@ def save_remotereferral(request, patient_id, visit_id):
             else:
                 messages.error(request, 'Please correct the errors in the form.')
         else:
-            form = KahamaReferralForm(instance=referral)
+            form = PembaReferralForm(instance=referral)
             
         context['form'] = form
         return render(request, 'pembadoctor_template/save_remotereferral.html', context)
@@ -2536,12 +2516,12 @@ def change_referral_status(request):
         try:
             referral_id = request.POST.get('referralId')
             new_status = request.POST.get('newStatus')
-            referral_record = KahamaReferral.objects.get(id=referral_id)
+            referral_record = PembaReferral.objects.get(id=referral_id)
             referral_record.status = new_status
             referral_record.save()
             
             return JsonResponse({'success': True, 'message': f'Status for {referral_record} changed successfully.'})
-        except KahamaReferral.DoesNotExist:
+        except PembaReferral.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Invalid Referral ID.'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
@@ -2552,8 +2532,8 @@ def change_referral_status(request):
 @login_required
 def manage_referral(request):
     """View for managing referrals"""
-    referrals = KahamaReferral.objects.all()
-    patients = KahamaPatient.objects.all()
+    referrals = PembaReferral.objects.all()
+    patients = PembaPatient.objects.all()
     
     return render(request, 'pembadoctor_template/manage_referral.html', {'referrals': referrals, 'patients': patients})
 
@@ -2561,9 +2541,9 @@ def manage_referral(request):
 @login_required
 def download_referral_pdf(request, patient_id, visit_id):
     """View for downloading referrals as PDF"""
-    visit = get_object_or_404(KahamaPatientVisits, id=visit_id)
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
-    referral = get_object_or_404(KahamaReferral, patient=patient, visit=visit)
+    visit = get_object_or_404(PembaPatientVisits, id=visit_id)
+    patient = get_object_or_404(PembaPatient, id=patient_id)
+    referral = get_object_or_404(PembaReferral, patient=patient, visit=visit)
     
     context = {
         'referral': referral,
@@ -2606,7 +2586,7 @@ def reports_comprehensive(request):
 @login_required
 def reports_patients_visit_summary(request):
     """View for patient visit summary reports"""
-    visits = KahamaPatientVisits.objects.all()
+    visits = PembaPatientVisits.objects.all()
     context = {'visits': visits}
     
     return render(request, "pembadoctor_template/reports_patients_visit_summary.html", context)
@@ -2615,7 +2595,7 @@ def reports_patients_visit_summary(request):
 @login_required
 def reports_patients(request):
     """View for patient reports"""
-    patients_report = KahamaPatient.objects.order_by('-created_at') 
+    patients_report = PembaPatient.objects.order_by('-created_at') 
     context = {'patients': patients_report}
     
     return render(request, "pembadoctor_template/reports_patients.html", context)
@@ -2638,19 +2618,19 @@ def resa_report(request):
     today = timezone.now().date()
     
     # Patient statistics
-    total_patients = KahamaPatient.objects.count()
+    total_patients = PembaPatient.objects.count()
     
     # Visit statistics
-    total_visits = KahamaPatientVisits.objects.count()
-    visits_today = KahamaPatientVisits.objects.filter(created_at__date=today).count()
+    total_visits = PembaPatientVisits.objects.count()
+    visits_today = PembaPatientVisits.objects.filter(created_at__date=today).count()
     
     # Procedure statistics
-    total_procedures = KahamaProcedure.objects.count()
-    procedures_today = KahamaProcedure.objects.filter(created_at__date=today).count()
+    total_procedures = PembaProcedure.objects.count()
+    procedures_today = PembaProcedure.objects.filter(created_at__date=today).count()
     
     # Inventory statistics
-    stock_items = KahamaMedicine.objects.filter(is_clinic_stock=True).count()
-    low_stock_items = KahamaMedicine.objects.filter(
+    stock_items = PembaMedicine.objects.filter(is_clinic_stock=True).count()
+    low_stock_items = PembaMedicine.objects.filter(
         is_clinic_stock=True, 
         remain_quantity__lte=models.F('minimum_stock_level')
     ).count()
@@ -2664,8 +2644,8 @@ def resa_report(request):
     medication_orders = 0  # Placeholder - replace with actual query if you have medication orders model
     
     # Lab statistics
-    lab_orders = KahamaLaboratoryRequest.objects.count()
-    lab_tests = KahamaLaboratoryRequest.objects.count()  # Same as lab_orders unless you have a different model
+    lab_orders = PembaLaboratoryRequest.objects.count()
+    lab_tests = PembaLaboratoryRequest.objects.count()  # Same as lab_orders unless you have a different model
     
     # Staff statistics
     doctor_count = Staffs.objects.filter(role='doctor').count()
@@ -2697,11 +2677,11 @@ def resa_report(request):
 @login_required
 def individual_visit(request, patient_id):
     """View for individual visit reports"""
-    # Retrieve the KahamaPatient instance
-    patient = get_object_or_404(KahamaPatient, id=patient_id)
+    # Retrieve the PembaPatient instance
+    patient = get_object_or_404(PembaPatient, id=patient_id)
     
     # Retrieve all visits of the patient and order them by created_at
-    patient_visits = KahamaPatientVisits.objects.filter(patient=patient).order_by('-created_at')
+    patient_visits = PembaPatientVisits.objects.filter(patient=patient).order_by('-created_at')
 
     context = {'patient': patient, 'patient_visits': patient_visits}
     return render(request, 'pembadoctor_template/reports_individual_visit.html', context)
@@ -2727,7 +2707,7 @@ def save_chief_complaint(request):
                 duration = request.POST.get('other_complain_duration')       
 
             # Create a new ChiefComplaint object
-            chief_complaint = KahamaChiefComplaint(
+            chief_complaint = PembaChiefComplaint(
                 duration=duration,
                 patient_id=patient_id,
                 visit_id=visit_id
@@ -2736,12 +2716,12 @@ def save_chief_complaint(request):
             # Set the appropriate fields based on the provided data
             if health_record_id == "other":
                 # Check if a ChiefComplaint with the same other_complaint already exists for the given visit_id
-                if KahamaChiefComplaint.objects.filter(visit_id=visit_id, other_complaint=other_chief_complaint).exists():
+                if PembaChiefComplaint.objects.filter(visit_id=visit_id, other_complaint=other_chief_complaint).exists():
                     return JsonResponse({'status': False, 'message': 'A Other ChiefComplaint with the same name already exists for this patient'})
                 chief_complaint.other_complaint = other_chief_complaint
             else:
                 # Check if a ChiefComplaint with the same health_record_id already exists for the given visit_id
-                if KahamaChiefComplaint.objects.filter(health_record_id=health_record_id, visit_id=visit_id).exists():
+                if PembaChiefComplaint.objects.filter(health_record_id=health_record_id, visit_id=visit_id).exists():
                     return JsonResponse({'status': False, 'message': 'A ChiefComplaint with the same name  already exists for this patient'})
                 chief_complaint.health_record_id = health_record_id          
 
@@ -2752,9 +2732,9 @@ def save_chief_complaint(request):
             # Initialize health_record_data to None
             health_record_data = None
 
-            # Serialize the KahamaHealthRecord object if applicable
+            # Serialize the PembaHealthRecord object if applicable
             if health_record_id and health_record_id != "other":
-                health_record = KahamaHealthRecord.objects.get(pk=health_record_id)
+                health_record = PembaHealthRecord.objects.get(pk=health_record_id)
                 # Extract the name of the health record
                 health_record_data = {'name': health_record.name}
             
@@ -2786,7 +2766,7 @@ def update_chief_complaint(request, chief_complaint_id):
     if request.method == 'POST':
         try:
             # Fetch the complaint record
-            chief_complaint = get_object_or_404(KahamaChiefComplaint, id=chief_complaint_id)
+            chief_complaint = get_object_or_404(PembaChiefComplaint, id=chief_complaint_id)
             
             # Parse the JSON data from the request body
             data = json.loads(request.body)            
@@ -2805,7 +2785,7 @@ def update_chief_complaint(request, chief_complaint_id):
             # Return a success response
             return JsonResponse({'status': True, 'message': 'Chief complaint updated successfully.'})
         
-        except KahamaChiefComplaint.DoesNotExist:
+        except PembaChiefComplaint.DoesNotExist:
             # Handle the case where the chief complaint record does not exist
             return JsonResponse({'status': False, 'message': 'Chief complaint not found.'})
         
@@ -2828,7 +2808,7 @@ def fetch_existing_data(request):
         patient_id = request.GET.get('patient_id')
         visit_id = request.GET.get('visit_id')
 
-        existing_data = KahamaChiefComplaint.objects.filter(
+        existing_data = PembaChiefComplaint.objects.filter(
             patient_id=patient_id, visit_id=visit_id
         ).values()
 
@@ -2843,7 +2823,7 @@ def fetch_existing_data(request):
 
             if entry['health_record_id'] is not None:
                 try:
-                    health_record = KahamaHealthRecord.objects.get(pk=entry['health_record_id'])
+                    health_record = PembaHealthRecord.objects.get(pk=entry['health_record_id'])
                     display_info = health_record.name
                     health_record_id = health_record.id
                 except ObjectDoesNotExist:
@@ -2879,7 +2859,7 @@ def delete_chief_complaint(request, chief_complaint_id):
     try:
         if request.method == 'POST' and request.POST.get('_method') == 'DELETE':
             # Fetch the ChiefComplaint object to delete
-            chief_complaint = get_object_or_404(KahamaChiefComplaint, id=chief_complaint_id)
+            chief_complaint = get_object_or_404(PembaChiefComplaint, id=chief_complaint_id)
             
             # Delete the ChiefComplaint
             chief_complaint.delete()
@@ -2900,7 +2880,7 @@ def delete_chief_complaint(request, chief_complaint_id):
 def save_patient_visit_save(request, patient_id, visit_id=None):
     """View for saving patient visits"""
     # Retrieve the patient object or handle the error if it does not exist
-    patient = get_object_or_404(KahamaPatient, pk=patient_id)
+    patient = get_object_or_404(PembaPatient, pk=patient_id)
     data_recorder = request.user.staff 
     
     if request.method == 'POST':
@@ -2912,7 +2892,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
             # Check if we are editing an existing visit or adding a new one
             if visit_id:
                 # Editing an existing visit
-                visit = get_object_or_404(KahamaPatientVisits, pk=visit_id)
+                visit = get_object_or_404(PembaPatientVisits, pk=visit_id)
                 visit.data_recorder = data_recorder
                 visit.visit_type = visit_type
                 visit.primary_service = primary_service
@@ -2920,7 +2900,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
                 messages.success(request, '')
             else:
                 # Adding a new visit
-                visit = KahamaPatientVisits.objects.create(
+                visit = PembaPatientVisits.objects.create(
                     patient=patient,
                     data_recorder=data_recorder,
                     visit_type=visit_type,
@@ -2938,7 +2918,7 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
     else:
         if visit_id:
             # Editing an existing visit
-            visit = get_object_or_404(KahamaPatientVisits, pk=visit_id)
+            visit = get_object_or_404(PembaPatientVisits, pk=visit_id)
         else:
             # Adding a new visit, ensure no pre-population
             visit = None
@@ -2950,14 +2930,14 @@ def save_patient_visit_save(request, patient_id, visit_id=None):
 def reports_by_visit(request):
     """View for reports by visit"""
     # Retrieve all patients
-    patients = KahamaPatient.objects.all()
+    patients = PembaPatient.objects.all()
 
     # Create a list to store each patient along with their total visit count
     patients_with_visit_counts = []
 
     # Iterate through each patient and calculate their total visit count
     for patient in patients:
-        total_visits = KahamaPatientVisits.objects.filter(patient=patient).count()
+        total_visits = PembaPatientVisits.objects.filter(patient=patient).count()
         if total_visits > 0:
             patients_with_visit_counts.append({
                 'patient': patient,
@@ -2975,10 +2955,10 @@ def reports_by_visit(request):
 def patient_visit_history_view(request, patient_id):
     """View for patient visit history"""
     # Retrieve visit history for the specified patient
-    visit_history = KahamaPatientVisits.objects.filter(patient_id=patient_id)
+    visit_history = PembaPatientVisits.objects.filter(patient_id=patient_id)
     current_date = timezone.now().date()
-    doctors = Staffs.objects.filter(role='doctor', work_place='kahama')
-    patient = KahamaPatient.objects.get(id=patient_id)   
+    doctors = Staffs.objects.filter(role='doctor', work_place='pemba')
+    patient = PembaPatient.objects.get(id=patient_id)   
     
     return render(request, 'pembadoctor_template/manage_patient_visit_history.html', {
         'visit_history': visit_history,
@@ -2989,23 +2969,7 @@ def patient_visit_history_view(request, patient_id):
 
 # ==================== PATIENT VITAL VIEWS ====================
 
-@login_required
-def patient_vital_all_list(request):
-    """View for listing all patient vitals"""
-    # Retrieve distinct patient and visit combinations
-    patient_vitals = (
-        KahamaPatientVital.objects.values('patient__mrn', 'visit__vst')
-        .annotate(
-            latest_date=Max('recorded_at')  # Get the latest record date for each patient and visit
-        )
-        .order_by('-latest_date')
-    )
-    
-    context = {      
-        'patient_vitals': patient_vitals,
-    }
-    
-    return render(request, 'pembadoctor_template/manage_all_patient_vital.html', context)
+
 
 
 @login_required
@@ -3032,14 +2996,14 @@ def save_remotepatient_vital(request):
 
         # Validate patient
         try:
-            patient = KahamaPatient.objects.get(id=patient_id)
-        except KahamaPatient.DoesNotExist:
+            patient = PembaPatient.objects.get(id=patient_id)
+        except PembaPatient.DoesNotExist:
             return JsonResponse({'status': False, 'message': 'Patient does not exist'})
 
         # Validate visit
         try:
-            visit = KahamaPatientVisits.objects.get(id=visit_id)
-        except KahamaPatientVisits.DoesNotExist:
+            visit = PembaPatientVisits.objects.get(id=visit_id)
+        except PembaPatientVisits.DoesNotExist:
             return JsonResponse({'status': False, 'message': 'Visit does not exist'})
 
         # Prepare blood pressure string
@@ -3047,7 +3011,7 @@ def save_remotepatient_vital(request):
 
         # Check for duplicates only if creating a new vital
         if not vital_id:
-            duplicate_vitals = KahamaPatientVital.objects.filter(
+            duplicate_vitals = PembaPatientVital.objects.filter(
                 patient=patient,
                 doctor=doctor,
                 visit=visit,
@@ -3071,13 +3035,13 @@ def save_remotepatient_vital(request):
         if vital_id:
             try:
                 # Editing existing vital
-                vital = KahamaPatientVital.objects.get(pk=vital_id)
+                vital = PembaPatientVital.objects.get(pk=vital_id)
                 message = 'Vital record updated successfully'
-            except KahamaPatientVital.DoesNotExist:
+            except PembaPatientVital.DoesNotExist:
                 return JsonResponse({'status': False, 'message': 'Vital record does not exist'})
         else:
             # Creating new vital
-            vital = KahamaPatientVital()
+            vital = PembaPatientVital()
             message = 'Vital record created successfully'
 
         # Update fields
@@ -3108,8 +3072,8 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
     """View for saving patient vitals"""
     import numpy as np
 
-    patient = KahamaPatient.objects.get(pk=patient_id)
-    visit = KahamaPatientVisits.objects.get(patient=patient_id, id=visit_id)
+    patient = PembaPatient.objects.get(pk=patient_id)
+    visit = PembaPatientVisits.objects.get(patient=patient_id, id=visit_id)
 
     # Ranges for dropdowns
     range_51 = range(51)
@@ -3133,7 +3097,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
         doctor = request.user.staff
 
         # Check if a vital record already exists
-        existing_vital = KahamaPatientVital.objects.filter(patient=patient, visit=visit).last()
+        existing_vital = PembaPatientVital.objects.filter(patient=patient, visit=visit).last()
         if existing_vital:
             context['existing_vital'] = existing_vital
 
@@ -3172,7 +3136,7 @@ def save_remotepatient_vitals(request, patient_id, visit_id):
                 existing_vital.save()
                 messages.success(request, 'Vitals updated successfully.')
             else:  # Create
-                KahamaPatientVital.objects.create(
+                PembaPatientVital.objects.create(
                     patient=patient,
                     visit=visit,
                     doctor=doctor,

@@ -6,7 +6,12 @@
 {% endblock title %}
 
 {% block page_title %}
-    Edit Profile
+    <div class="d-flex justify-content-between align-items-center">
+        <span>Edit Profile</span>
+        <a href="{% url 'pharmacist_profile' %}" class="btn btn-prem-visit-nav">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+        </a>
+    </div>
 {% endblock page_title %}
 
 {% block breadcrumb %}
@@ -14,42 +19,266 @@
 {% endblock breadcrumb %}
 
 {% block main_content %}
-<div class="container-fluid mt-4">
-    <h3 class="text-center">Edit Profile</h3>
+<style>
+  /* Premium Edit Profile Styles */
+  .profile-prem-gradient {
+    background: linear-gradient(120deg, #0F2027, #203A43, #2C5364);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(15, 32, 39, 0.15);
+    border: none;
+    margin-bottom: 25px;
+  }
+  
+  .profile-prem-gradient .card-header {
+    background: rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 1.5rem 2rem;
+  }
+  
+  .profile-prem-form-container {
+    border-radius: 12px;
+    padding: 2rem;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+  }
+  
+  .profile-prem-input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  
+  .profile-prem-input-group label {
+    font-weight: 600;
+    color: #006064;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  
+  .profile-prem-input-group .form-control {
+    border: 1px solid #b2ebf2;
+    padding: 0.75rem 1rem;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+  }
+  
+  .profile-prem-input-group .form-control:focus {
+    border-color: #006064;
+    box-shadow: 0 0 0 0.2rem rgba(0, 97, 100, 0.25);
+  }
+  
+  .profile-prem-img-preview {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #e0f7fa;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .profile-prem-img-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  }
+  
+  .profile-prem-signature-preview {
+    max-width: 250px;
+    border: 1px solid #e0f7fa;
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+  }
+  
+  .profile-prem-signature-preview:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  }
+  
+  .btn-prem-update {
+    background: linear-gradient(120deg, #0F2027, #203A43);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+    width: 100%;
+  }
+  
+  .btn-prem-update:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+    color: white;
+  }
+  
+  .profile-prem-section-title {
+    color: #006064;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid #b2ebf2;
+    position: relative;
+  }
+  
+  .profile-prem-section-title:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, #0F2027, #203A43);
+  }
+  
+  .profile-prem-animated {
+    animation: profilePremFadeIn 0.6s ease forwards;
+  }
+  
+  @keyframes profilePremFadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .custom-file-input {
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+  }
+  
+  .custom-file-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background: linear-gradient(120deg, #0F2027, #203A43);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(15, 32, 39, 0.2);
+  }
+  
+  .custom-file-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(15, 32, 39, 0.3);
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .profile-prem-form-container {
+      padding: 1.5rem;
+    }
+    
+    .profile-prem-img-preview {
+      width: 120px;
+      height: 120px;
+    }
+  }
+</style>
 
-    <div class="card shadow p-4">
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <!-- Profile Picture Section (Only Display When Present) -->
-            {% if staff.profile_picture %}
-                <div class="text-center mb-3">
-                    <img src="{{ staff.profile_picture.url }}" alt="Profile Picture" class="rounded-circle" width="150">
+<div class="container-fluid">
+  <!-- Profile Edit Card -->
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="card profile-prem-gradient shadow-lg">
+        <div class="card-header py-3">
+          <h5 class="card-title mb-0 text-white">
+            <i class="fas fa-user-edit mr-2"></i>
+            Edit Profile - {{ staff.admin.first_name }} {{ staff.middle_name }} {{ staff.admin.last_name }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="profile-prem-form-container">
+            <form method="POST" enctype="multipart/form-data" class="profile-prem-animated">
+              {% csrf_token %}
+              
+              <div class="row">
+                <!-- Profile Picture Section -->
+                <div class="col-md-6 text-center mb-4">
+                  <h4 class="profile-prem-section-title">Profile Picture</h4>
+                  
+                  {% if staff.profile_picture %}
+                    <img id="profile-picture-preview" src="{{ staff.profile_picture.url }}" alt="Profile Picture" class="profile-prem-img-preview mb-3">
+                  {% else %}
+                    <img id="profile-picture-preview" src="{% static 'images/default_profile.png' %}" alt="Default Profile Picture" class="profile-prem-img-preview mb-3">
+                  {% endif %}
+                  
+                  <div class="profile-prem-input-group">
+                    <label for="id_profile_picture" class="custom-file-label">
+                      <i class="fas fa-upload mr-2"></i> Choose New Profile Picture
+                    </label>
+                    <input type="file" name="profile_picture" accept="image/*" id="id_profile_picture" class="custom-file-input">
+                    <small class="form-text text-muted">Recommended: Square image, 300x300 pixels</small>
+                  </div>
                 </div>
-            {% endif %}
-
-            <div class="mb-3">
-                <label class="form-label">Profile Picture</label>
-                {{ form.profile_picture }}
-            </div>
-
-            <!-- Signature Section (Only Display When Present) -->
-            {% if staff.signature %}
-                <div class="text-center mb-3">
-                    <img src="{{ staff.signature.url }}" alt="Signature" width="150">
+                
+                <!-- Signature Section -->
+                <div class="col-md-6 text-center mb-4">
+                  <h4 class="profile-prem-section-title">Signature</h4>
+                  
+                  {% if staff.signature %}
+                    <img id="signature-preview" src="{{ staff.signature.url }}" alt="Signature" class="profile-prem-signature-preview mb-3">
+                  {% else %}
+                    <div id="signature-preview" class="text-muted mb-3">No signature uploaded</div>
+                  {% endif %}
+                  
+                  <div class="profile-prem-input-group">
+                    <label for="id_signature" class="custom-file-label">
+                      <i class="fas fa-upload mr-2"></i> Choose New Signature
+                    </label>
+                    <input type="file" name="signature" accept="image/*" id="id_signature" class="custom-file-input">
+                    <small class="form-text text-muted">Recommended: Transparent PNG, 300x100 pixels</small>
+                  </div>
                 </div>
-            {% endif %}
-
-            <div class="mb-3">
-                <label class="form-label">Signature</label>
-                {{ form.signature }}
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary w-100">Update Profile</button>
-        </form>
+              </div>
+              
+              <div class="row mt-4">
+                <div class="col-md-12">
+                  <button type="submit" class="btn btn-prem-update">
+                    <i class="fas fa-save mr-2"></i> Update Profile
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
+
+<script>
+  // Preview image before upload
+  document.getElementById('id_profile_picture').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('profile-picture-preview').src = e.target.result;
+      }
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
+  
+  document.getElementById('id_signature').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        // If there was a text placeholder, replace it with an image
+        if (document.getElementById('signature-preview').tagName !== 'IMG') {
+          document.getElementById('signature-preview').outerHTML = '<img id="signature-preview" src="' + e.target.result + '" alt="Signature" class="profile-prem-signature-preview mb-3">';
+        } else {
+          document.getElementById('signature-preview').src = e.target.result;
+        }
+      }
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
+</script>
 
 {% include 'hod_template/datatable.html' %}
 {% endblock main_content %}

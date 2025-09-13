@@ -8,7 +8,7 @@ urlpatterns = [
     path('change-password/', change_password, name='pemba_doctor_change_password'),
     
     # Dashboard URLs
-    path('dashboard/', kahama_dashboard, name='pemba_doctor_dashboard'),
+    path('dashboard/', pemba_dashboard, name='pemba_doctor_dashboard'),
     
     # Reports URLs
     path('reports/generate_year_month_report/', generate_year_month_report, name='pemba_doctor_generate_year_month_report'),
@@ -52,7 +52,7 @@ urlpatterns = [
     
     # Vital Signs URLs
     path('vitals/save/<int:patient_id>/<int:visit_id>/', save_remotepatient_vitals, name='pemba_doctor_vitals_save'),
-    path('vitals/list/', patient_vital_all_list, name='pemba_doctor_vitals_list'),
+ 
     path('vitals/save-ajax/', save_remotepatient_vital, name='pemba_doctor_vitals_save_ajax'),
     
     # Chief Complaint URLs
@@ -65,7 +65,7 @@ urlpatterns = [
     path('laboratory/save/<str:mrn>/', patient_lab_result_history_view, name='pemba_doctor_patient_lab_result_history_view'),
     path('laboratory/save/<int:patient_id>/<int:visit_id>/', save_laboratory, name='pemba_doctor_laboratory_save'),
     path('laboratory/list/', patient_laboratory_view, name='pemba_doctor_laboratory_list'),
-    path('laboratory/details/<str:mrn>/<str:visit_number>/', patient_lab_details_view, name='pemba_doctor_laboratory_details'),
+
     path('laboratory/download-result/<int:lab_id>/', download_lab_result_pdf, name='pemba_doctor_laboratory_download_result'),
     path('laboratory/download-all-results/<str:patient_mrn>/<str:visit_vst>/', download_all_lab_results_pdf, name='pemba_doctor_laboratory_download_all_results'),
     path('laboratory/edit/<int:patient_id>/<int:visit_id>/<int:lab_id>/', edit_lab_result, name='pemba_doctor_laboratory_edit'),
