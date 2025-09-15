@@ -1,5 +1,5 @@
 import calendar
-from datetime import  date, datetime, timedelta
+from datetime import  date, datetime, timedelta, timezone as dt_timezone
 import json
 from django.utils import timezone
 import logging
@@ -27,6 +27,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.core.paginator import Paginator
 
 @login_required
 def doctor_dashboard(request):
@@ -133,76 +134,7 @@ def doctor_dashboard(request):
     return render(request, "doctor_template/home_content.html", context)
 
 
-@login_required
-@require_GET
-def doctor_fetch_lab_stats(request):
-    """
-    View to fetch comprehensive laboratory statistics for the currently logged-in doctor.
-    Returns JSON with various lab order metrics.
-    """
-    try:
-        # Get the current doctor/staff member
-        doctor = request.user.staff
-        
-        # Calculate date ranges
-        today = timezone.now().date()
-        week_ago = today - timedelta(days=7)
-        month_ago = today - timedelta(days=30)
-        
-        # Base queryset for this doctor
-        doctor_orders = LaboratoryOrder.objects.filter(doctor=doctor)
-        
-        # Count lab orders by status
-        stats = {
-            # Basic counts
-            'pending_count': doctor_orders.filter(result__isnull=True).count(),
-            'completed_count': doctor_orders.filter(result__isnull=False).count(),
-            'total_count': doctor_orders.count(),
-            
-            # Time-based counts
-            'today_count': doctor_orders.filter(created_at__date=today).count(),
-            'week_count': doctor_orders.filter(created_at__date__gte=week_ago).count(),
-            'month_count': doctor_orders.filter(created_at__date__gte=month_ago).count(),
-            
-            # Financial metrics
-            'total_revenue': float(doctor_orders.aggregate(Sum('cost'))['cost__sum'] or 0),
-            'pending_revenue': float(doctor_orders.filter(result__isnull=True).aggregate(Sum('cost'))['cost__sum'] or 0),
-            'completed_revenue': float(doctor_orders.filter(result__isnull=False).aggregate(Sum('cost'))['cost__sum'] or 0),
-            
-            # Recent pending orders (for notifications)
-            'recent_pending': list(doctor_orders.filter(
-                result__isnull=True
-            ).order_by('-created_at')[:5].values(
-                'id', 'patient__first_name', 'patient__last_name', 
-                'patient__mrn', 'lab_test__name', 'created_at'
-            )),
-            
-            # Most ordered tests
-            'popular_tests': list(doctor_orders.values(
-                'lab_test__name'
-            ).annotate(
-                count=Count('id')
-            ).order_by('-count')[:5])
-        }
-        
-        return JsonResponse(stats)
-        
-    except Exception as e:
-        # Return safe default values in case of error
-        return JsonResponse({
-            'error': str(e),
-            'pending_count': 0,
-            'completed_count': 0,
-            'total_count': 0,
-            'today_count': 0,
-            'week_count': 0,
-            'month_count': 0,
-            'total_revenue': 0,
-            'pending_revenue': 0,
-            'completed_revenue': 0,
-            'recent_pending': [],
-            'popular_tests': []
-        }, status=500)
+
 
 @login_required
 def doctor_today_patients(request):
@@ -259,22 +191,7 @@ def doctor_completed_consultations(request):
     }
     return render(request, 'doctor_template/completed_consultations.html', context)
 
-@login_required
-def doctor_today_lab_orders(request):
-    doctor = request.user.staff
-    today = date.today()
-    
-    # Get today's lab orders for this doctor
-    today_lab_orders = LaboratoryOrder.objects.filter(
-        doctor=doctor,
-        order_date=today
-    ).order_by('-created_at')
-    
-    context = {
-        'lab_orders': today_lab_orders,
-        'page_title': "Today's Lab Orders"
-    }
-    return render(request, 'doctor_template/today_lab_orders.html', context)
+
 
 @login_required
 def doctor_today_imaging_orders(request):
@@ -394,49 +311,400 @@ def doctor_consultation_list(request):
     return render(request, 'doctor_template/consultation_list.html', context)
 
 
-def dashboard_stats_api(request):
+@login_required
+def doctor_dashboard_stats_api(request):
     """
-    API endpoint to fetch statistics for the doctor dashboard
+    API endpoint to fetch all statistics for the doctor dashboard
     """
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required'}, status=401)
-    
+
     try:
         # Get today's date
         today = timezone.now().date()
+        doctor = request.user.staff
         
-        # Count today's appointments
+        # Today's appointments
         today_appointments = Consultation.objects.filter(
-            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
-            appointment_date__date=today,
-            status__in=['Scheduled', 'Confirmed']
+            doctor=doctor,
+            appointment_date=today,
+            status__in=[0, 6]  # Pending or Confirmed
         ).count()
-        
-        # Count pending consultations
+
+        # Pending consultations
         pending_consultations = ConsultationOrder.objects.filter(
-            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
-            order_status='pending'
+            doctor=doctor          
         ).count()
-        
-        # Count total patients (optional)
+
+        # Total patients seen by this doctor
         total_patients = Patients.objects.filter(
-            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None
-        ).count()
-        
-        # Count upcoming appointments in next 7 days
+            consultation__doctor=doctor
+        ).distinct().count()
+
+        # Upcoming appointments in next 7 days
         seven_days_later = today + timedelta(days=7)
         upcoming_appointments = Consultation.objects.filter(
-            doctor=request.user.doctor if hasattr(request.user, 'doctor') else None,
-            appointment_date__date__range=[today, seven_days_later],
-            status__in=['Scheduled', 'Confirmed']
+            doctor=doctor,
+            appointment_date__range=(today, seven_days_later),
+            status__in=[0, 6]
         ).count()
         
+        # Order counts (today and total)
+        consultation_orders_today = ConsultationOrder.objects.filter(
+            doctor=doctor, 
+            order_date=today
+        ).count()
+        
+        consultation_orders_total = ConsultationOrder.objects.filter(
+            doctor=doctor
+        ).count()
+        
+        radiology_orders_today = ImagingRecord.objects.filter(
+            doctor=doctor, 
+            order_date=today
+        ).count()
+        
+        radiology_orders_total = ImagingRecord.objects.filter(
+            doctor=doctor
+        ).count()
+        
+        procedure_orders_today = Procedure.objects.filter(
+            doctor=doctor, 
+            order_date=today
+        ).count()
+        
+        procedure_orders_total = Procedure.objects.filter(
+            doctor=doctor
+        ).count()
+
         return JsonResponse({
             'today_appointments': today_appointments,
             'pending_consultations': pending_consultations,
             'total_patients': total_patients,
             'upcoming_appointments': upcoming_appointments,
+            'consultation_orders_today': consultation_orders_today,
+            'consultation_orders_total': consultation_orders_total,
+            'radiology_orders_today': radiology_orders_today,
+            'radiology_orders_total': radiology_orders_total,
+            'procedure_orders_today': procedure_orders_today,
+            'procedure_orders_total': procedure_orders_total,
             'status': 'success'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
+
+
+@login_required
+def appointment_redirect(request, appointment_id):
+    """
+    Redirect any appointment detail URL to the appointment list page.
+    """
+    # Optionally, you can fetch the appointment to validate it exists
+    get_object_or_404(Consultation, id=appointment_id)
+
+    # Redirect to appointment list using URL name
+    redirect_url = reverse("doctor_appointment_list")  # replace with your URL name
+    return redirect(redirect_url)
+
+
+@login_required
+def doctor_notifications_api(request):
+    """
+    API endpoint to fetch doctor-specific notifications
+    """
+    try:
+        doctor = request.user.staff
+        today = timezone.now().date()
+        three_days_ago = today - timedelta(days=3)
+        notifications = []
+
+        # -------------------- TODAY'S APPOINTMENTS --------------------
+        today_appointments = Consultation.objects.filter(
+            doctor=doctor,
+            appointment_date=today,
+            status__in=[0, 6]  # Pending or Confirmed
+        ).select_related('patient')
+
+        for appointment in today_appointments:
+            time_str = appointment.start_time.strftime("%H:%M") if appointment.start_time else "Time not set"
+            notifications.append({
+                'id': appointment.id,
+                'icon': 'fas fa-calendar-check',
+                'iconColor': 'text-primary',
+                'title': 'Appointment Today',
+                'time': time_str,
+                'details': f'Patient: {appointment.patient.full_name}',
+                'url': f'/doctor/appointment/{appointment.id}/',  # Adjust URL as needed
+                'timestamp': appointment.created_at.isoformat()
+            })
+
+        # -------------------- RECENT CONSULTATION ORDERS --------------------
+        recent_consultations = ConsultationOrder.objects.filter(
+            Q(doctor=doctor) & Q(order_date__gte=three_days_ago)
+        ).select_related('patient', 'consultation')[:5]
+
+        for consultation in recent_consultations:
+            service_name = consultation.consultation.name if consultation.consultation else "Consultation"
+            notifications.append({
+                'id': consultation.id,
+                'icon': 'fas fa-stethoscope',
+                'iconColor': 'text-info',
+                'title': 'Consultation Order',
+                'time': consultation.order_date.strftime("%Y-%m-%d") if consultation.order_date else "Date not set",
+                'details': f'Patient: {consultation.patient.full_name} - {service_name}',
+                'url': f'/doctor/consultation-order/{consultation.id}/',
+                'timestamp': consultation.created_at.isoformat()
+            })
+
+        # -------------------- RECENT IMAGING ORDERS --------------------
+        recent_imaging = ImagingRecord.objects.filter(
+            Q(doctor=doctor) & Q(order_date__gte=three_days_ago)
+        ).select_related('patient', 'imaging')[:5]
+
+        for imaging in recent_imaging:
+            service_name = imaging.imaging.name if imaging.imaging else "Imaging"
+            notifications.append({
+                'id': imaging.id,
+                'icon': 'fas fa-x-ray',
+                'iconColor': 'text-warning',
+                'title': 'Imaging Order',
+                'time': imaging.order_date.strftime("%Y-%m-%d") if imaging.order_date else "Date not set",
+                'details': f'Patient: {imaging.patient.full_name} - {service_name}',
+                'url': f'/doctor/imaging-order/{imaging.id}/',
+                'timestamp': imaging.created_at.isoformat()
+            })
+
+        # -------------------- RECENT PROCEDURES --------------------
+        recent_procedures = Procedure.objects.filter(
+            Q(doctor=doctor) & Q(order_date__gte=three_days_ago)
+        ).select_related('patient', 'name')[:5]
+
+        for procedure in recent_procedures:
+            service_name = procedure.name.name if procedure.name else "Procedure"
+            notifications.append({
+                'id': procedure.id,
+                'icon': 'fas fa-procedures',
+                'iconColor': 'text-success',
+                'title': 'Procedure Order',
+                'time': procedure.order_date.strftime("%Y-%m-%d") if procedure.order_date else "Date not set",
+                'details': f'Patient: {procedure.patient.full_name} - {service_name}',
+                'url': f'/doctor/procedure/{procedure.id}/',
+                'timestamp': procedure.created_at.isoformat()
+            })
+
+        # -------------------- SORT & FORMAT --------------------
+        notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+        notifications = notifications[:10]
+
+        # Format timestamp into "time ago"
+        for notif in notifications:
+            notif['time'] = time_ago(notif['timestamp'])
+
+        return JsonResponse({
+            'notifications': notifications,
+            'status': 'success'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
+
+
+# -------------------- HELPER FUNCTION --------------------
+def time_ago(timestamp: str) -> str:
+    """
+    Convert ISO timestamp into a human-readable 'time ago' string.
+    """
+    try:
+        now = datetime.now(dt_timezone.utc)
+        dt = datetime.fromisoformat(timestamp)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=dt_timezone.utc)
+        diff = now - dt
+        seconds = diff.total_seconds()
+
+        if seconds < 60:
+            return f"{int(seconds)} seconds ago"
+        elif seconds < 3600:
+            return f"{int(seconds // 60)} minutes ago"
+        elif seconds < 86400:
+            return f"{int(seconds // 3600)} hours ago"
+        else:
+            return f"{int(seconds // 86400)} days ago"
+    except Exception:
+        return timestamp
+
+
+@login_required
+def doctor_all_notifications(request):
+    """
+    View to render the notifications page
+    """
+    context = {
+        'page_title': 'Notifications Center',
+    }
+    return render(request, 'doctor_template/notifications.html', context)
+
+@login_required
+def doctor_all_notifications_api(request):
+    """
+    API endpoint to fetch paginated notifications with filters
+    """
+    try:
+        doctor = request.user.staff
+        today = timezone.now().date()
+        
+        # Get filter parameters
+        page_number = request.GET.get('page', 1)
+        type_filter = request.GET.get('type', 'all')
+        date_range = request.GET.get('date_range', '')
+        status_filter = request.GET.get('status', 'all')
+        sort_filter = request.GET.get('sort', 'newest')
+        
+        notifications = []
+        
+        # Base queries with date filtering if applicable
+        if date_range:
+            try:
+                start_date, end_date = date_range.split(' - ')
+                start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+                date_filter = Q(created_at__date__range=(start_date, end_date))
+            except:
+                # If date range is invalid, default to last 30 days
+                thirty_days_ago = today - timedelta(days=30)
+                date_filter = Q(created_at__date__gte=thirty_days_ago)
+        else:
+            # Default to last 30 days if no date range specified
+            thirty_days_ago = today - timedelta(days=30)
+            date_filter = Q(created_at__date__gte=thirty_days_ago)
+        
+        # Appointments
+        if type_filter in ['all', 'appointment']:
+            appointments = Consultation.objects.filter(
+                Q(doctor=doctor) & date_filter
+            ).select_related('patient')
+            
+            for appointment in appointments:
+                status_text = " (Today)" if appointment.appointment_date == today else ""
+                notifications.append({
+                    'id': f'appt_{appointment.id}',
+                    'type': 'appointment',
+                    'type_display': 'Appointment',
+                    'title': f'Appointment{status_text}',
+                    'details': f'Patient: {appointment.patient.full_name}',
+                    'date': appointment.appointment_date.strftime('%Y-%m-%d'),
+                    'time': appointment.start_time.strftime("%H:%M") if appointment.start_time else "Time not set",
+                    'url': f'/doctor/appointment/{appointment.id}/',
+                    'created_at': appointment.created_at,
+                    'is_read': False  # You would need to implement read status tracking
+                })
+        
+        # Consultation orders
+        if type_filter in ['all', 'consultation']:
+            consultations = ConsultationOrder.objects.filter(
+                Q(doctor=doctor) & date_filter
+            ).select_related('patient', 'consultation')
+            
+            for consultation in consultations:
+                service_name = consultation.consultation.name if consultation.consultation else "Consultation"
+                notifications.append({
+                    'id': f'cons_{consultation.id}',
+                    'type': 'consultation',
+                    'type_display': 'Consultation Order',
+                    'title': 'Consultation Order',
+                    'details': f'Patient: {consultation.patient.full_name} - {service_name}',
+                    'date': consultation.order_date.strftime('%Y-%m-%d') if consultation.order_date else consultation.created_at.strftime('%Y-%m-%d'),
+                    'time': consultation.created_at.strftime("%H:%M"),
+                    'url': f'/doctor/consultation-order/{consultation.id}/',
+                    'created_at': consultation.created_at,
+                    'is_read': False
+                })
+        
+        # Imaging orders
+        if type_filter in ['all', 'imaging']:
+            imaging_orders = ImagingRecord.objects.filter(
+                Q(doctor=doctor) & date_filter
+            ).select_related('patient', 'imaging')
+            
+            for order in imaging_orders:
+                service_name = order.imaging.name if order.imaging else "Imaging"
+                notifications.append({
+                    'id': f'img_{order.id}',
+                    'type': 'imaging',
+                    'type_display': 'Imaging Order',
+                    'title': 'Imaging Order',
+                    'details': f'Patient: {order.patient.full_name} - {service_name}',
+                    'date': order.order_date.strftime('%Y-%m-%d') if order.order_date else order.created_at.strftime('%Y-%m-%d'),
+                    'time': order.created_at.strftime("%H:%M"),
+                    'url': f'/doctor/imaging-order/{order.id}/',
+                    'created_at': order.created_at,
+                    'is_read': False
+                })
+        
+        # Procedure orders
+        if type_filter in ['all', 'procedure']:
+            procedures = Procedure.objects.filter(
+                Q(doctor=doctor) & date_filter
+            ).select_related('patient', 'name')
+            
+            for procedure in procedures:
+                service_name = procedure.name.name if procedure.name else "Procedure"
+                notifications.append({
+                    'id': f'proc_{procedure.id}',
+                    'type': 'procedure',
+                    'type_display': 'Procedure Order',
+                    'title': 'Procedure Order',
+                    'details': f'Patient: {procedure.patient.full_name} - {service_name}',
+                    'date': procedure.order_date.strftime('%Y-%m-%d') if procedure.order_date else procedure.created_at.strftime('%Y-%m-%d'),
+                    'time': procedure.created_at.strftime("%H:%M"),
+                    'url': f'/doctor/procedure/{procedure.id}/',
+                    'created_at': procedure.created_at,
+                    'is_read': False
+                })
+        
+        # Apply sorting
+        if sort_filter == 'newest':
+            notifications.sort(key=lambda x: x['created_at'], reverse=True)
+        elif sort_filter == 'oldest':
+            notifications.sort(key=lambda x: x['created_at'])
+        elif sort_filter == 'type':
+            notifications.sort(key=lambda x: x['type'])
+        
+        # Apply status filter (for demonstration; in a real app, you'd have a read status field)
+        if status_filter == 'unread':
+            notifications = [n for n in notifications if not n['is_read']]
+        elif status_filter == 'read':
+            notifications = [n for n in notifications if n['is_read']]
+        
+        # Paginate results
+        paginator = Paginator(notifications, 10)  # Show 10 notifications per page
+        page_obj = paginator.get_page(page_number)
+        
+        # Format the notifications for the response
+        formatted_notifications = []
+        for notif in page_obj.object_list:
+            formatted_notif = notif.copy()
+            # Convert datetime to string for JSON serialization
+            formatted_notif['created_at'] = notif['created_at'].isoformat()
+            formatted_notifications.append(formatted_notif)
+        
+        return JsonResponse({
+            'status': 'success',
+            'notifications': formatted_notifications,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'has_previous': page_obj.has_previous(),
+                'has_next': page_obj.has_next(),
+                'total_count': paginator.count
+            }
         })
         
     except Exception as e:
@@ -444,6 +712,66 @@ def dashboard_stats_api(request):
             'error': str(e),
             'status': 'error'
         }, status=500)
+
+@login_required
+def doctor_toggle_notification_api(request):
+    """
+    API endpoint to toggle notification read status
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get('notification_id')
+            
+            # In a real implementation, you would update a Notification model
+            # For now, we'll just return success
+            # Example: notification = Notification.objects.get(id=notification_id, user=request.user)
+            # notification.is_read = not notification.is_read
+            # notification.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Notification status updated'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e),
+                'status': 'error'
+            }, status=500)
+    
+    return JsonResponse({
+        'error': 'Invalid request method',
+        'status': 'error'
+    }, status=400)
+
+@login_required
+def doctor_delete_notification_api(request):
+    """
+    API endpoint to delete a notification
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            notification_id = data.get('notification_id')
+            
+            # In a real implementation, you would delete from a Notification model
+            # For now, we'll just return success
+            # Example: Notification.objects.filter(id=notification_id, user=request.user).delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Notification deleted'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e),
+                'status': 'error'
+            }, status=500)
+    
+    return JsonResponse({
+        'error': 'Invalid request method',
+        'status': 'error'
+    }, status=400)
 
 
 @login_required
@@ -579,16 +907,6 @@ def manage_consultation(request):
     }
     return render(request,"doctor_template/manage_consultation.html",context)
 
-    
-@login_required
-def manage_laboratory(request):
-    doctor = request.user.staff
-    lab_records=LaboratoryOrder.objects.filter(doctor=doctor)  
-    orders = Order.objects.filter(order_type__in=[lab_record.imaging.name for lab_record in lab_records], is_read=True)          
-    return render(request,"doctor_template/manage_lab_result.html",{
-        "orders":orders,       
-        "lab_records":lab_records,       
-        })
 
 
 logger = logging.getLogger(__name__)
@@ -695,18 +1013,7 @@ def edit_meeting(request, appointment_id):
 
     return redirect('doctor_read_appointments')
 
-@login_required
-def patient_procedure_history_view(request, mrn):
-    patient = get_object_or_404(Patients, mrn=mrn)    
-    # Retrieve all procedures for the specific patient
-    procedures = Procedure.objects.filter(patient=patient)
-    
-    context = {
-        'patient': patient,
-        'procedures': procedures,
-    }
 
-    return render(request, 'doctor_template/manage_patient_procedure.html', context)
 
 
 def save_procedure(request):
@@ -721,39 +1028,6 @@ def save_procedure(request):
             return JsonResponse({'success': False, 'message': 'Form is not valid.'})
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
-
-@csrf_exempt
-def save_radiology(request):
-    if request.method == 'POST':
-        try:
-            # Extract data from the POST request
-            radiology_id = request.POST.get('radiology_id')
-            result = request.POST.get('result')         
-            doctor = request.user.staff
-
-            # Check if the radiology_record ID is provided
-            if radiology_id:
-                # Retrieve the procedure record if it exists
-                try:
-                    radiology_record = ImagingRecord.objects.get(id=radiology_id)
-                except Procedure.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': 'The provided radiology ID is invalid.'})                
-
-                # Update the radiology_record record with the new data
-                radiology_record.result = result
-                radiology_record.doctor = doctor              
-
-                # Save the updated radiology_record record
-                radiology_record.save()
-
-                return JsonResponse({'success': True, 'message': f'The radiology record for "{radiology_record.imaging.name}" has been updated successfully.'})
-        
-        except Patients.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'The provided patient ID is invalid.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method. This endpoint only accepts POST requests.'})
 
 
 
@@ -814,203 +1088,7 @@ def appointment_list_view(request):
     
     return render(request, 'doctor_template/manage_appointment.html', context)
 
-@require_POST
-def edit_meeting(request, appointment_id):
-    """
-    View for editing/rescheduling an appointment
-    """
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-    
-    if request.method == 'POST':
-        try:
-            # Update appointment details
-            appointment.appointment_date = request.POST.get('appointment_date')
-            appointment.start_time = request.POST.get('start_time')
-            appointment.end_time = request.POST.get('end_time')
-            appointment.save()
-            
-            messages.success(request, 'Appointment rescheduled successfully.')
-        except Exception as e:
-            messages.error(request, f'Error rescheduling appointment: {str(e)}')
-    
-    return redirect('doctor_appointment_list')
 
-@require_POST
-def confirm_meeting(request, appointment_id):
-    """
-    View for confirming an appointment status
-    """
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-    
-    if request.method == 'POST':
-        try:
-            new_status = int(request.POST.get('status'))
-            appointment.status = new_status
-            appointment.save()
-            
-            status_name = dict(Consultation.STATUS_CHOICES).get(new_status, 'Unknown')
-            messages.success(request, f'Appointment status updated to {status_name}.')
-        except (ValueError, Exception) as e:
-            messages.error(request, f'Error updating appointment status: {str(e)}')
-    
-    return redirect('doctor_appointment_list')
-
-@require_POST
-def start_consultation(request, appointment_id):
-    """
-    Starts a consultation: ensures a PatientVisits exists for this appointment,
-    then redirects to save remote consultation notes.
-    """
-    # Fetch appointment; ensure user has permission (doctor/admin)
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-
-    try:
-        # Check if a visit already exists for this appointment
-        if appointment.visit:
-            visit = appointment.visit
-        else:
-            # Create a new PatientVisits record
-            visit = PatientVisits.objects.create(
-                patient=appointment.patient,
-                data_recorder=request.user,  # if you want to track who started it
-                visit_type='Normal',         # or some default type
-                primary_service='Consultation'  # adjust as needed
-            )
-            appointment.visit = visit
-            appointment.save()
-
-        # Redirect to the remote notes saving URL
-        return redirect('doctor_save_remotesconsultation_notes', patient_id=appointment.patient.id, visit_id=visit.id)
-
-    except Exception as e:
-        messages.error(request, f'Error starting consultation: {str(e)}')
-        return redirect('doctor_appointment_list')
-
-        
-@require_POST
-def complete_consultation(request, appointment_id):
-    """
-    View for completing a consultation
-    """
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-    
-    if request.method == 'POST':
-        try:
-            # Update status to Completed
-            appointment.status = 1  # Completed
-            final_notes = request.POST.get('final_notes', '')
-            prescription = request.POST.get('prescription', '')
-            
-            # Update the patient visit record
-            if appointment.visit:
-                appointment.visit.status = 'completed'
-                appointment.visit.notes = final_notes
-                appointment.visit.prescription = prescription
-                appointment.visit.save()
-            
-            appointment.save()
-            
-            messages.success(request, 'Consultation completed successfully.')
-        except Exception as e:
-            messages.error(request, f'Error completing consultation: {str(e)}')
-    
-    return redirect('doctor_appointment_list')
-
-@require_POST
-def cancel_appointment(request, appointment_id):
-    """
-    View for canceling an appointment
-    """
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-    
-    if request.method == 'POST':
-        try:
-            # Update status to Canceled
-            appointment.status = 2  # Canceled
-            cancel_reason = request.POST.get('cancel_reason', '')
-            
-            # Store cancellation reason in description
-            if cancel_reason:
-                original_desc = appointment.description or ''
-                appointment.description = f"{original_desc}\n\nCANCELLATION REASON: {cancel_reason}"
-            
-            appointment.save()
-            
-            messages.success(request, 'Appointment canceled successfully.')
-        except Exception as e:
-            messages.error(request, f'Error canceling appointment: {str(e)}')
-    
-    return redirect('doctor_appointment_list')
-
-def get_appointment_details(request, appointment_id):
-    """
-    API view to get appointment details (for AJAX requests)
-    """
-    appointment = get_object_or_404(Consultation, id=appointment_id, doctor__admin=request.user)
-    
-    data = {
-        'id': appointment.id,
-        'appointment_number': appointment.appointment_number,
-        'patient_name': f"{appointment.patient.first_name} {appointment.patient.last_name}",
-        'patient_mrn': appointment.patient.mrn,
-        'appointment_date': appointment.appointment_date.strftime('%d-%m-%Y'),
-        'start_time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
-        'end_time': appointment.end_time.strftime('%H:%M') if appointment.end_time else '',
-        'description': appointment.description or 'No description provided',
-        'status': appointment.status,
-        'status_display': appointment.get_status_display(),
-        'created_at': appointment.created_at.strftime('%d-%m-%Y %H:%M'),
-    }
-    
-    return JsonResponse(data)
-
-@require_POST
-def bulk_update_appointments(request):
-    """
-    View for bulk updating appointment statuses
-    """
-    if request.method == 'POST':
-        try:
-            appointment_ids = request.POST.getlist('appointment_ids')
-            new_status = int(request.POST.get('status'))
-            
-            # Update all selected appointments
-            updated_count = Consultation.objects.filter(
-                id__in=appointment_ids, 
-                doctor__admin=request.user
-            ).update(status=new_status)
-            
-            status_name = dict(Consultation.STATUS_CHOICES).get(new_status, 'Unknown')
-            messages.success(request, f'Updated {updated_count} appointments to {status_name}.')
-        except (ValueError, Exception) as e:
-            messages.error(request, f'Error updating appointments: {str(e)}')
-    
-    return redirect('doctor_appointment_dashboard') 
-
-
-
-
-@login_required
-def fetch_consultation_counts(request):
-    try:
-        # Get the currently logged-in doctor staff
-        doctor = request.user.staff  # Assuming user has a profile linked with Staffs model
-
-        # Get today's date
-        today = timezone.now().date()
-
-        # Get the counts of consultations for today and not today for the current doctor
-        today_count = Consultation.objects.filter(doctor=doctor, created_at__date=today).count()
-        not_today_count = Consultation.objects.filter(doctor=doctor).exclude(created_at__date=today).count()
-
-        # Return the counts as JSON response
-        return JsonResponse({'unreadCount': today_count, 'readCount': not_today_count})
-    
-    except Staffs.DoesNotExist:
-        return JsonResponse({'error': "Doctor not found."}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-    
   
 
 @csrf_exempt
@@ -1366,6 +1444,23 @@ def save_remotesconsultation_notes_next(request, patient_id, visit_id):
     }
     return render(request, 'doctor_template/add_patientprovisional_diagnosis.html', context)    
     
+@login_required
+def consultation_order_redirect(request, consultation_id):
+    """
+    This view does nothing except redirect to the remote consultation notes URL using URL name.
+    """
+    # Fetch the consultation order
+    order = get_object_or_404(ConsultationOrder, id=consultation_id)
+
+    # Build the redirect URL using URL name
+    redirect_url = reverse(
+        "doctor_save_remotesconsultation_notes", 
+        args=[order.patient.id, order.visit.id]
+    )
+
+    # Redirect the user
+    return redirect(redirect_url)
+
 
 @login_required    
 def save_counsel(request, patient_id, visit_id):
@@ -1939,124 +2034,7 @@ def get_unit_price(request):
         return JsonResponse({'error': 'Cost not available for this payment form'}, status=404)
     
     
-def get_drug_division_status(request):
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            dividable = medicine.is_dividable
-            return JsonResponse({'dividable': dividable})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request method or missing parameter'}, status=400) 
-    
-def get_medicine_formulation(request):
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            formulation = medicine.formulation_unit
-            return JsonResponse({'formulation': formulation})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request method or missing parameter'}, status=400) 
-    
-def get_formulation_unit(request):
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            formulation_unit = medicine.formulation_unit
-            return JsonResponse({'formulation_unit': formulation_unit})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)    
-    
-def get_frequency_name(request):
-    if request.method == 'GET' and 'frequency_id' in request.GET:
-        frequency_id = request.GET.get('frequency_id')
-        try:
-            frequency = PrescriptionFrequency.objects.get(pk=frequency_id)
-            frequency_name = frequency.name
-            return JsonResponse({'frequency_name': frequency_name})
-        except PrescriptionFrequency.DoesNotExist:
-            return JsonResponse({'error': 'Frequency not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)  
-    
 
-    
-def medicine_dosage(request):
-    if request.method == 'GET' and 'medicine_id' in request.GET:
-        medicine_id = request.GET.get('medicine_id')
-
-        try:
-            medicine = Medicine.objects.get(id=medicine_id)
-            dosage = medicine.dosage
-            return JsonResponse({'dosage': dosage})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Invalid request'}, status=400)  
-        
-       
-   
-@login_required   
-def save_observations(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        doctor = request.user.staff
-        try:
-            visit_history = PatientVisits.objects.get(id=visit_id, patient_id=patient_id)
-        except PatientVisits.DoesNotExist:
-            visit_history = None
-        try:
-            imaging_records = ImagingRecord.objects.filter(patient_id=patient_id, visit_id=visit_id,doctor_id=doctor)
-        except ImagingRecord.DoesNotExist:
-            imaging_records = None
-
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            procedures = Procedure.objects.filter(patient=patient_id, visit=visit_id, doctor_id=doctor)
-        except Procedure.DoesNotExist:
-            procedures = None
-
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-
-        patient = Patients.objects.get(id=patient_id)
-
-        # Fetching services based on coverage and type
-        if patient.payment_form == 'insurance':
-            # If patient's payment form is insurance, fetch services with matching coverage
-            remote_service = Service.objects.filter(
-                Q(type_service='Imaging') & Q(coverage=patient.payment_form)
-            )
-        else:
-            # If payment form is cash, fetch all services of type procedure
-            remote_service = Service.objects.filter(type_service='Imaging')
-
-        # Calculate total amount from all procedures
-        total_procedure_cost = procedures.aggregate(Sum('cost'))['cost__sum']
-        total_imaging_cost = imaging_records.aggregate(Sum('cost'))['cost__sum']
-        return render(request, 'doctor_template/observation_template.html', {
-            'visit_history': visit_history,
-            'patient': patient,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'imaging_records': imaging_records,
-            'procedures': procedures,
-            'remote_service': remote_service,
-            'total_procedure_cost': total_procedure_cost,
-            'total_imaging_cost': total_imaging_cost,
-            'consultation_notes': consultation_notes,
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})
         
 
 # Get an instance of a logger
@@ -2246,150 +2224,6 @@ def patient_visit_history_view(request, patient_id):
     
 
 
-    
-@login_required
-def prescription_detail(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        }
-    return render(request, "doctor_template/prescription_detail.html", context)
-
-@login_required
-def prescription_billing(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "doctor_template/prescription_bill.html", context)
-
-@login_required
-def prescription_notes(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "doctor_template/prescription_notes.html", context)
-
-
-
-@login_required
-@csrf_exempt
-@require_POST
-def save_remotepatient_vital(request):
-    try:
-        # Extract data from the request
-        vital_id = request.POST.get('vital_id')
-        patient_id = request.POST.get('patient_id')
-        visit_id = request.POST.get('visit_id')
-        respiratory_rate = request.POST.get('respiratory_rate')
-        pulse_rate = request.POST.get('pulse_rate')
-        sbp = request.POST.get('sbp')
-        dbp = request.POST.get('dbp')
-        spo2 = request.POST.get('spo2')
-        temperature = request.POST.get('temperature')
-        gcs = request.POST.get('gcs')
-        avpu = request.POST.get('avpu')
-        weight = request.POST.get('weight')
-        doctor = request.user.staff
-
-        try:
-            # Retrieve the patient
-            patient = Patients.objects.get(id=patient_id)
-        except Patients.DoesNotExist:
-            return JsonResponse({'status': False, 'message': 'Patient does not exist'})
-
-        try:
-            # Retrieve the visit
-            visit = PatientVisits.objects.get(id=visit_id)
-        except PatientVisits.DoesNotExist:
-            return JsonResponse({'status': False, 'message': 'Visit does not exist'})
-
-        # Check for duplicate records
-        blood_pressure = f"{sbp}/{dbp}"
-        if not vital_id:
-            duplicate_vitals = PatientVital.objects.filter(
-                patient=patient,
-                visit=visit,
-                respiratory_rate=respiratory_rate,
-                pulse_rate=pulse_rate,
-                blood_pressure=blood_pressure,
-                spo2=spo2,
-                sbp=sbp,
-                dbp=dbp,
-                temperature=temperature,
-                gcs=gcs,
-                avpu=avpu,
-                weight=weight,
-            )
-            if duplicate_vitals.exists():
-                return JsonResponse({'status': False, 'message': 'A similar vital record already exists for this patient during this visit.'})
-
-        if vital_id:
-            try:
-                # Editing existing vital
-                vital = PatientVital.objects.get(pk=vital_id)
-                vital.blood_pressure = blood_pressure if sbp and dbp else vital.blood_pressure  # Use existing SBP/DBP if not provided
-                message = 'Patient vital updated successfully'
-            except PatientVital.DoesNotExist:
-                return JsonResponse({'status': False, 'message': 'Vital record does not exist'})
-        else:
-            # Creating new vital
-            vital = PatientVital()
-            vital.blood_pressure = blood_pressure
-            message = 'Patient vital created successfully'
-
-        # Update or set values for other fields
-        vital.visit = visit
-        vital.respiratory_rate = respiratory_rate
-        vital.pulse_rate = pulse_rate
-        vital.recorded_by = doctor
-        vital.blood_pressure = blood_pressure
-        vital.sbp = sbp
-        vital.dbp = dbp
-        vital.spo2 = spo2
-        vital.gcs = gcs
-        vital.temperature = temperature
-        vital.avpu = avpu
-        vital.weight = weight
-        vital.patient = patient
-        vital.save()
-
-        return JsonResponse({'status': True, 'message': message})
-    except Patients.DoesNotExist:
-        return JsonResponse({'status': False, 'message': 'Patient does not exist'})
-    except PatientVisits.DoesNotExist:
-        return JsonResponse({'status': False, 'message': 'Visit does not exist'})
-    except Exception as e:
-        return JsonResponse({'status': False, 'message': str(e)})
-    
- 
-    
 @login_required
 def consultation_notes_view(request):
     # Get all patients who have consultation notes
@@ -2420,316 +2254,355 @@ def new_consultation_order(request):
 
 
 
-def fetch_order_counts_view(request):
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff
-    consultation_orders = ConsultationOrder.objects.filter(doctor=current_doctor)  
-    current_date = timezone.now().date()  
-    # Retrieve the counts of unread and read orders for the current doctor
-    unread_count = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders], order_date=current_date).count()
-    read_count = Order.objects.filter(order_type__in=[consultation.consultation.name for consultation in consultation_orders], is_read=True).count()    
-    # Return the counts as JSON response
-    return JsonResponse({'unread_count': unread_count, 'read_count': read_count})
-
-def fetch_radiology_order_counts_view(request):
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff
-    pathodology_records=ImagingRecord.objects.filter(doctor=current_doctor) 
-    current_date = timezone.now().date()   
-    # Retrieve the counts of unread and read orders for the current doctor
-    unread_count = Order.objects.filter(order_type__in=[pathology.imaging.name for pathology in pathodology_records],order_date=current_date) .count()
-    read_count = Order.objects.filter(order_type__in=[pathology.imaging.name for pathology in pathodology_records], is_read=True) .count()    
-    # Return the counts as JSON response
-    return JsonResponse({'unread_count': unread_count, 'read_count': read_count})
-
-def fetch_procedure_order_counts_view(request):
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff
-    procedures = Procedure.objects.filter(doctor=current_doctor)
-    current_date = timezone.now().date() 
-    # Retrieve the counts of unread and read orders for the current doctor
-    unread_count = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], order_date=current_date).count()    
-    read_count = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], is_read=True).count()    
-    # Return the counts as JSON response
-    return JsonResponse({'unread_count': unread_count, 'read_count': read_count})
-
-
-def fetch_lab_order_counts_view(request):
-    # Retrieve the current logged-in doctor
-    current_doctor = request.user.staff
-    procedures = LaboratoryOrder.objects.filter(data_recorder=current_doctor)
-    current_date = timezone.now().date() 
-    # Retrieve the counts of unread and read orders for the current doctor
-    unread_count = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], order_date=current_date).count()
-    
-    read_count = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures], is_read=True).count()    
-    # Return the counts as JSON response
-    return JsonResponse({'unread_count': unread_count, 'read_count': read_count})
 
 @login_required
 def radiology_order(request):
-    doctor = request.user.staff
-    pathodology_records=ImagingRecord.objects.filter(doctor=doctor).order_by('-order_date')  
-    return render(request,"doctor_template/manage_radiology.html",{
-        "pathodology_records":pathodology_records,       
-        }) 
+    # Get all imaging records
+    imaging_records = ImagingRecord.objects.all().order_by('-created_at')
+   
+    # Group records by patient, visit, doctor, and date (without time)
+    grouped_records = {}
     
+    for record in imaging_records:
+        # Create a unique key for grouping
+        key = (
+            record.patient_id,
+            record.visit_id if record.visit else 0,
+            record.doctor_id if record.doctor else 0,
+            record.order_date if record.order_date else record.created_at.date()
+        )
+        
+        if key not in grouped_records:
+            grouped_records[key] = {
+                'patient': record.patient,
+                'visit': record.visit,
+                'doctor': record.doctor,
+                'date': record.order_date if record.order_date else record.created_at.date(),
+                'records': [],
+                'latest_date': record.created_at
+            }
+        
+        grouped_records[key]['records'].append(record)
+        
+        # Update the latest date if this record is newer
+        if record.created_at > grouped_records[key]['latest_date']:
+            grouped_records[key]['latest_date'] = record.created_at
+    
+    # Convert to list for template
+    imaging_groups = list(grouped_records.values())
+    
+    context = {
+        'imaging_records': imaging_records,
+        'imaging_groups': imaging_groups,
+    }
+    
+    return render(request, 'doctor_template/manage_radiology.html', context)
+
+
 @login_required
 def new_radiology_order(request):
-    doctor = request.user.staff
-    current_date = timezone.now().date() 
-    pathodology_records=ImagingRecord.objects.filter(doctor=doctor).order_by('-order_date')   
-    unread_orders = Order.objects.filter(order_type__in=[pathology.imaging.name for pathology in pathodology_records],  order_date=current_date) 
-    orders = unread_orders   
-    unread_orders.update(is_read=True)     
-    return render(request,"doctor_template/new_radiology_order.html",{
-        "orders":orders,       
-        }) 
+    # Get today's date
+    today = timezone.now().date()
+    
+    # Get the current doctor (staff member)
+    try:
+        current_doctor = Staffs.objects.get(admin=request.user)
+    except Staffs.DoesNotExist:
+        current_doctor = None
+    
+    # Get today's radiology records for the current doctor
+    if current_doctor:
+        today_radiology_records = ImagingRecord.objects.filter(
+            Q(doctor=current_doctor) & 
+            (Q(order_date=today) | Q(created_at__date=today))
+        ).select_related(
+            'patient', 'visit', 'doctor', 'doctor__admin', 'imaging'
+        ).order_by('-created_at')
+        
+        # Group radiology records by patient, visit, doctor, and date
+        grouped_radiology = {}
+        for record in today_radiology_records:
+            # Use order_date if available, otherwise use created_at date
+            record_date = record.order_date if record.order_date else record.created_at.date()
+            
+            key = (
+                record.patient.id, 
+                record.visit.id if record.visit else None, 
+                record.doctor.id,
+                record_date
+            )
+            
+            if key not in grouped_radiology:
+                grouped_radiology[key] = {
+                    'patient': record.patient,
+                    'visit': record.visit,
+                    'doctor': record.doctor,
+                    'date': record_date,
+                    'records': [],
+                    'latest_date': record.created_at
+                }
+            
+            grouped_radiology[key]['records'].append(record)
+            
+            # Update the latest date if this record is newer
+            if record.created_at > grouped_radiology[key]['latest_date']:
+                grouped_radiology[key]['latest_date'] = record.created_at
+        
+        # Convert to list for template
+        radiology_groups = list(grouped_radiology.values())
+    else:
+        radiology_groups = []
+    
+    context = {
+        'radiology_groups': radiology_groups,
+        'today_radiology_count': sum(len(group['records']) for group in radiology_groups)
+    }
+    
+    return render(request, 'doctor_template/new_radiology_order.html', context)
+
+
     
 @login_required
 def patient_procedure_view(request):
-    # Retrieve distinct patient and visit combinations from RemoteProcedure
-    patient_procedures = (
-        Procedure.objects.values('patient__mrn', 'visit__vst',
-                                       'doctor__admin__first_name',
-                                          'doctor__middle_name',
-                                          'doctor__role',
-                                          'doctor__admin__first_name',
-                                       ) 
-        .annotate(
-            latest_date=Max('created_at'),  # Get the latest procedure date for each patient and visit
-            procedure_name=Subquery(
-                Procedure.objects.filter(
-                    patient__mrn=OuterRef('patient__mrn'),  # Match patient MRN
-                    visit__vst=OuterRef('visit__vst')       # Match visit number
-                )
-                .order_by('-created_at')  # Order by most recent procedure
-                .values('name__name')[:1]  # Retrieve the latest procedure name
-            )
+    # Group procedures by patient, visit, doctor, and date
+    procedure_groups = []
+    
+    # Get all procedures with related data
+    procedures = Procedure.objects.select_related(
+        'patient', 'visit', 'doctor', 'doctor__admin', 'name'
+    ).order_by('-created_at')
+    
+    # Create a dictionary to group procedures
+    groups_dict = {}
+    
+    for procedure in procedures:
+        # Create a unique key for grouping
+        key = (
+            procedure.patient_id, 
+            procedure.visit_id if procedure.visit else 0, 
+            procedure.doctor_id,
+            procedure.created_at.date()  # Group by date only (not time)
         )
-        .order_by('-latest_date')  # Order by the latest procedure date
-    )
-
+        
+        if key not in groups_dict:
+            groups_dict[key] = {
+                'patient': procedure.patient,
+                'visit': procedure.visit,
+                'doctor': procedure.doctor,
+                'date': procedure.created_at.date(),
+                'latest_date': procedure.created_at,
+                'procedures': []
+            }
+        else:
+            # Update the latest date if this procedure is more recent
+            if procedure.created_at > groups_dict[key]['latest_date']:
+                groups_dict[key]['latest_date'] = procedure.created_at
+        
+        # Add procedure to the group
+        groups_dict[key]['procedures'].append(procedure)
+    
+    # Convert dictionary to list
+    procedure_groups = list(groups_dict.values())
+    
+    # Sort groups by latest date
+    procedure_groups.sort(key=lambda x: x['latest_date'], reverse=True)
+    
+    # Calculate summary statistics
+    total_procedures_count = sum(len(group['procedures']) for group in procedure_groups)
+    unique_patients_count = len(set(group['patient'].id for group in procedure_groups))
+    unique_doctors_count = len(set(group['doctor'].id for group in procedure_groups))
+    
     context = {
-        'patient_procedures': patient_procedures,
+        'procedure_groups': procedure_groups,
+        'total_procedures_count': total_procedures_count,
+        'unique_patients_count': unique_patients_count,
+        'unique_doctors_count': unique_doctors_count,
     }
+    
     return render(request, 'doctor_template/manage_procedure.html', context)
+    
+
+
+
 
 @login_required
-def patient_procedure_detail_view(request, mrn, visit_number):
-    """ View to display procedure details for a specific patient and visit. """
-    
-    # Fetch patient and visit in one go
-    patient = get_object_or_404(Patients, mrn=mrn)
-    visit = get_object_or_404(PatientVisits, vst=visit_number)
-    
-    # Retrieve procedures related to this patient and visit
-    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
+def edit_procedure_result(request, procedure_id):
+    # Get the procedure
+    procedure = get_object_or_404(Procedure, id=procedure_id)
 
-    # Get the doctor who performed the first procedure (if exists)
-    procedure_done_by = procedures[0].doctor if procedures else None
+    # From the procedure we can access patient and visit directly
+    patient = procedure.patient
+    visit = procedure.visit
 
+    # Prepare context for rendering the template
     context = {
-        'procedure_done_by': procedure_done_by,
         'patient': patient,
         'visit': visit,
-        'procedure': procedures,
+        'procedure': procedure,
     }
 
-    return render(request, 'doctor_template/manage_procedure_detail_view.html', context)
+    if request.method == 'POST':
+        form = ProcedureForm(request.POST, instance=procedure)
 
-
-@login_required    
-def edit_procedure_result(request, patient_id, visit_id, procedure_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)            
-
-    procedures = Procedure.objects.filter(patient=patient, visit=visit, id=procedure_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = ProcedureForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote counseling updated successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, 'Procedure result updated successfully.')
+            except ValidationError as e:
+                messages.error(request, f'Validation Error: {e}')
         else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote counseling saved successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
+            messages.error(request, 'Please correct the errors in the form.')
 
-        # Redirect to the appropriate page after saving
+        # Redirect after saving
         return redirect(reverse('doctor_patient_procedure_view'))
-   
+
     else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = ProcedureForm(instance=procedures)   
-    # Add the form to the context
-    context['form'] = form    
+        form = ProcedureForm(instance=procedure)
+
+    context['form'] = form
     return render(request, 'doctor_template/edit_procedure_result.html', context)
-
-@login_required    
-def edit_radiology_result(request, patient_id, visit_id, radiology_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)            
-
-    procedures = ImagingRecord.objects.filter(patient=patient, visit=visit, id=radiology_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = ImagingRecordForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote radiology updated successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote radiology saved successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('doctor_radiology_order'))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = ImagingRecordForm(instance=procedures)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'doctor_template/edit_radiology_result.html', context)
-
-@login_required    
-def edit_lab_result(request, patient_id, visit_id, lab_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)            
-
-    procedures = LaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = LaboratoryOrderForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote Lab result updated successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Remote Lab result saved successfully.')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('doctor_patient_lab_view'))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = LaboratoryOrderForm(instance=procedures)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'doctor_template/edit_lab_result.html', context)
 
 
 @login_required
-def patient_lab_view(request):
-    template_name = 'doctor_template/lab_order_result.html'
-    # Query to retrieve the latest procedure record for each patient
-    procedures = LaboratoryOrder.objects.order_by('-order_date')      
-    return render(request, template_name, {'procedures': procedures})
+def edit_radiology_result(request, radiology_id):
+    # Get the imaging record
+    imaging_record = get_object_or_404(ImagingRecord, id=radiology_id)
+
+    # Access related patient and visit directly
+    patient = imaging_record.patient
+    visit = imaging_record.visit
+
+    # Prepare context for rendering
+    context = {
+        'patient': patient,
+        'visit': visit,
+        'imaging_record': imaging_record,
+    }
+
+    if request.method == 'POST':
+        form = ImagingRecordForm(request.POST, request.FILES, instance=imaging_record)
+
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, 'Radiology result updated successfully.')
+            except ValidationError as e:
+                messages.error(request, f'Validation Error: {e}')
+        else:
+            messages.error(request, 'Please correct the errors in the form.')
+
+        # Redirect after saving
+        return redirect(reverse('doctor_radiology_order'))
+
+    else:
+        form = ImagingRecordForm(instance=imaging_record)
+
+    context['form'] = form
+    return render(request, 'doctor_template/edit_radiology_result.html', context)
+
+
+
+@login_required
+def patient_laboratory_view(request):
+    # Get distinct (patient, visit) combinations with latest result date
+    distinct_lab_sets = (
+        LaboratoryOrder.objects
+        .values('patient_id', 'visit_id')
+        .annotate(latest_date=Max('created_at'))
+        .order_by('-latest_date')
+    )
+
+    patient_lab_data = []
+
+    for entry in distinct_lab_sets:
+        patient_id = entry['patient_id']
+        visit_id = entry['visit_id']
+        latest_date = entry['latest_date']
+
+        lab_tests = LaboratoryOrder.objects.filter(
+            patient_id=patient_id,
+            visit_id=visit_id
+        ).select_related('patient', 'visit', 'data_recorder__admin')
+
+        if lab_tests.exists():
+            first_lab = lab_tests.first()
+            patient_lab_data.append({
+                'patient': first_lab.patient,
+                'visit': first_lab.visit,
+                'latest_date': latest_date,
+                'lab_done_by': first_lab.data_recorder,
+                'lab_tests': lab_tests
+            })
+
+    context = {
+        'patient_labs': patient_lab_data,
+    }
+
+    return render(request, 'doctor_template/lab_order_result.html', context)
+
 
 @login_required
 def new_procedure_order(request):
-    template_name = 'doctor_template/new_procedure_order.html'
-    doctor = request.user.staff
-    current_date = timezone.now().date() 
-    # Query to retrieve the latest procedure record for each patient
-    procedures = Procedure.objects.filter(doctor=doctor).order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[procedure.name.name for procedure in procedures],  order_date=current_date)    
-    orders = unread_orders 
-    unread_orders.update(is_read=True)         
-    return render(request, template_name, {'orders': orders})
-
-@login_required
-def new_lab_order(request):
-    template_name = 'doctor_template/new_lab_order.html'
-    doctor = request.user.staff
-    current_date = timezone.now().date() 
-    # Query to retrieve the latest procedure record for each patient
-    procedures = LaboratoryOrder.objects.filter(data_recorder=doctor).order_by('-order_date')    
-    unread_orders = Order.objects.filter(order_type__in=[procedure.lab_test.name for procedure in procedures],  order_date=current_date)    
-    orders = unread_orders 
-    unread_orders.update(is_read=True)         
-    return render(request, template_name, {'orders': orders})
+    # Get today's date
+    today = timezone.now().date()
     
+    # Get the current doctor (staff member)
+    try:
+        current_doctor = Staffs.objects.get(admin=request.user)
+    except Staffs.DoesNotExist:
+        current_doctor = None
+    
+    # Get today's procedures for the current doctor
+    if current_doctor:
+        today_procedures = Procedure.objects.filter(
+            Q(doctor=current_doctor) & 
+            (Q(order_date=today) | Q(created_at__date=today))
+        ).select_related(
+            'patient', 'visit', 'doctor', 'doctor__admin', 'name'
+        ).order_by('-created_at')
+        
+        # Group procedures by patient, visit, doctor, and date
+        grouped_procedures = {}
+        for procedure in today_procedures:
+            # Use order_date if available, otherwise use created_at date
+            proc_date = procedure.order_date if procedure.order_date else procedure.created_at.date()
+            
+            key = (
+                procedure.patient.id, 
+                procedure.visit.id if procedure.visit else None, 
+                procedure.doctor.id,
+                proc_date
+            )
+            
+            if key not in grouped_procedures:
+                grouped_procedures[key] = {
+                    'patient': procedure.patient,
+                    'visit': procedure.visit,
+                    'doctor': procedure.doctor,
+                    'date': proc_date,
+                    'procedures': [],
+                    'latest_date': procedure.created_at
+                }
+            
+            grouped_procedures[key]['procedures'].append(procedure)
+            
+            # Update the latest date if this procedure is newer
+            if procedure.created_at > grouped_procedures[key]['latest_date']:
+                grouped_procedures[key]['latest_date'] = procedure.created_at
+        
+        # Convert to list for template
+        procedure_groups = list(grouped_procedures.values())
+    else:
+        procedure_groups = []
+    
+    context = {
+        'procedure_groups': procedure_groups,
+        'today_procedures_count': sum(len(group['procedures']) for group in procedure_groups)
+    }
+    
+    return render(request, 'doctor_template/new_procedure_order.html', context)
+
+
 
 
 

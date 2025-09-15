@@ -3,7 +3,7 @@
 {% load customfilter %}
 
 {% block title %}
-Premium Radiology Records
+ Radiology Records
 {% endblock title %}
 
 {% block page_title %}
@@ -14,12 +14,12 @@ Premium Radiology Records
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-Premium Radiology Records
+ Radiology Records
 {% endblock breadcrumb %}
 
 {% block main_content %}
 <style>
-    /* Premium styling for radiology */
+    /*  styling for radiology */
     .radiology-prem-gradient {
         background: linear-gradient(120deg, #1a2a6c, #2C3E50);
         border-radius: 12px;
@@ -245,6 +245,29 @@ Premium Radiology Records
         font-size: 0.8rem;
         font-weight: 500;
     }
+    
+    /* Modal specific styles */
+    .radiology-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
+    
+    .status-badge-radiology {
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .status-completed {
+        background: linear-gradient(120deg, #308829, #4CAF50);
+        color: white;
+    }
+    
+    .status-pending {
+        background: linear-gradient(120deg, #FF9800, #FF5722);
+        color: white;
+    }
 </style>
 
 <div class="container-fluid">
@@ -256,7 +279,7 @@ Premium Radiology Records
                     <h6 class="mb-0"><i class="fas fa-x-ray mr-2"></i>Total Records</h6>
                 </div>
                 <div class="card-body text-center">
-                    <div class="radiology-prem-summary-value" id="total-records">{{ pathodology_records|length }}</div>
+                    <div class="radiology-prem-summary-value" id="total-records">{{ imaging_records|length }}</div>
                     <div class="radiology-prem-summary-label">Radiology Records</div>
                 </div>
             </div>
@@ -267,8 +290,8 @@ Premium Radiology Records
                     <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
                 </div>
                 <div class="card-body text-center">
-                    <div class="radiology-prem-summary-value" id="unique-patients">0</div>
-                    <div class="radiology-prem-summary-label">Unique Patients</div>
+                    <div class="radiology-prem-summary-value" id="unique-patients">{{ imaging_groups|length }}</div>
+                    <div class="radiology-prem-summary-label">Unique Groups</div>
                 </div>
             </div>
         </div>
@@ -286,7 +309,7 @@ Premium Radiology Records
                         <div class="radiology-prem-flip-icon">
                             <i class="fas fa-gem"></i>
                         </div>
-                        <h4>Premium Insights</h4>
+                        <h4> Insights</h4>
                         <p>Advanced radiology analytics</p>
                     </div>
                 </div>
@@ -297,7 +320,7 @@ Premium Radiology Records
     <!-- Filter Bar -->
     <div class="radiology-prem-filter-bar">
         <div class="input-group">
-            <input type="text" class="form-control" placeholder="Search records by patient, recorder, or date..." id="radiologyPremSearch">
+            <input type="text" class="form-control" placeholder="Search records by patient, doctor, or date..." id="radiologyPremSearch">
             <div class="input-group-append">
                 <button class="btn radiology-prem-btn-action" type="button" id="searchButton">
                     <i class="fas fa-search"></i>
@@ -312,7 +335,7 @@ Premium Radiology Records
             <div class="card radiology-prem-gradient shadow-lg">
                 <div class="card-header py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-white"><i class="fas fa-x-ray mr-2"></i>Premium Radiology Records</h5>                       
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-x-ray mr-2"></i> Radiology Records (Grouped)</h5>                       
                     </div>
                 </div>
                 <div class="card-body">
@@ -321,37 +344,45 @@ Premium Radiology Records
                             <thead>
                                 <tr>
                                     <th><i class="fas fa-user-injured mr-2"></i>Patient</th>
-                                    <th><i class="fas fa-user-md mr-2"></i>Data Recorder</th>                                  
-                                    <th><i class="fas fa-calendar mr-2"></i>Date</th>
-                                    <th><i class="fas fa-calendar-day mr-2"></i>Day</th>
-                                    <th><i class="fas fa-clock mr-2"></i>Time</th>
+                                    <th><i class="fas fa-user-md mr-2"></i>Doctor</th>
+                                    <th><i class="fas fa-calendar mr-2"></i>Visit Date</th>
+                                    <th><i class="fas fa-list-ol mr-2"></i>Records Count</th>
+                                    <th><i class="fas fa-calendar-day mr-2"></i>Date</th>
                                     <th class="text-center"><i class="fas fa-cogs mr-2"></i>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for observation_record in pathodology_records %}
+                                {% for group in imaging_groups %}
                                 <tr>
                                     <td>
                                         <span class="radiology-prem-badge radiology-prem-badge-patient">
-                                            {{ observation_record.patient }}
+                                            {{ group.patient.first_name }} {{ group.patient.middle_name }} {{ group.patient.last_name }}
                                         </span>
                                     </td>
                                     <td>
                                         <span class="radiology-prem-badge radiology-prem-badge-recorder">
-                                            {{ observation_record.data_recorder }}
-                                        </span>
-                                    </td>                                
-                                    <td>
-                                        <span class="radiology-prem-date-badge">
-                                            {{ observation_record.created_at|date:"d-m-Y" }}
+                                            Dr. {{ group.doctor.admin.first_name }} {{ group.doctor.admin.last_name }}
                                         </span>
                                     </td>
-                                    <td>{{ observation_record.created_at|date:"l" }}</td>
-                                    <td>{{ observation_record.created_at|date:"H:i" }}</td>
+                                    <td>
+                                        {% if group.visit %}
+                                            {{ group.visit.created_at|date:"d-m-Y" }}
+                                        {% else %}
+                                            Not assigned
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ group.records|length }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="radiology-prem-date-badge">
+                                            {{ group.date|date:"d-m-Y" }}
+                                        </span>
+                                    </td>
                                     <td class="text-center">
-                                        <a href="{% url 'doctor_edit_radiology_result' observation_record.patient.id observation_record.visit.id observation_record.id %}" class="btn radiology-prem-btn-edit">
-                                            <i class="fas fa-edit mr-1"></i>Edit
-                                        </a>
+                                        <button type="button" class="btn radiology-prem-btn-action" data-toggle="modal" data-target="#imagingModal{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.id }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}">
+                                            <i class="fas fa-eye mr-1"></i>View Records
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -364,39 +395,204 @@ Premium Radiology Records
     </div>
 </div>
 
+<!-- Imaging Modals -->
+{% for group in imaging_groups %}
+<div class="modal fade" id="imagingModal{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.id }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}" tabindex="-1" role="dialog" aria-labelledby="imagingModalLabel{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.id }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header radiology-prem-modal-header">
+        <h5 class="modal-title text-white"><i class="fas fa-x-ray mr-2"></i>Radiology Summary</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <div class="mb-3">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+          </div>
+
+          <!-- Patient Full Details -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+            </div>
+            <div class="card-body">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td><strong>Patient:</strong> {{ group.patient.first_name }} {{ group.patient.middle_name }} {{ group.patient.last_name }}</td>
+                  <td><strong>DOB:</strong> {{ group.patient.dob|date:'d-m-Y' }}</td>
+                  <td><strong>Gender:</strong> {{ group.patient.gender }}</td>
+                  <td><strong>File No:</strong> {{ group.patient.mrn }}</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><strong>Payment Form:</strong>
+                    {% if group.patient.payment_form == "Insurance" %}
+                      {{ group.patient.payment_form }} - {{ group.patient.insurance_name }}
+                    {% else %}
+                      {{ group.patient.payment_form }}
+                    {% endif %}
+                  </td>
+                  <td colspan="2">
+                    {% if group.visit %}
+                      <strong>Visit Number:</strong> {{ group.visit.vst }}
+                    {% else %}
+                      <strong>Visit Number:</strong> Not assigned
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Imaging Summary -->
+          <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-x-ray mr-2"></i>Imaging Summary</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Imaging Type</th>
+                      <th>Description</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for record in group.records %}
+                    <tr>
+                      <td>{{ record.imaging.name }}</td>
+                      <td>{{ record.description|default:"-" }}</td>
+                      <td>{{ record.cost }}</td>
+                      <td>
+                        {% if record.result %}
+                          <span class="status-badge-radiology status-completed">Completed</span>
+                        {% else %}
+                          <span class="status-badge-radiology status-pending">Pending</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#imagingResultModal{{ record.id }}">
+                            <i class="fas fa-eye"></i> View
+                          </button>
+                          <a href="{% url 'doctor_edit_radiology_result' record.id %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">No imaging records found for this visit.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Imaging Recorded By Footer -->
+            <div class="card-footer">
+              <table class="table table-borderless table-sm mb-0">
+                <tbody>
+                  <tr>
+                    <td><strong>Ordered By:</strong> Dr. {{ group.doctor.admin.first_name }} {{ group.doctor.admin.last_name }}</td>
+                    <td><strong>Date:</strong> {{ group.latest_date|date:"d-m-Y H:i" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div> <!-- /.container-fluid -->
+      </div> <!-- /.modal-body -->
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for group in imaging_groups %}
+  {% for record in group.records %}
+    <!-- Imaging Result Modal -->
+    <div class="modal fade" id="imagingResultModal{{ record.id }}" tabindex="-1" role="dialog" aria-labelledby="imagingResultModalLabel{{ record.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="imagingResultModalLabel{{ record.id }}">
+              <i class="fas fa-x-ray mr-2"></i>Imaging Result - {{ record.imaging.name }}
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            {% if record.result %}
+              <div class="mb-4">
+                <h6>Result:</h6>
+                {{ record.result|safe }}
+              </div>
+            {% else %}
+              <p class="text-muted">No result available for this imaging.</p>
+            {% endif %}
+            
+            {% if record.image %}
+              <div class="mt-4">
+                <h6>Image:</h6>
+                <img src="{{ record.image.url }}" class="img-fluid" alt="Imaging result">
+              </div>
+            {% endif %}
+            
+            {% if record.description %}
+              <div class="mt-4">
+                <h6>Description:</h6>
+                <p>{{ record.description }}</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">         
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endfor %}
+
 {% include 'doctor_template/datatable.html' %}
 
 <script>
     // Initialize DataTable
     new DataTable('#radiologyTable', {
         dom: 'Bfrtip',
-        buttons: ['excel', 'pdf', 'print'],
+        buttons: [''],
         responsive: true,
         pageLength: 10,
-        order: [[2, 'desc']],
+        order: [[4, 'desc']],
         language: {
             search: "_INPUT_",
             searchPlaceholder: "Search records...",
             lengthMenu: "Show _MENU_ entries"
         }
     });
-
-    // Calculate summary statistics
-    function calculateSummaryStats() {
-        const uniquePatients = new Set();
-        
-        document.querySelectorAll('#radiologyTable tbody tr').forEach(row => {
-            const patient = row.cells[0].textContent.trim();
-            
-            uniquePatients.add(patient);
-        });
-        
-        // Update summary cards
-        document.getElementById('unique-patients').textContent = uniquePatients.size;
-    }
-    
-    // Initialize summary stats
-    calculateSummaryStats();
 
     // Search functionality
     document.getElementById('radiologyPremSearch').addEventListener('keyup', function() {

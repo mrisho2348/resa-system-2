@@ -1,0 +1,511 @@
+{% extends "doctor_template/base_template.html" %}
+{% load static %}
+
+{% block title %}RESA | Notifications Center{% endblock %}
+
+{% block page_title %}Notifications Center{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'doctor_dashboard' %}">Dashboard</a></li>
+<li class="breadcrumb-item active">Notifications</li>
+{% endblock %}
+
+{% block main_content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title">All Notifications</h3>
+                        <div class="card-tools">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" placeholder="Search notifications..." id="notificationSearch">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 5%">Type</th>
+                                        <th style="width: 25%">Title</th>
+                                        <th style="width: 40%">Details</th>
+                                        <th style="width: 15%">Date & Time</th>
+                                        <th style="width: 15%">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notificationsTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                            <p class="mt-2">Loading notifications...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                    <div class="card-footer clearfix">
+                        <div class="row">
+                            <div class="col-sm-12 col-md-5">
+                                <div class="dataTables_info" id="notificationsInfo" role="status" aria-live="polite">
+                                    Showing 0 to 0 of 0 entries
+                                </div>
+                            </div>
+                            <div class="col-sm-12 col-md-7">
+                                <ul class="pagination pagination-sm m-0 float-right" id="notificationsPagination">
+                                    <!-- Pagination will be added dynamically -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card card-secondary collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Filters</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Notification Type</label>
+                                    <select class="form-control select2bs4" id="filterType" style="width: 100%;">
+                                        <option value="all" selected>All Types</option>
+                                        <option value="appointment">Appointments</option>
+                                        <option value="consultation">Consultations</option>
+                                        <option value="imaging">Imaging</option>
+                                        <option value="procedure">Procedures</option>
+                                        <option value="lab">Lab Results</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Date Range</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">
+                                                <i class="far fa-calendar-alt"></i>
+                                            </span>
+                                        </div>
+                                        <input type="text" class="form-control float-right" id="filterDateRange">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select class="form-control select2bs4" id="filterStatus" style="width: 100%;">
+                                        <option value="all" selected>All Status</option>
+                                        <option value="unread">Unread</option>
+                                        <option value="read">Read</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Sort By</label>
+                                    <select class="form-control select2bs4" id="filterSort" style="width: 100%;">
+                                        <option value="newest" selected>Newest First</option>
+                                        <option value="oldest">Oldest First</option>
+                                        <option value="type">By Type</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-default" id="resetFilters">Reset Filters</button>
+                        <button type="button" class="btn btn-primary float-right" id="applyFilters">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block customer_js %}
+<script>
+$(document).ready(function() {
+    // Initialize date range picker
+    $('#filterDateRange').daterangepicker({
+        locale: {
+            format: 'YYYY-MM-DD'
+        }
+    });
+
+    // Initialize select2
+    $('.select2bs4').select2({
+        theme: 'bootstrap4'
+    });
+
+    // Load notifications
+    loadAllNotifications();
+
+    // Apply filters
+    $('#applyFilters').click(function() {
+        loadAllNotifications();
+    });
+
+    // Reset filters
+    $('#resetFilters').click(function() {
+        $('#filterType').val('all').trigger('change');
+        $('#filterDateRange').val('');
+        $('#filterStatus').val('all').trigger('change');
+        $('#filterSort').val('newest').trigger('change');
+        loadAllNotifications();
+    });
+
+    // Search functionality
+    $('#notificationSearch').on('keyup', function() {
+        filterNotifications($(this).val());
+    });
+});
+
+function loadAllNotifications(page = 1) {
+    // Show loading state
+    $('#notificationsTableBody').html(`
+        <tr>
+            <td colspan="5" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading notifications...</p>
+            </td>
+        </tr>
+    `);
+
+    // Get filter values
+    const typeFilter = $('#filterType').val();
+    const dateFilter = $('#filterDateRange').val();
+    const statusFilter = $('#filterStatus').val();
+    const sortFilter = $('#filterSort').val();
+
+    // Make API call to fetch all notifications
+    fetch(`{% url 'doctor_all_notifications_api' %}?page=${page}&type=${typeFilter}&date_range=${dateFilter}&status=${statusFilter}&sort=${sortFilter}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderNotificationsTable(data.notifications);
+                renderPagination(data.pagination);
+            } else {
+                $('#notificationsTableBody').html(`
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Failed to load notifications. Please try again.
+                        </td>
+                    </tr>
+                `);
+            }
+        })
+        .catch(err => {
+            console.error('Error loading notifications:', err);
+            $('#notificationsTableBody').html(`
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Error loading notifications. Please check your connection and try again.
+                    </td>
+                </tr>
+            `);
+        });
+}
+
+function renderNotificationsTable(notifications) {
+    if (notifications.length === 0) {
+        $('#notificationsTableBody').html(`
+            <tr>
+                <td colspan="5" class="text-center py-4">
+                    <i class="far fa-bell-slash text-muted fa-2x mb-2"></i>
+                    <p class="text-muted">No notifications found</p>
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    let tableHtml = '';
+    notifications.forEach(notif => {
+        // Determine icon and color based on notification type
+        let icon, iconColor, typeLabel;
+        
+        switch(notif.type) {
+            case 'appointment':
+                icon = 'fas fa-calendar-check';
+                iconColor = 'text-primary';
+                typeLabel = 'Appointment';
+                break;
+            case 'consultation':
+                icon = 'fas fa-stethoscope';
+                iconColor = 'text-info';
+                typeLabel = 'Consultation';
+                break;
+            case 'imaging':
+                icon = 'fas fa-x-ray';
+                iconColor = 'text-warning';
+                typeLabel = 'Imaging';
+                break;
+            case 'procedure':
+                icon = 'fas fa-procedures';
+                iconColor = 'text-success';
+                typeLabel = 'Procedure';
+                break;
+            case 'lab':
+                icon = 'fas fa-vial';
+                iconColor = 'text-danger';
+                typeLabel = 'Lab';
+                break;
+            default:
+                icon = 'fas fa-bell';
+                iconColor = 'text-secondary';
+                typeLabel = 'General';
+        }
+
+        tableHtml += `
+            <tr class="${notif.is_read ? '' : 'bg-light'}">
+                <td>
+                    <i class="${icon} ${iconColor} fa-lg" title="${typeLabel}"></i>
+                </td>
+                <td>
+                    <div class="font-weight-bold">${notif.title}</div>
+                    <small class="text-muted">${notif.type_display}</small>
+                </td>
+                <td>${notif.details}</td>
+                <td>
+                    <div>${notif.date}</div>
+                    <small class="text-muted">${notif.time}</small>
+                </td>
+                <td>
+                    <a href="${notif.url}" class="btn btn-sm btn-primary" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <button class="btn btn-sm btn-${notif.is_read ? 'secondary' : 'success'} toggle-read" data-id="${notif.id}" title="${notif.is_read ? 'Mark as Unread' : 'Mark as Read'}">
+                        <i class="fas fa-${notif.is_read ? 'envelope-open' : 'envelope'}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-notification" data-id="${notif.id}" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    $('#notificationsTableBody').html(tableHtml);
+
+    // Add event listeners for action buttons
+    $('.toggle-read').click(function() {
+        const notificationId = $(this).data('id');
+        toggleNotificationReadStatus(notificationId);
+    });
+
+    $('.delete-notification').click(function() {
+        const notificationId = $(this).data('id');
+        deleteNotification(notificationId);
+    });
+}
+
+function renderPagination(pagination) {
+    if (!pagination || pagination.total_pages <= 1) {
+        $('#notificationsPagination').html('');
+        return;
+    }
+
+    let paginationHtml = '';
+    
+    // Previous button
+    if (pagination.has_previous) {
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${pagination.current_page - 1}">Previous</a>
+            </li>
+        `;
+    } else {
+        paginationHtml += `
+            <li class="page-item disabled">
+                <a class="page-link" href="#">Previous</a>
+            </li>
+        `;
+    }
+
+    // Page numbers
+    for (let i = 1; i <= pagination.total_pages; i++) {
+        if (i === pagination.current_page) {
+            paginationHtml += `
+                <li class="page-item active">
+                    <a class="page-link" href="#">${i}</a>
+                </li>
+            `;
+        } else {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+    }
+
+    // Next button
+    if (pagination.has_next) {
+        paginationHtml += `
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${pagination.current_page + 1}">Next</a>
+            </li>
+        `;
+    } else {
+        paginationHtml += `
+            <li class="page-item disabled">
+                <a class="page-link" href="#">Next</a>
+            </li>
+        `;
+    }
+
+    $('#notificationsPagination').html(paginationHtml);
+
+    // Add click event to pagination links
+    $('#notificationsPagination .page-link').click(function(e) {
+        e.preventDefault();
+        const page = $(this).data('page');
+        if (page) {
+            loadAllNotifications(page);
+        }
+    });
+}
+
+function filterNotifications(searchTerm) {
+    const rows = $('#notificationsTableBody tr');
+    
+    rows.each(function() {
+        const text = $(this).text().toLowerCase();
+        if (text.includes(searchTerm.toLowerCase())) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+}
+
+function toggleNotificationReadStatus(notificationId) {
+    fetch(`{% url 'doctor_toggle_notification_api' %}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            notification_id: notificationId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Reload notifications to reflect the change
+            loadAllNotifications();
+        } else {
+            showToast('Error', 'Failed to update notification status', 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Error toggling notification status:', err);
+        showToast('Error', 'Failed to update notification status', 'error');
+    });
+}
+
+function deleteNotification(notificationId) {
+    if (!confirm('Are you sure you want to delete this notification?')) {
+        return;
+    }
+
+    fetch(`{% url 'doctor_delete_notification_api' %}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            notification_id: notificationId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast('Success', 'Notification deleted successfully', 'success');
+            // Reload notifications
+            loadAllNotifications();
+        } else {
+            showToast('Error', 'Failed to delete notification', 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Error deleting notification:', err);
+        showToast('Error', 'Failed to delete notification', 'error');
+    });
+}
+
+// Utility function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Utility function to show toast notifications
+function showToast(title, message, type = 'info') {
+    // You can implement a toast notification system here
+    // For simplicity, we'll use the browser's alert for now
+    alert(`${title}: ${message}`);
+}
+</script>
+
+<style>
+.notification-row-unread {
+    background-color: #f8f9fa !important;
+    font-weight: 500;
+}
+
+.card-secondary .card-header {
+    background-color: #6c757d;
+    color: white;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+#notificationsTableBody td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

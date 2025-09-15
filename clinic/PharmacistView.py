@@ -147,74 +147,7 @@ def get_expiring_soon_medicines(days=10, limit=10):
     ).order_by('expiration_date')[:limit]
 
 
-# ==================== AJAX/API VIEWS ====================
-@require_POST
-@csrf_exempt
-def get_unit_price(request):
-    """Get unit price based on medicine and patient's payment method"""
-    medicine_id = request.POST.get('medicine_id')
-    patient_id = request.POST.get('patient_id')
-    
-    # Handle walking patients (no patient_id but payment_form provided)
-    payment_form = request.POST.get('payment_form')
-    
-    if not medicine_id:
-        return JsonResponse({'error': 'Medicine ID is required'}, status=400)
-    
-    # Validate we have either a patient_id or payment_form for walking patients
-    if not patient_id and not payment_form:
-        return JsonResponse(
-            {'error': 'Either Patient ID or Payment Form is required'}, 
-            status=400
-        )
-    
-    try:
-        medicine = Medicine.objects.get(pk=medicine_id)
-        
-        # Determine payment method
-        if patient_id:
-            # Existing patient in database
-            try:
-                patient = Patients.objects.get(id=patient_id)
-                payment_form = patient.payment_form
-                insurance_name = patient.insurance_name
-            except Patients.DoesNotExist:
-                return JsonResponse({'error': 'Patient not found'}, status=404)
-        else:
-            # Walking patient - use provided payment form
-            insurance_name = request.POST.get('insurance_name', '')
-        
-        # Calculate prices based on payment method
-        cash_price = medicine.cash_cost
-        
-        if payment_form == 'Cash':
-            unit_price = cash_price
-        elif payment_form == 'Insurance':
-            if insurance_name == 'NHIF':
-                unit_price = medicine.nhif_cost
-            else:
-                unit_price = medicine.insurance_cost
-        else:
-            unit_price = None
-        
-        # Prepare response
-        response_data = {
-            'unit_price': unit_price if unit_price is not None else 0,
-            'cash_price': cash_price
-        }
-        
-        # Add error message if unit price is not available
-        if unit_price is None or unit_price <= 0:
-            response_data['error'] = 'Cost not available for this payment form'
-        
-        return JsonResponse(response_data)
-            
-    except Medicine.DoesNotExist:
-        return JsonResponse({'error': 'Medicine not found'}, status=404)
-    except Exception as e:
-        # Log the exception for debugging
-        # logger.error(f"Error in get_unit_price: {str(e)}")
-        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
 
         
 @csrf_exempt
@@ -232,69 +165,7 @@ def get_cash_price(request):
         return JsonResponse({'error': 'Medicine not found'}, status=404)
 
 
-@csrf_exempt
-def get_drug_division_status(request):
-    """Check if a medicine is dividable"""
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            return JsonResponse({'dividable': medicine.is_dividable})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    return JsonResponse({'error': 'Invalid request method or missing parameter'}, status=400)
 
-
-@csrf_exempt
-def get_medicine_formulation(request):
-    """Get medicine formulation unit"""
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            return JsonResponse({'formulation': medicine.formulation_unit})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    return JsonResponse({'error': 'Invalid request method or missing parameter'}, status=400)
-
-
-@csrf_exempt
-def get_formulation_unit(request):
-    """Get medicine formulation unit (alias for get_medicine_formulation)"""
-    if request.method == 'GET':
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(pk=medicine_id)
-            return JsonResponse({'formulation_unit': medicine.formulation_unit})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-
-@csrf_exempt
-def get_frequency_name(request):
-    """Get prescription frequency name by ID"""
-    if request.method == 'GET' and 'frequency_id' in request.GET:
-        frequency_id = request.GET.get('frequency_id')
-        try:
-            frequency = PrescriptionFrequency.objects.get(pk=frequency_id)
-            return JsonResponse({'frequency_name': frequency.name})
-        except PrescriptionFrequency.DoesNotExist:
-            return JsonResponse({'error': 'Frequency not found'}, status=404)
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
-@csrf_exempt
-def medicine_dosage(request):
-    """Get medicine dosage by ID"""
-    if request.method == 'GET' and 'medicine_id' in request.GET:
-        medicine_id = request.GET.get('medicine_id')
-        try:
-            medicine = Medicine.objects.get(id=medicine_id)
-            return JsonResponse({'dosage': medicine.dosage})
-        except Medicine.DoesNotExist:
-            return JsonResponse({'error': 'Medicine not found'}, status=404)
-    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 @csrf_exempt
@@ -1260,6 +1131,91 @@ def pharmacist_dashboard(request):
     }
 
     return render(request, "pharmacist_template/home_content.html", context)
+
+
+@login_required
+@require_GET
+def pharmacist_dashboard_counts(request):
+    """Return counts for medicines and prescriptions in a single response"""
+    try:
+        today = timezone.now().date()
+        
+        # Medicine counts
+        medicines = Medicine.objects.all()
+        total_medicines = medicines.count()
+        out_of_stock_medicines = medicines.filter(remain_quantity=0).count()
+        low_stock_medicines = medicines.filter(remain_quantity__lte=5).count()
+        expiring_soon_medicines = medicines.filter(
+            expiration_date__range=(today, today + timedelta(days=30))
+        ).count()
+        expired_medicines = medicines.filter(expiration_date__lt=today).count()
+        
+        # Prescription counts
+        prescriptions = Prescription.objects.all()
+        walkin_prescriptions = WalkInPrescription.objects.all()
+        
+        # All prescriptions (both regular and walk-in)
+        all_prescriptions_count = prescriptions.count() + walkin_prescriptions.count()
+        
+        # Today's prescriptions
+        today_prescriptions = prescriptions.filter(created_at__date=today).count()
+        today_walkin_prescriptions = walkin_prescriptions.filter(created_at__date=today).count()
+        today_total_prescriptions = today_prescriptions + today_walkin_prescriptions
+        
+        # Pending prescriptions (not verified)
+        pending_prescriptions = prescriptions.filter(verified='not_verified').count()
+        pending_walkin_prescriptions = walkin_prescriptions.filter(verified='not_verified').count()
+        total_pending_prescriptions = pending_prescriptions + pending_walkin_prescriptions
+        
+        # Unissued prescriptions
+        unissued_prescriptions = prescriptions.filter(issued='not_issued').count()
+        unissued_walkin_prescriptions = walkin_prescriptions.filter(issued='not_issued').count()
+        total_unissued_prescriptions = unissued_prescriptions + unissued_walkin_prescriptions
+        
+        data = {
+            "medicines": {
+                "total": total_medicines,
+                "out_of_stock": out_of_stock_medicines,
+                "low_stock": low_stock_medicines,
+                "expiring_soon": expiring_soon_medicines,
+                "expired": expired_medicines
+            },
+            "prescriptions": {
+                "all": all_prescriptions_count,
+                "today": today_total_prescriptions,
+                "pending": total_pending_prescriptions,
+                "unissued": total_unissued_prescriptions,
+                "walkin": walkin_prescriptions.count()
+            },
+            "status": "success",
+            "timestamp": timezone.now().isoformat()
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e),
+            "medicines": {
+                "total": 0,
+                "out_of_stock": 0,
+                "low_stock": 0,
+                "expiring_soon": 0,
+                "expired": 0
+            },
+            "prescriptions": {
+                "all": 0,
+                "today": 0,
+                "pending": 0,
+                "unissued": 0,
+                "walkin": 0
+            },
+            "timestamp": timezone.now().isoformat()
+        }, status=500)
+
+
+
 
 
 @login_required

@@ -177,7 +177,73 @@
     initDataTable('#example6', { dom: 'Bfrtip', buttons: [''] });
   });
 </script>
+<script>
+ // Initialize the calendar
+function initPharmacistCalendar() {
+    const now = new Date();
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = [
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+    ];
 
+    document.getElementById('pharmacist-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('pharmacist-calendar-year').textContent = now.getFullYear();
+    document.getElementById('pharmacist-calendar-date').textContent = now.getDate();
+    document.getElementById('pharmacist-calendar-day').textContent = dayNames[now.getDay()];
+}
+
+// Function to update pharmacist stats
+function updatePharmacistStats() {
+    fetch("{% url 'pharmacist_dashboard_counts' %}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update medicine counts
+                document.getElementById('pharmacist-medicine-count').textContent = 
+                    data.medicines.total || '0';
+                document.getElementById('pharmacist-out-of-stock-badge').textContent = 
+                    data.medicines.out_of_stock || '0';
+                document.getElementById('pharmacist-available-medicines-badge').textContent = 
+                    (data.medicines.total - data.medicines.out_of_stock) || '0';
+                document.getElementById('pharmacist-expiring-medicines-badge').textContent = 
+                    data.medicines.expiring_soon || '0';
+                
+                // Update prescription counts
+                document.getElementById('pharmacist-prescription-count').textContent = 
+                    data.prescriptions.all || '0';
+                document.getElementById('pharmacist-all-prescriptions-badge').textContent = 
+                    data.prescriptions.all || '0';
+                document.getElementById('pharmacist-todays-prescriptions-badge').textContent = 
+                    data.prescriptions.today || '0';
+                document.getElementById('pharmacist-patients-badge').textContent = 
+                    data.prescriptions.walkin || '0';
+            } else {
+                console.error('Error fetching dashboard counts:', data.message);
+            }
+        })
+        .catch(err => console.error('Failed to fetch dashboard counts:', err));
+}
+
+// Initialize everything on page load
+$(document).ready(function() {   
+    initPharmacistCalendar();
+    updatePharmacistStats();
+    
+    // Update stats every minute
+    setInterval(updatePharmacistStats, 60000);
+    
+    // Add sidebar toggle animation
+    $('.pharmacist-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+        $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+    });
+});
+</script>
+<script>
+  
+</script>
 {% block customer_js %}{% endblock %}
 </body>
 </html>

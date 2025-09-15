@@ -1001,6 +1001,17 @@ class Order(models.Model):
         help_text="Whether the order has been read/processed."
     )
 
+        # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when the prescription frequency was created."
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp when the prescription frequency was last updated."
+    )
+    
+    objects = models.Manager()
     class Meta:
         verbose_name = "Order"
         verbose_name_plural = "Orders"
@@ -1322,6 +1333,7 @@ class Medicine(models.Model):
             self.total_buying_price = float(self.buying_price) * self.quantity
         self.full_clean()
         super().save(*args, **kwargs)
+        
 
 class MedicineBatch(models.Model):
     medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='batches')

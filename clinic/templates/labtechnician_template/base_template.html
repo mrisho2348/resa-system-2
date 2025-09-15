@@ -122,7 +122,208 @@
 
   });
 </script>
+<script>
+  // Initialize the calendar
+  function initLabCalendar() {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    document.getElementById('lab-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('lab-calendar-year').textContent = now.getFullYear();
+    document.getElementById('lab-calendar-date').textContent = now.getDate();
+    document.getElementById('lab-calendar-day').textContent = dayNames[now.getDay()];
+  }
+  
+  // Function to update lab stats
+  function updateLabStats() {
+    // Update pending and completed lab orders
+    fetchLabOrdersCounts();
+    
+    // Update reagent counts
+    fetchReagentCounts();
+  }
+  
+  
+  // Function to fetch all counts in a single request
+function fetchAllCounts() {
+  $.ajax({
+    type: 'GET',
+    url: '{% url "lab_dashboard_counts" %}',
+    success: function(data) {
+      // Update lab orders counts
+      const labOrders = data.lab_orders || {};
+      $('#lab-pending-count').text(labOrders.without_result || '0');
+      $('#lab-completed-count').text(labOrders.with_result || '0');
+      $('#lab-pending-badge').text(labOrders.without_result || '0');
+      $('#lab-completed-badge').text(labOrders.with_result || '0');
+      
+      // Update total lab orders badge
+      const totalLabOrders = (parseInt(labOrders.without_result) || 0) + 
+                            (parseInt(labOrders.with_result) || 0);
+      $('#lab-total-badge').text(totalLabOrders > 0 ? totalLabOrders : '0');
 
+      // Update reagent counts
+      const reagents = data.reagents || {};
+      $('#lab-expired-badge').text(reagents.expired || '0');
+      $('#lab-expiring-badge').text(reagents.expiring_soon || '0');
+      $('#lab-outofstock-badge').text(reagents.out_of_stock || '0');
+
+      // Update total reagent badge
+      const totalReagent = (parseInt(reagents.expired) || 0) + 
+                          (parseInt(reagents.expiring_soon) || 0) + 
+                          (parseInt(reagents.out_of_stock) || 0);
+      $('#lab-reagent-badge').text(totalReagent > 0 ? totalReagent : '');
+    },
+    error: function(xhr, status, error) {
+      console.error('Error fetching dashboard counts:', error);
+    }
+  });
+}
+
+// Initialize on page load
+$(document).ready(function() {   
+  initLabCalendar();
+  fetchAllCounts();
+  
+  // Update stats every minute
+  setInterval(fetchAllCounts, 60000);
+  
+  // Add sidebar toggle animation
+  $('.lab-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+    $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+  });
+});  
+</script>
+
+<script>
+  // Update date and time in real-time
+  function updateDateTime() {
+    const now = new Date();
+    
+    // Format date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString('en-US', options);
+    
+    // Format time
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    
+    // Update elements
+    document.getElementById('current-date').textContent = formattedDate;
+    document.getElementById('current-time').textContent = formattedTime;
+  }
+  
+  // Initialize and update every second
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  // Fullscreen toggle function
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+  
+  // Initialize tooltips
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+  
+  // Function to fetch lab statistics
+  function fetchLabStats() {
+    fetch("{% url 'lab_technician_stats_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        // Update the stats in the lab stats container
+        document.getElementById('pending-orders-count').textContent = data.pending_orders || 0;
+        document.getElementById('completed-orders-count').textContent = data.completed_orders || 0;
+        document.getElementById('reagent-count').textContent = data.reagent_count || 0;
+        
+        // Update the quick links counts
+        document.getElementById('quick-links-pending-count').textContent = data.pending_orders || 0;
+        document.getElementById('quick-links-low-stock-count').textContent = data.low_stock_reagents || 0;
+        document.getElementById('quick-links-out-of-stock-count').textContent = data.out_of_stock_reagents || 0;
+        document.getElementById('quick-links-expiring-count').textContent = data.expiring_soon_reagents || 0;
+        
+        // Update notification count
+        const totalNotificationCount = (data.pending_orders || 0) + (data.low_stock_reagents || 0) + 
+                                      (data.out_of_stock_reagents || 0) + (data.expiring_soon_reagents || 0);
+        document.getElementById('notification-count').textContent = totalNotificationCount;
+        document.getElementById('notification-header').textContent = `${totalNotificationCount} Notifications`;
+      })
+      .catch(error => {
+        console.error('Error fetching lab stats:', error);
+      });
+  }
+  
+  // Load notifications dynamically
+  function loadNotifications() {
+    fetch("{% url 'lab_technician_notifications_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        let notificationsHTML = '';
+        
+        if (data.notifications && data.notifications.length > 0) {
+          data.notifications.forEach(notif => {
+            notificationsHTML += `
+              <a href="${notif.link || '#'}" class="dropdown-item notification-item">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <i class="${notif.icon || 'fas fa-bell'} ${notif.icon_color || 'text-primary'} mr-2"></i> 
+                    ${notif.title}
+                  </div>
+                  <div class="notification-time">${notif.time_ago}</div>
+                </div>
+                <small class="text-muted">${notif.details}</small>
+              </a>
+              <div class="dropdown-divider"></div>
+            `;
+          });
+        } else {
+          notificationsHTML = `
+            <div class="text-center py-3">
+              <i class="fas fa-bell-slash text-muted fa-2x mb-2"></i>
+              <p class="text-muted">No notifications</p>
+            </div>
+          `;
+        }
+        
+        document.getElementById('notifications-container').innerHTML = notificationsHTML;
+      })
+      .catch(error => {
+        console.error('Error fetching notifications:', error);
+        document.getElementById('notifications-container').innerHTML = `
+          <div class="text-center py-3">
+            <i class="fas fa-exclamation-triangle text-danger fa-2x mb-2"></i>
+            <p class="text-muted">Error loading notifications</p>
+          </div>
+        `;
+      });
+  }
+  
+  // Initialize on page load
+  $(document).ready(function() {   
+    fetchLabStats();
+    loadNotifications();
+    
+    // Update stats every minute
+    setInterval(fetchLabStats, 60000);
+    
+    // Update notifications every 2 minutes
+    setInterval(loadNotifications, 120000);
+  });
+</script>
 {% block customer_js %}{% endblock %}
 </body>
 </html>

@@ -9,7 +9,8 @@ urlpatterns = [
     path('edit-profile/<int:pk>/', EditStaffProfileView.as_view(), name='lab_edit_staff_profile'),
     path('api/lab-technician-stats/', technician_stats_api, name='lab_technician_stats_api'),
     path('api/lab-technician-notifications/', technician_notifications_api, name='lab_technician_notifications_api'),
- 
+     path('lab-dashboard-counts/', lab_dashboard_counts, name='lab_dashboard_counts'),
+
     path('lab-test-status-data/', test_status_data, name='lab_test_status_data'),
     path('lab-reagent-stock-data/', reagent_stock_data, name='lab_reagent_stock_data'),
     path('pending-tests/', pending_tests, name='lab_pending_tests'),

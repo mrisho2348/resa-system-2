@@ -3,7 +3,7 @@
 {% load customfilter %}
 
 {% block title %}
-Premium Procedure Records
+ Procedure Records
 {% endblock title %}
 
 {% block page_title %}
@@ -14,12 +14,12 @@ Premium Procedure Records
 
 {% block breadcrumb %}
 {% include "doctor_template/modal_form.html" %}
-Premium Procedure Records
+ Procedure Records
 {% endblock breadcrumb %}
 
 {% block main_content %}
 <style>
-    /* Premium styling for procedures */
+    /*  styling for procedures */
     .procedure-prem-gradient {
         background: linear-gradient(120deg, #1a2a6c, #2C3E50);
         border-radius: 12px;
@@ -227,6 +227,28 @@ Premium Procedure Records
         font-size: 0.8rem;
         font-weight: 500;
     }
+    
+    .status-badge-procedure {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-completed {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .status-pending {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .procedure-prem-modal-header {
+        background: linear-gradient(120deg, #1a2a6c, #2C3E50);
+        color: white;
+    }
 </style>
 
 <div class="container-fluid">
@@ -238,7 +260,7 @@ Premium Procedure Records
                     <h6 class="mb-0"><i class="fas fa-procedures mr-2"></i>Total Procedures</h6>
                 </div>
                 <div class="card-body text-center">
-                    <div class="procedure-prem-summary-value" id="total-procedures">{{ patient_procedures|length }}</div>
+                    <div class="procedure-prem-summary-value" id="total-procedures">{{ total_procedures_count }}</div>
                     <div class="procedure-prem-summary-label">All Procedures</div>
                 </div>
             </div>
@@ -249,7 +271,7 @@ Premium Procedure Records
                     <h6 class="mb-0"><i class="fas fa-user-injured mr-2"></i>Patients</h6>
                 </div>
                 <div class="card-body text-center">
-                    <div class="procedure-prem-summary-value" id="unique-patients">0</div>
+                    <div class="procedure-prem-summary-value" id="unique-patients">{{ unique_patients_count }}</div>
                     <div class="procedure-prem-summary-label">Unique Patients</div>
                 </div>
             </div>
@@ -260,7 +282,7 @@ Premium Procedure Records
                     <h6 class="mb-0"><i class="fas fa-user-md mr-2"></i>Doctors</h6>
                 </div>
                 <div class="card-body text-center">
-                    <div class="procedure-prem-summary-value" id="unique-doctors">0</div>
+                    <div class="procedure-prem-summary-value" id="unique-doctors">{{ unique_doctors_count }}</div>
                     <div class="procedure-prem-summary-label">Unique Doctors</div>
                 </div>
             </div>
@@ -279,7 +301,7 @@ Premium Procedure Records
                         <div class="procedure-prem-flip-icon">
                             <i class="fas fa-gem"></i>
                         </div>
-                        <h4>Premium Insights</h4>
+                        <h4> Insights</h4>
                         <p>Advanced procedure analytics</p>
                     </div>
                 </div>
@@ -305,7 +327,7 @@ Premium Procedure Records
             <div class="card procedure-prem-gradient shadow-lg">
                 <div class="card-header py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-white"><i class="fas fa-procedures mr-2"></i>Premium Procedure Records</h5>                       
+                        <h5 class="card-title mb-0 text-white"><i class="fas fa-procedures mr-2"></i> Procedure Records</h5>                       
                     </div>
                 </div>
                 <div class="card-body">
@@ -321,33 +343,31 @@ Premium Procedure Records
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for record in patient_procedures %}
+                                {% for group in procedure_groups %}
                                     <tr>
                                         <td>
                                             <span class="procedure-prem-badge procedure-prem-badge-mrn">
-                                                {{ record.patient__mrn }}
+                                                {{ group.patient.mrn }}
                                             </span>
                                         </td>
                                         <td>
                                             <span class="procedure-prem-badge procedure-prem-badge-visit">
-                                                {{ record.visit__vst }}
+                                                {% if group.visit %}{{ group.visit.vst }}{% else %}N/A{% endif %}
                                             </span>
                                         </td>
                                         <td>
                                             <span class="procedure-prem-doctor-badge">
                                                 <b>Dr.</b> 
-                                                {{ record.doctor__admin__first_name }} 
-                                                {{ record.doctor__middle_name }} 
-                                                {{ record.doctor__admin__last_name }}
+                                                {{ group.doctor.admin.first_name }} 
+                                                {{ group.doctor.middle_name }} 
+                                                {{ group.doctor.admin.last_name }}
                                             </span>
                                         </td>
-                                        <td>{{ record.latest_date|date:"d-m-Y" }}</td>                               
+                                        <td>{{ group.date|date:"d-m-Y" }}</td>                               
                                         <td class="text-center">                                         
-                                            <a href="{% url 'doctor_patient_procedure_history_view_mrn' record.patient__mrn %}" data-toggle="tooltip" title="View Procedure History">
-                                                <button type="button" class="btn procedure-prem-btn-action">
-                                                    <i class="fa fa-eye mr-1"></i>Procedure History
-                                                </button>
-                                            </a>
+                                            <button type="button" class="btn procedure-prem-btn-action" data-toggle="modal" data-target="#procedureModal{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.vst }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}">
+                                                <i class="fa fa-eye mr-1"></i>View Procedures
+                                            </button>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -362,11 +382,183 @@ Premium Procedure Records
 
 {% include 'doctor_template/datatable.html' %}
 
+<!-- Procedure Modals -->
+{% for group in procedure_groups %}
+<div class="modal fade" id="procedureModal{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.vst }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}" tabindex="-1" role="dialog" aria-labelledby="procedureModalLabel{{ group.patient.mrn }}{% if group.visit %}{{ group.visit.vst }}{% else %}0{% endif %}{{ group.doctor.id }}{{ group.date|date:'Ymd' }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header procedure-prem-modal-header">
+        <h5 class="modal-title"><i class="fas fa-procedures mr-2"></i>Procedure Summary</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <div class="container-fluid">
+
+          <!-- Header Image -->
+          <div class="mb-3">
+            <img src="{% static 'img/headerresa.jpg' %}" class="img-fluid w-100" alt="Header Image">
+          </div>
+
+          <!-- Patient Full Details -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-user-injured mr-2"></i>Patient Details</h6>
+            </div>
+            <div class="card-body">
+              <table class="table table-borderless table-sm">
+                <tr>
+                  <td><strong>Patient:</strong> {{ group.patient.first_name }} {{ group.patient.middle_name }} {{ group.patient.last_name }}</td>
+                  <td><strong>DOB:</strong> {{ group.patient.dob|date:'d-m-Y' }}</td>
+                  <td><strong>Gender:</strong> {{ group.patient.gender }}</td>
+                  <td><strong>File No:</strong> {{ group.patient.mrn }}</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><strong>Payment Form:</strong>
+                    {% if group.patient.payment_form == "Insurance" %}
+                      {{ group.patient.payment_form }} - {{ group.patient.insurance_name }}
+                    {% else %}
+                      {{ group.patient.payment_form }}
+                    {% endif %}
+                  </td>
+                  <td colspan="2">
+                    {% if group.visit %}
+                      <strong>Visit Number:</strong> {{ group.visit.vst }}
+                    {% else %}
+                      <strong>Visit Number:</strong> Not assigned
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Procedure Summary -->
+          <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0 text-uppercase"><i class="fas fa-procedures mr-2"></i>Procedure Summary</h6>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Procedure Name</th>
+                      <th>Description</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for procedure in group.procedures %}
+                    <tr>
+                      <td>{{ procedure.name.name }}</td>
+                      <td>{{ procedure.description|default:"-" }}</td>
+                      <td>{{ procedure.cost }}</td>
+                      <td>
+                        {% if procedure.description %}
+                          <span class="status-badge-procedure status-completed">Completed</span>
+                        {% else %}
+                          <span class="status-badge-procedure status-pending">Pending</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#procedureResultModal{{ procedure.id }}">
+                            <i class="fas fa-eye"></i> View
+                          </button>
+                          <a href="{% url 'doctor_edit_procedure_result' procedure.id %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">No procedures found for this visit.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Procedure Performed By Footer -->
+            <div class="card-footer">
+              <table class="table table-borderless table-sm mb-0">
+                <tbody>
+                  <tr>
+                    <td><strong>Performed By:</strong> Dr. {{ group.doctor.admin.first_name }} {{ group.doctor.admin.last_name }}</td>
+                    <td><strong>Date:</strong> {{ group.latest_date|date:"d-m-Y H:i" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div> <!-- /.container-fluid -->
+      </div> <!-- /.modal-body -->
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for group in procedure_groups %}
+  {% for procedure in group.procedures %}
+    <!-- Procedure Result Modal -->
+    <div class="modal fade" id="procedureResultModal{{ procedure.id }}" tabindex="-1" role="dialog" aria-labelledby="procedureResultModalLabel{{ procedure.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="procedureResultModalLabel{{ procedure.id }}">
+              <i class="fas fa-procedures mr-2"></i>Procedure Result - {{ procedure.name.name }}
+            </h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            {% if procedure.result %}
+              {{ procedure.result|safe }}
+            {% else %}
+              <p class="text-muted">No result available for this procedure.</p>
+            {% endif %}
+            
+            {% if procedure.equipments_used %}
+              <div class="mt-4">
+                <h6>Equipments Used:</h6>
+                <p>{{ procedure.equipments_used }}</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">         
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endfor %}
+
 <script>
     // Initialize DataTable
     new DataTable('#procedureTable', {
         dom: 'Bfrtip',
-        buttons: ['excel', 'pdf', 'print'],
+        buttons: [''],
         responsive: true,
         pageLength: 10,
         order: [[3, 'desc']],

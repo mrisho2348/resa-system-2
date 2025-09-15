@@ -16,7 +16,8 @@ urlpatterns = [
     path('pharmacist/profile/', pharmacist_profile, name='pharmacist_profile'),
     path('edit-profile/<int:pk>/', EditStaffProfileView.as_view(), name='pharmacist_edit_staff_profile'),
     path('resa/pharmacist/change-password/', change_password, name='pharmacist_change_password'),
-
+      path('pharmacist-dashboard-counts/', pharmacist_dashboard_counts, name='pharmacist_dashboard_counts'),
+      
 
     path('employee_detail/', employee_detail, name='pharmacist_employee_detail'),
 
@@ -43,15 +44,7 @@ urlpatterns = [
     path('out_of_stock_medicines_view/', out_of_stock_medicines_view, name='pharmacist_out_of_stock_medicines_view'),
     path('pharmacist/medicine-counts/', medicine_counts_api, name='pharmacist_medicine_counts_api'),
 
- 
 
-    # ------------------ AJAX/Utility Endpoints ------------------
-    path('pharmacist/get_unit_price/', get_unit_price, name='pharmacist_get_unit_price'),
-    path('pharmacist/get_drug_division_status/', get_drug_division_status, name='pharmacist_get_drug_division_status'),
-    path('pharmacist/get_medicine_formulation/', get_medicine_formulation, name='pharmacist_get_medicine_formulation'),
-    path('pharmacist/get_formulation_unit/', get_formulation_unit, name='pharmacist_get_formulation_unit'),
-    path('pharmacist/get_frequency_name/', get_frequency_name, name='pharmacist_get_frequency_name'),
-    path('pharmacist/medicine_dosage/', medicine_dosage, name='pharmacist_medicine_dosage'),
 
     # ------------------ Reagents ------------------ 
     path('doctor/add_remoteprescription/', add_remoteprescription, name='pharmacist_add_remoteprescription'),    

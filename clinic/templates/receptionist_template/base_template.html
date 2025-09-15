@@ -38,6 +38,7 @@
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
 
   {% block customer_css %}{% endblock %}
+  
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -177,7 +178,217 @@
     initDataTable('#example6', { dom: 'Bfrtip', buttons: [''] });
   });
 </script>
+<script>
+  // Initialize the calendar
+  function initReceptionCalendar() {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
+    document.getElementById('reception-calendar-month').textContent = monthNames[now.getMonth()];
+    document.getElementById('reception-calendar-year').textContent = now.getFullYear();
+    document.getElementById('reception-calendar-date').textContent = now.getDate();
+    document.getElementById('reception-calendar-day').textContent = dayNames[now.getDay()];
+  }
+  
+  // Function to update reception stats
+  function updateReceptionStats() {
+    // Update appointment and patient counts
+    fetchReceptionCounts();
+  }
+  
+// Function to fetch reception counts
+function fetchReceptionCounts() {
+    $.ajax({
+        url: "{% url 'reception_dashboard_counts' %}",
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                // Update all counts with real data
+                $('#reception-appointments-count').text(response.today_appointments_count);
+                $('#reception-patients-count').text(response.new_patients_count);
+                $('#reception-patient-count').text(response.total_patients_count);
+                $('#reception-appointment-badge').text(response.pending_appointments_count);
+                $('#reception-billing-badge').text(response.pending_billing_count);
+                
+                // Update total patient badge
+                $('#reception-patient-badge').text(response.pending_appointments_count);
+            } else {
+                console.error('Failed to fetch counts:', response.error);
+                // Set fallback values
+                setFallbackCounts();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching counts:', error);
+            // Set fallback values
+            setFallbackCounts();
+        }
+    });
+}
 
+// Fallback function in case the API fails
+function setFallbackCounts() {
+    $('#reception-appointments-count').text('0');
+    $('#reception-patients-count').text('0');
+    $('#reception-patient-count').text('0');
+    $('#reception-appointment-badge').text('0');
+    $('#reception-billing-badge').text('0');
+    $('#reception-patient-badge').text('0');
+}
+  
+  // Initialize on page load
+  $(document).ready(function() {   
+    initReceptionCalendar();
+    updateReceptionStats();
+    
+    // Update stats every minute
+    setInterval(updateReceptionStats, 60000);
+    
+    // Add sidebar toggle animation
+    $('.reception-nav-link > .fas.fa-angle-left').parent().on('click', function() {
+      $(this).find('.fa-angle-left').toggleClass('fa-rotate-90');
+    });
+  });
+</script>
+
+
+<script>
+
+  
+  // Initialize tooltips
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+  
+
+  
+ // Function to fetch reception statistics
+function fetchReceptionStats() {
+    $.ajax({
+        url: "{% url 'receptionist_dashboard_data' %}",
+        type: 'GET',
+        success: function(data) {
+            if (data.success) {
+                // Update the main stats
+                document.getElementById('todays-appointments-count').textContent = data.todays_appointments_count;
+                document.getElementById('new-patients-count').textContent = data.new_patients_count;
+                document.getElementById('pending-bills-count').textContent = data.pending_bills_count;
+                
+                // Update the quick links counts
+                document.getElementById('quick-links-appointments-count').textContent = data.todays_appointments_count;
+                document.getElementById('quick-links-new-patients-count').textContent = data.new_patients_count;
+                document.getElementById('quick-links-pending-bills-count').textContent = data.pending_bills_count;
+                
+                // Update notification count
+                document.getElementById('notification-count').textContent = data.notification_count;
+                document.getElementById('notification-header').textContent = `${data.notification_count} Notifications`;
+            } else {
+                console.error('Failed to fetch reception stats:', data.error);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error fetching reception stats:', error);
+        }
+    });
+}
+
+// Load notifications dynamically
+function loadNotifications() {
+    $.ajax({
+        url: "{% url 'receptionist_dashboard_data' %}",
+        type: 'GET',
+        success: function(data) {
+            let notificationsHTML = '';
+            
+            if (data.success && data.notifications && data.notifications.length > 0) {
+                data.notifications.forEach(notif => {
+                    notificationsHTML += `
+                        <a href="${notif.link || '#'}" class="dropdown-item notification-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <i class="${notif.icon || 'fas fa-bell'} ${notif.icon_color || 'text-primary'} mr-2"></i> 
+                                    ${notif.title}
+                                </div>
+                                <div class="notification-time">${notif.time_ago}</div>
+                            </div>
+                            <small class="text-muted">${notif.details}</small>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    `;
+                });
+            } else {
+                notificationsHTML = `
+                    <div class="text-center py-3">
+                        <i class="fas fa-bell-slash text-muted fa-2x mb-2"></i>
+                        <p class="text-muted">No notifications</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('notifications-container').innerHTML = notificationsHTML;
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error loading notifications:', error);
+            document.getElementById('notifications-container').innerHTML = `
+                <div class="text-center py-3">
+                    <i class="fas fa-exclamation-triangle text-danger fa-2x mb-2"></i>
+                    <p class="text-danger">Error loading notifications</p>
+                </div>
+            `;
+        }
+    });
+}
+
+// Update date and time in real-time
+function updateDateTime() {
+    const now = new Date();
+    
+    // Format date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString('en-US', options);
+    
+    // Format time
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    
+    // Update elements
+    document.getElementById('current-date').textContent = formattedDate;
+    document.getElementById('current-time').textContent = formattedTime;
+}
+
+// Fullscreen toggle function
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+// Initialize on page load
+$(document).ready(function() {   
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    fetchReceptionStats();
+    loadNotifications();
+    
+    // Update stats every minute
+    setInterval(fetchReceptionStats, 60000);
+    
+    // Update notifications every 2 minutes
+    setInterval(loadNotifications, 120000);
+}); 
+</script>
 {% block customer_js %}{% endblock %}
 </body>
 </html>

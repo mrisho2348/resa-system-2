@@ -157,3 +157,20 @@ def get_visit_status(visit):
 def filter_status(queryset, status):
     """Filter appointments by status code."""
     return queryset.filter(status=status)    
+
+
+@register.filter
+def get_completed_count(total_count, procedures):
+    completed = 0
+    for procedure in procedures:
+        if procedure.description:
+            completed += 1
+    return completed
+
+@register.filter
+def get_completed_radiology_count(total_count, records):
+    completed = 0
+    for record in records:
+        if record.result:
+            completed += 1
+    return completed    

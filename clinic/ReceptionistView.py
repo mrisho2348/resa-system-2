@@ -1,5 +1,5 @@
 import calendar
-from datetime import  date, datetime
+from datetime import  date, datetime, timedelta
 from decimal import Decimal
 import os
 from django.urls import reverse
@@ -8,17 +8,19 @@ import logging
 from collections import defaultdict
 from django.db import transaction, IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from clinic.forms import CounselingForm, DischargesNotesForm, LaboratoryOrderForm, ObservationRecordForm, StaffProfileForm
-from clinic.models import Consultation,  Medicine,PathodologyRecord, Patients, Procedure, Staffs
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+import json
+from clinic.forms import     StaffProfileForm
+from clinic.models import Consultation,  PathodologyRecord, Patients, Procedure, Staffs
 from django.views.decorators.http import require_POST
-from .models import AmbulanceOrder, ClinicChiefComplaint, ConsultationNotes, ConsultationOrder, Counseling, Country,  Diagnosis, DischargesNotes, DiseaseRecode, Employee, EmployeeDeduction, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order, PatientDiagnosisRecord, PatientVisits, PatientVital, Prescription, PrescriptionFrequency,  Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder, WalkInPrescription, WalkInVisit
+from .models import AmbulanceOrder, ClinicChiefComplaint, ConsultationNotes, ConsultationOrder, Counseling, Country,  Diagnosis, DischargesNotes,  Employee, EmployeeDeduction, ImagingRecord,  LaboratoryOrder, ObservationRecord, Order,  PatientVisits, PatientVital, Prescription,   Referral, SalaryChangeRecord,Service, AmbulanceVehicleOrder, WalkInPrescription, WalkInVisit
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from django.db.models import Max,Sum,Q,Count
@@ -31,38 +33,7 @@ import re
 from io import BytesIO
 # Create your views here.
 
-@require_POST
-@csrf_exempt
-def get_unit_price(request):
-    medicine_id = request.POST.get('medicine_id')
-    patient_id = request.POST.get('patient_id')
 
-    if not medicine_id or not patient_id:
-        return JsonResponse({'error': 'Medicine ID and Patient ID are required'}, status=400)
-
-    try:
-        patient = Patients.objects.get(id=patient_id)
-        medicine = Medicine.objects.get(pk=medicine_id)
-    except Patients.DoesNotExist:
-        return JsonResponse({'error': 'Patient not found'}, status=404)
-    except Medicine.DoesNotExist:
-        return JsonResponse({'error': 'Medicine not found'}, status=404)
-
-    unit_price = None
-
-    if patient.payment_form == 'Cash':
-        unit_price = medicine.cash_cost
-    elif patient.payment_form == 'Insurance':
-        if patient.insurance_name == 'NHIF':
-            unit_price = medicine.nhif_cost
-        else:
-            unit_price = medicine.insurance_cost
-
-    if unit_price is not None:
-        return JsonResponse({'unit_price': unit_price})
-    else:
-        return JsonResponse({'error': 'Cost not available for this payment form'}, status=404)
-    
 
 
 @login_required
@@ -70,9 +41,9 @@ def receptionist_dashboard(request):
     try:
         # Count total records for different models
         total_patients_count = Patients.objects.count()
-        total_medicines_count = Medicine.objects.count()
+
         total_lab_orders_count = LaboratoryOrder.objects.count()
-        total_disease_records_count = DiseaseRecode.objects.count()
+        
         total_services_count = Service.objects.count()
 
         # Fetch the most recently added patients (limit to 6)
@@ -89,9 +60,9 @@ def receptionist_dashboard(request):
         # Prepare the context dictionary
         context = {
             'total_patients_count': total_patients_count,
-            'total_medicines_count': total_medicines_count,
+           
             'total_lab_orders_count': total_lab_orders_count,
-            'total_disease_records_count': total_disease_records_count,
+            
             'total_services_count': total_services_count,
             'recently_added_patients': recently_added_patients,
             'total_doctors_count': total_doctors_count,
@@ -105,12 +76,8 @@ def receptionist_dashboard(request):
 
     except Patients.DoesNotExist:
         messages.error(request, 'Error fetching patient data.')
-    except Medicine.DoesNotExist:
-        messages.error(request, 'Error fetching medicine data.')
     except LaboratoryOrder.DoesNotExist:
-        messages.error(request, 'Error fetching laboratory order data.')
-    except DiseaseRecode.DoesNotExist:
-        messages.error(request, 'Error fetching disease record data.')
+        messages.error(request, 'Error fetching laboratory order data.')   
     except Service.DoesNotExist:
         messages.error(request, 'Error fetching service data.')
     except Staffs.DoesNotExist:
@@ -121,6 +88,398 @@ def receptionist_dashboard(request):
     # Render the template with the context
     return render(request, "receptionist_template/home_content.html", context)
 
+
+def reception_dashboard_counts(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    # Get today's date
+    today = timezone.now().date()
+    
+    # Get counts for the dashboard
+    try:
+        # Today's appointments (statuses that represent active appointments)
+        today_appointments_count = Consultation.objects.filter(
+            appointment_date=today,
+            status__in=[0, 5, 6, 7]  # Pending, In Progress, Confirmed, Arrived
+        ).count()
+        
+        # New patients (created in the last 24 hours)
+        new_patients_count = Patients.objects.filter(
+            created_at__gte=timezone.now() - timedelta(hours=24)
+        ).count()
+        
+        # Total patients
+        total_patients_count = Patients.objects.count()
+        
+        # Pending appointments (status = Pending)
+        pending_appointments_count = Consultation.objects.filter(
+            status=0  # Pending
+        ).count()
+        
+        # Pending billing orders (Unpaid orders grouped by visit and patient)
+        # This is a more complex query - we need to count unique (patient, visit) pairs with unpaid orders
+        from django.db.models import Count, Case, When, IntegerField
+        from django.db.models.functions import Coalesce
+        
+        # Count of patients with unpaid orders
+        pending_billing_count = Order.objects.filter(
+            status='Unpaid'
+        ).values('patient', 'visit').distinct().count()
+        
+        return JsonResponse({
+            'today_appointments_count': today_appointments_count,
+            'new_patients_count': new_patients_count,
+            'total_patients_count': total_patients_count,
+            'pending_appointments_count': pending_appointments_count,
+            'pending_billing_count': pending_billing_count,
+            'success': True
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'success': False}, status=500)
+
+
+@login_required
+def receptionist_dashboard_data(request):
+    """
+    API endpoint to fetch receptionist dashboard data with activity-based notifications
+    """
+    try:
+        today = timezone.now().date()
+        three_days_ago = today - timedelta(days=3)
+
+        # -------------------- TODAY'S APPOINTMENTS COUNT --------------------
+        todays_appointments_count = Consultation.objects.filter(
+            appointment_date=today
+        ).exclude(status=2).count()  # Exclude canceled appointments
+
+        # -------------------- NEW PATIENTS COUNT --------------------
+        new_patients_count = Patients.objects.filter(
+            created_at__date=today
+        ).count()
+
+        # -------------------- PENDING BILLS (GROUPED) --------------------
+        unpaid_groups = (
+            Order.objects.filter(status='Unpaid')
+            .values('patient', 'visit')
+            .annotate(total_amount=Sum('cost'))
+        )
+        pending_bills_count = unpaid_groups.count()  # Number of groups
+        total_unpaid_amount = unpaid_groups.aggregate(total=Sum('total_amount'))['total'] or 0
+
+        # -------------------- NOTIFICATIONS --------------------
+        notifications = []
+
+        # ---- TODAY'S APPOINTMENTS ----
+        today_appointments = Consultation.objects.filter(
+            appointment_date=today
+        ).exclude(status=2).select_related('patient')[:5]
+
+        for appointment in today_appointments:
+            time_str = appointment.start_time.strftime("%H:%M") if appointment.start_time else "Time not set"
+            notifications.append({
+                'id': appointment.id,
+                'icon': 'fas fa-calendar-check',
+                'icon_color': 'text-primary',
+                'title': 'Appointment Today',
+                'details': f'Patient: {appointment.patient.full_name} at {time_str}',
+                'time_ago': get_time_ago(appointment.created_at),
+                'link': f'/receptionist/appointment_list',
+                'timestamp': appointment.created_at.isoformat()
+            })
+
+        # ---- NEW PATIENTS (TODAY) ----
+        new_patients = Patients.objects.filter(
+            created_at__date=today
+        )[:5]
+
+        for patient in new_patients:
+            notifications.append({
+                'id': patient.id,
+                'icon': 'fas fa-user-plus',
+                'icon_color': 'text-info',
+                'title': 'New Patient Registered',
+                'details': f'Patient: {patient.full_name}',
+                'time_ago': get_time_ago(patient.created_at),
+                'link': f'/receptionist/manage_patients',
+                'timestamp': patient.created_at.isoformat()
+            })
+
+        # ---- RECENT UNPAID ORDERS (GROUPED BY PATIENT + VISIT) ----
+        unpaid_orders_groups = (
+            Order.objects.filter(
+                status='Unpaid',
+                created_at__date__gte=three_days_ago
+            )
+            .values('patient', 'visit')
+            .annotate(
+                total_amount=Sum('cost'),
+                latest_created=Max('created_at'),
+                latest_id=Max('id')
+            )
+            .order_by('-latest_created')[:5]
+        )
+
+        for group in unpaid_orders_groups:
+            patient = Patients.objects.get(id=group['patient'])
+            notifications.append({
+                'id': group['latest_id'],
+                'icon': 'fas fa-file-invoice-dollar',
+                'icon_color': 'text-warning',
+                'title': 'Unpaid Order',
+                'details': f'Patient: {patient.full_name} - Amount: {group["total_amount"]}',
+                'time_ago': get_time_ago(group['latest_created']),
+                'link': f'/receptionist/all_orders_view',
+                'timestamp': group['latest_created'].isoformat()
+            })
+
+        # ---- SORT & LIMIT NOTIFICATIONS ----
+        notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+        notifications = notifications[:10]
+
+        # -------------------- RESPONSE DATA --------------------
+        data = {
+            'todays_appointments_count': todays_appointments_count,
+            'new_patients_count': new_patients_count,
+            'pending_bills_count': pending_bills_count,   # Number of patient+visit groups
+            'total_unpaid_amount': float(total_unpaid_amount),  # Total sum of unpaid
+            'notification_count': len(notifications),
+            'notifications': notifications,
+            'success': True
+        }
+
+        return JsonResponse(data)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'success': False}, status=500)
+
+
+def get_time_ago(created_at):
+    """
+    Convert datetime into a human-readable 'time ago' string.
+    """
+    now = timezone.now()
+    diff = now - created_at
+
+    if diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+    elif diff.seconds >= 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours > 1 else ''} ago"
+    elif diff.seconds >= 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    else:
+        return "Just now"
+    
+
+@login_required
+def receptionist_notifications_view(request):
+    """
+    View for the receptionist notifications center page
+    """
+    return render(request, 'receptionist_template/notifications_template.html')
+
+@login_required
+def receptionist_all_notifications_api(request):
+    """
+    API endpoint to fetch all notifications for receptionist with pagination and filtering
+    """
+    try:
+        # Get query parameters
+        page = int(request.GET.get('page', 1))
+        per_page = 10
+        type_filter = request.GET.get('type', 'all')
+        date_range = request.GET.get('date_range', '')
+        status_filter = request.GET.get('status', 'all')
+        sort_filter = request.GET.get('sort', 'newest')
+        
+        # Calculate date range
+        start_date = None
+        end_date = None
+        if date_range:
+            dates = date_range.split(' - ')
+            if len(dates) == 2:
+                start_date = timezone.datetime.strptime(dates[0], '%Y-%m-%d').date()
+                end_date = timezone.datetime.strptime(dates[1], '%Y-%m-%d').date()
+        
+        # Initialize notifications list
+        notifications = []
+        
+        # ---- APPOINTMENTS ----
+        if type_filter in ['all', 'appointment']:
+            appointments = Consultation.objects.all()
+            
+            if start_date and end_date:
+                appointments = appointments.filter(
+                    created_at__date__range=[start_date, end_date]
+                )
+            
+            for appointment in appointments:
+                time_str = appointment.start_time.strftime("%H:%M") if appointment.start_time else "Time not set"
+                notifications.append({
+                    'id': f'appt_{appointment.id}',
+                    'type': 'appointment',
+                    'type_display': 'Appointment',
+                    'title': f'Appointment with Dr. {appointment.doctor.admin.last_name}',
+                    'details': f'Patient: {appointment.patient.full_name} on {appointment.appointment_date} at {time_str}',
+                    'date': appointment.appointment_date.strftime('%Y-%m-%d'),
+                    'time': appointment.start_time.strftime('%H:%M') if appointment.start_time else '',
+                    'timestamp': appointment.created_at,
+                    'url': f'/receptionist/appointment_list',
+                    'is_read': False  # You might want to implement a read status system
+                })
+        
+        # ---- NEW PATIENTS ----
+        if type_filter in ['all', 'new_patient']:
+            patients = Patients.objects.all()
+            
+            if start_date and end_date:
+                patients = patients.filter(
+                    created_at__date__range=[start_date, end_date]
+                )
+            
+            for patient in patients:
+                notifications.append({
+                    'id': f'pat_{patient.id}',
+                    'type': 'new_patient',
+                    'type_display': 'New Patient',
+                    'title': 'New Patient Registered',
+                    'details': f'Patient: {patient.full_name} (MRN: {patient.mrn})',
+                    'date': patient.created_at.date().strftime('%Y-%m-%d'),
+                    'time': patient.created_at.time().strftime('%H:%M'),
+                    'timestamp': patient.created_at,
+                    'url': f'/receptionist/manage_patients',
+                    'is_read': False
+                })
+        
+        # ---- UNPAID ORDERS ----
+        if type_filter in ['all', 'unpaid_order']:
+            three_days_ago = timezone.now().date() - timedelta(days=3)
+            unpaid_orders_groups = (
+                Order.objects.filter(
+                    status='Unpaid',
+                    created_at__date__gte=three_days_ago
+                )
+                .values('patient', 'visit')
+                .annotate(
+                    total_amount=Sum('cost'),
+                    latest_created=Max('created_at'),
+                    latest_id=Max('id')
+                )
+                .order_by('-latest_created')
+            )
+            
+            for group in unpaid_orders_groups:
+                patient = Patients.objects.get(id=group['patient'])
+                notifications.append({
+                    'id': f'order_{group["latest_id"]}',
+                    'type': 'unpaid_order',
+                    'type_display': 'Unpaid Order',
+                    'title': 'Unpaid Order',
+                    'details': f'Patient: {patient.full_name} - Amount: {group["total_amount"]}',
+                    'date': group['latest_created'].date().strftime('%Y-%m-%d'),
+                    'time': group['latest_created'].time().strftime('%H:%M'),
+                    'timestamp': group['latest_created'],
+                    'url': f'/receptionist/all_orders_view',
+                    'is_read': False
+                })
+        
+        # Apply status filter
+        if status_filter == 'unread':
+            notifications = [n for n in notifications if not n['is_read']]
+        elif status_filter == 'read':
+            notifications = [n for n in notifications if n['is_read']]
+        
+        # Apply sorting
+        if sort_filter == 'newest':
+            notifications.sort(key=lambda x: x['timestamp'], reverse=True)
+        elif sort_filter == 'oldest':
+            notifications.sort(key=lambda x: x['timestamp'])
+        elif sort_filter == 'type':
+            notifications.sort(key=lambda x: x['type'])
+        
+        # Paginate results
+        paginator = Paginator(notifications, per_page)
+        
+        try:
+            page_obj = paginator.page(page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+        
+        # Prepare response
+        notification_list = []
+        for notif in page_obj:
+            notification_list.append({
+                'id': notif['id'],
+                'type': notif['type'],
+                'type_display': notif['type_display'],
+                'title': notif['title'],
+                'details': notif['details'],
+                'date': notif['date'],
+                'time': notif['time'],
+                'url': notif['url'],
+                'is_read': notif['is_read']
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'notifications': notification_list,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'has_previous': page_obj.has_previous(),
+                'has_next': page_obj.has_next(),
+                'total_count': paginator.count
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'status': 'error'}, status=500)
+
+@login_required
+def receptionist_toggle_notification_api(request):
+    """
+    API endpoint to toggle notification read status
+    """
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Method not allowed', 'status': 'error'}, status=405)
+        
+        data = json.loads(request.body)
+        notification_id = data.get('notification_id')
+        
+        # Here you would typically update a read status in a Notification model
+        # Since we don't have one, we'll just return success for now
+        # In a real implementation, you would store read status in a separate model
+        
+        return JsonResponse({'status': 'success', 'message': 'Notification status updated'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'status': 'error'}, status=500)
+
+@login_required
+def receptionist_delete_notification_api(request):
+    """
+    API endpoint to delete a notification
+    """
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Method not allowed', 'status': 'error'}, status=405)
+        
+        data = json.loads(request.body)
+        notification_id = data.get('notification_id')
+        
+        # Here you would typically delete a notification from a Notification model
+        # Since we don't have one, we'll just return success for now
+        
+        return JsonResponse({'status': 'success', 'message': 'Notification deleted'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'status': 'error'}, status=500)
 
 
 @login_required
@@ -545,20 +904,7 @@ def all_orders_view(request):
     })
 
 
-@login_required
-def generate_invoice_bill(request,  patient_id,visit_id):
-    # Retrieve the patient and visit objects based on IDs
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)    
-    orders = Order.objects.filter(patient=patient, visit=visit)
-     
-    context = {
-        'orders': orders,
-        'patient': patient,
-        'visit': visit,
-       
-    }
-    return render(request, 'receptionist_template/invoice_bill.html', context)
+
 
 @csrf_exempt
 def update_orderpayment_status(request):
@@ -600,157 +946,13 @@ def manage_patients(request):
 
 
 
-@login_required
-def patient_vital_visit_list(request, patient_id,visit_id):
-    # Retrieve the patient object
-    import numpy as np
-    patient = Patients.objects.get(pk=patient_id)
-    visit = PatientVisits.objects.get(pk=visit_id)
-    range_51 = range(51)
-    range_301 = range(301)
-    range_101 = range(101)
-    range_15 = range(3, 16)
-    integer_range = np.arange(start=0, stop=510, step=1)
-    temps = integer_range / 10
-    # Retrieve all vital information for the patient
-    patient_vitals = PatientVital.objects.filter(patient=patient,visit=visit).order_by('-recorded_at')
-
-    # Render the template with the patient's vital information
-    context = {
-        'range_51': range_51,
-        'range_301': range_301,
-        'range_101': range_101,
-        'range_15': range_15,
-        'temps': temps,
-        'patient': patient, 
-        'patient_vitals': patient_vitals,
-        'visit': visit
-    }
-    
-    return render(request, 'receptionist_template/manage_patient_vital_list.html', context)  
-
-
-@csrf_exempt
-@require_POST
-def save_patient_vital(request):
-    try:
-        # Extract data from the request
-        vital_id = request.POST.get('vital_id')
-        visit_id = request.POST.get('visit_id')
-        patient_id = request.POST.get('patient_id')
-        respiratory_rate = request.POST.get('respiratory_rate')
-        pulse_rate = request.POST.get('pulse_rate')
-        blood_pressure = request.POST.get('blood_pressure')
-        spo2 = request.POST.get('spo2')
-        temperature = request.POST.get('temperature')
-        weight = request.POST.get('Weight')
-        gcs = request.POST.get('gcs')
-        avpu = request.POST.get('avpu')
-
-        # Retrieve the corresponding 
-        patient = Patients.objects.get(id=patient_id)
-        visit = PatientVisits.objects.get(id=visit_id)
-        recorded_by = request.user.staff
-              
-
-
-        # Check if the usageHistoryId is provided for editing
-        if vital_id:
-            # Editing existing usage history
-            vital = PatientVital.objects.get(pk=vital_id)
-          
-        else:
-            # Creating new usage history
-            vital = PatientVital()
-         
-
-        # Update or set values for other fields
-        vital.recorded_by = recorded_by
-        vital.respiratory_rate = respiratory_rate
-        vital.visit = visit
-        vital.pulse_rate = pulse_rate
-        vital.blood_pressure = blood_pressure
-        vital.spo2 = spo2
-        vital.gcs = gcs
-        vital.temperature = temperature
-        vital.weight = weight
-        vital.avpu = avpu
-        vital.patient = patient
-
-    
-        vital.save()
-
-        return JsonResponse({'status': 'success','message':'vital saved successfully'}, status=201)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
-    
-
-
-@csrf_exempt
-@require_POST
-def add_remoteprescription(request):
-    try:
-        # Extract data from the request
-        patient_id = request.POST.get('patient_id')
-        visit_id = request.POST.get('visit_id')
-        medicines = request.POST.getlist('medicine[]')
-        doses = request.POST.getlist('dose[]')
-        frequencies = request.POST.getlist('frequency[]')
-        durations = request.POST.getlist('duration[]')
-        quantities = request.POST.getlist('quantity[]')
-        entered_by = request.user.staff
-        # Retrieve the corresponding patient and visit
-        patient = Patients.objects.get(id=patient_id)
-        visit = PatientVisits.objects.get(id=visit_id)
-
-        # Check inventory levels for each medicine
-        for i in range(len(medicines)):
-            medicine = Medicine.objects.get(id=medicines[i])
-            quantity_used_str = quantities[i]  # Get the quantity as a string
-
-            if quantity_used_str is None:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity cannot be empty.'})
-
-            try:
-                quantity_used = int(quantity_used_str)
-            except ValueError:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity must be a valid number.'})
-
-            if quantity_used < 0:
-                return JsonResponse({'status': 'error', 'message': f'Invalid quantity for {medicine.name}. Quantity must be a non-negative number.'})
-
-            # Retrieve the corresponding medicine inventory
-            medicine_inventory = medicine.medicineinventory_set.first()
-
-            if medicine_inventory and quantity_used > medicine_inventory.remain_quantity:
-                return JsonResponse({'status': 'error', 'message': f'Insufficient stock for {medicine.name}. Only {medicine_inventory.remain_quantity} available.'})
-
-        # Save prescriptions only if inventory check passes
-        for i in range(len(medicines)):
-            medicine = Medicine.objects.get(id=medicines[i])
-            prescription = Prescription()
-            prescription.patient = patient
-            prescription.entered_by = entered_by
-            prescription.medicine = medicine
-            prescription.visit = visit
-            prescription.dose = doses[i]
-            prescription.frequency = frequencies[i]
-            prescription.duration = durations[i]
-            prescription.quantity_used = int(quantities[i])
-            prescription.save()
-
-        return JsonResponse({'status': 'success', 'message': 'Prescription saved.'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})
     
 @login_required
 def manage_consultation(request):
-    patients=Patients.objects.all() 
-    pathology_records=PathodologyRecord.objects.all() 
+    patients=Patients.objects.all()     
     doctors=Staffs.objects.filter(role='doctor', work_place = 'resa')
     context = {
-        'patients':patients,
-        'pathology_records':pathology_records,
+        'patients':patients,     
         'doctors':doctors,
     }
     return render(request,"receptionist_template/manage_consultation.html",context)
@@ -847,7 +1049,7 @@ def add_consultation(request):
             costs = request.POST.getlist('cost[]')
             order_date = request.POST.get('order_date')
 
-            # Loop through the submitted data and create ImagingRecord objects
+            # Loop through the submitted data and create  objects
             for i in range(len(consultation_names)):
                 consultation_record = ConsultationOrder.objects.create(
                     patient_id=patient_id,
@@ -875,69 +1077,7 @@ def add_consultation(request):
         # If the request method is not POST, return an error response
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})    
     
-@login_required    
-def save_remotereferral(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        visits = PatientVisits.objects.get(id=visit_id)
-        visit_history = PatientVisits.objects.filter(patient_id=patient_id)       
-        
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit=visit_id)
-        try:
-            consultation_notes = ConsultationNotes.objects.filter(patient_id=patient_id, visit=visit_id).order_by('-created_at').first()
-        except ConsultationNotes.DoesNotExist:
-            consultation_notes = None
-        try:
-            vital = PatientVital.objects.get(patient=patient_id, visit=visit_id)
-        except PatientVital.DoesNotExist:
-            vital = None
-        try:
-            referral = Referral.objects.get(patient=patient_id, visit=visit_id)
-        except Referral.DoesNotExist:
-            referral = None
-        pathology_records = PathodologyRecord.objects.all()  # Fetch all consultation notes from the database
-        doctors = Staffs.objects.filter(role='doctor', work_place = 'resa')
-        provisional_diagnoses = Diagnosis.objects.all()
-        final_diagnoses = Diagnosis.objects.all()
 
-        total_price = sum(prescription.total_price for prescription in prescriptions)
-        range_31 = range(31)
-        current_date = timezone.now().date()
-        patient = Patients.objects.get(id=patient_id)
-        remote_service = Service.objects.all()
-        range_51 = range(51)
-        range_301 = range(301)
-        range_101 = range(101)
-        range_15 = range(3, 16)
-        medicines = Medicine.objects.filter(
-            medicineinventory__remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-
-        return render(request, 'receptionist_template/save_remotereferral.html', {
-            'visit_history': visit_history,
-            'patient': patient,
-            'visits': visits,
-            'range_31': range_31,
-            'medicines': medicines,
-            'prescriptions': prescriptions,
-            'total_price': total_price,
-            'consultation_notes': consultation_notes,
-            'pathology_records': pathology_records,
-            'doctors': doctors,
-            'provisional_diagnoses': provisional_diagnoses,
-            'final_diagnoses': final_diagnoses,
-            'vital': vital,
-            'referral': referral,
-            'remote_service': remote_service,
-            'range_51': range_51,
-            'range_301': range_301,
-            'range_101': range_101,
-            'range_15': range_15,
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})    
 
 @csrf_exempt
 def get_procedure_cost(request):
@@ -1079,35 +1219,7 @@ def save_remoteprocedure(request, patient_id, visit_id):
         return render(request, '404.html', {'error_message': str(e)})
 
 
-
-@login_required         
-def save_prescription(request, patient_id, visit_id):
-    try:
-        # Retrieve visit history for the specified patient
-        visit = PatientVisits.objects.get(id=visit_id)   
-        frequencies = PrescriptionFrequency.objects.all()       
-        prescriptions = Prescription.objects.filter(patient=patient_id, visit_id=visit_id)        
-        current_date = timezone.now().date()
-        patient = Patients.objects.get(id=patient_id)    
-        total_price = sum(prescription.total_price for prescription in prescriptions)  
-        medicines = Medicine.objects.filter(
-            remain_quantity__gt=0,  # Inventory level greater than zero
-            expiration_date__gt=current_date  # Not expired
-        ).distinct()
-        range_31 = range(31)
-        return render(request, 'receptionist_template/prescription_template.html', {           
-            'patient': patient,
-            'visit': visit,       
-            'medicines': medicines,
-            'total_price': total_price,
-            'range_31': range_31,
-            'prescriptions': prescriptions,
-            'frequencies': frequencies,
-         
-        })
-    except Exception as e:
-        # Handle other exceptions if necessary
-        return render(request, '404.html', {'error_message': str(e)})   
+ 
 
 
 @login_required
@@ -1291,28 +1403,6 @@ def patient_health_record(request, patient_id, visit_id):
 
 logger = logging.getLogger(__name__)
 
-@login_required
-def single_staff_detail(request, staff_id):
-    staff = get_object_or_404(Staffs, id=staff_id)
-    # Fetch additional staff-related data  
-    context = {
-        'staff': staff,
-     
-    }
-
-    return render(request, "receptionist_template/staff_details.html", context)
-
-@login_required
-def view_patient(request, patient_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    # Fetch additional staff-related data  
-    context = {
-        'patient': patient,
-     
-    }
-
-    return render(request, "receptionist_template/patients_detail.html", context)
-
 
 
 @login_required
@@ -1378,57 +1468,53 @@ def ambulance_order_view(request):
 
 @login_required
 def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None):
-    # Get the patient and visit objects based on IDs
+    # Fetch patient and visit objects
     patient = get_object_or_404(Patients, id=patient_id)
     visit = get_object_or_404(PatientVisits, id=visit_id)
-    
-    # Get all ambulance orders for this visit
+
+    # Fetch all ambulance orders for this visit
     ambulance_orders = Order.objects.filter(patient=patient, visit=visit, order_type='Ambulance')
     total_ambulance_cost = ambulance_orders.aggregate(Sum('cost'))['cost__sum'] or 0
-    
-    # Check if all orders are paid
+
+    # Determine if all ambulance orders are paid
     all_orders_paid = not ambulance_orders.filter(status__in=['Unpaid', 'Partially Paid']).exists()
-    
-    # Get remote services for dropdown
-    remote_service = Service.objects.all()
-    range_31 = range(1, 31)
-    
+
+    # Get available remote services and a range for days
+    remote_services = Service.objects.all()
+    days_range = range(1, 31)
+
+    # Prepare context for rendering
     context = {
         'patient': patient,
         'visit': visit,
-        'days': range_31,
-        'remote_service': remote_service,
         'ambulance_orders': ambulance_orders,
         'total_ambulance_cost': total_ambulance_cost,
         'all_orders_paid': all_orders_paid,
+        'remote_services': remote_services,
+        'days': days_range,
     }
 
-    # Check if ambulance_id is provided, indicating an edit operation
+    # If editing an existing ambulance order
     if ambulance_id:
         ambulance_order = get_object_or_404(AmbulanceOrder, id=ambulance_id)
         context['ambulance_order'] = ambulance_order
 
     if request.method == 'POST':
         try:
-            # If ambulance_id is provided, it's an edit operation
+            # Create new or fetch existing ambulance order
             if ambulance_id:
                 ambulance_order = get_object_or_404(AmbulanceOrder, id=ambulance_id)
             else:
-                # Otherwise, it's a new record
                 ambulance_order = AmbulanceOrder()
 
-            # Set the data recorder as the current user
-            data_recorder = request.user.staff
-            
-            # Get the service object
-            service_id = request.POST.get('service')
-            service = get_object_or_404(Service, id=service_id)
-            
-            # Assign values to the AmbulanceOrder fields
+            # Assign data recorder
+            ambulance_order.data_recorder = request.user.staff
             ambulance_order.patient = patient
             ambulance_order.visit = visit
-            ambulance_order.data_recorder = data_recorder
-            ambulance_order.service = service.name
+
+            ambulance_order.service = request.POST.get('service')
+
+            # Assign other fields from POST data
             ambulance_order.from_location = request.POST.get('from_location')
             ambulance_order.to_location = request.POST.get('to_location')
             ambulance_order.age = request.POST.get('age')
@@ -1442,44 +1528,23 @@ def save_ambulance_order(request, patient_id, visit_id, ambulance_id=None):
             ambulance_order.duration_hours = request.POST.get('duration_hours')
             ambulance_order.duration_days = request.POST.get('duration_days')
 
-            # Save the AmbulanceOrder object
-            ambulance_order.save()
-            
-            # Create or update the corresponding Order record
-            order, created = Order.objects.get_or_create(
-                ambulanceorder=ambulance_order,
-                defaults={
-                    'patient': patient,
-                    'visit': visit,
-                    'order_type': 'Ambulance',
-                    'order_date': timezone.now(),
-                    'order_number': f'AMB{timezone.now().strftime("%Y%m%d%H%M%S")}',
-                    'cost': ambulance_order.cost,
-                    'status': 'Unpaid',
-                    'data_recorder': data_recorder,
-                }
-            )
-            
-            if not created:
-                order.cost = ambulance_order.cost
-                order.save()
-
-            # Define success message
+            # Save the ambulance order
+            ambulance_order.save()   
+            # Set success message
             if ambulance_id:
-                messages.success(request, 'Ambulance order updated successfully')
+                messages.success(request, 'Ambulance order updated successfully.')
             else:
-                messages.success(request, 'Ambulance order saved successfully')
-                
-            # Redirect to the same page to show updated list
-            return redirect(reverse('receptionist_save_ambulance_order', args=[patient_id, visit_id]))
-            
+                messages.success(request, 'Ambulance order saved successfully.')
+
+            # Redirect to all orders view
+            return redirect('receptionist_all_orders_view')
+
         except Exception as e:
-            # Render the template with error message in case of exception
-            messages.error(request, f'Error adding/editing ambulance record: {str(e)}')
+            messages.error(request, f'Error saving ambulance order: {str(e)}')
             return render(request, 'receptionist_template/add_ambulance_order.html', context)
-    else:
-        # Render the template with all context data for GET request
-        return render(request, 'receptionist_template/add_ambulance_order.html', context)
+
+    # For GET request, just render the template
+    return render(request, 'receptionist_template/add_ambulance_order.html', context)
     
     
 @login_required    
@@ -1495,62 +1560,7 @@ def vehicle_ambulance_view(request):
     template_name = 'receptionist_template/vehicle_ambulance.html'
     return render(request, template_name, {'orders': orders})
 
-@login_required
-def patient_procedure_history_view(request, mrn):
-    patient = get_object_or_404(Patients, mrn=mrn)
-    
-    # Retrieve all procedures for the specific patient
-    procedures = Procedure.objects.filter(patient=patient)
-    
-    context = {
-        'patient': patient,
-        'procedures': procedures,
-    }
 
-    return render(request, 'receptionist_template/manage_patient_procedure.html', context)
-
-
-@csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
-def save_procedure(request):
-    if request.method == 'POST':
-        try:
-            mrn = request.POST.get('mrn')
-            name = request.POST.get('name')
-            start_time_str = request.POST.get('start_time')
-            end_time_str = request.POST.get('end_time')
-            description = request.POST.get('description')
-            equipments_used = request.POST.get('equipments_used')
-            cost = request.POST.get('cost')
-
-            # Validate start and end times
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
-
-            if start_time >= end_time:
-                return JsonResponse({'success': False, 'message': 'Start time must be greater than end time.'})
-
-            # Calculate duration in hours
-            duration = (datetime.combine(datetime.today(), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
-
-            # Save procedure record
-            procedure_record = Procedure.objects.create(
-                patient=Patients.objects.get(mrn=mrn),
-                name=name,
-                description=description,
-                duration_time=duration,
-                equipments_used=equipments_used,
-                cost=cost
-            )
-
-            return JsonResponse({'success': True, 'message': f'Procedure record for {procedure_record.name} saved successfully.'})
-        except Patients.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Invalid patient ID.'})
-        except IntegrityError:
-            return JsonResponse({'success': False, 'message': 'Duplicate entry. Procedure record not saved.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 
 @csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
@@ -1611,15 +1621,6 @@ def manage_referral(request):
     return render(request, 'receptionist_template/manage_referral.html', {'referrals': referrals,'patients':patients})
 
 
-@login_required
-def generate_billing(request, procedure_id):
-    procedure = get_object_or_404(Procedure, id=procedure_id)
-
-    context = {
-        'procedure': procedure,
-    }
-
-    return render(request, 'receptionist_template/billing_template.html', context)
 
 @login_required
 def appointment_list_view(request):
@@ -1736,6 +1737,7 @@ def add_patient(request):
             first_name = request.POST.get('first_name')
             middle_name = request.POST.get('middle_name')
             last_name = request.POST.get('last_name')
+
             # Ensure uniqueness by checking full name (case-insensitive)
             existing_patient = Patients.objects.filter(
                 first_name__iexact=first_name if first_name else '',
@@ -1745,6 +1747,8 @@ def add_patient(request):
 
             if existing_patient:
                 return JsonResponse({'success': False, 'message': 'Patient with the same full name already exists.'})
+
+            # Capitalize names
             first_name = first_name.capitalize() if first_name else None
             middle_name = middle_name.capitalize() if middle_name else None
             last_name = last_name.capitalize() if last_name else None  
@@ -1831,17 +1835,23 @@ def add_patient(request):
                 patient_instance.insurance_name = insurance_name
                 patient_instance.insurance_number = insurance_number
 
-            # Run model validation
+            # Run model validation and save
             patient_instance.full_clean()
             patient_instance.save()
 
-            return JsonResponse({'success': True, 'message': 'Patient added successfully'})
+            # ✅ Return patient_id in response
+            return JsonResponse({
+                'success': True,
+                'message': 'Patient added successfully',
+                'patient_id': patient_instance.id
+            })
 
     except Exception as e:
         logger.error(f"Error adding patient: {str(e)}")
         return JsonResponse({'success': False, 'message': f'Failed to add patient: {str(e)}'})
 
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
     
 
 def generate_mrn():
@@ -1851,41 +1861,6 @@ def generate_mrn():
     return f"RES-{new_mrn_number:07d}"
       
       
-
-
-def save_service_data(request):
-    if request.method == 'POST':
-        service_id = request.POST.get('service_id')
-        covarage = request.POST.get('covarage')
-        department = request.POST.get('department')
-        type_service = request.POST.get('typeService')
-        name = request.POST.get('serviceName')
-        description = request.POST.get('description')
-        cost = request.POST.get('cost')
-
-        try:
-            if service_id:
-                # Editing existing service
-                service = Service.objects.get(pk=service_id)
-            else:
-                # Creating a new service
-                service = Service()
-
-            service.covarage = covarage
-            service.department = department
-            service.type_service = type_service
-            service.name = name
-            service.description = description
-            service.cost = cost
-            service.save()
-
-            return redirect('manage_service')
-        except Exception as e:
-            return HttpResponseBadRequest(f"Error: {str(e)}") 
-
-    # If the request is not a POST request, handle it accordingly
-    return HttpResponseBadRequest("Invalid request method.")   
-
 
 
 @login_required
@@ -1943,133 +1918,57 @@ def patient_consultation_detail(request, patient_id, visit_id):
 
 
 
-    
-
-@csrf_exempt
-@require_POST
-def add_prescription(request):
-    try:
-        # Extract data from the request
-        prescription_id = request.POST.get('prescription_id')
-        patient_id = request.POST.get('patient')
-        medicine_id = request.POST.get('medicine')
-        route = request.POST.get('route')
-        medicine_used = int(request.POST.get('quantity'))
-        frequency = request.POST.get('frequency')
-        duration = request.POST.get('duration')
-        dose = request.POST.get('dose')
-
-        # Retrieve the corresponding patient and medicine
-        patient = Patients.objects.get(id=patient_id)
-        medicine = Medicine.objects.get(id=medicine_id)
-        
-        # Check if there is sufficient stock
-        medicine_inventory = medicine.medicineinventory_set.first()
-        if medicine_inventory and medicine_used > medicine_inventory.remain_quantity:
-            return JsonResponse({'success': False, 'message': f'Insufficient stock. Only {medicine_inventory.remain_quantity} {medicine.name} available.'})
-
-        # Check if the usageHistoryId is provided for editing
-        if prescription_id:
-            # Editing existing prescription
-            prescription = Prescription.objects.get(pk=prescription_id)
-            # Get the previous quantity used
-            previous_quantity_used = prescription.quantity_used
-            
-            # Calculate the difference in quantity
-            quantity_difference = medicine_used - previous_quantity_used
-            
-            # Update the stock level of the corresponding item
-            if medicine_inventory:
-                medicine_inventory.remain_quantity -= quantity_difference
-                medicine_inventory.save()
-            # Recalculate total price
-            total_price = medicine_used * medicine.unit_price
-            prescription.total_price = total_price
-        else:
-            # Creating new prescription
-            prescription = Prescription()
-            prs_no = generate_prescription_id()
-            prescription.prs_no = prs_no
-
-        # Update or set values for other fields
-        prescription.patient = patient
-        prescription.medicine = medicine
-        prescription.route = route
-        prescription.dose = dose
-        prescription.frequency = frequency
-        prescription.duration = duration
-        prescription.quantity_used = medicine_used
-
-        # Save the changes to both models
-        prescription.save()
-
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)})    
-    
-def generate_prescription_id():
-    last_prescription = Prescription.objects.last()
-    last_sample_number = int(last_prescription.prs_no.split('-')[-1]) if last_prescription else 0
-    new_prescription_id = last_sample_number + 1
-    return f"PRS-{new_prescription_id:07d}"
 
 
-
-    
-    
-
-
+@login_required
 def add_patient_visit(request):
     if request.method == 'POST':
+        patient_id = request.POST.get('patient_id')
         try:
-            # Extract data from POST request
-            visit_id = request.POST.get('visit_id')          
-            visitType = request.POST.get('visitType')           
-            insuranceName = request.POST.get('insuranceName')
-            insuranceNumber = request.POST.get('insuranceNumber')
-            verificationCode = request.POST.get('verificationCode')
-            visitReason = request.POST.get('visitReason')
-            patient_id = request.POST.get('patient_id')          
-            referral_number = request.POST.get('referral_number')    
-            primary_service = request.POST.get('primary_service')  
+            # Extract data
+            visit_id = request.POST.get('visit_id')
+            visit_type = request.POST.get('visitType')
+            insurance_name = request.POST.get('insuranceName')
+            insurance_number = request.POST.get('insuranceNumber')
+            verification_code = request.POST.get('verificationCode')
+            visit_reason = request.POST.get('visitReason')
+            referral_number = request.POST.get('referral_number')
+            primary_service = request.POST.get('primary_service')
 
-            # Retrieve patient object
+            # Retrieve patient
             patient = Patients.objects.get(pk=patient_id)
 
-            # Update or create PatientVisit object
+            # Update or create PatientVisit
             if visit_id:
                 visit = PatientVisits.objects.get(pk=visit_id)
             else:
                 visit = PatientVisits(patient=patient, vst=generate_vst())
 
             # Update fields
-            visit.visit_type = visitType         
+            visit.visit_type = visit_type
             visit.primary_service = primary_service
-            visit.insurance_name = insuranceName
-            visit.insurance_number = insuranceNumber            
-            visit.authorization_code = verificationCode
-            visit.visit_reason = visitReason
+            visit.insurance_name = insurance_name
+            visit.insurance_number = insurance_number
+            visit.authorization_code = verification_code
+            visit.visit_reason = visit_reason
             visit.referral_number = referral_number
             visit.save()
 
-            # Redirect the user based on the type of service
-            redirect_url = {        
-                'Investigation': reverse('receptionist_save_laboratory', args=[patient_id, visit.id]),       
-                'Procedure': reverse('receptionist_save_remoteprocedure', args=[patient_id, visit.id]),
-                'Imaging': reverse('receptionist_save_observation', args=[patient_id, visit.id]),
-                'Consultation': reverse('receptionist_patient_consultation_detail', args=[patient_id, visit.id]),
-                'Ambulance': reverse('save_ambulance_order', args=[patient_id, visit.id]),
-            }
-            # If the primary service is not found in the redirect_url dictionary, default to receptionist_patient_visit_history_view
-            return redirect(redirect_url.get(primary_service, reverse('receptionist_patient_visit_history_view', args=[patient_id])))
+            # ✅ Always go to vitals first
+            return redirect(reverse('doctor_vitals_save', args=[patient.id, visit.id]))
 
         except Patients.DoesNotExist:
             messages.error(request, 'Invalid patient ID.')
         except Exception as e:
             messages.error(request, f'Error adding/editing visit record: {str(e)}')
+            if patient_id:
+                return redirect(reverse('receptionist_patient_visit_history_view', args=[patient_id]))
 
-    # If the request method is not POST or an exception occurred, redirect to visit history view
-    return redirect(reverse('receptionist_patient_visit_history_view', args=[patient_id]))
+    # Fallback if not POST or error
+    return redirect(
+        reverse('receptionist_patient_visit_history_view', args=[request.POST.get("patient_id")])  )
+
+
 
     
 
@@ -2390,73 +2289,8 @@ def download_prescription_notes(request, visit_id):
 
     return response
 
-@login_required
-def prescription_detail(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, patient_id=patient_id)
-    
-    # Get the prescriber information for the first prescription (assuming all prescriptions have the same prescriber)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    
-    # Retrieve verification status, issued status, and payment status
-    verification_status = None
-    issued_status = None
-    payment_status = None
-    if prescriptions.exists():
-        verification_status = prescriptions.first().verified
-        issued_status = prescriptions.first().issued
-        payment_status = prescriptions.first().status
-    
-    context = {
-        'patient': patient,
-        'prescriptions': prescriptions,
-        'visit_number': visit_number,
-        'prescriber': prescriber,
-        'verification_status': verification_status,
-        'issued_status': issued_status,
-        'payment_status': payment_status,
-    }
-    return render(request, "receptionist_template/prescription_detail.html", context)
-
-@login_required
-def prescription_billing(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "receptionist_template/prescription_bill.html", context)
-
-@login_required
-def prescription_notes(request, visit_number, patient_id):
-    patient = Patients.objects.get(id=patient_id)
-    visit = PatientVisits.objects.get(vst=visit_number)
-    prescriptions = Prescription.objects.filter(visit__vst=visit_number, visit__patient__id=patient_id)
-    prescriber = None
-    if prescriptions.exists():
-        prescriber = prescriptions.first().entered_by
-    context = {
-        'patient': patient, 
-        'prescriptions': prescriptions,
-        'prescriber': prescriber,
-        'visit_number': visit_number,
-        'visit': visit,
-        }
-    return render(request, "receptionist_template/prescription_notes.html", context)
 
 
-
- 
 
 @login_required
 @csrf_exempt
@@ -2571,42 +2405,7 @@ def patient_vital_all_list(request):
     return render(request, 'receptionist_template/manage_all_patient_vital.html', context)    
 
 
-# View to verify prescriptions
-# View to verify prescriptions
-@csrf_exempt
-def verify_prescriptions(request):
-    if request.method == 'POST':
-        visit_number = request.POST.get('visit_number')
-        # Perform logic to mark prescriptions as verified for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
-            for prescription in prescriptions:
-                prescription.verified = 'verified'
-                prescription.save()
-            return JsonResponse({'message': 'Prescriptions verified successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
 
-# View to issue prescriptions
-@csrf_exempt
-def issue_prescriptions(request):
-    if request.method == 'POST':
-        visit_number = request.POST.get('visit_number')
-        # Perform logic to mark prescriptions as issued for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
-            for prescription in prescriptions:
-                prescription.issued = 'issued'
-                prescription.save()
-            return JsonResponse({'message': 'Prescriptions issued successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
 
 @csrf_exempt
 @require_POST
@@ -2671,63 +2470,7 @@ def update_payment_status(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'})
     
-    
-# View to unverify prescriptions
-@csrf_exempt
-def unverify_prescriptions(request):
-    if request.method == 'POST':
-        visit_number = request.POST.get('visit_number')
-        # Perform logic to mark prescriptions as unverified for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
-            for prescription in prescriptions:
-                prescription.verified = 'Not Verified'
-                prescription.status = 'Unpaid'
-                prescription.issued = 'Not Issued'
-                prescription.save()
-            return JsonResponse({'message': 'Prescriptions unverified successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
 
-# View to unissue prescriptions
-@csrf_exempt
-def unissue_prescriptions(request):
-    if request.method == 'POST':
-        visit_number = request.POST.get('visit_number')
-        # Perform logic to mark prescriptions as not issued for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
-            for prescription in prescriptions:
-                prescription.issued = 'Not Issued'
-                prescription.status = 'Unpaid'
-                prescription.save()
-            return JsonResponse({'message': 'Prescriptions unissued successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
-
-# View to unpay prescriptions
-@csrf_exempt
-def unpay_prescriptions(request):
-    if request.method == 'POST':
-        visit_number = request.POST.get('visit_number')
-        # Perform logic to mark prescriptions as unpaid for the given visit_number
-        # Example:
-        try:
-            prescriptions = Prescription.objects.filter(visit__vst=visit_number)
-            for prescription in prescriptions:
-                prescription.status = 'Unpaid'
-                prescription.save()
-            return JsonResponse({'message': 'Prescriptions unpaid successfully.'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request.'}, status=400)
     
 
 @login_required    
@@ -2797,41 +2540,6 @@ def vehicle_detail(request, order_id):
     return render(request, 'receptionist_template/vehicle_detail.html', {'order': order}) 
 
 
-@csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
-def delete_ambulancecardorder(request):
-    if request.method == 'POST':
-        try:
-            order_id = request.POST.get('order_id')
-
-            # Delete procedure record
-            record = get_object_or_404(AmbulanceVehicleOrder, pk=order_id)
-            record.delete()
-
-            return JsonResponse({'success': True, 'message': f' record for {record} deleted successfully.'})
-        except AmbulanceVehicleOrder.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Invalid record ID.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
-
-
-@csrf_exempt  # Use csrf_exempt decorator for simplicity in this example. For a production scenario, consider using csrf protection.
-def delete_ambulancedorder(request):
-    if request.method == 'POST':
-        try:
-            order_id = request.POST.get('order_id')
-            # Delete procedure record
-            record = get_object_or_404(AmbulanceOrder, pk=order_id)
-            record.delete()
-
-            return JsonResponse({'success': True, 'message': f' record for {record} deleted successfully.'})
-        except AmbulanceVehicleOrder.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Invalid record ID.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': f'An error occurred: {e}'})
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 
 
@@ -2924,96 +2632,6 @@ def patient_imaging_view(request):
 
     return render(request, 'receptionist_template/manage_imaging_result.html', context)
 
-@login_required
-def patient_lab_result_history_view(request, mrn):
-    patient = get_object_or_404(Patients, mrn=mrn)    
-    # Retrieve all procedures for the specific patient
-    lab_results = LaboratoryOrder.objects.filter(patient=patient)
-    patient_lab_results =  Service.objects.filter(type_service='Laboratory')    
-    context = {
-        'patient': patient,
-        'lab_results': lab_results,
-        'patient_lab_results': patient_lab_results,
-    }
-    return render(request, 'receptionist_template/manage_patient_lab_result.html', context)
-
-@login_required
-def patient_lab_details_view(request, mrn, visit_number):
-    # Fetch the patient with a prefetch query to reduce database hits
-    patient = get_object_or_404(Patients.objects.prefetch_related('laboratoryorder_set'), mrn=mrn)
-    visit = get_object_or_404(PatientVisits, vst=visit_number)
-    
-    # Retrieve lab results efficiently
-    lab_results = list(patient.laboratoryorder_set.filter(visit__vst=visit_number))
-
-    # Get the first data recorder if lab results exist
-    lab_done_by = lab_results[0].data_recorder if lab_results else None
-
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'lab_done_by': lab_done_by,
-        'lab_results': lab_results,
-    }
-
-    return render(request, 'receptionist_template/lab_details.html', context)    
-
-@login_required    
-def edit_lab_result(request, patient_id, visit_id, lab_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)            
-
-    procedures = LaboratoryOrder.objects.filter(patient=patient, visit=visit, id=lab_id).first()
-    
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'procedures': procedures,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = LaboratoryOrderForm(request.POST, instance=procedures)
-        
-        # Check if a record already exists for the patient and visit
-        if procedures:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    # Track the user who edited the record
-                    procedures.data_recorder = request.user.staff   # Set the staff member who edited
-                    form.save()  # Save the updated record
-                    messages.success(request, 'Laboratory result updated successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient          
-            form.instance.visit = visit
-            form.instance.data_recorder = request.user.staff   # Set the staff member who added the record
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, 'Laboratory result added successfully!')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('receptionist_patient_lab_result_history_view', args=[patient.mrn]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = LaboratoryOrderForm(instance=procedures)   
-    
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'receptionist_template/edit_lab_result.html', context)   
 
 
 @login_required
@@ -3070,49 +2688,7 @@ def add_radiology(request, patient_id, visit_id):
         return render(request, '404.html', {'error_message': str(e)})
 
 
-
-@login_required
-@csrf_exempt
-def add_imaging(request):
-    if request.method == 'POST':
-        try:
-            # Assuming your form fields are named appropriately in your template
-            patient_id = request.POST.get('patient_id')
-            doctor = request.user.staff
-            visit_id = request.POST.get('visit_id')
-            doctor_id = request.POST.get('doctor_id')
-            imaging_names = request.POST.getlist('imaging_name[]')
-            descriptions = request.POST.getlist('description[]')            
-            costs = request.POST.getlist('cost[]')
-            order_date = request.POST.get('order_date')
-
-            # Loop through the submitted data and create ImagingRecord objects
-            for i in range(len(imaging_names)):
-                imaging_record = ImagingRecord.objects.create(
-                    patient_id=patient_id,
-                    doctor_id=doctor_id,
-                    visit_id=visit_id,
-                    order_date=order_date,              
-                    data_recorder=request.user.staff ,
-                    imaging_id=imaging_names[i],
-                    description=descriptions[i],                 
-                    cost=costs[i],
-                    # Set other fields as needed
-                )
-                # Save the imaging record to the database
-                imaging_record.save()
-
-            # Assuming the imaging records were successfully saved
-            return JsonResponse({'status': 'success', 'message': 'Imaging records saved successfully'})
-        except IntegrityError as e:
-            # Handle integrity errors, such as unique constraint violations
-            return JsonResponse({'status': 'error', 'message': 'Integrity error occurred: ' + str(e)})
-        except Exception as e:
-            # Handle other unexpected errors
-            return JsonResponse({'status': 'error', 'message': 'An error occurred: ' + str(e)})
-    else:
-        # If the request method is not POST, return an error response
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})        
+   
 
 @login_required
 def patient_procedure_view(request):
@@ -3263,235 +2839,28 @@ def update_appointment_details(request):
                 'message': f'An error occurred: {str(e)}'
             })
 
-@login_required
-def patient_procedure_detail_view(request, mrn, visit_number):
-    """ View to display procedure details for a specific patient and visit. """
-    
-    # Fetch patient and visit in one go
-    patient = get_object_or_404(Patients, mrn=mrn)
-    visit = get_object_or_404(PatientVisits, vst=visit_number)
-    
-    # Retrieve procedures related to this patient and visit
-    procedures = Procedure.objects.filter(patient=patient, visit=visit).select_related('doctor')
 
-    # Get the doctor who performed the first procedure (if exists)
-    procedure_done_by = procedures[0].doctor if procedures else None
-
-    context = {
-        'procedure_done_by': procedure_done_by,
-        'patient': patient,
-        'visit': visit,
-        'procedure': procedures,
-    }
-
-    return render(request, 'receptionist_template/manage_procedure_detail_view.html', context)
-
-
-@login_required
-def manage_referral(request):
-    referrals = Referral.objects.all()
-    patients = Patients.objects.all()
-    return render(request, 'receptionist_template/manage_referral.html', {'referrals': referrals,'patients':patients}) 
-
-def view_referral(request, referral_id):
-    referral = get_object_or_404(Referral, id=referral_id)
-    context = {
-        'referral': referral
-    }
-    return render(request, 'receptionist_template/view_referral.html', context)
 
 def counseling_list_view(request):
     counselings = Counseling.objects.all().order_by('-created_at')
     return render(request, 'receptionist_template/manage_counselling.html', {'counselings': counselings})   
 
-@login_required    
-def save_counsel(request, patient_id, visit_id):
-    # Retrieve patient and visit objects
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)              
-    data_recorder = request.user.staff
-    # Retrieve existing remote counseling record if it exists
-    remote_counseling = Counseling.objects.get(patient=patient, visit=visit)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    # Prepare context for rendering the template
-    context = {
-        'patient': patient, 
-        'visit': visit,
-        'remote_counseling': remote_counseling,
-        'consultation_notes': consultation_notes,
-    }
-    
-    # Handle form submission
-    if request.method == 'POST':        
-        form = CounselingForm(request.POST, instance=remote_counseling)
-        
-        # Check if a record already exists for the patient and visit
-        if remote_counseling:
-            # If a record exists, update it
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            # If no record exists, create a new one
-            form.instance.patient = patient
-            form.instance.data_recorder = data_recorder
-            form.instance.visit = visit
-            if form.is_valid():
-                try:
-                    form.save()
-                    messages.success(request, '')
-                except ValidationError as e:
-                    messages.error(request, f'Validation Error: {e}')
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
 
-        # Redirect to the appropriate page after saving
-        return redirect(reverse('receptionist_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-   
-    else:
-        # If it's a GET request, initialize the form with existing data (if any)
-        form = CounselingForm(instance=remote_counseling)   
-    # Add the form to the context
-    context['form'] = form    
-    return render(request, 'receptionist_template/counsel_template.html', context)
 
-def view_counseling_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(PatientVisits, id=visit_id)  
-    patient = get_object_or_404(Patients, id=patient_id) 
-    counseling_note = get_object_or_404(Counseling, patient=patient, visit=visit)
-    
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'counseling_note': counseling_note,
-    }
-    return render(request, 'receptionist_template/counseling_notes_details.html', context) 
+
 
 def discharge_notes_list_view(request):
     discharge_notes = DischargesNotes.objects.all().order_by('-discharge_date')
     return render(request, 'receptionist_template/manage_discharge.html', {'discharge_notes': discharge_notes})           
 
-@login_required    
-def save_remote_discharges_notes(request, patient_id, visit_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    remote_discharges_notes = DischargesNotes.objects.filter(patient=patient, visit=visit).first()  
-    context = {
-            'patient': patient,
-            'visit': visit,
-            'consultation_notes': consultation_notes,
-            'remote_discharges_notes': remote_discharges_notes,         
-        }
-        
-    try:      
-        # Check if the request user is staff
-        data_recorder = request.user.staff      
-        # Handle form submission
-        if request.method == 'POST':
-            form = DischargesNotesForm(request.POST, instance=remote_discharges_notes)
-            if form.is_valid():
-                remote_discharges_notes = form.save(commit=False)
-                remote_discharges_notes.patient = patient
-                remote_discharges_notes.visit = visit
-                remote_discharges_notes.data_recorder = data_recorder
-                remote_discharges_notes.save()
-                messages.success(request, '')
-                return redirect(reverse('receptionist_patient_visit_details_view', args=[patient_id, visit_id]))  # Redirect to the next view
-            else:
-                messages.error(request, 'Please correct the errors in the form.')
-        else:
-            form = DischargesNotesForm(instance=remote_discharges_notes)        
-        # Prepare context for rendering the template
-        context['form'] = form
-        return render(request, 'receptionist_template/disrcharge_template.html', context)    
-    except Exception as e:
-        messages.error(request, f'An error occurred: {str(e)}')
-        return render(request, 'receptionist_template/disrcharge_template.html', context)
 
-@login_required
-def discharge_details_view(request, patient_id, visit_id):
-    # Fetch the patient
-    patient = get_object_or_404(Patients, id=patient_id)
 
-    # Fetch the visit
-    visit = get_object_or_404(PatientVisits, id=visit_id)
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)  
-    
-    # Fetch the discharge note related to this visit
-    discharge_note = get_object_or_404(DischargesNotes, patient=patient, visit=visit)
-
-    context = {
-        'patient': patient,
-        'visit': visit,
-        'consultation_notes': consultation_notes,
-        'discharge_note': discharge_note,
-    }
-
-    return render(request, 'receptionist_template/discharge_details.html', context)        
+   
 
 def observation_record_list_view(request):
     observation_records = ObservationRecord.objects.all().order_by('-created_at')
     return render(request, 'receptionist_template/manage_observation_record.html', {'observation_records': observation_records})
 
-@login_required
-def save_observation(request, patient_id, visit_id):
-    patient = get_object_or_404(Patients, id=patient_id)
-    visit = get_object_or_404(PatientVisits, id=visit_id)
-    data_recorder = request.user.staff
-    record_exists = ObservationRecord.objects.filter(patient_id=patient_id, visit_id=visit_id).first()
-    consultation_notes = PatientDiagnosisRecord.objects.filter(patient=patient_id, visit=visit_id)    
-    context = {'patient': patient, 
-               'visit': visit, 
-               'consultation_notes': consultation_notes, 
-               'record_exists': record_exists
-               }
-    if request.method == 'POST':
-        form = ObservationRecordForm(request.POST)
-        if form.is_valid():
-            description = form.cleaned_data['observation_notes']
-            try:
-                if record_exists:
-                    # If a record exists, update it
-                    observation_record = ObservationRecord.objects.get(patient_id=patient_id, visit_id=visit_id)
-                    observation_record.observation_notes = description
-                    observation_record.data_recorder = data_recorder
-                    observation_record.save()
-                    messages.success(request, '')
-                else:
-                    # If no record exists, create a new one
-                    ObservationRecord.objects.create(
-                        patient=patient,
-                        visit=visit,
-                        data_recorder=data_recorder,
-                        observation_notes=description,
-                    )
-                    messages.success(request, '')
-                return redirect(reverse('receptionist_save_remotesconsultation_notes', args=[patient_id, visit_id]))
-            except Exception as e:
-                messages.error(request, f'Error: {str(e)}')
-        else:
-            messages.error(request, 'Please fill out all required fields.')
-    else:
-        form = ObservationRecordForm(initial={'observation_notes': record_exists.observation_notes if record_exists else ''})
-
-    context['form'] = form
-    return render(request, 'receptionist_template/observation_template.html', context)
-
-def view_observation_notes(request, patient_id, visit_id):
-    visit = get_object_or_404(PatientVisits, id=visit_id)  
-    patient = get_object_or_404(Patients, id=patient_id)  
-    observation_record = get_object_or_404(ObservationRecord, patient=patient, visit=visit)      
-    
-    return render(request, 'receptionist_template/observation_notes_detail.html', {
-        'observation_record': observation_record,
-        'visit': visit,
-    })
 
 
 def download_observation_pdf(request, patient_id, visit_id):
@@ -4101,8 +3470,113 @@ def consultation_notes_view(request):
     })
 
 
+@login_required
+def save_remotepatient_vitals(request, patient_id, visit_id):
+    """View for saving patient vitals"""
+    import numpy as np
 
+    patient = Patients.objects.get(pk=patient_id)
+    visit = PatientVisits.objects.get(patient=patient_id, id=visit_id)
 
+    # Ranges for dropdowns
+    range_51 = range(51)
+    integer_range = np.arange(start=0, stop=510, step=1)
+    temps = integer_range / 10
+    range_301 = range(301)
+    range_101 = range(101)
+    range_15 = range(3, 16)
+
+    context = {
+        'patient': patient,
+        'range_51': range_51,
+        'range_301': range_301,
+        'range_101': range_101,
+        'range_15': range_15,
+        'temps': temps,
+        'visit': visit,
+    }
+
+    try:
+        doctor = request.user.staff
+
+        # Check if a vital record already exists
+        existing_vital = PatientVital.objects.filter(patient=patient, visit=visit).last()
+        if existing_vital:
+            context['existing_vital'] = existing_vital
+
+        if request.method == 'POST':
+
+            # Helper to sanitize input
+            def safe_decode(value):
+                if value is None:
+                    return ''
+                return value.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+
+            # Retrieve form data
+            respiratory_rate = safe_decode(request.POST.get('respiratory_rate'))
+            pulse_rate = safe_decode(request.POST.get('pulse_rate'))
+            sbp = safe_decode(request.POST.get('sbp'))
+            dbp = safe_decode(request.POST.get('dbp'))
+            blood_pressure = f"{sbp}/{dbp}" if sbp and dbp else ''
+            spo2 = safe_decode(request.POST.get('spo2'))
+            temperature = safe_decode(request.POST.get('temperature'))
+            gcs = safe_decode(request.POST.get('gcs'))
+            avpu = safe_decode(request.POST.get('avpu'))
+            weight = safe_decode(request.POST.get('weight'))
+
+            if existing_vital:  # Update
+                existing_vital.respiratory_rate = respiratory_rate
+                existing_vital.recorded_by = doctor
+                existing_vital.pulse_rate = pulse_rate
+                existing_vital.sbp = sbp
+                existing_vital.dbp = dbp
+                existing_vital.spo2 = spo2
+                existing_vital.blood_pressure = blood_pressure
+                existing_vital.temperature = temperature
+                existing_vital.avpu = avpu              
+                existing_vital.gcs = gcs              
+                existing_vital.weight = weight
+                existing_vital.save()
+                messages.success(request, 'Vitals updated successfully.')
+            else:  # Create
+                PatientVital.objects.create(
+                    patient=patient,
+                    visit=visit,
+                    recorded_by=doctor,
+                    respiratory_rate=respiratory_rate,
+                    pulse_rate=pulse_rate,
+                    sbp=sbp,
+                    dbp=dbp,
+                    blood_pressure=blood_pressure,
+                    spo2=spo2,
+                    temperature=temperature,
+                    avpu=avpu,
+                    gcs=gcs,
+                    weight=weight,                
+                )
+                messages.success(request, 'Vitals recorded successfully.')
+
+            # 🔑 Redirect to correct service based on visit.primary_service
+            redirect_url_map = {
+                'Investigation': 'receptionist_save_laboratory',
+                'Procedure': 'receptionist_save_remoteprocedure',
+                'Imaging': 'receptionist_add_radiology',
+                'Consultation': 'receptionist_patient_consultation_detail',
+                'Ambulance': 'receptionist_save_ambulance_order',
+            }
+
+            if visit.primary_service in redirect_url_map:
+                return redirect(reverse(redirect_url_map[visit.primary_service], args=[patient_id, visit_id]))
+            else:
+                # fallback: if no valid service, go to visit history
+                return redirect(reverse('receptionist_patient_visit_history_view', args=[patient_id]))
+
+        else:
+            return render(request, 'receptionist_template/add_remotepatient_vital.html', context)
+
+    except Exception as e:
+        messages.error(request, f'Error adding/editing remote patient vital information: {str(e)}')
+        return render(request, 'receptionist_template/add_remotepatient_vital.html', context)
 
     
 

@@ -5,6 +5,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash, logout
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.timezone import now
 from django.views import View
 from django.utils.decorators import method_decorator
@@ -82,6 +83,35 @@ def labtechnician_dashboard(request):
         'recent_lab_orders': recent_lab_orders,
     }
     return render(request, "labtechnician_template/home_content.html", context)
+    
+
+def lab_dashboard_counts(request):
+    """Return counts for lab orders and reagents in a single response"""
+    if request.method == 'GET':
+        # Lab order counts
+        without_result = LaboratoryOrder.objects.filter(result__isnull=True).count()
+        with_result = LaboratoryOrder.objects.filter(result__isnull=False).count()
+        
+        # Reagent counts
+        today = timezone.now().date()
+        expired = Reagent.objects.filter(expiration_date__lt=today).count()
+        expiring_soon = Reagent.objects.filter(
+            expiration_date__range=(today, today + timedelta(days=30))
+        ).count()
+        out_of_stock = Reagent.objects.filter(remaining_quantity=0).count()
+        
+        data = {
+            "lab_orders": {
+                "without_result": without_result,
+                "with_result": with_result
+            },
+            "reagents": {
+                "expired": expired,
+                "expiring_soon": expiring_soon,
+                "out_of_stock": out_of_stock
+            }
+        }
+        return JsonResponse(data)
 
 @login_required
 def test_status_data(request):
@@ -514,6 +544,11 @@ def technician_stats_api(request):
         # Reagent Statistics
         reagents = Reagent.objects.all()
         
+        # Calculate reagent inventory value properly
+        total_inventory_value = 0
+        for reagent in reagents:
+            total_inventory_value += float(reagent.remaining_quantity) * float(reagent.price_per_unit)
+        
         # Prepare statistics
         stats = {
             # Lab Order Counts
@@ -545,10 +580,8 @@ def technician_stats_api(request):
             'pending_revenue': float(lab_orders.filter(result__isnull=True).aggregate(Sum('cost'))['cost__sum'] or 0),
             'completed_revenue': float(lab_orders.filter(result__isnull=False).aggregate(Sum('cost'))['cost__sum'] or 0),
             
-            # Reagent Inventory Value
-            'reagent_inventory_value': float(reagents.aggregate(
-                total_value=Sum('remaining_quantity' * 'price_per_unit')
-            )['total_value'] or 0),
+            # Reagent Inventory Value (fixed calculation)
+            'reagent_inventory_value': total_inventory_value,
             
             # Most Ordered Tests
             'popular_tests': list(lab_orders.values(
@@ -587,6 +620,7 @@ def technician_stats_api(request):
             'popular_tests': [],
             'timestamp': timezone.now().isoformat()
         }, status=500)
+
 
 @login_required
 @require_GET
@@ -636,7 +670,7 @@ def technician_notifications_api(request):
                 'title': 'Pending Lab Order',
                 'details': f'{order.lab_test.name} for {order.patient.first_name} {order.patient.last_name}',
                 'time_ago': get_time_ago(order.created_at),
-                'link': f'/lab/order/{order.id}/'  # Adjust this URL as needed
+                'link': reverse('lab_edit_lab_result', args=[order.id])  # Adjust this URL as needed
             })
         
         # Add low stock notifications
@@ -648,7 +682,7 @@ def technician_notifications_api(request):
                 'title': 'Reagent Running Low',
                 'details': f'{reagent.name} - {reagent.remaining_quantity} remaining',
                 'time_ago': get_time_ago(reagent.updated_at),
-                'link': '/lab/reagents/'  # Adjust this URL as needed
+                'link': reverse('lab_reagent_list')  # Adjust this URL as needed
             })
         
         # Add expiring soon notifications
@@ -661,7 +695,7 @@ def technician_notifications_api(request):
                 'title': 'Reagent Expiring Soon',
                 'details': f'{reagent.name} expires in {days_until_expiry} days',
                 'time_ago': get_time_ago(reagent.updated_at),
-                'link': '/lab/reagents/expiring-soon/'  # Adjust this URL as needed
+                'link': reverse('lab_reagent_expiring_soon')  # Adjust this URL as needed
             })
         
         # Add out of stock notifications
@@ -673,7 +707,7 @@ def technician_notifications_api(request):
                 'title': 'Reagent Out of Stock',
                 'details': f'{reagent.name} is out of stock',
                 'time_ago': get_time_ago(reagent.updated_at),
-                'link': '/lab/reagents/out-of-stock/'  # Adjust this URL as needed
+                'link':  reverse('lab_reagent_out_of_stock')  # Adjust this URL as needed
             })
         
         # Sort notifications by time (most recent first)

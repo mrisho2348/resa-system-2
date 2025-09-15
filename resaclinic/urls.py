@@ -12,7 +12,7 @@ urlpatterns = [
     # -------------------------
     # Receptionist URLs
     # -------------------------
-    path('reception/', include('resaclinic.receptionist_urls')),
+    path('receptionist/', include('resaclinic.receptionist_urls')),
 
     # -------------------------
     # Pharmacist URLs

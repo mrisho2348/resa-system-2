@@ -5,29 +5,23 @@ from clinic.ReceptionistView import *
 
 
 urlpatterns = [
-        path('save_prescription/<int:patient_id>/<int:visit_id>/', save_prescription, name='receptionist_save_prescription'),
+      
         path('save_laboratory/<int:patient_id>/<int:visit_id>/', save_laboratory, name='receptionist_save_laboratory'),
-        path('save_remotereferral/<int:patient_id>/<int:visit_id>/', save_remotereferral, name='receptionist_save_remotereferral'),
+
         path('save_remoteprocedure/<int:patient_id>/<int:visit_id>/', save_remoteprocedure, name='receptionist_save_remoteprocedure'),
         path('save_observation/<int:patient_id>/<int:visit_id>/', save_observation, name='receptionist_save_observation'),
-        path('verify_prescriptions/', verify_prescriptions, name='receptionist_verify_prescriptions'),
-        path('unverify_prescriptions/', unverify_prescriptions, name='receptionist_unverify_prescriptions'),
-        path('issue_prescriptions/', issue_prescriptions, name='receptionist_issue_prescriptions'),
-        path('unissue_prescriptions/', unissue_prescriptions, name='receptionist_unissue_prescriptions'),        
+      
         path('update_payment_status/', update_payment_status, name='receptionist_pay_prescriptions'),
-        path('unpay_prescriptions/', unpay_prescriptions, name='receptionist_unpay_prescriptions'),
+   
         path('add_investigation/', add_investigation, name='receptionist_add_investigation'),
-        path('edit_lab_result/<int:patient_id>/<int:visit_id>/<int:lab_id>/', edit_lab_result, name='receptionist_edit_lab_result'),
+
         path('receptionist/get-gender-yearly-data/', get_gender_yearly_data, name="receptionist_get_gender_yearly_data"),
         path('receptionist/get-gender-monthly-data/', get_gender_monthly_data, name="receptionist_get_gender_monthly_data"),
         path('add_imaging/', add_imaging, name='receptionist_add_imaging'),
         path('ambulance_order/', ambulance_order_create_or_update, name='receptionist_ambulance_order_create_or_update'),
         path('ambulance_order/<int:order_id>/', ambulance_order_create_or_update, name='receptionist_ambulance_order_edit'),
         path('receptionist/update-orderpayment-status/', update_orderpayment_status, name='receptionist_update_orderpayment_status'),
-        path('invoice/<int:patient_id>/<int:visit_id>/', generate_invoice_bill, name='receptionist_generate_invoice_bill'),
-        path('prescriptions/<str:visit_number>/<int:patient_id>/', prescription_detail, name='receptionist_prescription_detail'),
-        path('prescription-billing/<str:visit_number>/<int:patient_id>/', prescription_billing, name='receptionist_prescription_billing'),
-        path('prescription-notes/<str:visit_number>/<int:patient_id>/', prescription_notes, name='receptionist_prescription_notes'),
+
         path('patients/<int:patient_id>/visits/<int:visit_id>/ambulance_order/', save_ambulance_order, name='receptionist_save_ambulance_order'),
         path('patients/<int:patient_id>/visits/<int:visit_id>/ambulance_order/<int:ambulance_id>/', save_ambulance_order, name='receptionist_edit_ambulance_order'),
         path('walkin-prescriptions/', walkin_prescription_list, name='receptionist_walkin_prescription_list'),
@@ -42,43 +36,40 @@ urlpatterns = [
         path('resa/receptionist/change-password/', change_password, name='receptionist_change_password'),
         path('edit-profile/<int:pk>/', EditStaffProfileView.as_view(), name='receptionist_edit_staff_profile'),
         path('add_patient/', add_patient, name='receptionist_add_patient'),
-        path('delete_ambulancecardorder/', delete_ambulancecardorder, name='receptionist_delete_ambulancecardorder'),
-        path('delete_ambulancedorder/', delete_ambulancedorder, name='delete_ambulancedorder'),
+
         path('vehicle_detail/<int:order_id>/', vehicle_detail, name='receptionist_vehicle_detail'),    
         path('vehicle_ambulance_view/',vehicle_ambulance_view, name="receptionist_vehicle_ambulance_view"),        
         path('ambulance_order_detail/<int:order_id>/', ambulance_order_detail, name='receptionist_ambulance_order_detail'),        
-        path('get_unit_price/',get_unit_price, name="receptionist_get_unit_price"),
+
         path('ambulance_order_view/',ambulance_order_view, name="receptionist_ambulance_order_view"),     
-        path('add_remoteprescription/',add_remoteprescription, name="receptionist_add_remoteprescription"),
-        path('save_patient_vital/',save_patient_vital, name="receptionist_save_patient_vital"),
-        path('add_prescription/',add_prescription, name="receptionist_add_prescription"),
+    
         path('save_edited_patient/',save_edited_patient, name="receptionist_save_edited_patient"),
         path('add_patient_visit/',add_patient_visit, name="receptionist_add_patient_visit"),      
-        path('staff_detail/<int:staff_id>/', single_staff_detail, name='receptionist_single_staff_detail'),
-        path('view-patient/<int:patient_id>/', view_patient, name='receptionist_view_patient'),  
-        path('save_service_data/',save_service_data, name="receptionist_save_service_data"),      
-       
+        
+        path('vitals/save/<int:patient_id>/<int:visit_id>/', save_remotepatient_vitals, name='doctor_vitals_save'),
         path('resa/patient_vital_all_listt/', patient_vital_all_list, name='receptionist_patient_vital_all_list'),
         path('patient_consultation_detail/<int:patient_id>/<int:visit_id>/', patient_consultation_detail, name='receptionist_patient_consultation_detail'),
        
         path('patient_health_record/<int:patient_id>/<int:visit_id>/', patient_health_record, name='receptionist_patient_health_record'),
-        path('patient_vital_visit_list/<int:patient_id>/<int:visit_id>/', patient_vital_visit_list, name='receptionist_patient_vital_visit_list'),
+     
         path('patient_visit_history/<int:patient_id>/', patient_visit_history_view, name='receptionist_patient_visit_history_view'),       
         path('prescriptions/', prescription_list, name='receptionist_prescription_list'),       
         path('resa/manage-referral/', manage_referral, name='receptionist_manage_referral'),
     
-        path('resa/all-patients',manage_patients, name="receptionist_manage_patients"),
+        path('manage_patients/',manage_patients, name="receptionist_manage_patients"),
         path('resa/save/remotepatient/vital',save_remotepatient_vital, name="receptionist_save_remotepatient_vital"),
         path('resa/consultation-queue',manage_consultation, name="receptionist_manage_consultation"),
         path('resa/manage-service',manage_service, name="receptionist_manage_service"),
         path('employee/', employee_detail, name='receptionist_employee_detail'),
-        path('resa/appointments/', appointment_list_view, name='receptionist_appointment_list'),       
-        path('generate-bill/<int:procedure_id>/', generate_billing, name='receptionist_generate_billing'),
-        path('save_procedure/', save_procedure, name='receptionist_save_procedure'),
+        path('appointment_list/', appointment_list_view, name='receptionist_appointment_list'),       
+      
         path('save_referral/', save_referral, name='receptionist_save_referral'),
         path('all_orders_view/', all_orders_view, name='receptionist_all_orders_view'),
         path('change_referral_status/', change_referral_status, name='receptionist_change_referral_status'),     
-     
+        path('receptionist/notifications/', receptionist_notifications_view, name='receptionist_notifications'),
+        path('receptionist/notifications/api/', receptionist_all_notifications_api, name='receptionist_all_notifications_api'),
+        path('receptionist/notifications/toggle/', receptionist_toggle_notification_api, name='receptionist_toggle_notification_api'),
+        path('receptionist/notifications/delete/', receptionist_delete_notification_api, name='receptionist_delete_notification_api'),
 
         path('service_status_data/', service_status_data, name='receptionist_service_status_data'),
         path('update-appointment-status/', update_appointment_status, name='receptionist_update_appointments'),  
@@ -86,29 +77,28 @@ urlpatterns = [
         # edit urls        
       
         path('appointment_view/', appointment_view, name='receptionist_appointment_view'), 
-        path('patient-procedure-history/<str:mrn>/view/', patient_procedure_history_view, name='receptionist_patient_procedure_history_view_mrn'), 
+
 
         path('patient/imaging/view/', patient_imaging_view, name="receptionist_patient_imaging_view"), 
         path('patient/laboratory/view/', patient_laboratory_view, name="receptionist_patient_laboratory_view"), 
-        path('patient_lab_result_history_view/<str:mrn>/view/', patient_lab_result_history_view, name="receptionist_patient_lab_result_history_view"), 
-        path('lab-details/<str:mrn>/<str:visit_number>/', patient_lab_details_view, name='receptionist_patient_lab_details_view'),
+
         path('resa/patient-procedure-view/', patient_procedure_view, name='receptionist_patient_procedure_view'),   
-        path('procedure/detail/<str:mrn>/<str:visit_number>/', patient_procedure_detail_view, name='receptionist_patient_procedure_detail_view'),  
+
         path('resa/manage-referral/', manage_referral, name='receptionist_manage_referral'), 
-        path('referral/view/<int:referral_id>/',view_referral, name='receptionist_view_referral'),
+       
         path('counseling/', counseling_list_view, name='receptionist_counseling_list'),
-        path('save_counsel/<int:patient_id>/<int:visit_id>/', save_counsel, name='receptionist_save_remote_counseling'),
-        path('counseling_notes/<int:patient_id>/<int:visit_id>/', view_counseling_notes, name='receptionist_view_counseling_notes'),
+
         path('discharge_notes/', discharge_notes_list_view, name='receptionist_discharge_notes_list'),
-        path('save_remote_discharges_notes/<int:patient_id>/<int:visit_id>/', save_remote_discharges_notes, name='receptionist_save_remote_discharges_notes'),
-        path('discharge/details/<int:patient_id>/<int:visit_id>/', discharge_details_view, name='receptionist_discharge_details_view'),
+
         path('observation_records/', observation_record_list_view, name='receptionist_observation_record_list'),
         path('save_observation/<int:patient_id>/<int:visit_id>/', save_observation, name='receptionist_save_observation'),
-        path('observation_notes/<int:patient_id>/<int:visit_id>/', view_observation_notes, name='receptionist_view_observation_notes'),
+     
         path('consultation-notes/', consultation_notes_view, name='receptionist_consultation_notes'),
         path('api/earnings/', get_earnings_data, name='receptionist_get_earnings_data'),
         path('add/radiology/<int:patient_id>/<int:visit_id>/', add_radiology, name='receptionist_add_radiology'),
         re_path(r'^doctor/add_imaging/$', add_imaging, name='receptionist_add_imaging'),
+        path('reception-dashboard-counts/', reception_dashboard_counts, name='reception_dashboard_counts'),
+        path('receptionist/dashboard-data/', receptionist_dashboard_data, name='receptionist_dashboard_data'),
 
         path('receptionist/download-invoice/<int:patient_id>/<int:visit_id>/', download_invoice_bill_pdf, name='receptionist_download_invoice_bill'),
         path('download/consultation-summary/<int:patient_id>/<int:visit_id>/', download_consultation_summary_pdf, name='receptionist_download_consultation_summary_pdf' ),
